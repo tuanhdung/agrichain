@@ -45,6 +45,25 @@
   --color-bg-subtle: var(--neutral-50);
   --color-border: var(--neutral-200);
 
+  /* --- Màu trạng thái (badge, thông báo, validate form) --- */
+  --red-50: #FDECEC;
+  --red-700: #B42318;
+  --amber-50: #FFF8E6;
+  --amber-700: #92400E;
+  --blue-50: #EAF2FB;
+  --blue-700: #1D4E89;
+
+  --color-success: var(--color-primary-active);
+  --color-success-subtle: var(--color-primary-subtle);
+  --color-warning: var(--amber-700);
+  --color-warning-subtle: var(--amber-50);
+  --color-info: var(--blue-700);
+  --color-info-subtle: var(--blue-50);
+  --color-danger: var(--red-700);
+  --color-danger-subtle: var(--red-50);
+  --color-neutral: var(--color-text-muted);
+  --color-neutral-subtle: var(--color-bg-subtle);
+
   /* --- Khoảng cách: thang bội số 4px --- */
   --space-0: 0px;
   --space-1: 4px;
@@ -93,10 +112,10 @@
   --radius-full: 9999px;
 
   /* --- Đổ bóng --- */
-  --shadow-sm: 0 1px 2px rgba(20, 30, 22, 0.06);
-  --shadow-md: 0 4px 8px rgba(20, 30, 22, 0.08), 0 1px 3px rgba(20, 30, 22, 0.06);
-  --shadow-lg: 0 10px 20px rgba(20, 30, 22, 0.10), 0 3px 6px rgba(20, 30, 22, 0.08);
-  --shadow-xl: 0 20px 40px rgba(20, 30, 22, 0.12), 0 6px 12px rgba(20, 30, 22, 0.08);
+  --shadow-sm: 0 1px 2px rgba(20, 30, 22, 0.08);
+  --shadow-md: 0 6px 12px rgba(20, 30, 22, 0.12), 0 2px 4px rgba(20, 30, 22, 0.08);
+  --shadow-lg: 0 16px 28px rgba(20, 30, 22, 0.16), 0 4px 8px rgba(20, 30, 22, 0.10);
+  --shadow-xl: 0 28px 48px rgba(20, 30, 22, 0.20), 0 8px 16px rgba(20, 30, 22, 0.12);
 
   /* --- Layout --- */
   --container-max-width: 1200px;
@@ -104,4 +123,7 @@
 
   /* --- Chuyển động --- */
   --transition-base: 150ms ease;
+
+  /* --- Lớp phủ (z-index) --- */
+  --z-sticky: 100;
 }
