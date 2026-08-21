@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AgriChain — Design Foundation</title>
+  <title>AgriChain — Truy xuất nguồn gốc nông sản</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -17,149 +17,152 @@
   <link rel="stylesheet" href="css/components.css" />
 
   <style>
-    /* CSS chỉ dùng riêng cho trang demo này, không phải component tái sử dụng */
-    .demo-section {
-      padding-block: var(--space-16);
-      border-bottom: 1px solid var(--color-border);
-    }
-    .demo-section__title {
-      margin-bottom: var(--space-2);
-    }
-    .demo-section__desc {
-      color: var(--color-text-muted);
-      margin-bottom: var(--space-8);
-      max-width: 640px;
-    }
-    .demo-hero {
-      padding-block: var(--space-24) var(--space-16);
-      background: linear-gradient(180deg, var(--green-50), var(--color-bg));
-    }
-    .demo-hero__eyebrow {
-      display: inline-block;
-      font-size: var(--text-sm);
-      font-weight: 600;
-      color: var(--color-primary-active);
-      background: var(--color-primary-subtle);
-      padding: var(--space-1) var(--space-3);
-      border-radius: var(--radius-full);
-      margin-bottom: var(--space-4);
-    }
-    .demo-hero__desc {
-      max-width: 620px;
-      color: var(--color-text-muted);
-      font-size: var(--text-lg);
-      margin-top: var(--space-4);
-    }
-
-    .swatch-row {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: var(--space-3);
-    }
-    @media (min-width: 640px) {
-      .swatch-row { grid-template-columns: repeat(10, 1fr); }
-    }
-    .swatch {
-      border-radius: var(--radius-md);
-      overflow: hidden;
-      border: 1px solid var(--color-border);
-    }
-    .swatch__color {
-      height: 64px;
-    }
-    .swatch__label {
-      font-size: var(--text-xs);
-      padding: var(--space-2);
-      background: var(--color-bg);
-    }
-    .swatch__label strong {
-      display: block;
-      color: var(--color-text);
-    }
-    .swatch__label span {
-      color: var(--color-text-muted);
-    }
-
-    .space-row {
+    /* CSS chỉ dùng riêng cho trang chủ, không phải component tái sử dụng */
+    .hero {
+      position: relative;
+      min-height: 85vh;
       display: flex;
       align-items: center;
-      gap: var(--space-4);
-      margin-bottom: var(--space-3);
-    }
-    .space-row__bar {
-      background: var(--color-primary);
-      border-radius: var(--radius-sm);
-      height: var(--space-4);
-    }
-    .space-row__label {
-      width: 90px;
-      font-size: var(--text-sm);
-      color: var(--color-text-muted);
-      flex-shrink: 0;
+      color: var(--color-text-inverse);
+      /* Nền gradient tạm thời — sau này thay ảnh nền thật bằng cách thêm
+         url('...') vào trước gradient, ví dụ:
+         background: linear-gradient(160deg, rgba(20,74,48,.85), rgba(31,143,88,.7)), url('...') center/cover; */
+      background: linear-gradient(160deg, var(--green-900) 0%, var(--green-700) 55%, var(--green-600) 100%);
+      background-size: cover;
+      background-position: center;
     }
 
-    .type-row {
-      display: flex;
-      align-items: baseline;
-      gap: var(--space-6);
-      padding-block: var(--space-3);
-      border-bottom: 1px dashed var(--color-border);
-    }
-    .type-row__label {
-      width: 70px;
-      flex-shrink: 0;
-      font-size: var(--text-xs);
-      color: var(--color-text-muted);
-    }
-
-    .box-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-6);
-    }
-    .box-demo {
-      width: 120px;
-      height: 80px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--color-bg);
-      border: 1px solid var(--color-border);
-      font-size: var(--text-xs);
-      color: var(--color-text-muted);
-    }
-
-    .btn-row {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: var(--space-4);
-      margin-bottom: var(--space-4);
-    }
-
-    .icon-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: var(--space-4);
-    }
-    @media (min-width: 640px) {
-      .icon-grid { grid-template-columns: repeat(6, 1fr); }
-    }
-    .icon-demo {
+    .hero__layout {
       display: flex;
       flex-direction: column;
+      gap: var(--space-12);
+    }
+    @media (min-width: 960px) {
+      .hero__layout {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-12);
+      }
+    }
+
+    .hero__inner {
+      max-width: 560px;
+    }
+
+    .hero__title {
+      color: var(--color-text-inverse);
+      font-size: var(--text-4xl);
+      margin-bottom: var(--space-6);
+    }
+    @media (min-width: 640px) {
+      .hero__title { font-size: var(--text-5xl); }
+    }
+    @media (min-width: 960px) {
+      .hero__title { font-size: var(--text-6xl); }
+    }
+
+    .hero__desc {
+      font-size: var(--text-lg);
+      color: var(--color-text-inverse);
+      opacity: 0.85;
+      margin-bottom: var(--space-8);
+    }
+
+    .hero__actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-4);
+      margin-bottom: var(--space-10);
+    }
+
+    .hero__stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-8);
+    }
+
+    .hero__stat {
+      padding-left: var(--space-6);
+      border-left: 1px solid var(--color-border);
+    }
+    .hero__stat:first-child {
+      padding-left: 0;
+      border-left: none;
+    }
+
+    .hero__stat-value {
+      display: block;
+      font-size: var(--text-3xl);
+      font-weight: 700;
+      color: var(--color-text-inverse);
+    }
+
+    .hero__stat-label {
+      display: block;
+      margin-top: var(--space-1);
+      font-size: var(--text-sm);
+      color: var(--color-text-inverse);
+      opacity: 0.7;
+    }
+
+    .hero__showcase {
+      display: flex;
+      justify-content: center;
+    }
+    @media (min-width: 960px) {
+      .hero__showcase { justify-content: flex-end; }
+    }
+
+    .hero__card {
+      width: 100%;
+      max-width: 380px;
+      box-shadow: var(--shadow-xl);
+    }
+
+    .hero__timeline {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .hero__timeline-item {
+      display: flex;
       align-items: center;
-      gap: var(--space-2);
-      padding: var(--space-4);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
+      gap: var(--space-3);
+    }
+    .hero__timeline-item .icon {
+      color: var(--color-primary);
+    }
+
+    .hero__timeline-label {
+      flex: 1;
+      font-size: var(--text-sm);
+      color: var(--color-text);
+    }
+
+    .hero__timeline-date {
       font-size: var(--text-xs);
       color: var(--color-text-muted);
     }
-    .icon-demo .icon {
-      color: var(--color-primary);
-      width: var(--space-8);
-      height: var(--space-8);
+
+    .hero__scroll {
+      position: absolute;
+      left: 50%;
+      bottom: var(--space-8);
+      transform: translateX(-50%);
+      display: inline-flex;
+      color: var(--color-text-inverse);
+      opacity: 0.75;
+      transition: opacity var(--transition-base);
+      animation: hero-scroll-bounce 2s ease-in-out infinite;
+    }
+    .hero__scroll:hover {
+      opacity: 1;
+    }
+    @keyframes hero-scroll-bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(6px); }
     }
   </style>
 </head>
@@ -168,7 +171,7 @@
   <!-- Site Header -->
   <header class="site-header">
     <div class="container site-header__inner">
-      <a href="#" class="site-header__logo" aria-label="AgriChain — Trang chủ">
+      <a href="index.html" class="site-header__logo" aria-label="AgriChain — Trang chủ">
         <span class="site-header__logo-mark" aria-hidden="true">A</span>
         <span class="site-header__logo-text">AgriChain</span>
       </a>
@@ -217,381 +220,85 @@
     </div>
   </header>
 
-  <!-- Hero -->
-  <section class="demo-hero">
-    <div class="container">
-      <span class="demo-hero__eyebrow">Design Foundation</span>
-      <h1>AgriChain</h1>
-      <p class="demo-hero__desc">
-        Nền tảng truy xuất nguồn gốc nông sản bằng blockchain kết hợp AI.
-        Trang này trình bày toàn bộ token màu sắc, khoảng cách, kiểu chữ
-        và các component nền tảng dùng chung cho toàn dự án.
-      </p>
-    </div>
-  </section>
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero__layout">
+          <div class="hero__inner">
+            <h1 class="hero__title">Minh bạch nông sản Việt, từ nông trại đến bàn ăn</h1>
+            <p class="hero__desc">
+              AgriChain ứng dụng blockchain và trí tuệ nhân tạo để truy xuất nguồn gốc
+              từng lô nông sản, giúp nông hộ, doanh nghiệp và người tiêu dùng cùng tin tưởng lẫn nhau.
+            </p>
 
-  <!-- Color -->
-  <section class="demo-section">
-    <div class="container">
-      <h2 class="demo-section__title">Màu sắc</h2>
-      <p class="demo-section__desc">
-        Xanh lá (Primary Green) là màu thương hiệu chính, đủ 10 sắc độ từ 50 đến 900.
-        Neutral dùng cho chữ, nền, đường viền.
-      </p>
+            <div class="hero__actions">
+              <a class="btn btn--primary btn--lg" href="#bat-dau-ngay">Bắt Đầu Ngay</a>
+              <a class="btn btn--outline-inverse btn--lg" href="#tinh-nang">Tìm Hiểu Thêm</a>
+            </div>
 
-      <h4 style="margin-bottom: var(--space-3);">Primary Green</h4>
-      <div class="swatch-row" style="margin-bottom: var(--space-8);">
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--green-50);"></div>
-          <div class="swatch__label"><strong>50</strong><span>#F0FBF4</span></div>
-        </div>
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--green-100);"></div>
-          <div class="swatch__label"><strong>100</strong><span>#DCF5E4</span></div>
-        </div>
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--green-200);"></div>
-          <div class="swatch__label"><strong>200</strong><span>#B8EACB</span></div>
-        </div>
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--green-300);"></div>
-          <div class="swatch__label"><strong>300</strong><span>#8ADCAA</span></div>
-        </div>
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--green-400);"></div>
-          <div class="swatch__label"><strong>400</strong><span>#55C687</span></div>
-        </div>
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--green-500);"></div>
-          <div class="swatch__label"><strong>500</strong><span>Base</span></div>
-        </div>
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--green-600);"></div>
-          <div class="swatch__label"><strong>600</strong><span>#1F8F58</span></div>
-        </div>
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--green-700);"></div>
-          <div class="swatch__label"><strong>700</strong><span>#1A7248</span></div>
-        </div>
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--green-800);"></div>
-          <div class="swatch__label"><strong>800</strong><span>#175A3A</span></div>
-        </div>
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--green-900);"></div>
-          <div class="swatch__label"><strong>900</strong><span>#144A30</span></div>
-        </div>
-      </div>
-
-      <h4 style="margin-bottom: var(--space-3);">Neutral</h4>
-      <div class="swatch-row">
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--neutral-50);"></div>
-          <div class="swatch__label"><strong>50</strong><span>#F8FAF9</span></div>
-        </div>
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--neutral-100);"></div>
-          <div class="swatch__label"><strong>100</strong><span>#F0F3F1</span></div>
-        </div>
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--neutral-200);"></div>
-          <div class="swatch__label"><strong>200</strong><span>#E1E7E3</span></div>
-        </div>
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--neutral-300);"></div>
-          <div class="swatch__label"><strong>300</strong><span>#C7D0CA</span></div>
-        </div>
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--neutral-400);"></div>
-          <div class="swatch__label"><strong>400</strong><span>#9AA69F</span></div>
-        </div>
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--neutral-500);"></div>
-          <div class="swatch__label"><strong>500</strong><span>#6B7970</span></div>
-        </div>
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--neutral-600);"></div>
-          <div class="swatch__label"><strong>600</strong><span>#4E5A52</span></div>
-        </div>
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--neutral-700);"></div>
-          <div class="swatch__label"><strong>700</strong><span>#3A443E</span></div>
-        </div>
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--neutral-800);"></div>
-          <div class="swatch__label"><strong>800</strong><span>#262E29</span></div>
-        </div>
-        <div class="swatch">
-          <div class="swatch__color" style="background: var(--neutral-900);"></div>
-          <div class="swatch__label"><strong>900</strong><span>#161C18</span></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Spacing -->
-  <section class="demo-section">
-    <div class="container">
-      <h2 class="demo-section__title">Khoảng cách (thang 4px)</h2>
-      <p class="demo-section__desc">Dùng cho margin, padding, gap — luôn là bội số của 4px.</p>
-
-      <div class="space-row"><span class="space-row__label">space-1 (4px)</span><div class="space-row__bar" style="width: var(--space-1);"></div></div>
-      <div class="space-row"><span class="space-row__label">space-2 (8px)</span><div class="space-row__bar" style="width: var(--space-2);"></div></div>
-      <div class="space-row"><span class="space-row__label">space-3 (12px)</span><div class="space-row__bar" style="width: var(--space-3);"></div></div>
-      <div class="space-row"><span class="space-row__label">space-4 (16px)</span><div class="space-row__bar" style="width: var(--space-4);"></div></div>
-      <div class="space-row"><span class="space-row__label">space-6 (24px)</span><div class="space-row__bar" style="width: var(--space-6);"></div></div>
-      <div class="space-row"><span class="space-row__label">space-8 (32px)</span><div class="space-row__bar" style="width: var(--space-8);"></div></div>
-      <div class="space-row"><span class="space-row__label">space-12 (48px)</span><div class="space-row__bar" style="width: var(--space-12);"></div></div>
-      <div class="space-row"><span class="space-row__label">space-16 (64px)</span><div class="space-row__bar" style="width: var(--space-16);"></div></div>
-      <div class="space-row"><span class="space-row__label">space-24 (96px)</span><div class="space-row__bar" style="width: var(--space-24);"></div></div>
-    </div>
-  </section>
-
-  <!-- Typography -->
-  <section class="demo-section">
-    <div class="container">
-      <h2 class="demo-section__title">Kiểu chữ</h2>
-      <p class="demo-section__desc">
-        Font "Be Vietnam Pro" — thiết kế cho tiếng Việt, hiển thị dấu thanh rõ ràng.
-      </p>
-
-      <div class="type-row"><span class="type-row__label">6xl</span><span style="font-size: var(--text-6xl); font-weight:700;">Nông sản sạch</span></div>
-      <div class="type-row"><span class="type-row__label">5xl</span><span style="font-size: var(--text-5xl); font-weight:700;">Nông sản sạch</span></div>
-      <div class="type-row"><span class="type-row__label">4xl</span><span style="font-size: var(--text-4xl); font-weight:700;">Truy xuất nguồn gốc</span></div>
-      <div class="type-row"><span class="type-row__label">3xl</span><span style="font-size: var(--text-3xl); font-weight:700;">Truy xuất nguồn gốc</span></div>
-      <div class="type-row"><span class="type-row__label">2xl</span><span style="font-size: var(--text-2xl); font-weight:600;">Minh bạch từ nông trại đến bàn ăn</span></div>
-      <div class="type-row"><span class="type-row__label">xl</span><span style="font-size: var(--text-xl);">Minh bạch từ nông trại đến bàn ăn</span></div>
-      <div class="type-row"><span class="type-row__label">lg</span><span style="font-size: var(--text-lg);">Ứng dụng blockchain và trí tuệ nhân tạo</span></div>
-      <div class="type-row"><span class="type-row__label">base</span><span style="font-size: var(--text-base);">Ứng dụng blockchain và trí tuệ nhân tạo</span></div>
-      <div class="type-row"><span class="type-row__label">sm</span><span style="font-size: var(--text-sm);">Đã xác thực bởi 12 nông hộ tại Đắk Lắk</span></div>
-      <div class="type-row"><span class="type-row__label">xs</span><span style="font-size: var(--text-xs);">Đã xác thực bởi 12 nông hộ tại Đắk Lắk</span></div>
-    </div>
-  </section>
-
-  <!-- Radius & Shadow -->
-  <section class="demo-section">
-    <div class="container">
-      <h2 class="demo-section__title">Bo góc & Đổ bóng</h2>
-
-      <p class="demo-section__desc" style="margin-bottom: var(--space-4);">Bo góc</p>
-      <div class="box-row" style="margin-bottom: var(--space-8);">
-        <div class="box-demo" style="border-radius: var(--radius-sm);">sm — 4px</div>
-        <div class="box-demo" style="border-radius: var(--radius-md);">md — 8px</div>
-        <div class="box-demo" style="border-radius: var(--radius-lg);">lg — 12px</div>
-        <div class="box-demo" style="border-radius: var(--radius-xl);">xl — 16px</div>
-        <div class="box-demo" style="border-radius: var(--radius-2xl);">2xl — 24px</div>
-        <div class="box-demo" style="border-radius: var(--radius-full);">full</div>
-      </div>
-
-      <p class="demo-section__desc" style="margin-bottom: var(--space-4);">Đổ bóng</p>
-      <div class="box-row">
-        <div class="box-demo" style="box-shadow: var(--shadow-sm); border:none;">sm</div>
-        <div class="box-demo" style="box-shadow: var(--shadow-md); border:none;">md</div>
-        <div class="box-demo" style="box-shadow: var(--shadow-lg); border:none;">lg</div>
-        <div class="box-demo" style="box-shadow: var(--shadow-xl); border:none;">xl</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Buttons -->
-  <section class="demo-section">
-    <div class="container">
-      <h2 class="demo-section__title">Nút bấm</h2>
-      <p class="demo-section__desc">4 kiểu: primary, secondary, outline, ghost — mỗi kiểu có 3 cỡ.</p>
-
-      <div class="btn-row">
-        <button class="btn btn--primary">Primary</button>
-        <button class="btn btn--secondary">Secondary</button>
-        <button class="btn btn--outline">Outline</button>
-        <button class="btn btn--ghost">Ghost</button>
-        <button class="btn btn--primary" disabled>Disabled</button>
-      </div>
-
-      <div class="btn-row">
-        <button class="btn btn--primary btn--sm">Nhỏ</button>
-        <button class="btn btn--primary">Vừa</button>
-        <button class="btn btn--primary btn--lg">Lớn</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- Badge -->
-  <section class="demo-section">
-    <div class="container">
-      <h2 class="demo-section__title">Nhãn (Badge)</h2>
-      <p class="demo-section__desc">4 biến thể theo trạng thái: success, warning, info, neutral.</p>
-
-      <div class="btn-row">
-        <span class="badge badge--success">Hữu cơ</span>
-        <span class="badge badge--info">Đã xác thực</span>
-        <span class="badge badge--warning">Chờ duyệt</span>
-        <span class="badge badge--neutral">Nháp</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- Form -->
-  <section class="demo-section">
-    <div class="container">
-      <h2 class="demo-section__title">Biểu mẫu (Form)</h2>
-      <p class="demo-section__desc">
-        Input, textarea, select, checkbox, radio — cùng trạng thái mặc định,
-        disabled và invalid (đặt <code>aria-invalid="true"</code>).
-      </p>
-
-      <div class="grid grid--2">
-        <div class="field">
-          <label class="label" for="demo-input-name">Tên nông trại</label>
-          <input class="input" type="text" id="demo-input-name" placeholder="VD: Nông trại Xanh" />
-        </div>
-
-        <div class="field">
-          <label class="label" for="demo-input-email">Email (không hợp lệ)</label>
-          <input
-            class="input"
-            type="email"
-            id="demo-input-email"
-            value="khong-hop-le"
-            aria-invalid="true"
-            aria-describedby="demo-input-email-error"
-          />
-          <p class="field__error" id="demo-input-email-error">Vui lòng nhập email đúng định dạng.</p>
-        </div>
-
-        <div class="field">
-          <label class="label" for="demo-input-disabled">Trạng thái disabled</label>
-          <input class="input" type="text" id="demo-input-disabled" value="Không thể chỉnh sửa" disabled />
-        </div>
-
-        <div class="field">
-          <label class="label" for="demo-select">Loại nông sản</label>
-          <select class="select" id="demo-select">
-            <option>Rau củ</option>
-            <option>Trái cây</option>
-            <option>Ngũ cốc</option>
-          </select>
-        </div>
-
-        <div class="field" style="grid-column: 1 / -1;">
-          <label class="label" for="demo-textarea">Ghi chú</label>
-          <textarea class="textarea" id="demo-textarea" placeholder="Mô tả thêm về lô hàng..."></textarea>
-        </div>
-      </div>
-
-      <div class="btn-row" style="margin-top: var(--space-6);">
-        <label class="checkbox">
-          <input class="checkbox__input" type="checkbox" checked />
-          <span class="checkbox__label">Đã kiểm định chất lượng</span>
-        </label>
-        <label class="checkbox">
-          <input class="checkbox__input" type="checkbox" disabled />
-          <span class="checkbox__label">Không khả dụng</span>
-        </label>
-        <label class="radio">
-          <input class="radio__input" type="radio" name="demo-radio" checked />
-          <span class="radio__label">Trong nước</span>
-        </label>
-        <label class="radio">
-          <input class="radio__input" type="radio" name="demo-radio" />
-          <span class="radio__label">Xuất khẩu</span>
-        </label>
-      </div>
-    </div>
-  </section>
-
-  <!-- Icon -->
-  <section class="demo-section">
-    <div class="container">
-      <h2 class="demo-section__title">Icon</h2>
-      <p class="demo-section__desc">
-        Bộ SVG sprite dùng chung tại <code>icons/sprite.svg</code>, tham chiếu bằng
-        <code>&lt;use href="icons/sprite.svg#icon-..."&gt;</code>.
-      </p>
-
-      <div class="icon-grid">
-        <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-leaf"></use></svg><span>leaf</span></div>
-        <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-seedling"></use></svg><span>seedling</span></div>
-        <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-sun"></use></svg><span>sun</span></div>
-        <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-droplet"></use></svg><span>droplet</span></div>
-        <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-wheat"></use></svg><span>wheat</span></div>
-        <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-tractor"></use></svg><span>tractor</span></div>
-        <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-truck"></use></svg><span>truck</span></div>
-        <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-warehouse"></use></svg><span>warehouse</span></div>
-        <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-blockchain"></use></svg><span>blockchain</span></div>
-        <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-shield-check"></use></svg><span>shield-check</span></div>
-        <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-qr-code"></use></svg><span>qr-code</span></div>
-        <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-chart-bar"></use></svg><span>chart-bar</span></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Cards -->
-  <section class="demo-section">
-    <div class="container">
-      <h2 class="demo-section__title">Thẻ (Card)</h2>
-      <p class="demo-section__desc">Kết hợp với lưới (grid) 3 cột.</p>
-
-      <div class="grid grid--3">
-        <div class="card card--hover">
-          <div class="card__header">
-            <h3 class="card__title">Truy xuất nguồn gốc</h3>
-            <p class="card__subtitle">Blockchain</p>
+            <div class="hero__stats">
+              <div class="hero__stat">
+                <span class="hero__stat-value">1.247</span>
+                <span class="hero__stat-label">Nông hộ</span>
+              </div>
+              <div class="hero__stat">
+                <span class="hero__stat-value">38</span>
+                <span class="hero__stat-label">Tỉnh thành</span>
+              </div>
+              <div class="hero__stat">
+                <span class="hero__stat-value">12.400</span>
+                <span class="hero__stat-label">Lô hàng đã xác thực</span>
+              </div>
+            </div>
           </div>
-          <div class="card__body">
-            Mỗi lô hàng được ghi nhận minh bạch, không thể chỉnh sửa,
-            từ khâu gieo trồng đến khi lên kệ.
-          </div>
-          <div class="card__footer">
-            <button class="btn btn--outline btn--sm">Xem chi tiết</button>
-          </div>
-        </div>
 
-        <div class="card card--hover">
-          <div class="card__header">
-            <h3 class="card__title">Phân tích bằng AI</h3>
-            <p class="card__subtitle">Trí tuệ nhân tạo</p>
-          </div>
-          <div class="card__body">
-            Dự đoán chất lượng nông sản và phát hiện bất thường trong
-            chuỗi cung ứng theo thời gian thực.
-          </div>
-          <div class="card__footer">
-            <button class="btn btn--outline btn--sm">Xem chi tiết</button>
-          </div>
-        </div>
-
-        <div class="card card--hover">
-          <div class="card__header">
-            <h3 class="card__title">Kết nối nông hộ</h3>
-            <p class="card__subtitle">Hệ sinh thái</p>
-          </div>
-          <div class="card__body">
-            Nền tảng giúp nông hộ, nhà phân phối và người tiêu dùng
-            cùng chia sẻ một nguồn dữ liệu tin cậy.
-          </div>
-          <div class="card__footer">
-            <button class="btn btn--outline btn--sm">Xem chi tiết</button>
+          <div class="hero__showcase">
+            <div class="card hero__card">
+              <div
+                class="card__header"
+                style="display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3);"
+              >
+                <div>
+                  <h3 class="card__title">Lô #AGC-2408-0193</h3>
+                  <p class="card__subtitle">Nông hộ Nguyễn Văn A — Đắk Lắk</p>
+                </div>
+                <span class="badge badge--info">Đã xác thực</span>
+              </div>
+              <div class="card__body">
+                <ul class="hero__timeline" role="list">
+                  <li class="hero__timeline-item">
+                    <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-seedling"></use></svg>
+                    <span class="hero__timeline-label">Gieo trồng</span>
+                    <span class="hero__timeline-date">15/06/2026</span>
+                  </li>
+                  <li class="hero__timeline-item">
+                    <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-leaf"></use></svg>
+                    <span class="hero__timeline-label">Thu hoạch</span>
+                    <span class="hero__timeline-date">10/08/2026</span>
+                  </li>
+                  <li class="hero__timeline-item">
+                    <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-truck"></use></svg>
+                    <span class="hero__timeline-label">Vận chuyển</span>
+                    <span class="hero__timeline-date">14/08/2026</span>
+                  </li>
+                  <li class="hero__timeline-item">
+                    <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-warehouse"></use></svg>
+                    <span class="hero__timeline-label">Lên kệ</span>
+                    <span class="hero__timeline-date">18/08/2026</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </section>
 
-  <!-- Grid -->
-  <section class="demo-section" style="border-bottom: none;">
-    <div class="container">
-      <h2 class="demo-section__title">Lưới (Grid)</h2>
-      <p class="demo-section__desc">.grid--2 / .grid--3 / .grid--4, tự co giãn theo màn hình.</p>
-
-      <p style="margin-bottom: var(--space-3); color: var(--color-text-muted); font-size: var(--text-sm);">grid--4</p>
-      <div class="grid grid--4">
-        <div class="box-demo" style="width:100%;">1</div>
-        <div class="box-demo" style="width:100%;">2</div>
-        <div class="box-demo" style="width:100%;">3</div>
-        <div class="box-demo" style="width:100%;">4</div>
-      </div>
-    </div>
-  </section>
+      <a href="#tinh-nang" class="hero__scroll" aria-label="Cuộn xuống">
+        <svg class="icon"><use href="icons/sprite.svg#icon-chevron-down"></use></svg>
+      </a>
+    </section>
+  </main>
 
   <script src="js/header.js" defer></script>
 </body>

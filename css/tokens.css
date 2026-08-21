@@ -64,6 +64,9 @@
   --color-neutral: var(--color-text-muted);
   --color-neutral-subtle: var(--color-bg-subtle);
 
+  /* --- Nền phủ mờ trắng (dùng trên nền tối, VD hero) --- */
+  --overlay-white-subtle: rgba(255, 255, 255, 0.16);
+
   /* --- Khoảng cách: thang bội số 4px --- */
   --space-0: 0px;
   --space-1: 4px;

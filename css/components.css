@@ -98,6 +98,15 @@
   background: var(--color-primary-subtle);
 }
 
+.btn--outline-inverse {
+  background: transparent;
+  border-color: var(--color-text-inverse);
+  color: var(--color-text-inverse);
+}
+.btn--outline-inverse:hover:not(:disabled) {
+  background: var(--overlay-white-subtle);
+}
+
 /* --- Card --- */
 .card {
   background: var(--color-bg);

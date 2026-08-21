@@ -19,11 +19,15 @@ js/
   header.js       # Xử lý tương tác cho .site-header (toggle menu mobile)
 icons/
   sprite.svg      # SVG sprite dùng chung, tham chiếu bằng <use href="icons/sprite.svg#icon-...">
-index.html        # Trang demo design system (living style guide)
+index.html        # Trang chủ thật của AgriChain
+styleguide.html   # Trang demo design system (living style guide) — không phải trang thật
 ```
 
 Khi thêm trang mới: tạo file `.html` ở gốc (hoặc thư mục con theo tính năng),
-luôn nạp CSS theo đúng thứ tự: `tokens.css` → `base.css` → `components.css`.
+luôn nạp CSS theo đúng thứ tự: `tokens.css` → `base.css` → `components.css`,
+và chèn lại `.site-header` (copy nguyên khối từ `index.html` hoặc `styleguide.html`,
+kèm `<script src="js/header.js" defer>` trước `</body>`) — dự án không có templating
+nên mỗi trang tự chứa markup header riêng.
 
 ## Quy ước CSS
 
@@ -60,8 +64,8 @@ luôn nạp CSS theo đúng thứ tự: `tokens.css` → `base.css` → `compone
 
 ## Component hiện có
 
-- `.btn` — biến thể: `--primary`, `--secondary`, `--outline`, `--ghost`;
-  cỡ: mặc định, `--sm`, `--lg`.
+- `.btn` — biến thể: `--primary`, `--secondary`, `--outline`, `--ghost`, `--outline-inverse`
+  (viền/chữ trắng, nền trong suốt — dùng trên nền tối như hero); cỡ: mặc định, `--sm`, `--lg`.
 - `.card` — gồm `.card__header`, `.card__title`, `.card__subtitle`, `.card__body`,
   `.card__footer`. Thêm `.card--hover` nếu card có thể click/tương tác.
 - `.container` — bọc nội dung, giới hạn `--container-max-width` (1200px), tự canh giữa.
@@ -82,7 +86,7 @@ luôn nạp CSS theo đúng thứ tự: `tokens.css` → `base.css` → `compone
 
 1. Thêm biến vào `tokens.css` trước, không định nghĩa giá trị "ngoài thang" ở nơi khác.
 2. Nếu là component dùng lại nhiều nơi → thêm vào `components.css`.
-3. Cập nhật `index.html` để mọi token/component mới đều xuất hiện trong trang demo —
+3. Cập nhật `styleguide.html` để mọi token/component mới đều xuất hiện trong trang demo —
    đây là nguồn tham chiếu trực quan duy nhất của design system, phải luôn đầy đủ.
 
 ## Kiểm thử giao diện
@@ -95,5 +99,7 @@ luôn nạp CSS theo đúng thứ tự: `tokens.css` → `base.css` → `compone
 
 ## Việc chưa làm (ngoài phạm vi giai đoạn này)
 
-Giai đoạn này mới chỉ dựng nền tảng CSS. Chưa có: trang chủ, trang truy xuất nguồn gốc,
-JS tương tác, tích hợp blockchain/AI thật.
+Trang chủ (`index.html`) hiện mới có phần Hero. Chưa có: các section còn lại của trang chủ
+(Tính Năng, Quy Trình, Lợi Ích, E-commerce, Blog, Liên Hệ — mục tiêu của các anchor trong
+menu header), trang truy xuất nguồn gốc, JS tương tác ngoài toggle menu, tích hợp
+blockchain/AI thật.
