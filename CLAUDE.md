@@ -16,7 +16,8 @@ css/
   base.css        # Reset + typography mặc định
   components.css  # Component dùng chung: button, card, container, grid, form, badge, icon, header
 js/
-  header.js       # Xử lý tương tác cho .site-header (toggle menu mobile)
+  header.js        # Xử lý tương tác cho .site-header (toggle menu mobile, cuộn anchor)
+  contact-form.js  # Validate + hiện thông báo thành công cho form ở section Liên Hệ
 icons/
   sprite.svg      # SVG sprite dùng chung, tham chiếu bằng <use href="icons/sprite.svg#icon-...">
 index.html        # Trang chủ thật của AgriChain
@@ -109,18 +110,18 @@ nên mỗi trang tự chứa markup header riêng.
 - **Không chạy script kiểm tra cú pháp HTML/CSS (Node, bash...) sau khi sửa file.** VS Code
   đã tự báo lỗi cú pháp; việc xác nhận trực quan (responsive, hover, tương tác...) do người
   dùng thực hiện thủ công bằng Live Server.
-- **`js/header.js` hay bị trình duyệt cache lại** (kể cả sau khi Live Server reload trang) —
-  từng khiến việc sửa JS trông như "không có tác dụng" dù code đã đúng. Thẻ `<script>` nạp
-  file này ở `index.html`/`styleguide.html` gắn sẵn query string phiên bản
-  (`js/header.js?v=3`) để ép tải bản mới; **mỗi lần sửa `header.js`, tăng số `v=` này lên**
-  ở cả hai file, đừng chỉ dựa vào hard refresh.
+- **File JS hay bị trình duyệt cache lại** (kể cả sau khi Live Server reload trang) — từng
+  khiến việc sửa `header.js` trông như "không có tác dụng" dù code đã đúng. Mọi thẻ
+  `<script src="js/....js?v=N">` đều gắn sẵn query string phiên bản để ép tải bản mới;
+  **mỗi lần sửa một file JS, tăng số `v=` của đúng file đó** ở mọi trang có nạp nó, đừng chỉ
+  dựa vào hard refresh.
 
 ## Việc chưa làm (ngoài phạm vi giai đoạn này)
 
-Trang chủ (`index.html`) hiện có Hero, Tính Năng, Quy Trình, Lợi Ích, CTA, Footer. Chưa có:
-section E-commerce/Blog (mục tiêu của anchor cùng tên trong menu header — Liên Hệ hiện chỉ
-là anchor `#lien-he` chưa có section riêng), trang truy xuất nguồn gốc, JS tương tác ngoài
-toggle menu, tích hợp blockchain/AI thật.
+Trang chủ (`index.html`) hiện có Hero, Tính Năng, Quy Trình, Lợi Ích, CTA, Liên Hệ, Footer.
+Form Liên Hệ mới validate + hiện thông báo phía client, chưa gửi đi đâu thật. Chưa có:
+section E-commerce/Blog (mục tiêu của anchor cùng tên trong menu header), trang truy xuất
+nguồn gốc, tích hợp blockchain/AI thật.
 
 ## Lỗi đã biết, chưa xử lý xong
 

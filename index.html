@@ -347,6 +347,78 @@
       gap: var(--space-4);
     }
 
+    .contact {
+      background: var(--color-bg);
+      padding-block: var(--space-16);
+    }
+
+    .contact__layout {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-12);
+    }
+    @media (min-width: 960px) {
+      .contact__layout {
+        flex-direction: row;
+        gap: var(--space-16);
+      }
+      .contact__intro,
+      .contact__form-wrap {
+        flex: 1;
+      }
+    }
+
+    .contact__title {
+      margin-bottom: var(--space-3);
+    }
+
+    .contact__desc {
+      font-size: var(--text-lg);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-8);
+    }
+
+    .contact__info {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    .contact__info-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      color: var(--color-text);
+    }
+    .contact__info-item .icon {
+      flex-shrink: 0;
+      color: var(--color-primary);
+    }
+
+    .contact__form {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-5);
+    }
+
+    .contact__success {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-8);
+      border-radius: var(--radius-lg);
+      background: var(--color-success-subtle);
+      color: var(--color-success);
+      text-align: center;
+    }
+    .contact__success.is-visible {
+      display: flex;
+    }
+    .contact__success .icon {
+      color: var(--color-success);
+    }
+
     .site-footer {
       background: var(--neutral-900);
       color: var(--color-text-inverse);
@@ -727,6 +799,67 @@
         </div>
       </div>
     </section>
+
+    <!-- Liên Hệ -->
+    <section class="contact" id="lien-he">
+      <div class="container">
+        <div class="contact__layout">
+          <div class="contact__intro">
+            <h2 class="contact__title">Liên Hệ Với Chúng Tôi</h2>
+            <p class="contact__desc">
+              Bạn có câu hỏi hoặc muốn hợp tác cùng AgriChain? Để lại lời nhắn,
+              đội ngũ của chúng tôi sẽ phản hồi sớm nhất.
+            </p>
+
+            <ul class="contact__info" role="list">
+              <li class="contact__info-item">
+                <svg class="icon"><use href="icons/sprite.svg#icon-map-pin"></use></svg>
+                <span>Khu đô thị The Manor Central Park, Phường Định Công, Hà Nội</span>
+              </li>
+              <li class="contact__info-item">
+                <svg class="icon"><use href="icons/sprite.svg#icon-phone"></use></svg>
+                <a href="tel:+84929145555">+84 929 145 555</a>
+              </li>
+              <li class="contact__info-item">
+                <svg class="icon"><use href="icons/sprite.svg#icon-mail"></use></svg>
+                <a href="mailto:info@agrichain.vn">info@agrichain.vn</a>
+              </li>
+            </ul>
+          </div>
+
+          <div class="contact__form-wrap">
+            <form class="contact__form" id="contact-form">
+              <div class="field">
+                <label class="label" for="contact-name">Họ tên</label>
+                <input class="input" type="text" id="contact-name" name="name" required />
+              </div>
+
+              <div class="field">
+                <label class="label" for="contact-email">Email</label>
+                <input class="input" type="email" id="contact-email" name="email" required />
+              </div>
+
+              <div class="field">
+                <label class="label" for="contact-phone">Số điện thoại</label>
+                <input class="input" type="tel" id="contact-phone" name="phone" required />
+              </div>
+
+              <div class="field">
+                <label class="label" for="contact-message">Nội dung</label>
+                <textarea class="textarea" id="contact-message" name="message" required></textarea>
+              </div>
+
+              <button type="submit" class="btn btn--primary btn--lg">Gửi Yêu Cầu</button>
+            </form>
+
+            <div class="contact__success" id="contact-form-success" role="status" tabindex="-1">
+              <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+              <p>Cảm ơn bạn! Yêu cầu đã được ghi nhận, chúng tôi sẽ liên hệ lại sớm nhất.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- Footer -->
@@ -777,5 +910,6 @@
   </footer>
 
   <script src="js/header.js?v=3" defer></script>
+  <script src="js/contact-form.js?v=2" defer></script>
 </body>
 </html>
