@@ -271,6 +271,51 @@
       font-size: var(--text-sm);
       color: var(--color-text-muted);
     }
+
+    .benefits {
+      background: var(--color-bg);
+      padding-block: var(--space-16);
+    }
+
+    .benefits__intro {
+      margin-bottom: var(--space-12);
+    }
+
+    .benefits__title {
+      margin-bottom: var(--space-3);
+    }
+
+    .benefits__desc {
+      font-size: var(--text-lg);
+      color: var(--color-text-muted);
+    }
+
+    .benefits__item {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-4);
+    }
+
+    .benefits__item-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: var(--space-14);
+      height: var(--space-14);
+      border-radius: var(--radius-lg);
+      background: var(--color-primary-subtle);
+      color: var(--color-primary);
+    }
+
+    .benefits__item-title {
+      margin-bottom: var(--space-2);
+    }
+
+    .benefits__item-desc {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
   </style>
 </head>
 <body>
@@ -498,6 +543,57 @@
             <p class="process__step-desc">
               Quét mã QR để xem toàn bộ hành trình sản phẩm, sau đó đặt mua trực tiếp ngay trên nền tảng.
             </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lợi Ích -->
+    <section class="benefits" id="loi-ich">
+      <div class="container">
+        <div class="benefits__intro">
+          <h2 class="benefits__title">Lợi Ích</h2>
+          <p class="benefits__desc">Giá trị AgriChain mang lại cho nông hộ, doanh nghiệp và người tiêu dùng.</p>
+        </div>
+
+        <div class="grid grid--3">
+          <div class="benefits__item">
+            <div class="benefits__item-icon">
+              <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+            </div>
+            <div>
+              <h3 class="benefits__item-title">Minh Bạch Bất Biến</h3>
+              <p class="benefits__item-desc">
+                Dữ liệu ghi trên blockchain, không thể chỉnh sửa hay xoá bỏ. Người tiêu dùng
+                hoàn toàn yên tâm về nguồn gốc sản phẩm.
+              </p>
+            </div>
+          </div>
+
+          <div class="benefits__item">
+            <div class="benefits__item-icon">
+              <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-droplet"></use></svg>
+            </div>
+            <div>
+              <h3 class="benefits__item-title">Tối Ưu Nguồn Lực</h3>
+              <p class="benefits__item-desc">
+                AI đưa ra khuyến nghị canh tác chính xác, giúp giảm lãng phí phân bón,
+                nước tưới và công lao động.
+              </p>
+            </div>
+          </div>
+
+          <div class="benefits__item">
+            <div class="benefits__item-icon">
+              <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-globe"></use></svg>
+            </div>
+            <div>
+              <h3 class="benefits__item-title">Vươn Ra Quốc Tế</h3>
+              <p class="benefits__item-desc">
+                Hồ sơ số minh bạch, đầy đủ giúp nông sản đáp ứng yêu cầu truy xuất nguồn gốc
+                của thị trường xuất khẩu.
+              </p>
+            </div>
           </div>
         </div>
       </div>
