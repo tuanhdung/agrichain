@@ -20,7 +20,7 @@
     /* CSS chỉ dùng riêng cho trang chủ, không phải component tái sử dụng */
     .hero {
       position: relative;
-      min-height: 85vh;
+      min-height: calc(100vh - var(--header-height));
       display: flex;
       align-items: center;
       color: var(--color-text-inverse);
@@ -40,7 +40,7 @@
     @media (min-width: 960px) {
       .hero__layout {
         flex-direction: row;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
         gap: var(--space-12);
       }
@@ -116,8 +116,11 @@
 
     .hero__card {
       width: 100%;
-      max-width: 380px;
+      max-width: 420px;
       box-shadow: var(--shadow-xl);
+    }
+    .hero__card .badge {
+      margin-bottom: var(--space-2);
     }
 
     .hero__timeline {
@@ -163,6 +166,34 @@
     @keyframes hero-scroll-bounce {
       0%, 100% { transform: translateX(-50%) translateY(0); }
       50% { transform: translateX(-50%) translateY(6px); }
+    }
+
+    .features {
+      padding-block: var(--space-16);
+    }
+
+    .features__intro {
+      margin-bottom: var(--space-12);
+    }
+
+    .features__title {
+      margin-bottom: var(--space-3);
+    }
+
+    .features__desc {
+      font-size: var(--text-lg);
+      color: var(--color-text-muted);
+    }
+
+    .feature-card__icon {
+      color: var(--color-primary);
+      margin-bottom: var(--space-3);
+    }
+
+    .feature-card__header {
+      margin-bottom: var(--space-2);
+      padding-bottom: 0;
+      border-bottom: none;
     }
   </style>
 </head>
@@ -255,15 +286,10 @@
 
           <div class="hero__showcase">
             <div class="card hero__card">
-              <div
-                class="card__header"
-                style="display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3);"
-              >
-                <div>
-                  <h3 class="card__title">Lô #AGC-2408-0193</h3>
-                  <p class="card__subtitle">Nông hộ Nguyễn Văn A — Đắk Lắk</p>
-                </div>
+              <div class="card__header">
                 <span class="badge badge--info">Đã xác thực</span>
+                <h3 class="card__title">Lô #AGC-2408-0193</h3>
+                <p class="card__subtitle">Nông hộ Nguyễn Văn A — Đắk Lắk</p>
               </div>
               <div class="card__body">
                 <ul class="hero__timeline" role="list">
@@ -298,8 +324,66 @@
         <svg class="icon"><use href="icons/sprite.svg#icon-chevron-down"></use></svg>
       </a>
     </section>
+
+    <!-- Tính Năng -->
+    <section class="features">
+      <div class="container">
+        <div class="features__intro" id="tinh-nang">
+          <h2 class="features__title">Tính Năng Nổi Bật</h2>
+          <p class="features__desc">
+            Nền tảng kết hợp blockchain và AI để số hoá toàn bộ chuỗi cung ứng nông sản.
+          </p>
+        </div>
+
+        <div class="grid grid--4">
+          <div class="card card--hover">
+            <div class="card__header feature-card__header">
+              <svg class="icon icon--lg feature-card__icon"><use href="icons/sprite.svg#icon-blockchain"></use></svg>
+              <h3 class="card__title">Truy Xuất Blockchain</h3>
+            </div>
+            <div class="card__body">
+              Ghi nhận từng công đoạn canh tác, thu hoạch và vận chuyển lên blockchain.
+              Dữ liệu minh bạch, không thể chỉnh sửa hay giả mạo.
+            </div>
+          </div>
+
+          <div class="card card--hover">
+            <div class="card__header feature-card__header">
+              <svg class="icon icon--lg feature-card__icon"><use href="icons/sprite.svg#icon-cpu"></use></svg>
+              <h3 class="card__title">Quản Lý Farm AI</h3>
+            </div>
+            <div class="card__body">
+              Trí tuệ nhân tạo theo dõi mùa vụ, dự báo sâu bệnh và tối ưu năng suất canh tác.
+              Cảnh báo sớm ngay trên điện thoại.
+            </div>
+          </div>
+
+          <div class="card card--hover">
+            <div class="card__header feature-card__header">
+              <svg class="icon icon--lg feature-card__icon"><use href="icons/sprite.svg#icon-shopping-cart"></use></svg>
+              <h3 class="card__title">E-commerce 4.0</h3>
+            </div>
+            <div class="card__body">
+              Kết nối trực tiếp nông hộ với người tiêu dùng qua nền tảng thương mại điện tử.
+              Đặt hàng, thanh toán và giao nhận minh bạch.
+            </div>
+          </div>
+
+          <div class="card card--hover">
+            <div class="card__header feature-card__header">
+              <svg class="icon icon--lg feature-card__icon"><use href="icons/sprite.svg#icon-chart-bar"></use></svg>
+              <h3 class="card__title">Smart Analytics</h3>
+            </div>
+            <div class="card__body">
+              Phân tích dữ liệu chuỗi cung ứng theo thời gian thực bằng AI.
+              Đưa ra khuyến nghị giúp tối ưu vận hành, giảm thất thoát.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
-  <script src="js/header.js" defer></script>
+  <script src="js/header.js?v=3" defer></script>
 </body>
 </html>

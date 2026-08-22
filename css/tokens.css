@@ -123,6 +123,7 @@
   /* --- Layout --- */
   --container-max-width: 1200px;
   --container-padding: var(--space-6);
+  --header-height: var(--space-16); /* ép cố định .site-header__inner để khớp scroll-padding-top */
 
   /* --- Chuyển động --- */
   --transition-base: 150ms ease;

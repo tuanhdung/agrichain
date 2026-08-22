@@ -16,6 +16,12 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* Bù chiều cao .site-header (sticky) để anchor scroll không bị header che mất đỉnh section */
+  scroll-padding-top: var(--header-height);
+  /* Tắt scroll anchoring: không để trình duyệt tự "kéo" lại vị trí cuộn
+     khi layout phía trên viewport đổi (VD web font tải xong) — việc cuộn
+     tới anchor do js/header.js tự tính và điều khiển hoàn toàn. */
+  overflow-anchor: none;
 }
 
 body {

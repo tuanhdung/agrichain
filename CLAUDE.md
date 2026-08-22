@@ -74,6 +74,18 @@ nên mỗi trang tự chứa markup header riêng.
 - `.site-header` — header site-wide: logo trái, menu giữa (`.site-header__nav`),
   nút phải (`.site-header__actions`, tái dùng `.btn`). Dưới 960px thu thành hamburger
   (`.site-header__toggle`) mở `.site-header__panel`; JS xử lý ở `js/header.js`.
+  Header là `position: sticky`; `--header-height` (`tokens.css`, = `--space-16`, 64px)
+  và `.site-header__inner { min-height: var(--header-height) }` giữ chiều cao header cố
+  định, dùng để `.hero` tính `min-height: calc(100vh - var(--header-height))` (lấp đủ màn
+  hình mà không tràn xuống dưới, không che nút cuộn).
+  **Cuộn tới anchor (`#id`) do `js/header.js` đảm nhiệm** (bắt click vào `a[href^="#"]`,
+  tự trừ `header.offsetHeight`, và cuộn lại khi trang tải thẳng kèm `#hash` trên URL) —
+  không dựa vào `scroll-padding-top`/`scroll-margin-top` thuần CSS vì độ tin cậy giữa các
+  trình duyệt không nhất quán (đặc biệt khi web font tải xong làm layout đổi chiều cao
+  sau khi trang đã tự cuộn). Section nào có `padding-block` lớn ở đầu (như `.features`)
+  vẫn phải đặt id trên khối nội dung nằm ngay sau phần padding đó (VD `.features__intro`),
+  không đặt trên chính section — vì JS đo vị trí bằng `getBoundingClientRect()` của đúng
+  phần tử mang id, nên id đặt sai chỗ vẫn cuộn lệch.
 - `.badge` — biến thể: `--success`, `--warning`, `--info`, `--neutral`. Dùng cho nhãn
   ngắn kiểu "Hữu cơ", "Đã xác thực".
 - `.icon` — bọc `<svg>` tham chiếu `icons/sprite.svg`; cỡ mặc định, `--sm`, `--lg`.
@@ -94,12 +106,31 @@ nên mỗi trang tự chứa markup header riêng.
 - **Không tự ý cài công cụ trình duyệt tự động** (Playwright, Puppeteer, chromium-cli...)
   để chụp ảnh màn hình hay kiểm tra UI. Người dùng tự kiểm tra bằng Live Server (VS Code)
   hoặc trình duyệt thật.
-- Sau khi sửa CSS/HTML/JS, chỉ cần đảm bảo code đúng cú pháp và đúng quy ước ở trên;
-  việc xác nhận trực quan (responsive, hover, tương tác...) do người dùng thực hiện thủ công.
+- **Không chạy script kiểm tra cú pháp HTML/CSS (Node, bash...) sau khi sửa file.** VS Code
+  đã tự báo lỗi cú pháp; việc xác nhận trực quan (responsive, hover, tương tác...) do người
+  dùng thực hiện thủ công bằng Live Server.
+- **`js/header.js` hay bị trình duyệt cache lại** (kể cả sau khi Live Server reload trang) —
+  từng khiến việc sửa JS trông như "không có tác dụng" dù code đã đúng. Thẻ `<script>` nạp
+  file này ở `index.html`/`styleguide.html` gắn sẵn query string phiên bản
+  (`js/header.js?v=3`) để ép tải bản mới; **mỗi lần sửa `header.js`, tăng số `v=` này lên**
+  ở cả hai file, đừng chỉ dựa vào hard refresh.
 
 ## Việc chưa làm (ngoài phạm vi giai đoạn này)
 
-Trang chủ (`index.html`) hiện mới có phần Hero. Chưa có: các section còn lại của trang chủ
-(Tính Năng, Quy Trình, Lợi Ích, E-commerce, Blog, Liên Hệ — mục tiêu của các anchor trong
-menu header), trang truy xuất nguồn gốc, JS tương tác ngoài toggle menu, tích hợp
-blockchain/AI thật.
+Trang chủ (`index.html`) hiện có Hero và Tính Năng. Chưa có: các section còn lại của trang chủ
+(Quy Trình, Lợi Ích, E-commerce, Blog, Liên Hệ — mục tiêu của các anchor trong menu header),
+trang truy xuất nguồn gốc, JS tương tác ngoài toggle menu, tích hợp blockchain/AI thật.
+
+## Lỗi đã biết, chưa xử lý xong
+
+Cuộn tới anchor (`#tinh-nang`, qua menu header hoặc mũi tên cuộn ở hero) đôi khi dừng
+sớm hơn dự kiến, để lộ một phần hero (nền xanh) phía trên section đích thay vì tiêu đề
+nằm sát ngay dưới header. Đã thử: `scroll-padding-top`/`scroll-margin-top` (CSS thuần),
+`window.scrollTo` tự tính tay, `scrollIntoView()`, `history.scrollRestoration = 'manual'`,
+`overflow-anchor: none`, và vòng lặp chờ layout ổn định (`js/header.js`) — vẫn không dứt
+điểm được trong mọi trường hợp (gọi thủ công qua Console thường cho kết quả tốt hơn nhiều
+so với khi trang tự chạy). Đã tạm gác lại theo yêu cầu người dùng (2026-08-22) để ưu tiên
+giữ bố cục section đúng tỉ lệ (không "đôn" `padding-top` lên để che lỗi — làm vậy đẩy nội
+dung xuống quá xa header). Nếu quay lại xử lý: cân nhắc dùng `getBoundingClientRect()` +
+`ResizeObserver`/`MutationObserver` để phát hiện đúng lúc layout ngừng đổi thay vì đoán
+mốc thời gian hoặc polling cố định.
