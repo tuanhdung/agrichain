@@ -316,6 +316,118 @@
       font-size: var(--text-sm);
       color: var(--color-text-muted);
     }
+
+    .cta {
+      padding-block: var(--space-20);
+      background: linear-gradient(135deg, var(--green-800) 0%, var(--green-900) 100%);
+      color: var(--color-text-inverse);
+      text-align: center;
+    }
+
+    .cta__inner {
+      max-width: 640px;
+      margin-inline: auto;
+    }
+
+    .cta__title {
+      color: var(--color-text-inverse);
+      margin-bottom: var(--space-4);
+    }
+
+    .cta__desc {
+      font-size: var(--text-lg);
+      opacity: 0.85;
+      margin-bottom: var(--space-8);
+    }
+
+    .cta__actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--space-4);
+    }
+
+    .site-footer {
+      background: var(--neutral-900);
+      color: var(--color-text-inverse);
+      padding-block: var(--space-16) var(--space-8);
+    }
+
+    .site-footer__grid {
+      margin-bottom: var(--space-12);
+    }
+
+    .site-footer__logo {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-bottom: var(--space-4);
+      font-size: var(--text-xl);
+      font-weight: 700;
+      color: var(--color-text-inverse);
+    }
+
+    .site-footer__logo-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--space-8);
+      height: var(--space-8);
+      border-radius: var(--radius-md);
+      background: var(--color-primary);
+      color: var(--color-text-inverse);
+      font-size: var(--text-base);
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .site-footer__desc {
+      max-width: 320px;
+      font-size: var(--text-sm);
+      opacity: 0.7;
+    }
+
+    .site-footer__heading {
+      margin-bottom: var(--space-4);
+      font-size: var(--text-base);
+      color: var(--color-text-inverse);
+    }
+
+    .site-footer__links {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      font-size: var(--text-sm);
+      opacity: 0.8;
+    }
+    .site-footer__links a {
+      transition: opacity var(--transition-base);
+    }
+    .site-footer__links a:hover {
+      opacity: 0.7;
+    }
+
+    .site-footer__bottom {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      padding-top: var(--space-8);
+      border-top: 1px solid var(--overlay-white-subtle);
+      font-size: var(--text-xs);
+      opacity: 0.6;
+    }
+    @media (min-width: 640px) {
+      .site-footer__bottom {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+    }
+
+    .site-footer__legal {
+      display: flex;
+      gap: var(--space-4);
+    }
   </style>
 </head>
 <body>
@@ -598,7 +710,71 @@
         </div>
       </div>
     </section>
+
+    <!-- CTA -->
+    <section class="cta">
+      <div class="container">
+        <div class="cta__inner">
+          <h2 class="cta__title">Sẵn Sàng Minh Bạch Hoá Nông Sản Của Bạn?</h2>
+          <p class="cta__desc">
+            Tham gia cùng hàng nghìn nông hộ và doanh nghiệp đang xây dựng niềm tin
+            bằng blockchain và AI.
+          </p>
+          <div class="cta__actions">
+            <a class="btn btn--primary btn--lg" href="#bat-dau-ngay">Đăng Ký Miễn Phí</a>
+            <a class="btn btn--outline-inverse btn--lg" href="#lien-he">Liên Hệ Tư Vấn</a>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="grid grid--3 site-footer__grid">
+        <div class="site-footer__col">
+          <a href="index.html" class="site-footer__logo">
+            <span class="site-footer__logo-mark" aria-hidden="true">A</span>
+            <span>AgriChain</span>
+          </a>
+          <p class="site-footer__desc">
+            Nền tảng truy xuất nguồn gốc nông sản bằng blockchain kết hợp AI,
+            kết nối minh bạch từ nông trại đến bàn ăn.
+          </p>
+        </div>
+
+        <div class="site-footer__col">
+          <h3 class="site-footer__heading">Liên Kết Nhanh</h3>
+          <ul class="site-footer__links" role="list">
+            <li><a href="#tinh-nang">Tính Năng</a></li>
+            <li><a href="#quy-trinh">Quy Trình</a></li>
+            <li><a href="#loi-ich">Lợi Ích</a></li>
+            <li><a href="#ecommerce">E-commerce</a></li>
+            <li><a href="#blog">Blog</a></li>
+            <li><a href="#lien-he">Liên Hệ</a></li>
+          </ul>
+        </div>
+
+        <div class="site-footer__col">
+          <h3 class="site-footer__heading">Liên Hệ</h3>
+          <ul class="site-footer__links" role="list">
+            <li>Khu đô thị The Manor Central Park, Phường Định Công, Hà Nội</li>
+            <li><a href="tel:+84929145555">+84 929 145 555</a></li>
+            <li><a href="mailto:info@agrichain.vn">info@agrichain.vn</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="site-footer__bottom">
+        <p class="site-footer__copyright">© 2026 Exabyte. Đã đăng ký bản quyền.</p>
+        <div class="site-footer__legal">
+          <a href="#chinh-sach-bao-mat">Chính sách bảo mật</a>
+          <a href="#dieu-khoan-dich-vu">Điều khoản dịch vụ</a>
+        </div>
+      </div>
+    </div>
+  </footer>
 
   <script src="js/header.js?v=3" defer></script>
 </body>

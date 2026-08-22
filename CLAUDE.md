@@ -117,9 +117,10 @@ nên mỗi trang tự chứa markup header riêng.
 
 ## Việc chưa làm (ngoài phạm vi giai đoạn này)
 
-Trang chủ (`index.html`) hiện có Hero, Tính Năng, Quy Trình, Lợi Ích. Chưa có: các section
-còn lại của trang chủ (E-commerce, Blog, Liên Hệ — mục tiêu của các anchor trong menu
-header), trang truy xuất nguồn gốc, JS tương tác ngoài toggle menu, tích hợp blockchain/AI thật.
+Trang chủ (`index.html`) hiện có Hero, Tính Năng, Quy Trình, Lợi Ích, CTA, Footer. Chưa có:
+section E-commerce/Blog (mục tiêu của anchor cùng tên trong menu header — Liên Hệ hiện chỉ
+là anchor `#lien-he` chưa có section riêng), trang truy xuất nguồn gốc, JS tương tác ngoài
+toggle menu, tích hợp blockchain/AI thật.
 
 ## Lỗi đã biết, chưa xử lý xong
 
