@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nông trại — AgriChain</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Leaflet: thư viện bản đồ, nạp thẳng từ CDN (JS thuần, không cần build tool) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/app-shell.css" />
+
+  <style>
+    /* CSS chỉ dùng riêng cho trang Nông trại (khối vẽ ranh giới),
+       không phải component tái sử dụng nên để tại đây theo quy ước dự án. */
+    .map-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-4);
+    }
+    @media (min-width: 860px) {
+      .map-layout { grid-template-columns: 300px 1fr; }
+    }
+
+    .map-canvas {
+      height: 360px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      /* Leaflet dựng lớp riêng bên trong; không để bo góc bị tràn ra ngoài */
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .map-side {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      padding: var(--space-4);
+      background: var(--color-bg-subtle);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+    }
+
+    .map-side__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+
+    .map-side__title {
+      font-size: var(--text-sm);
+      font-weight: 700;
+    }
+
+    .coord-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+      max-height: 180px;
+      overflow-y: auto;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .coord-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg);
+      font-size: var(--text-xs);
+    }
+
+    .coord-item__index {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: var(--space-6);
+      height: var(--space-6);
+      border-radius: var(--radius-full);
+      background: var(--color-primary);
+      color: var(--color-text-inverse);
+      font-weight: 700;
+    }
+
+    .coord-item__value {
+      flex: 1;
+      /* Toạ độ là số — dùng font đều để các cột chữ số thẳng hàng, dễ soát */
+      font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+      color: var(--color-text-muted);
+    }
+
+    .coord-empty {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+
+    .map-area {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-2);
+      padding: var(--space-3);
+      border-radius: var(--radius-md);
+      background: var(--color-primary-subtle);
+    }
+
+    .map-area__label {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+    }
+
+    .map-area__value {
+      font-size: var(--text-lg);
+      color: var(--color-primary-active);
+    }
+
+    /* Nút "Về vị trí của tôi" — control tự thêm vào Leaflet, chỉ định kiểu
+       icon/màu ở đây, khung nút (viền, đổ bóng, nền trắng) do .leaflet-bar
+       của Leaflet lo sẵn. */
+    .map-locate-control a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      color: var(--color-primary);
+    }
+    .map-locate-control a:hover {
+      background: var(--color-bg-subtle);
+    }
+
+    /* Bản đồ chỉ xem (modal xem chi tiết) — không có khối .map-side bên
+       cạnh nên chiếm trọn chiều rộng, không cho tương tác vẽ điểm. */
+    .view-map {
+      height: 280px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .view-field {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
+    .view-field .label {
+      color: var(--color-text-muted);
+    }
+  </style>
+</head>
+<body class="app-shell">
+
+  <!-- Lớp phủ khi mở sidebar trên mobile -->
+  <div class="app-scrim"></div>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar" id="app-sidebar">
+    <div class="app-sidebar__brand">
+      <span class="app-sidebar__avatar" data-session-initials aria-hidden="true">TC</span>
+      <span class="app-sidebar__org" data-session-org>Tổ chức</span>
+    </div>
+
+    <div class="app-sidebar__scroll">
+      <nav aria-label="Menu quản trị">
+        <div class="app-nav__section">
+          <button type="button" class="app-nav__section-toggle" aria-expanded="true" aria-controls="nav-san-xuat">
+            <span class="app-nav__section-label">Hoạt động sản xuất</span>
+            <svg class="icon icon--sm app-nav__section-chevron"><use href="icons/sprite.svg#icon-chevron-down"></use></svg>
+          </button>
+          <ul class="app-nav__list" role="list" id="nav-san-xuat">
+            <li>
+              <a class="app-nav__link" href="nong-trai.html" aria-current="page">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-seedling"></use></svg>
+                Nông trại
+              </a>
+            </li>
+            <li>
+              <a class="app-nav__link" href="vat-tu.html">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-tractor"></use></svg>
+                Vật tư
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="app-nav__section">
+          <button type="button" class="app-nav__section-toggle" aria-expanded="true" aria-controls="nav-truy-xuat">
+            <span class="app-nav__section-label">Truy xuất</span>
+            <svg class="icon icon--sm app-nav__section-chevron"><use href="icons/sprite.svg#icon-chevron-down"></use></svg>
+          </button>
+          <ul class="app-nav__list" role="list" id="nav-truy-xuat">
+            <li>
+              <a class="app-nav__link" href="lo-hang.html">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-warehouse"></use></svg>
+                Lô hàng
+              </a>
+            </li>
+            <li>
+              <a class="app-nav__link" href="so-cai.html">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-blockchain"></use></svg>
+                Sổ cái blockchain
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="app-nav__section">
+          <button type="button" class="app-nav__section-toggle" aria-expanded="true" aria-controls="nav-kinh-doanh">
+            <span class="app-nav__section-label">Kinh doanh</span>
+            <svg class="icon icon--sm app-nav__section-chevron"><use href="icons/sprite.svg#icon-chevron-down"></use></svg>
+          </button>
+          <ul class="app-nav__list" role="list" id="nav-kinh-doanh">
+            <li>
+              <a class="app-nav__link" href="thuong-mai.html">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shopping-cart"></use></svg>
+                Thương mại điện tử
+              </a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+    </div>
+
+    <div class="app-sidebar__footer">
+      <p style="margin-bottom: var(--space-2);" data-session-name></p>
+      <a href="index.html">← Về trang giới thiệu</a>
+      <button type="button" class="app-sidebar__logout" data-logout>Đăng xuất</button>
+    </div>
+  </aside>
+
+  <!-- Topbar -->
+  <header class="app-topbar">
+    <button
+      type="button"
+      class="app-topbar__toggle"
+      aria-controls="app-sidebar"
+      aria-expanded="false"
+      aria-label="Mở menu"
+    >
+      <span class="app-topbar__toggle-bar"></span>
+      <span class="app-topbar__toggle-bar"></span>
+      <span class="app-topbar__toggle-bar"></span>
+    </button>
+
+    <a class="app-topbar__brand" href="nong-trai.html">
+      <span class="app-topbar__brand-mark" aria-hidden="true">A</span>
+      <span>AgriChain</span>
+    </a>
+    <span class="app-topbar__org">— <span data-session-org>Tổ chức</span></span>
+
+    <span class="app-topbar__spacer"></span>
+
+    <a class="btn btn--outline btn--sm" href="so-cai.html">
+      <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-blockchain"></use></svg>
+      Blockchain
+    </a>
+
+    <span class="app-topbar__user" data-session-initials aria-hidden="true">TC</span>
+  </header>
+
+  <!-- Nội dung -->
+  <main class="app-main">
+    <div class="app-content">
+
+      <nav class="breadcrumb" aria-label="Đường dẫn">
+        <a class="breadcrumb__link" href="nong-trai.html">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-chart-bar"></use></svg>
+          Vận hành
+        </a>
+        <span class="breadcrumb__sep" aria-hidden="true">/</span>
+        <span class="breadcrumb__current" aria-current="page">Nông trại</span>
+      </nav>
+
+      <div class="page-header">
+        <div class="page-header__icon">
+          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-seedling"></use></svg>
+        </div>
+        <div class="page-header__text">
+          <h1 class="page-header__title">Danh sách nông trại</h1>
+          <p class="page-header__meta">
+            Tổng số: <strong data-farm-count>0</strong> nông trại
+          </p>
+        </div>
+        <button type="button" class="btn btn--primary btn--lg" data-open-farm-form>
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-seedling"></use></svg>
+          Thêm nông trại
+        </button>
+      </div>
+
+      <!-- Danh sách -->
+      <div class="grid grid--3" data-farm-list hidden></div>
+
+      <!-- Trạng thái rỗng -->
+      <div class="empty-state" data-farm-empty>
+        <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-seedling"></use></svg>
+        <p class="empty-state__title">Chưa có nông trại nào</p>
+        <p class="empty-state__desc">
+          Nông trại là điểm bắt đầu của mọi lô hàng. Tạo nông trại đầu tiên
+          để bắt đầu ghi nhận mùa vụ và truy xuất nguồn gốc.
+        </p>
+        <button type="button" class="btn btn--primary" data-open-farm-form>
+          Thêm nông trại
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Modal: Thêm nông trại mới -->
+  <dialog class="modal" id="farm-modal" aria-labelledby="farm-modal-title">
+    <form class="modal__form" id="farm-form" novalidate>
+      <div class="modal__header">
+        <svg class="icon"><use href="icons/sprite.svg#icon-seedling"></use></svg>
+        <h2 class="modal__title" id="farm-modal-title">Thêm nông trại mới</h2>
+        <button type="button" class="modal__close" data-close-farm-form aria-label="Đóng">&times;</button>
+      </div>
+
+      <div class="modal__body">
+
+        <!-- Thông tin cơ bản -->
+        <section class="form-section">
+          <h3 class="form-section__title">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-leaf"></use></svg>
+            Thông tin cơ bản
+          </h3>
+
+          <div class="form-grid">
+            <div class="field">
+              <label class="label" for="farm-code">Mã nông trại</label>
+              <input class="input" type="text" id="farm-code" name="code" required />
+              <p class="field__hint">Mã ngắn dùng nội bộ, ví dụ NV01.</p>
+            </div>
+
+            <div class="field">
+              <label class="label" for="farm-name">Tên nông trại</label>
+              <input class="input" type="text" id="farm-name" name="name" required />
+            </div>
+
+            <div class="field">
+              <label class="label" for="farm-puc-national">Mã vùng trồng quốc gia</label>
+              <input class="input" type="text" id="farm-puc-national" name="nationalPuc" />
+              <p class="field__hint">Mã do Cục Bảo vệ thực vật cấp. Để trống nếu chưa có.</p>
+            </div>
+
+            <div class="field">
+              <label class="label" for="farm-puc-international">Mã vùng trồng quốc tế</label>
+              <input class="input" type="text" id="farm-puc-international" name="internationalPuc" />
+              <p class="field__hint">Dùng khi xuất khẩu sang thị trường yêu cầu mã riêng.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Vị trí địa lý -->
+        <section class="form-section">
+          <h3 class="form-section__title">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-map-pin"></use></svg>
+            Vị trí địa lý
+          </h3>
+
+          <div class="form-grid">
+            <div class="field">
+              <label class="label" for="farm-province">Tỉnh/Thành phố</label>
+              <select class="select" id="farm-province" name="province" required>
+                <option value="">— Chọn tỉnh/thành phố —</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label class="label" for="farm-ward">Phường/Xã</label>
+              <input class="input" type="text" id="farm-ward" name="ward" required />
+            </div>
+
+            <div class="field form-grid__full">
+              <label class="label" for="farm-address">Địa chỉ</label>
+              <input class="input" type="text" id="farm-address" name="address" />
+              <p class="field__hint">Thôn, xóm, số thửa — phần chi tiết nằm trước phường/xã.</p>
+            </div>
+
+            <div class="field">
+              <label class="label" for="farm-start-date">Ngày bắt đầu</label>
+              <input class="input" type="date" id="farm-start-date" name="startDate" />
+            </div>
+          </div>
+        </section>
+
+        <!-- Mô tả diện tích -->
+        <section class="form-section">
+          <h3 class="form-section__title">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-chart-bar"></use></svg>
+            Mô tả diện tích
+          </h3>
+
+          <div class="form-grid">
+            <div class="field">
+              <label class="label" for="farm-area">Diện tích</label>
+              <div class="input-affix">
+                <input class="input" type="number" id="farm-area" name="area" min="0" step="0.01" value="0" />
+                <span class="input-affix__unit">ha</span>
+              </div>
+            </div>
+
+            <div class="field form-grid__full">
+              <label class="label" for="farm-description">Mô tả</label>
+              <textarea class="textarea" id="farm-description" name="description"
+                placeholder="Loại cây trồng, quy mô, đặc điểm thổ nhưỡng..."></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- Ranh giới thửa đất -->
+        <section class="form-section">
+          <h3 class="form-section__title">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-map-pin"></use></svg>
+            Ranh giới thửa đất
+          </h3>
+
+          <div class="notice notice--info" style="margin-bottom: var(--space-4);">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-map-pin"></use></svg>
+            <span>
+              Nhấp lên bản đồ để đánh dấu từng góc thửa đất. Đủ 3 điểm trở lên là ranh giới
+              khép kín và diện tích được tính tự động.
+            </span>
+          </div>
+
+          <div class="map-layout">
+            <div class="map-side">
+              <div class="map-side__head">
+                <span class="map-side__title">Danh sách toạ độ</span>
+                <div class="map-side__actions">
+                  <button type="button" class="btn btn--secondary btn--sm" data-undo-point>Lùi 1 điểm</button>
+                  <button type="button" class="btn btn--secondary btn--sm" data-clear-points>Xoá hết</button>
+                </div>
+              </div>
+
+              <p class="coord-empty" data-coord-empty>Chưa đánh dấu điểm nào.</p>
+              <ol class="coord-list" data-coord-list hidden></ol>
+
+              <div class="map-area" data-area-box hidden>
+                <span class="map-area__label">Diện tích tính từ ranh giới</span>
+                <strong class="map-area__value" data-area-value>0 ha</strong>
+                <button type="button" class="btn btn--outline btn--sm" data-apply-area>
+                  Điền vào ô diện tích
+                </button>
+              </div>
+            </div>
+
+            <div class="map-canvas" id="farm-map"></div>
+          </div>
+        </section>
+
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--secondary" data-close-farm-form>Hủy</button>
+        <button type="submit" class="btn btn--primary">Lưu nông trại</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Xem chi tiết nông trại -->
+  <dialog class="modal" id="farm-view-modal" aria-labelledby="farm-view-title">
+    <div class="modal__header">
+      <svg class="icon"><use href="icons/sprite.svg#icon-seedling"></use></svg>
+      <h2 class="modal__title" id="farm-view-title" data-view-name>Nông trại</h2>
+      <button type="button" class="modal__close" data-close-view aria-label="Đóng">&times;</button>
+    </div>
+
+    <div class="modal__body">
+      <div class="view-map" id="farm-view-map"></div>
+
+      <div class="tabs" role="tablist" style="margin-top: var(--space-5);">
+        <button type="button" class="tabs__tab is-active" role="tab" aria-selected="true" data-tab-target="view-tab-info">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+          Thông tin
+        </button>
+        <button type="button" class="tabs__tab" role="tab" aria-selected="false" data-tab-target="view-tab-certifications">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-qr-code"></use></svg>
+          Chứng nhận nông trại
+        </button>
+        <button type="button" class="tabs__tab" role="tab" aria-selected="false" data-tab-target="view-tab-seasons">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-seedling"></use></svg>
+          Lịch sử mùa vụ
+        </button>
+      </div>
+
+      <div class="tabs__panel" id="view-tab-info" data-tab-panel role="tabpanel">
+        <div class="form-grid">
+          <div class="view-field">
+            <span class="label">Mã nông trại</span>
+            <span data-view-code></span>
+          </div>
+          <div class="view-field">
+            <span class="label">Diện tích</span>
+            <span data-view-area></span>
+          </div>
+          <div class="view-field">
+            <span class="label">Địa chỉ</span>
+            <span data-view-address></span>
+          </div>
+          <div class="view-field">
+            <span class="label">Phường/Xã</span>
+            <span data-view-ward></span>
+          </div>
+          <div class="view-field">
+            <span class="label">Tỉnh/Thành phố</span>
+            <span data-view-province></span>
+          </div>
+          <div class="view-field">
+            <span class="label">Ngày bắt đầu</span>
+            <span data-view-start-date></span>
+          </div>
+          <div class="view-field">
+            <span class="label">Mã vùng trồng quốc gia</span>
+            <span data-view-national-puc></span>
+          </div>
+          <div class="view-field">
+            <span class="label">Mã vùng trồng quốc tế</span>
+            <span data-view-international-puc></span>
+          </div>
+          <div class="view-field form-grid__full" data-view-desc-wrap>
+            <span class="label">Mô tả</span>
+            <span data-view-desc></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabs__panel" id="view-tab-certifications" data-tab-panel role="tabpanel" hidden>
+        <div class="empty-state">
+          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-qr-code"></use></svg>
+          <p class="empty-state__title">Chưa có chứng nhận nào</p>
+          <p class="empty-state__desc">
+            Các chứng nhận (VietGAP, hữu cơ...) của nông trại này sẽ hiển thị tại đây.
+          </p>
+        </div>
+      </div>
+
+      <div class="tabs__panel" id="view-tab-seasons" data-tab-panel role="tabpanel" hidden>
+        <div class="empty-state">
+          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-seedling"></use></svg>
+          <p class="empty-state__title">Chưa có lịch sử mùa vụ</p>
+          <p class="empty-state__desc">
+            Các mùa vụ đã ghi nhận cho nông trại này sẽ hiển thị tại đây.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal__footer">
+      <button type="button" class="btn btn--secondary" data-close-view>Đóng</button>
+    </div>
+  </dialog>
+
+  <!-- Xác nhận xoá (dùng chung, gọi qua AgriChain.confirm) -->
+  <dialog class="modal modal--sm" id="confirm-dialog" aria-labelledby="confirm-dialog-title">
+    <div class="modal__header">
+      <svg class="icon"><use href="icons/sprite.svg#icon-trash"></use></svg>
+      <h2 class="modal__title" id="confirm-dialog-title">Xác nhận</h2>
+    </div>
+    <div class="modal__body">
+      <p data-confirm-message></p>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn--secondary" data-confirm-cancel>Huỷ</button>
+      <button type="button" class="btn btn--danger" data-confirm-ok>Xoá</button>
+    </div>
+  </dialog>
+
+  <!-- Toast -->
+  <div class="toast" role="status" aria-live="polite">
+    <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+    <span data-toast-message></span>
+  </div>
+
+  <!-- Leaflet phải nạp xong trước nong-trai.js vì file đó dùng biến L -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <script src="js/chain.js?v=1" defer></script>
+  <script src="js/store.js?v=2" defer></script>
+  <script src="js/app-shell.js?v=5" defer></script>
+  <script src="js/nong-trai.js?v=8" defer></script>
+</body>
+</html>

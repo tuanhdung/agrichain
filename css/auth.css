@@ -1,0 +1,300 @@
+/* ==========================================================================
+   AgriChain Auth
+   Bố cục dùng chung cho dang-nhap.html và dang-ky.html.
+   Tách riêng khỏi app-shell.css vì hai trang này nằm NGOÀI khung quản trị
+   (không sidebar, không topbar). Nạp sau components.css.
+   ========================================================================== */
+
+/* Ẩn khỏi mắt nhưng vẫn đọc được bằng trình đọc màn hình
+   (lặp lại ở đây vì trang auth không nạp app-shell.css) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.auth-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-6) var(--space-4);
+  background: linear-gradient(140deg, var(--green-100) 0%, var(--color-bg-subtle) 60%);
+}
+
+.auth-card {
+  display: grid;
+  grid-template-columns: 1fr;
+  width: 100%;
+  max-width: 1040px;
+  overflow: hidden;
+  background: var(--color-bg);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-xl);
+}
+
+/* Bảng giới thiệu bên trái — ẩn dưới 960px để form không bị đẩy quá sâu
+   xuống dưới trên điện thoại. */
+.auth-card__brand {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-6);
+  padding: var(--space-12) var(--space-10);
+  background: linear-gradient(160deg, var(--green-900) 0%, var(--green-700) 100%);
+  color: var(--color-text-inverse);
+}
+
+.auth-brand__mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--color-text-inverse);
+}
+
+.auth-brand__mark-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-12);
+  height: var(--space-12);
+  border-radius: var(--radius-lg);
+  background: var(--overlay-white-subtle);
+}
+
+.auth-brand__eyebrow {
+  align-self: flex-start;
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--overlay-white-subtle);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.auth-brand__title {
+  font-size: var(--text-4xl);
+  color: var(--color-text-inverse);
+}
+
+.auth-brand__desc {
+  font-size: var(--text-lg);
+  opacity: 0.85;
+}
+
+.auth-brand__facts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+.auth-brand__fact {
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--overlay-white-subtle);
+}
+
+.auth-brand__fact-value {
+  display: block;
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.auth-brand__fact-label {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+  opacity: 0.8;
+}
+
+/* --- Cột form ------------------------------------------------------------- */
+.auth-card__panel {
+  padding: var(--space-10) var(--space-8);
+}
+
+.auth-panel__title {
+  font-size: var(--text-3xl);
+}
+
+.auth-panel__desc {
+  margin-top: var(--space-1);
+  margin-bottom: var(--space-8);
+  color: var(--color-text-muted);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* --- Chuyển loại tài khoản (Khách hàng / Đơn vị) --------------------------
+   Dùng radio thật bọc trong label: bàn phím và trình đọc màn hình hiểu ngay
+   đây là một nhóm lựa chọn, không phải hai cái nút rời. */
+.auth-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-subtle);
+}
+
+.auth-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color var(--transition-base), color var(--transition-base);
+}
+
+.auth-tab__input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.auth-tab:has(.auth-tab__input:checked) {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.auth-tab:has(.auth-tab__input:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* --- Ô mật khẩu có nút hiện/ẩn -------------------------------------------- */
+.password-field {
+  position: relative;
+}
+
+.password-field .input {
+  padding-right: var(--space-12);
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: var(--space-2);
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  transition: color var(--transition-base), background-color var(--transition-base);
+}
+.password-toggle:hover {
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+}
+
+/* --- Danh sách điều kiện mật khẩu ----------------------------------------- */
+.password-rules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.password-rule {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  transition: color var(--transition-base);
+}
+.password-rule .icon {
+  flex-shrink: 0;
+  color: var(--color-border);
+  transition: color var(--transition-base);
+}
+.password-rule.is-met {
+  color: var(--color-success);
+}
+.password-rule.is-met .icon {
+  color: var(--color-success);
+}
+
+/* --- Hàng phụ dưới ô mật khẩu --------------------------------------------- */
+.auth-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.auth-link {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-primary-active);
+}
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+.auth-foot {
+  margin-top: var(--space-6);
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.auth-copyright {
+  margin-top: var(--space-4);
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* Thông báo lỗi chung của cả form (VD sai email/mật khẩu) */
+.auth-alert {
+  display: none;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+}
+.auth-alert.is-visible {
+  display: flex;
+}
+
+/* --- Nhóm trường chỉ hiện với một loại tài khoản -------------------------- */
+[data-when-type] {
+  display: none;
+}
+[data-when-type].is-active {
+  display: flex;
+}
+
+@media (min-width: 960px) {
+  .auth-card {
+    grid-template-columns: 1fr 1fr;
+  }
+  .auth-card__brand {
+    display: flex;
+  }
+  .auth-card__panel {
+    padding: var(--space-12) var(--space-10);
+  }
+}

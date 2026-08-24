@@ -24,6 +24,17 @@ html {
   overflow-anchor: none;
 }
 
+/* Thuộc tính `hidden` PHẢI luôn thắng, bất kể component tự đặt `display`
+   gì cho chính nó (VD .empty-state{display:flex}, .grid{display:grid}...).
+   Không có rule này thì `node.hidden = true` trong JS coi như vô tác dụng
+   với mọi phần tử có class tự set display — từng gây lỗi thông báo thành
+   công của form Liên Hệ hiện sẵn khi tải trang, và lỗi khối "Chưa có..."
+   không ẩn dù danh sách đã có dữ liệu. Đặt ở đây (không phải từng class)
+   để chặn đứt lỗi này tái diễn với mọi component sau này. */
+[hidden] {
+  display: none !important;
+}
+
 body {
   min-height: 100vh;
   font-family: var(--font-sans);

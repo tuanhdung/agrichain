@@ -48,6 +48,7 @@
   /* --- Màu trạng thái (badge, thông báo, validate form) --- */
   --red-50: #FDECEC;
   --red-700: #B42318;
+  --red-800: #8F1B13;
   --amber-50: #FFF8E6;
   --amber-700: #92400E;
   --blue-50: #EAF2FB;
@@ -60,6 +61,7 @@
   --color-info: var(--blue-700);
   --color-info-subtle: var(--blue-50);
   --color-danger: var(--red-700);
+  --color-danger-hover: var(--red-800);
   --color-danger-subtle: var(--red-50);
   --color-neutral: var(--color-text-muted);
   --color-neutral-subtle: var(--color-bg-subtle);
@@ -130,4 +132,45 @@
 
   /* --- Lớp phủ (z-index) --- */
   --z-sticky: 100;
+  --z-tooltip: 120;
+  --z-scrim: 150;
+  --z-sidebar: 160;
+  --z-toast: 300;
+
+  /* --- Khung app quản trị (sidebar + topbar) --- */
+  --sidebar-width: 260px;
+  --topbar-height: var(--space-16);
+
+  --color-app-bg: var(--neutral-50);
+  --color-sidebar-bg: var(--green-900);
+  --color-sidebar-bg-hover: var(--green-800);
+  --color-sidebar-active: var(--green-700);
+  --color-sidebar-border: var(--green-800);
+  --color-sidebar-text: var(--white);
+  --color-sidebar-text-muted: var(--green-200);
+  --color-scrim: rgba(20, 30, 22, 0.5);
+
+  /* --- Thang màu phân loại vật tư ---
+     Màu ở đây chỉ để quét nhanh bằng mắt trong bảng, KHÔNG mang nghĩa trạng
+     thái — tách hẳn khỏi --color-success/--color-warning... để hai hệ không
+     lẫn vào nhau. Bốn loại đầu tái dùng thang màu sẵn có, chỉ thêm ngọc và tím. */
+  --teal-50: #E6F6F3;
+  --teal-700: #0F766E;
+  --purple-50: #F4EDFA;
+  --purple-700: #6B21A8;
+
+  --color-cat-fertilizer: var(--amber-700);
+  --color-cat-fertilizer-subtle: var(--amber-50);
+  --color-cat-pesticide: var(--red-700);
+  --color-cat-pesticide-subtle: var(--red-50);
+  --color-cat-herbicide: var(--green-700);
+  --color-cat-herbicide-subtle: var(--green-50);
+  --color-cat-fungicide: var(--blue-700);
+  --color-cat-fungicide-subtle: var(--blue-50);
+  --color-cat-seed: var(--teal-700);
+  --color-cat-seed-subtle: var(--teal-50);
+  --color-cat-bio: var(--purple-700);
+  --color-cat-bio-subtle: var(--purple-50);
+  --color-cat-other: var(--color-text-muted);
+  --color-cat-other-subtle: var(--color-bg-subtle);
 }

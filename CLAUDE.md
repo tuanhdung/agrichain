@@ -15,20 +15,50 @@ css/
   tokens.css      # Biến CSS gốc: màu, khoảng cách, cỡ chữ, bo góc, đổ bóng
   base.css        # Reset + typography mặc định
   components.css  # Component dùng chung: button, card, container, grid, form, badge, icon, header
+  auth.css        # Layout riêng cho dang-nhap.html/dang-ky.html (2 cột: giới thiệu + form)
+  app-shell.css   # Layout riêng cho khung quản trị (sidebar + topbar): nong-trai.html, vat-tu.html
 js/
   header.js        # Xử lý tương tác cho .site-header (toggle menu mobile, cuộn anchor)
   contact-form.js  # Validate + hiện thông báo thành công cho form ở section Liên Hệ
+  chain.js         # Sổ cái băm nối chuỗi (hash chain) bằng Web Crypto API — chạy trong trình duyệt
+  store.js         # Lớp lưu trữ qua localStorage (users, farms, supplies, batches, events, ledger,
+                    # phiên đăng nhập) — mọi trang đọc/ghi dữ liệu qua đây, không gọi thẳng localStorage
+  auth.js          # Xử lý form đăng nhập/đăng ký (dang-nhap.html, dang-ky.html), dựa vào store.js
+  app-shell.js     # Tương tác khung quản trị (sidebar mobile...)
+  nong-trai.js     # Logic riêng cho nong-trai.html
+  vat-tu.js        # Logic riêng cho vat-tu.html
 icons/
   sprite.svg      # SVG sprite dùng chung, tham chiếu bằng <use href="icons/sprite.svg#icon-...">
 index.html        # Trang chủ thật của AgriChain
 styleguide.html   # Trang demo design system (living style guide) — không phải trang thật
+dang-nhap.html    # Đăng nhập (giả lập, xem cảnh báo trong js/auth.js và js/store.js)
+dang-ky.html      # Đăng ký tài khoản (khách hàng / đơn vị-tổ chức)
+nong-trai.html    # Trang quản trị: nông trại (dùng chung khung app-shell)
+vat-tu.html       # Trang quản trị: vật tư (dùng chung khung app-shell)
 ```
 
 Khi thêm trang mới: tạo file `.html` ở gốc (hoặc thư mục con theo tính năng),
 luôn nạp CSS theo đúng thứ tự: `tokens.css` → `base.css` → `components.css`,
 và chèn lại `.site-header` (copy nguyên khối từ `index.html` hoặc `styleguide.html`,
 kèm `<script src="js/header.js" defer>` trước `</body>`) — dự án không có templating
-nên mỗi trang tự chứa markup header riêng.
+nên mỗi trang tự chứa markup header riêng. Riêng `dang-nhap.html`/`dang-ky.html` và
+`nong-trai.html`/`vat-tu.html` KHÔNG dùng `.site-header` (layout riêng: auth 2 cột,
+app-shell có sidebar) — đừng chèn header vào các trang này. **`index.html` phải luôn
+nằm ở gốc dự án** (không đưa vào thư mục con) — host tĩnh cần đúng vị trí này để nhận
+diện làm trang mặc định.
+
+## Đăng nhập / Đăng ký (giả lập)
+
+`js/auth.js` + `js/store.js` + `js/chain.js` mô phỏng một backend hoàn toàn trong
+`localStorage` của trình duyệt — **không phải xác thực thật**, không có máy chủ nào
+kiểm tra (đã ghi rõ trong comment đầu mỗi file). Vài điểm cần nhớ khi đụng vào:
+- `js/chain.js` dùng `crypto.subtle` (Web Crypto API) — chỉ chạy được trong "secure
+  context" (`https://` hoặc `http://localhost`/`127.0.0.1`). Mở file trực tiếp bằng
+  `file://` (double-click) sẽ lỗi ngay khi băm mật khẩu.
+- Nút "Đăng Nhập"/"Bắt Đầu Ngay" ở mọi trang (header, hero, CTA) phải trỏ thẳng
+  `dang-nhap.html`/`dang-ky.html` — **không dùng anchor `#dang-nhap`/`#bat-dau-ngay`
+  nữa** (đó là placeholder từ lúc 2 trang này chưa tồn tại; đã sửa ở `index.html` và
+  `styleguide.html`, nếu thêm trang mới nhớ trỏ đúng luôn).
 
 ## Quy ước CSS
 

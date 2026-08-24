@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đăng ký — AgriChain</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+</head>
+<body class="auth-page">
+
+  <main class="auth-card">
+
+    <aside class="auth-card__brand">
+      <a class="auth-brand__mark" href="index.html">
+        <span class="auth-brand__mark-box" aria-hidden="true">
+          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-leaf"></use></svg>
+        </span>
+        AgriChain
+      </a>
+
+      <span class="auth-brand__eyebrow">Truy xuất • Minh bạch • Bền vững</span>
+
+      <div>
+        <h1 class="auth-brand__title">Bắt đầu ghi nhận mùa vụ</h1>
+        <p class="auth-brand__desc">
+          Tạo tài khoản để khai báo nông trại, quản lý vật tư và đưa từng lô hàng
+          lên sổ cái không thể chỉnh sửa.
+        </p>
+      </div>
+
+      <div class="auth-brand__facts">
+        <div class="auth-brand__fact">
+          <span class="auth-brand__fact-value">Nông trại</span>
+          <span class="auth-brand__fact-label">Khai báo vùng trồng</span>
+        </div>
+        <div class="auth-brand__fact">
+          <span class="auth-brand__fact-value">Vật tư</span>
+          <span class="auth-brand__fact-label">Theo dõi đầu vào</span>
+        </div>
+        <div class="auth-brand__fact">
+          <span class="auth-brand__fact-value">Lô hàng</span>
+          <span class="auth-brand__fact-label">Truy xuất bằng QR</span>
+        </div>
+      </div>
+    </aside>
+
+    <div class="auth-card__panel">
+      <h2 class="auth-panel__title">Đăng ký</h2>
+      <p class="auth-panel__desc">Nền tảng truy xuất nguồn gốc nông sản</p>
+
+      <form class="auth-form" id="register-form" novalidate>
+
+        <div class="auth-alert" data-auth-alert role="alert">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+          <span data-auth-alert-message></span>
+        </div>
+
+        <!-- Loại tài khoản -->
+        <fieldset class="auth-tabs">
+          <legend class="sr-only">Loại tài khoản</legend>
+          <label class="auth-tab">
+            <input class="auth-tab__input" type="radio" name="type" value="customer" checked />
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-leaf"></use></svg>
+            Khách hàng
+          </label>
+          <label class="auth-tab">
+            <input class="auth-tab__input" type="radio" name="type" value="org" />
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-factory"></use></svg>
+            Đơn vị/Tổ chức
+          </label>
+        </fieldset>
+
+        <!-- Chỉ hiện với Đơn vị/Tổ chức -->
+        <div class="field" data-when-type="org">
+          <label class="label" for="register-org-name">Tên đơn vị</label>
+          <input class="input" type="text" id="register-org-name" name="orgName"
+            autocomplete="organization" />
+        </div>
+
+        <div class="field" data-when-type="org">
+          <label class="label" for="register-tax-code">Mã doanh nghiệp</label>
+          <input class="input" type="text" id="register-tax-code" name="taxCode" />
+          <p class="field__hint">Mã số thuế hoặc mã đăng ký kinh doanh.</p>
+        </div>
+
+        <div class="field">
+          <label class="label" for="register-full-name">Họ tên</label>
+          <input class="input" type="text" id="register-full-name" name="fullName"
+            autocomplete="name" required />
+        </div>
+
+        <div class="field">
+          <label class="label" for="register-email">Email</label>
+          <input class="input" type="email" id="register-email" name="email"
+            autocomplete="email" required />
+        </div>
+
+        <div class="field">
+          <label class="label" for="register-password">Mật khẩu</label>
+          <div class="password-field">
+            <input class="input" type="password" id="register-password" name="password"
+              autocomplete="new-password" required />
+            <button type="button" class="password-toggle" data-password-toggle="register-password"
+              aria-label="Hiện mật khẩu">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-eye"></use></svg>
+            </button>
+          </div>
+
+          <ul class="password-rules" role="list" data-password-rules aria-live="polite">
+            <li class="password-rule" data-rule="length">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-check-circle"></use></svg>
+              Ít nhất 8 ký tự
+            </li>
+            <li class="password-rule" data-rule="upper">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-check-circle"></use></svg>
+              Ít nhất 1 chữ hoa
+            </li>
+            <li class="password-rule" data-rule="digit">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-check-circle"></use></svg>
+              Ít nhất 1 chữ số
+            </li>
+            <li class="password-rule" data-rule="special">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-check-circle"></use></svg>
+              Ít nhất 1 ký tự đặc biệt
+            </li>
+          </ul>
+        </div>
+
+        <div class="field">
+          <label class="label" for="register-confirm">Xác nhận mật khẩu</label>
+          <div class="password-field">
+            <input class="input" type="password" id="register-confirm" name="confirm"
+              autocomplete="new-password" required />
+            <button type="button" class="password-toggle" data-password-toggle="register-confirm"
+              aria-label="Hiện mật khẩu">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-eye"></use></svg>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn--primary btn--lg">Tạo tài khoản</button>
+      </form>
+
+      <p class="auth-foot">
+        Đã có tài khoản? <a class="auth-link" href="dang-nhap.html">Đăng nhập</a>
+      </p>
+      <p class="auth-copyright">© 2026 Exabyte • AgriChain</p>
+    </div>
+
+  </main>
+
+  <script src="js/chain.js?v=1" defer></script>
+  <script src="js/store.js?v=2" defer></script>
+  <script src="js/auth.js?v=1" defer></script>
+</body>
+</html>

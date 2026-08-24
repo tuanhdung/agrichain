@@ -111,4 +111,71 @@
     <path d="m3 6 9 7 9-7"/>
   </symbol>
 
+  <!-- ===== Bổ sung cho khu vực quản trị (vật tư, thao tác bảng) ===== -->
+
+  <symbol id="icon-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 8 12 3 3 8v8l9 5 9-5z"/>
+    <path d="m3 8 9 5 9-5M12 13v8"/>
+  </symbol>
+
+  <symbol id="icon-bug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="8" y="8" width="8" height="12" rx="4"/>
+    <path d="M9 7a3 3 0 0 1 6 0"/>
+    <path d="M8 12H4M8 16H5M16 12h4M16 16h3M9.5 5 8 3M14.5 5 16 3"/>
+  </symbol>
+
+  <symbol id="icon-mushroom" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 12a9 9 0 0 1 18 0z"/>
+    <path d="M10 12v6a2 2 0 0 0 4 0v-6"/>
+  </symbol>
+
+  <symbol id="icon-grass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 21c0-5-2-9-5-11M12 21c0-5 2-9 5-11M12 21V9"/>
+    <line x1="4" y1="21" x2="20" y2="21"/>
+  </symbol>
+
+  <symbol id="icon-seed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="12" cy="12" rx="5" ry="8" transform="rotate(35 12 12)"/>
+    <path d="M9 15c1.5-2 3.5-4 6-5"/>
+  </symbol>
+
+  <symbol id="icon-flask" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 3v6L4.5 18a2 2 0 0 0 1.7 3h11.6a2 2 0 0 0 1.7-3L14 9V3"/>
+    <path d="M9 3h6M7.5 15h9"/>
+  </symbol>
+
+  <symbol id="icon-factory" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 21V10l6 4V10l6 4V7h6v14z"/>
+    <path d="M3 21h18"/>
+  </symbol>
+
+  <symbol id="icon-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 20h4L20 8a2.8 2.8 0 0 0-4-4L4 16z"/>
+    <path d="m14 6 4 4"/>
+  </symbol>
+
+  <symbol id="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 7h16M10 7V4h4v3M6 7l1 13h10l1-13"/>
+    <path d="M10 11v6M14 11v6"/>
+  </symbol>
+
+  <symbol id="icon-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 5v14M5 12h14"/>
+  </symbol>
+  <symbol id="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/>
+    <circle cx="12" cy="12" r="3"/>
+  </symbol>
+
+  <symbol id="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4.5 7C3 8.5 2 12 2 12s3.5 7 10 7c2 0 3.7-.7 5.1-1.6M20.6 15.4C21.6 14 22 12 22 12s-3.5-7-10-7c-.9 0-1.7.1-2.5.3"/>
+    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>
+    <line x1="3" y1="3" x2="21" y2="21"/>
+  </symbol>
+
+  <symbol id="icon-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/>
+    <path d="m8.5 12 2.5 2.5 4.5-5"/>
+  </symbol>
+
 </svg>

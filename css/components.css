@@ -107,6 +107,14 @@
   background: var(--overlay-white-subtle);
 }
 
+.btn--danger {
+  background: var(--color-danger);
+  color: var(--color-text-inverse);
+}
+.btn--danger:hover:not(:disabled) {
+  background: var(--color-danger-hover);
+}
+
 /* --- Card --- */
 .card {
   background: var(--color-bg);
