@@ -1,6 +1,7 @@
 /* ==========================================================================
    AgriChain — Trang Nông trại
-   Đọc/ghi qua AgriChain.store. Nạp SAU js/store.js và js/app-shell.js.
+   Đọc/ghi qua AgriChain.store. Nạp SAU js/store.js, js/app-shell.js và
+   js/map-layers.js.
    ========================================================================== */
 
 (function (global) {
@@ -28,7 +29,6 @@
   var emptyNode = document.querySelector('[data-farm-empty]');
   var countNode = document.querySelector('[data-farm-count]');
   var provinceSelect = document.getElementById('farm-province');
-  var viewModal = document.getElementById('farm-view-modal');
 
   /* --- Tiện ích ------------------------------------------------------------ */
 
@@ -78,7 +78,11 @@
   /* --- Vẽ danh sách -------------------------------------------------------- */
 
   function farmCard(farm) {
-    var card = el('article', 'card card--hover');
+    // Cả thẻ là 1 liên kết tới trang chi tiết — bấm vào phần thông tin (chỗ
+    // nào không phải nút sửa/xoá) sẽ mở nong-trai-chi-tiet.html. 2 nút thao
+    // tác bên dưới tự chặn sự kiện nổi bọt lên <a> để không bị điều hướng.
+    var card = el('a', 'card card--hover');
+    card.href = 'nong-trai-chi-tiet.html?ma=' + encodeURIComponent(farm.code);
 
     var header = el('div', 'card__header');
     header.appendChild(el('h2', 'data-card__title', farm.name));
@@ -105,12 +109,14 @@
 
     var actions = el('div', 'data-card__actions');
 
+    // Không cần bắt sự kiện riêng: nút này nằm trong <a> nên bấm vào cũng tự
+    // điều hướng như bấm vào chỗ khác trên thẻ — chỉ thêm cho quen mắt và có
+    // aria-label/tooltip rõ ràng, giống 2 nút sửa/xoá bên cạnh.
     var viewButton = el('button', 'icon-btn');
     viewButton.type = 'button';
     viewButton.setAttribute('aria-label', 'Xem chi tiết ' + farm.name);
     viewButton.setAttribute('data-tooltip', 'Xem chi tiết');
     viewButton.appendChild(svgIcon('icon-eye'));
-    viewButton.addEventListener('click', function () { openViewModal(farm); });
     actions.appendChild(viewButton);
 
     var editButton = el('button', 'icon-btn');
@@ -118,7 +124,11 @@
     editButton.setAttribute('aria-label', 'Chỉnh sửa ' + farm.name);
     editButton.setAttribute('data-tooltip', 'Chỉnh sửa');
     editButton.appendChild(svgIcon('icon-pencil'));
-    editButton.addEventListener('click', function () { openModal(farm); });
+    editButton.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      openModal(farm);
+    });
     actions.appendChild(editButton);
 
     var deleteButton = el('button', 'icon-btn icon-btn--danger');
@@ -126,7 +136,11 @@
     deleteButton.setAttribute('aria-label', 'Xoá ' + farm.name);
     deleteButton.setAttribute('data-tooltip', 'Xoá');
     deleteButton.appendChild(svgIcon('icon-trash'));
-    deleteButton.addEventListener('click', function () { handleDelete(farm); });
+    deleteButton.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      handleDelete(farm);
+    });
     actions.appendChild(deleteButton);
 
     card.appendChild(actions);
@@ -333,39 +347,6 @@
     );
   }
 
-  /* --- Nền bản đồ: vệ tinh / địa hình / mặc định ---------------------------
-     Dùng chung cho cả bản đồ vẽ ranh giới và bản đồ xem chi tiết. Cả 3 nguồn
-     đều miễn phí, không cần API key:
-       - Vệ tinh: Esri World Imagery — thấy rõ thực địa (bờ ruộng, nhà lưới)
-         nên chọn làm mặc định, dễ khoanh ranh giới chính xác.
-       - Địa hình: OpenTopoMap — thấy cao độ/đường đồng mức.
-       - Mặc định: OpenStreetMap — bản đồ đường phố quen thuộc. */
-  function addBaseLayers(targetMap) {
-    var satellite = L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      {
-        maxZoom: 19,
-        attribution: 'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community'
-      }
-    ).addTo(targetMap);
-
-    var terrain = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-      maxZoom: 17,
-      attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)'
-    });
-
-    var street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap'
-    });
-
-    L.control.layers({
-      'Vệ tinh': satellite,
-      'Địa hình': terrain,
-      'Mặc định': street
-    }).addTo(targetMap);
-  }
-
   /* --- Khởi tạo bản đồ -----------------------------------------------------
      Dựng trễ, chỉ khi modal mở lần đầu: Leaflet đo kích thước khung lúc khởi
      tạo, mà khung nằm trong <dialog> đang ẩn nên sẽ đo ra 0 và bản đồ vỡ. */
@@ -373,7 +354,7 @@
     if (map || typeof L === 'undefined') return;
 
     map = L.map('farm-map', { center: [16.0, 106.0], zoom: 5 });
-    addBaseLayers(map);
+    global.AgriChain.addMapBaseLayers(map);
 
     markerLayer = L.layerGroup().addTo(map);
 
@@ -508,85 +489,6 @@
     modal.close();
   }
 
-  /* --- Xem chi tiết -----------------------------------------------------
-     Bản đồ riêng, chỉ hiển thị (không click-để-đánh-dấu) — dùng lại
-     addBaseLayers() để có cùng 3 lớp nền vệ tinh/địa hình/mặc định. */
-  var viewMap = null;
-  var viewShapeLayer = null;
-
-  function ensureViewMap() {
-    if (viewMap || typeof L === 'undefined') return;
-    viewMap = L.map('farm-view-map', { center: [16.0, 106.0], zoom: 5 });
-    addBaseLayers(viewMap);
-  }
-
-  function showFarmOnViewMap(farm) {
-    if (!viewMap) return;
-
-    if (viewShapeLayer) {
-      viewMap.removeLayer(viewShapeLayer);
-      viewShapeLayer = null;
-    }
-
-    var polygon = farm.polygon || [];
-    if (polygon.length >= 3) {
-      var latlngs = polygon.map(function (p) { return [p.lat, p.lng]; });
-      viewShapeLayer = L.polygon(latlngs, {
-        color: '#1F8F58', weight: 3, fillColor: '#2EA86B', fillOpacity: 0.25
-      }).addTo(viewMap);
-      viewMap.fitBounds(viewShapeLayer.getBounds(), { padding: [24, 24] });
-    } else {
-      // Chưa khoanh ranh giới thì giữ khung nhìn toàn quốc, khỏi zoom bừa.
-      viewMap.setView([16.0, 106.0], 5);
-    }
-  }
-
-  function fillViewField(selector, value) {
-    var node = viewModal.querySelector(selector);
-    if (node) node.textContent = value || '—';
-  }
-
-  function resetViewTabs() {
-    var tabs = viewModal.querySelectorAll('[data-tab-target]');
-    tabs.forEach(function (tab, index) {
-      var active = index === 0;
-      tab.classList.toggle('is-active', active);
-      tab.setAttribute('aria-selected', String(active));
-    });
-    viewModal.querySelectorAll('[data-tab-panel]').forEach(function (panel, index) {
-      panel.hidden = index !== 0;
-    });
-  }
-
-  function openViewModal(farm) {
-    resetViewTabs(); // luôn mở lại ở tab "Thông tin", khỏi giữ tab của lần xem trước
-    fillViewField('[data-view-name]', farm.name);
-    fillViewField('[data-view-code]', farm.code);
-    fillViewField('[data-view-area]', formatArea(farm.area));
-    fillViewField('[data-view-address]', farm.address);
-    fillViewField('[data-view-ward]', farm.ward);
-    fillViewField('[data-view-province]', farm.province);
-    fillViewField('[data-view-start-date]', formatDate(farm.startDate));
-    fillViewField('[data-view-national-puc]', farm.nationalPuc);
-    fillViewField('[data-view-international-puc]', farm.internationalPuc);
-    fillViewField('[data-view-desc]', farm.description);
-
-    viewModal.showModal();
-
-    // Cùng lý do với openModal(): phải đợi <dialog> mở rồi mới đo được khung.
-    global.requestAnimationFrame(function () {
-      ensureViewMap();
-      if (viewMap) {
-        viewMap.invalidateSize();
-        showFarmOnViewMap(farm);
-      }
-    });
-  }
-
-  function closeViewModal() {
-    viewModal.close();
-  }
-
   /* --- Kiểm tra dữ liệu ----------------------------------------------------
      Dùng validity của trình duyệt nhưng tự hiển thị lỗi, vì bong bóng mặc định
      chỉ hiện được một lỗi tại một thời điểm và biến mất khi bấm ra ngoài. */
@@ -695,9 +597,6 @@
     });
     document.querySelectorAll('[data-close-farm-form]').forEach(function (button) {
       button.addEventListener('click', closeModal);
-    });
-    document.querySelectorAll('[data-close-view]').forEach(function (button) {
-      button.addEventListener('click', closeViewModal);
     });
 
     form.addEventListener('submit', handleSubmit);

@@ -144,25 +144,6 @@
     .map-locate-control a:hover {
       background: var(--color-bg-subtle);
     }
-
-    /* Bản đồ chỉ xem (modal xem chi tiết) — không có khối .map-side bên
-       cạnh nên chiếm trọn chiều rộng, không cho tương tác vẽ điểm. */
-    .view-map {
-      height: 280px;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
-      overflow: hidden;
-      z-index: 0;
-    }
-
-    .view-field {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-1);
-    }
-    .view-field .label {
-      color: var(--color-text-muted);
-    }
   </style>
 </head>
 <body class="app-shell">
@@ -474,99 +455,6 @@
     </form>
   </dialog>
 
-  <!-- Xem chi tiết nông trại -->
-  <dialog class="modal" id="farm-view-modal" aria-labelledby="farm-view-title">
-    <div class="modal__header">
-      <svg class="icon"><use href="icons/sprite.svg#icon-seedling"></use></svg>
-      <h2 class="modal__title" id="farm-view-title" data-view-name>Nông trại</h2>
-      <button type="button" class="modal__close" data-close-view aria-label="Đóng">&times;</button>
-    </div>
-
-    <div class="modal__body">
-      <div class="view-map" id="farm-view-map"></div>
-
-      <div class="tabs" role="tablist" style="margin-top: var(--space-5);">
-        <button type="button" class="tabs__tab is-active" role="tab" aria-selected="true" data-tab-target="view-tab-info">
-          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
-          Thông tin
-        </button>
-        <button type="button" class="tabs__tab" role="tab" aria-selected="false" data-tab-target="view-tab-certifications">
-          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-qr-code"></use></svg>
-          Chứng nhận nông trại
-        </button>
-        <button type="button" class="tabs__tab" role="tab" aria-selected="false" data-tab-target="view-tab-seasons">
-          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-seedling"></use></svg>
-          Lịch sử mùa vụ
-        </button>
-      </div>
-
-      <div class="tabs__panel" id="view-tab-info" data-tab-panel role="tabpanel">
-        <div class="form-grid">
-          <div class="view-field">
-            <span class="label">Mã nông trại</span>
-            <span data-view-code></span>
-          </div>
-          <div class="view-field">
-            <span class="label">Diện tích</span>
-            <span data-view-area></span>
-          </div>
-          <div class="view-field">
-            <span class="label">Địa chỉ</span>
-            <span data-view-address></span>
-          </div>
-          <div class="view-field">
-            <span class="label">Phường/Xã</span>
-            <span data-view-ward></span>
-          </div>
-          <div class="view-field">
-            <span class="label">Tỉnh/Thành phố</span>
-            <span data-view-province></span>
-          </div>
-          <div class="view-field">
-            <span class="label">Ngày bắt đầu</span>
-            <span data-view-start-date></span>
-          </div>
-          <div class="view-field">
-            <span class="label">Mã vùng trồng quốc gia</span>
-            <span data-view-national-puc></span>
-          </div>
-          <div class="view-field">
-            <span class="label">Mã vùng trồng quốc tế</span>
-            <span data-view-international-puc></span>
-          </div>
-          <div class="view-field form-grid__full" data-view-desc-wrap>
-            <span class="label">Mô tả</span>
-            <span data-view-desc></span>
-          </div>
-        </div>
-      </div>
-
-      <div class="tabs__panel" id="view-tab-certifications" data-tab-panel role="tabpanel" hidden>
-        <div class="empty-state">
-          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-qr-code"></use></svg>
-          <p class="empty-state__title">Chưa có chứng nhận nào</p>
-          <p class="empty-state__desc">
-            Các chứng nhận (VietGAP, hữu cơ...) của nông trại này sẽ hiển thị tại đây.
-          </p>
-        </div>
-      </div>
-
-      <div class="tabs__panel" id="view-tab-seasons" data-tab-panel role="tabpanel" hidden>
-        <div class="empty-state">
-          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-seedling"></use></svg>
-          <p class="empty-state__title">Chưa có lịch sử mùa vụ</p>
-          <p class="empty-state__desc">
-            Các mùa vụ đã ghi nhận cho nông trại này sẽ hiển thị tại đây.
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal__footer">
-      <button type="button" class="btn btn--secondary" data-close-view>Đóng</button>
-    </div>
-  </dialog>
-
   <!-- Xác nhận xoá (dùng chung, gọi qua AgriChain.confirm) -->
   <dialog class="modal modal--sm" id="confirm-dialog" aria-labelledby="confirm-dialog-title">
     <div class="modal__header">
@@ -588,11 +476,12 @@
     <span data-toast-message></span>
   </div>
 
-  <!-- Leaflet phải nạp xong trước nong-trai.js vì file đó dùng biến L -->
+  <!-- Leaflet phải nạp xong trước map-layers.js/nong-trai.js vì 2 file đó dùng biến L -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <script src="js/map-layers.js?v=1" defer></script>
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=2" defer></script>
   <script src="js/app-shell.js?v=5" defer></script>
-  <script src="js/nong-trai.js?v=8" defer></script>
+  <script src="js/nong-trai.js?v=10" defer></script>
 </body>
 </html>

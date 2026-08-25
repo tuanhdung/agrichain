@@ -129,6 +129,14 @@
   box-shadow: var(--shadow-md);
 }
 
+/* .card dùng làm liên kết (thẻ <a> thay vì <div>/<article>) — bỏ kiểu link
+   mặc định của trình duyệt để trông vẫn như thẻ thường. */
+a.card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
 .card__header {
   margin-bottom: var(--space-4);
   padding-bottom: var(--space-4);

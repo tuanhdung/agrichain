@@ -12,29 +12,37 @@ HTML/CSS/JS thuần — **không dùng framework, không dùng build tool** (kh�
 
 ```
 css/
-  tokens.css      # Biến CSS gốc: màu, khoảng cách, cỡ chữ, bo góc, đổ bóng
-  base.css        # Reset + typography mặc định
-  components.css  # Component dùng chung: button, card, container, grid, form, badge, icon, header
-  auth.css        # Layout riêng cho dang-nhap.html/dang-ky.html (2 cột: giới thiệu + form)
-  app-shell.css   # Layout riêng cho khung quản trị (sidebar + topbar): nong-trai.html, vat-tu.html
+  tokens.css             # Biến CSS gốc: màu, khoảng cách, cỡ chữ, bo góc, đổ bóng
+  base.css               # Reset + typography mặc định
+  components.css         # Component dùng chung: button, card, container, grid, form, badge, icon, header
+  auth.css               # Layout riêng cho dang-nhap.html/dang-ky.html (2 cột: giới thiệu + form)
+  app-shell.css          # Layout riêng cho khung quản trị (sidebar + topbar): nong-trai.html, vat-tu.html,
+                          # nong-trai-chi-tiet.html
 js/
-  header.js        # Xử lý tương tác cho .site-header (toggle menu mobile, cuộn anchor)
-  contact-form.js  # Validate + hiện thông báo thành công cho form ở section Liên Hệ
-  chain.js         # Sổ cái băm nối chuỗi (hash chain) bằng Web Crypto API — chạy trong trình duyệt
-  store.js         # Lớp lưu trữ qua localStorage (users, farms, supplies, batches, events, ledger,
-                    # phiên đăng nhập) — mọi trang đọc/ghi dữ liệu qua đây, không gọi thẳng localStorage
-  auth.js          # Xử lý form đăng nhập/đăng ký (dang-nhap.html, dang-ky.html), dựa vào store.js
-  app-shell.js     # Tương tác khung quản trị (sidebar mobile...)
-  nong-trai.js     # Logic riêng cho nong-trai.html
-  vat-tu.js        # Logic riêng cho vat-tu.html
+  header.js              # Xử lý tương tác cho .site-header (toggle menu mobile, cuộn anchor)
+  contact-form.js        # Validate + hiện thông báo thành công cho form ở section Liên Hệ
+  chain.js               # Sổ cái băm nối chuỗi (hash chain) bằng Web Crypto API — chạy trong trình duyệt
+  store.js               # Lớp lưu trữ qua localStorage (users, farms, supplies, batches, events, ledger,
+                          # phiên đăng nhập) — mọi trang đọc/ghi dữ liệu qua đây, không gọi thẳng localStorage
+  auth.js                # Xử lý form đăng nhập/đăng ký (dang-nhap.html, dang-ky.html), dựa vào store.js
+  app-shell.js            # Tương tác khung quản trị (sidebar mobile, thu gọn/xổ nhóm menu, tab dùng chung,
+                           # hộp thoại xác nhận AgriChain.confirm...)
+  map-layers.js           # 3 lớp nền bản đồ Leaflet dùng chung (vệ tinh/địa hình/mặc định) —
+                           # AgriChain.addMapBaseLayers(map), dùng ở cả nong-trai.js lẫn nong-trai-chi-tiet.js
+  nong-trai.js            # Logic riêng cho nong-trai.html (danh sách + thêm/sửa/xoá nông trại)
+  nong-trai-chi-tiet.js   # Logic riêng cho nong-trai-chi-tiet.html (trang xem chi tiết 1 nông trại)
+  vat-tu.js               # Logic riêng cho vat-tu.html
 icons/
-  sprite.svg      # SVG sprite dùng chung, tham chiếu bằng <use href="icons/sprite.svg#icon-...">
-index.html        # Trang chủ thật của AgriChain
-styleguide.html   # Trang demo design system (living style guide) — không phải trang thật
-dang-nhap.html    # Đăng nhập (giả lập, xem cảnh báo trong js/auth.js và js/store.js)
-dang-ky.html      # Đăng ký tài khoản (khách hàng / đơn vị-tổ chức)
-nong-trai.html    # Trang quản trị: nông trại (dùng chung khung app-shell)
-vat-tu.html       # Trang quản trị: vật tư (dùng chung khung app-shell)
+  sprite.svg              # SVG sprite dùng chung, tham chiếu bằng <use href="icons/sprite.svg#icon-...">
+index.html                # Trang chủ thật của AgriChain
+styleguide.html           # Trang demo design system (living style guide) — không phải trang thật
+dang-nhap.html            # Đăng nhập (giả lập, xem cảnh báo trong js/auth.js và js/store.js)
+dang-ky.html              # Đăng ký tài khoản (khách hàng / đơn vị-tổ chức)
+nong-trai.html            # Trang quản trị: nông trại (dùng chung khung app-shell)
+nong-trai-chi-tiet.html   # Trang chi tiết 1 nông trại, mở từ thẻ nông trại ở nong-trai.html —
+                          # đọc mã nông trại qua query string ?ma=..., KHÔNG phải route thật (xem ghi
+                          # chú bên dưới)
+vat-tu.html               # Trang quản trị: vật tư (dùng chung khung app-shell)
 ```
 
 Khi thêm trang mới: tạo file `.html` ở gốc (hoặc thư mục con theo tính năng),
@@ -46,6 +54,15 @@ nên mỗi trang tự chứa markup header riêng. Riêng `dang-nhap.html`/`dang
 app-shell có sidebar) — đừng chèn header vào các trang này. **`index.html` phải luôn
 nằm ở gốc dự án** (không đưa vào thư mục con) — host tĩnh cần đúng vị trí này để nhận
 diện làm trang mặc định.
+
+**Trang "chi tiết 1 bản ghi" dùng query string, không phải route thật.** Dự án không
+có server-side router nên không thể dùng URL dạng đường dẫn như `/nong-trai/NV01`.
+Quy ước: 1 trang tĩnh dùng chung cho mọi bản ghi cùng loại, đọc mã bản ghi qua query
+string, ví dụ `nong-trai-chi-tiet.html?ma=NV01` (xem `js/nong-trai-chi-tiet.js`).
+Dùng `ma` (trường `code` người dùng tự đặt, hiển thị được) — **không dùng `id`** (mã
+nội bộ tự sinh trong `store.js`, dạng `m8x2k1-a9f3`, không nên lộ ra URL). Trang phải
+tự xử lý trường hợp không tìm thấy bản ghi (`.empty-state` + nút quay lại danh sách),
+không được để trắng trang.
 
 ## Đăng nhập / Đăng ký (giả lập)
 
