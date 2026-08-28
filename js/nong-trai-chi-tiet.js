@@ -373,6 +373,9 @@
     var problems = [];
     var name = document.getElementById('cert-name');
     var code = document.getElementById('cert-code');
+    var issuer = document.getElementById('cert-issuer');
+    var issueDate = document.getElementById('cert-issue-date');
+    var expiryDate = document.getElementById('cert-expiry-date');
 
     if (!name.value.trim()) {
       showError(name, 'Nhập tên chứng nhận.');
@@ -391,6 +394,27 @@
         showError(code, 'Mã này đã dùng cho chứng nhận khác của nông trại.');
         problems.push(code);
       }
+    }
+
+    if (!issuer.value.trim()) {
+      showError(issuer, 'Nhập cơ quan cấp.');
+      problems.push(issuer);
+    }
+    if (!issueDate.value) {
+      showError(issueDate, 'Chọn ngày cấp.');
+      problems.push(issueDate);
+    }
+    if (!expiryDate.value) {
+      showError(expiryDate, 'Chọn ngày hết hạn.');
+      problems.push(expiryDate);
+    }
+
+    // Lúc sửa, tệp cũ vẫn còn hiệu lực nếu chưa bấm "Gỡ tệp" — không bắt
+    // chọn lại tệp mới mỗi lần sửa, chỉ bắt buộc lúc chưa có tệp nào cả.
+    var hasFile = !!certFile || (!certFileRemoved && !certFileCurrent.hidden);
+    if (!hasFile) {
+      showError(certFileInput, 'Chọn tệp đính kèm.');
+      problems.push(certFileInput);
     }
 
     if (problems.length) {
