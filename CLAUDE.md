@@ -30,8 +30,11 @@ js/
   map-layers.js           # 3 lớp nền bản đồ Leaflet dùng chung (vệ tinh/địa hình/mặc định) —
                            # AgriChain.addMapBaseLayers(map), dùng ở cả nong-trai.js lẫn nong-trai-chi-tiet.js
   nong-trai.js            # Logic riêng cho nong-trai.html (danh sách + thêm/sửa/xoá nông trại)
-  nong-trai-chi-tiet.js   # Logic riêng cho nong-trai-chi-tiet.html (trang xem chi tiết 1 nông trại)
+  nong-trai-chi-tiet.js   # Logic riêng cho nong-trai-chi-tiet.html (trang xem chi tiết 1 nông trại,
+                          # gồm cả chứng nhận/mùa vụ/nhật ký/lô hàng con của nó)
   vat-tu.js               # Logic riêng cho vat-tu.html
+  truy-xuat.js            # Logic riêng cho truy-xuat.html (trang truy xuất công khai — KHÔNG nạp
+                          # js/app-shell.js, trang này không cần đăng nhập)
 icons/
   sprite.svg              # SVG sprite dùng chung, tham chiếu bằng <use href="icons/sprite.svg#icon-...">
 index.html                # Trang chủ thật của AgriChain
@@ -43,6 +46,11 @@ nong-trai-chi-tiet.html   # Trang chi tiết 1 nông trại, mở từ thẻ nô
                           # đọc mã nông trại qua query string ?ma=..., KHÔNG phải route thật (xem ghi
                           # chú bên dưới)
 vat-tu.html               # Trang quản trị: vật tư (dùng chung khung app-shell)
+truy-xuat.html            # Trang truy xuất nguồn gốc CÔNG KHAI (không cần đăng nhập, không dùng
+                          # app-shell) — đọc mã lô hàng qua query string ?ma=..., mở từ mã QR ở nút
+                          # "Truy xuất nguồn gốc" trên thẻ lô hàng (nong-trai-chi-tiet.js). Dùng lại
+                          # .site-header như index.html/styleguide.html vì đây là trang công khai,
+                          # không phải khu vực quản trị.
 ```
 
 Khi thêm trang mới: tạo file `.html` ở gốc (hoặc thư mục con theo tính năng),
@@ -176,8 +184,12 @@ kiểm tra (đã ghi rõ trong comment đầu mỗi file). Vài điểm cần nh
 
 Trang chủ (`index.html`) hiện có Hero, Tính Năng, Quy Trình, Lợi Ích, CTA, Liên Hệ, Footer.
 Form Liên Hệ mới validate + hiện thông báo phía client, chưa gửi đi đâu thật. Chưa có:
-section E-commerce/Blog (mục tiêu của anchor cùng tên trong menu header), trang truy xuất
-nguồn gốc, tích hợp blockchain/AI thật.
+section E-commerce/Blog (mục tiêu của anchor cùng tên trong menu header), tích hợp AI thật.
+
+Trang truy xuất nguồn gốc (`truy-xuat.html`) đã có ở mức cơ bản: xem 1 lô hàng qua mã QR
+(hoặc `?ma=...` trực tiếp), thấy trạng thái xác thực blockchain + thông tin nông trại/mùa
+vụ liên quan. Chưa có: liệt kê nhiều lô hàng, tìm kiếm theo mã tự nhập tay trên trang, xác
+thực lại (verify) hash ngay tại trang này thay vì chỉ đọc `batch.hash` đã lưu sẵn.
 
 ## Lỗi đã biết, chưa xử lý xong
 

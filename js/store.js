@@ -241,6 +241,43 @@
     });
   }
 
+  /* --- Niêm phong một lô hàng lên sổ cái ------------------------------------
+     Cùng cơ chế với seal() ở trên nhưng băm thẳng dữ liệu lô hàng, không qua
+     bảng `events` trung gian — lô hàng không phải lúc nào cũng có sự kiện
+     canh tác gắn kèm, nên niêm phong trực tiếp cho đơn giản. */
+  function sealBatch(batchId) {
+    var batch = find('batches', batchId);
+    if (!batch) return Promise.reject(new Error('Không tìm thấy lô hàng: ' + batchId));
+    if (batch.sealed) return Promise.reject(new Error('Lô hàng này đã ghi lên blockchain rồi.'));
+
+    var payload = {
+      batchId: batch.id,
+      code: batch.code,
+      seasonId: batch.seasonId,
+      farmId: batch.farmId,
+      startDate: batch.startDate,
+      harvestDate: batch.harvestDate,
+      actualHarvestDate: batch.actualHarvestDate,
+      area: batch.area,
+      expectedYield: batch.expectedYield,
+      unit: batch.unit,
+      status: batch.status
+    };
+
+    var ledger = list('ledger');
+    return global.AgriChain.chain.append(ledger, payload).then(function (block) {
+      ledger.push(block);
+      save('ledger', ledger);
+      update('batches', batchId, {
+        sealed: true,
+        sealedAt: block.timestamp,
+        hash: block.hash,
+        blockIndex: block.index
+      });
+      return block;
+    });
+  }
+
   function verifyLedger() {
     return global.AgriChain.chain.verify(list('ledger'));
   }
@@ -275,6 +312,7 @@
     registerUser: registerUser,
     login: login,
     seal: seal,
+    sealBatch: sealBatch,
     verifyLedger: verifyLedger,
     reset: reset
   };

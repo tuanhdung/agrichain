@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Truy xuất nguồn gốc — AgriChain</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
+
+  <style>
+    /* CSS chỉ dùng riêng cho trang truy xuất nguồn gốc — trang này công khai,
+       không nạp app-shell.css (dành cho khung quản trị sau đăng nhập), nên
+       những thứ như "trạng thái rỗng"/"dòng thông tin" phải tự định nghĩa
+       lại ở đây thay vì tái dùng .empty-state/.data-card__row. */
+    .trace-page {
+      padding-block: var(--space-10) var(--space-16);
+      min-height: calc(100vh - var(--header-height));
+    }
+
+    .empty-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-16) var(--space-6);
+      text-align: center;
+    }
+    .empty-card .icon {
+      color: var(--color-text-muted);
+    }
+    .empty-card__title {
+      font-size: var(--text-lg);
+      font-weight: 700;
+    }
+    .empty-card__desc {
+      max-width: 420px;
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-2);
+    }
+
+    .trace-head {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+      flex-wrap: wrap;
+    }
+    .trace-head__title {
+      font-size: var(--text-2xl);
+    }
+
+    .trace-verify {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-5);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-6);
+    }
+    .trace-verify--ok {
+      background: var(--color-success-subtle);
+      color: var(--color-success);
+    }
+    .trace-verify--ok .icon {
+      color: var(--color-success);
+    }
+    .trace-verify--pending {
+      background: var(--color-warning-subtle);
+      color: var(--color-warning);
+    }
+    .trace-verify--pending .icon {
+      color: var(--color-warning);
+    }
+    .trace-verify__title {
+      font-weight: 700;
+      font-size: var(--text-lg);
+    }
+    .trace-verify__desc {
+      font-size: var(--text-sm);
+      opacity: 0.85;
+    }
+
+    .trace-rows {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .trace-row {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-3);
+      font-size: var(--text-sm);
+    }
+    .trace-row__label {
+      color: var(--color-text-muted);
+    }
+    .trace-certs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin-top: var(--space-4);
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a href="index.html" class="site-header__logo" aria-label="AgriChain — Trang chủ">
+        <span class="site-header__logo-mark" aria-hidden="true">A</span>
+        <span class="site-header__logo-text">AgriChain</span>
+      </a>
+
+      <button
+        type="button"
+        class="site-header__toggle"
+        aria-controls="site-header-panel"
+        aria-expanded="false"
+        aria-label="Mở menu"
+      >
+        <span class="site-header__toggle-bar"></span>
+        <span class="site-header__toggle-bar"></span>
+        <span class="site-header__toggle-bar"></span>
+      </button>
+
+      <div class="site-header__panel" id="site-header-panel">
+        <nav class="site-header__nav" aria-label="Menu chính">
+          <ul class="site-header__menu" role="list">
+            <li class="site-header__menu-item">
+              <a class="site-header__link" href="index.html#tinh-nang">Tính Năng</a>
+            </li>
+            <li class="site-header__menu-item">
+              <a class="site-header__link" href="index.html#quy-trinh">Quy Trình</a>
+            </li>
+            <li class="site-header__menu-item">
+              <a class="site-header__link" href="index.html#lien-he">Liên Hệ</a>
+            </li>
+          </ul>
+        </nav>
+
+        <div class="site-header__actions">
+          <a class="btn btn--outline btn--sm" href="dang-nhap.html">Đăng Nhập</a>
+          <a class="btn btn--primary btn--sm" href="dang-ky.html">Bắt Đầu Ngay</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="trace-page">
+      <div class="container">
+
+        <!-- Không tìm thấy lô hàng theo mã trên URL -->
+        <div class="empty-card" data-not-found hidden>
+          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-qr-code"></use></svg>
+          <p class="empty-card__title" data-not-found-title>Không tìm thấy lô hàng</p>
+          <p class="empty-card__desc">
+            Lô hàng này có thể đã bị xoá, hoặc đường dẫn/mã QR không đúng.
+          </p>
+          <a class="btn btn--primary" href="index.html">Về trang chủ</a>
+        </div>
+
+        <!-- Nội dung truy xuất -->
+        <div data-trace-detail hidden>
+          <div class="trace-head">
+            <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-box"></use></svg>
+            <h1 class="trace-head__title">Lô hàng <span data-trace-code>—</span></h1>
+            <span class="badge badge--neutral" data-trace-status></span>
+          </div>
+
+          <div class="trace-verify" data-trace-verify>
+            <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+            <div>
+              <p class="trace-verify__title" data-trace-verify-title>—</p>
+              <p class="trace-verify__desc" data-trace-verify-desc></p>
+            </div>
+          </div>
+
+          <div class="grid grid--2">
+            <div class="card">
+              <div class="card__header">
+                <h2 class="card__title">Thông tin lô hàng</h2>
+              </div>
+              <div class="trace-rows">
+                <div class="trace-row">
+                  <span class="trace-row__label">Ngày bắt đầu</span>
+                  <span data-trace-start></span>
+                </div>
+                <div class="trace-row">
+                  <span class="trace-row__label">Diện tích</span>
+                  <span data-trace-area></span>
+                </div>
+                <div class="trace-row">
+                  <span class="trace-row__label">Ngày thu hoạch (dự kiến)</span>
+                  <span data-trace-harvest></span>
+                </div>
+                <div class="trace-row">
+                  <span class="trace-row__label">Ngày thu hoạch thực tế</span>
+                  <span data-trace-actual-harvest></span>
+                </div>
+                <div class="trace-row">
+                  <span class="trace-row__label">Sản lượng dự kiến</span>
+                  <span data-trace-yield></span>
+                </div>
+                <div class="trace-row">
+                  <span class="trace-row__label">Mùa vụ</span>
+                  <span data-trace-season></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card__header">
+                <h2 class="card__title">Nông trại</h2>
+              </div>
+              <div class="trace-rows">
+                <div class="trace-row">
+                  <span class="trace-row__label">Tên</span>
+                  <span data-trace-farm-name></span>
+                </div>
+                <div class="trace-row">
+                  <span class="trace-row__label">Mã</span>
+                  <span data-trace-farm-code></span>
+                </div>
+                <div class="trace-row">
+                  <span class="trace-row__label">Địa chỉ</span>
+                  <span data-trace-farm-address></span>
+                </div>
+              </div>
+              <div class="trace-certs" data-trace-certs></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script src="js/chain.js?v=1" defer></script>
+  <script src="js/store.js?v=4" defer></script>
+  <script src="js/truy-xuat.js?v=1" defer></script>
+  <script src="js/header.js?v=3" defer></script>
+</body>
+</html>

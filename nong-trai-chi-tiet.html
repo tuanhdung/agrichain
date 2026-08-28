@@ -273,6 +273,38 @@
       padding-top: var(--space-4);
       border-top: 1px solid var(--color-border);
     }
+
+    /* Modal truy xuất nguồn gốc (QR) */
+    .qr-modal__body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-3);
+      text-align: center;
+    }
+    .qr-modal__code {
+      font-weight: 700;
+    }
+    .qr-modal__canvas {
+      padding: var(--space-4);
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+    }
+    .qr-modal__hint {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+
+    /* Nút "đã xác thực blockchain" trên thẻ lô hàng — không bấm lại được
+       (chain.js không hỗ trợ sửa payload đã băm), chỉ báo trạng thái. */
+    .batch-sealed-indicator {
+      color: var(--color-success);
+      cursor: default;
+    }
+    .batch-sealed-indicator:hover {
+      background: transparent;
+    }
   </style>
 </head>
 <body class="app-shell">
@@ -959,6 +991,24 @@
     </form>
   </dialog>
 
+  <!-- Modal: Truy xuất nguồn gốc (QR) -->
+  <dialog class="modal modal--sm" id="qr-modal" aria-labelledby="qr-modal-title">
+    <div class="modal__header">
+      <svg class="icon"><use href="icons/sprite.svg#icon-qr-code"></use></svg>
+      <h2 class="modal__title" id="qr-modal-title">Truy xuất nguồn gốc</h2>
+      <button type="button" class="modal__close" data-close-qr aria-label="Đóng">&times;</button>
+    </div>
+    <div class="modal__body qr-modal__body">
+      <p class="qr-modal__code" data-qr-batch-code></p>
+      <div class="qr-modal__canvas" data-qr-canvas></div>
+      <p class="qr-modal__hint">Quét mã QR bằng điện thoại, hoặc mở trực tiếp liên kết bên dưới.</p>
+      <a class="btn btn--outline btn--sm" data-qr-link target="_blank" rel="noopener">Mở trang truy xuất</a>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn--secondary" data-close-qr>Đóng</button>
+    </div>
+  </dialog>
+
   <!-- Xác nhận xoá (dùng chung, gọi qua AgriChain.confirm) -->
   <dialog class="modal modal--sm" id="confirm-dialog" aria-labelledby="confirm-dialog-title">
     <div class="modal__header">
@@ -980,12 +1030,14 @@
     <span data-toast-message></span>
   </div>
 
-  <!-- Leaflet phải nạp xong trước map-layers.js/nong-trai-chi-tiet.js vì 2 file đó dùng biến L -->
+  <!-- Leaflet phải nạp xong trước map-layers.js/nong-trai-chi-tiet.js vì 2 file đó dùng biến L.
+       QRCode.js tương tự — nong-trai-chi-tiet.js dùng biến QRCode để vẽ mã QR truy xuất. -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" defer></script>
   <script src="js/map-layers.js?v=1" defer></script>
   <script src="js/chain.js?v=1" defer></script>
-  <script src="js/store.js?v=3" defer></script>
+  <script src="js/store.js?v=4" defer></script>
   <script src="js/app-shell.js?v=5" defer></script>
-  <script src="js/nong-trai-chi-tiet.js?v=7" defer></script>
+  <script src="js/nong-trai-chi-tiet.js?v=8" defer></script>
 </body>
 </html>

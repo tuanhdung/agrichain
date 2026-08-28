@@ -1154,29 +1154,117 @@
     rows.appendChild(fieldRow('icon-wheat', 'Sản lượng dự kiến',
       (batch.expectedYield || 0) + ' ' + (batch.unit || '')));
     if (batch.note) rows.appendChild(fieldRow('icon-file-text', 'Ghi chú', batch.note));
+
+    if (batch.sealed) {
+      rows.appendChild(fieldRow('icon-blockchain', 'Đã xác thực blockchain',
+        global.AgriChain.chain.shorten(batch.hash) + ' · khối #' + batch.blockIndex));
+    }
+
     card.appendChild(rows);
 
     var actions = el('div', 'data-card__actions');
 
-    var edit = el('button', 'icon-btn');
-    edit.type = 'button';
-    edit.setAttribute('aria-label', 'Sửa lô hàng ' + batch.code);
-    edit.setAttribute('data-tooltip', 'Chỉnh sửa');
-    edit.appendChild(svgIcon('icon-pencil'));
-    edit.addEventListener('click', function () { openBatchModal(batch); });
+    var qrButton = el('button', 'icon-btn');
+    qrButton.type = 'button';
+    qrButton.setAttribute('aria-label', 'Truy xuất nguồn gốc lô hàng ' + batch.code);
+    qrButton.setAttribute('data-tooltip', 'Truy xuất nguồn gốc');
+    qrButton.appendChild(svgIcon('icon-qr-code'));
+    qrButton.addEventListener('click', function () { openQrModal(batch); });
+    actions.appendChild(qrButton);
 
-    var del = el('button', 'icon-btn icon-btn--danger');
-    del.type = 'button';
-    del.setAttribute('aria-label', 'Xoá lô hàng ' + batch.code);
-    del.setAttribute('data-tooltip', 'Xoá');
-    del.appendChild(svgIcon('icon-trash'));
-    del.addEventListener('click', function () { deleteBatch(batch); });
+    if (batch.sealed) {
+      // Đã niêm phong thì không sửa/xoá được nữa (dữ liệu đã băm lên sổ
+      // cái) — chỉ còn nút QR ở trên và icon báo trạng thái tĩnh này.
+      var sealedIndicator = el('span', 'icon-btn batch-sealed-indicator');
+      sealedIndicator.setAttribute('aria-label', 'Đã xác thực blockchain');
+      sealedIndicator.setAttribute('data-tooltip', 'Đã xác thực blockchain');
+      sealedIndicator.appendChild(svgIcon('icon-check-circle'));
+      actions.appendChild(sealedIndicator);
+    } else {
+      var sealButton = el('button', 'icon-btn');
+      sealButton.type = 'button';
+      sealButton.setAttribute('aria-label', 'Xác thực blockchain lô hàng ' + batch.code);
+      sealButton.setAttribute('data-tooltip', 'Xác thực blockchain');
+      sealButton.appendChild(svgIcon('icon-blockchain'));
+      sealButton.addEventListener('click', function () { sealBatchRecord(batch); });
+      actions.appendChild(sealButton);
 
-    actions.appendChild(edit);
-    actions.appendChild(del);
+      var edit = el('button', 'icon-btn');
+      edit.type = 'button';
+      edit.setAttribute('aria-label', 'Sửa lô hàng ' + batch.code);
+      edit.setAttribute('data-tooltip', 'Chỉnh sửa');
+      edit.appendChild(svgIcon('icon-pencil'));
+      edit.addEventListener('click', function () { openBatchModal(batch); });
+      actions.appendChild(edit);
+
+      var del = el('button', 'icon-btn icon-btn--danger');
+      del.type = 'button';
+      del.setAttribute('aria-label', 'Xoá lô hàng ' + batch.code);
+      del.setAttribute('data-tooltip', 'Xoá');
+      del.appendChild(svgIcon('icon-trash'));
+      del.addEventListener('click', function () { deleteBatch(batch); });
+      actions.appendChild(del);
+    }
+
     card.appendChild(actions);
 
     return card;
+  }
+
+  /* --- Xác thực blockchain --------------------------------------------------
+     Băm thẳng dữ liệu lô hàng (store.sealBatch) — khác event, lô hàng không
+     bắt buộc phải có sự kiện canh tác gắn kèm trước khi niêm phong. */
+  function sealBatchRecord(batch) {
+    global.AgriChain.confirm(
+      'Xác thực dữ liệu lô hàng "' + batch.code + '" lên blockchain? ' +
+      'Sau khi xác thực, lô hàng này sẽ không thể sửa hoặc xoá nữa.'
+    ).then(function (confirmed) {
+      if (!confirmed) return;
+      store.sealBatch(batch.id).then(function () {
+        renderBatches();
+        global.AgriChain.toast('Đã xác thực lô hàng lên blockchain.');
+      }).catch(function (err) {
+        global.AgriChain.toast(err.message || 'Không xác thực được — thử lại sau.');
+      });
+    });
+  }
+
+  /* --- Truy xuất nguồn gốc (QR) ----------------------------------------------
+     Mã QR trỏ tới truy-xuat.html?ma=<mã lô> — trang tĩnh công khai, không
+     cần đăng nhập, đọc thẳng từ localStorage. Dùng QRCode.js (nạp qua CDN,
+     giống Leaflet) để vẽ mã ngay trong trình duyệt. */
+  var qrModal = document.getElementById('qr-modal');
+  var qrCanvas = document.querySelector('[data-qr-canvas]');
+  var qrBatchCode = document.querySelector('[data-qr-batch-code]');
+  var qrLink = document.querySelector('[data-qr-link]');
+
+  function traceabilityUrl(batch) {
+    return global.location.origin + '/truy-xuat.html?ma=' + encodeURIComponent(batch.code);
+  }
+
+  function openQrModal(batch) {
+    var url = traceabilityUrl(batch);
+    qrBatchCode.textContent = 'Mã lô hàng: ' + batch.code;
+    qrLink.href = url;
+
+    qrCanvas.textContent = '';
+    if (typeof QRCode !== 'undefined') {
+      new QRCode(qrCanvas, {
+        text: url,
+        width: 200,
+        height: 200,
+        colorDark: '#000000',
+        colorLight: '#ffffff'
+      });
+    } else {
+      qrCanvas.textContent = 'Không tải được thư viện tạo mã QR.';
+    }
+
+    qrModal.showModal();
+  }
+
+  function closeQrModal() {
+    qrModal.close();
   }
 
   function renderBatches() {
@@ -1365,5 +1453,9 @@
       button.addEventListener('click', closeBatchModal);
     });
     batchForm.addEventListener('submit', handleBatchSubmit);
+
+    document.querySelectorAll('[data-close-qr]').forEach(function (button) {
+      button.addEventListener('click', closeQrModal);
+    });
   });
 })(window);
