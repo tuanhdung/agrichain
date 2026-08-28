@@ -115,17 +115,31 @@
       color: var(--color-text-muted);
     }
 
+    /* Đếm nhỏ cạnh tiêu đề section (VD "Vật tư sử dụng ①") */
+    .log-section-count {
+      margin-left: var(--space-2);
+    }
+
+    /* Bọc ngoài để cuộn ngang khi màn hẹp — 5 cột + nút xoá khó co lại vừa
+       màn hình nhỏ, cuộn ngang còn hơn vỡ layout. */
+    .log-materials-scroll {
+      overflow-x: auto;
+    }
+
     .log-material-row {
-      display: flex;
-      align-items: flex-end;
+      display: grid;
+      grid-template-columns:
+        minmax(140px, 1.6fr) minmax(90px, 0.8fr) minmax(90px, 0.8fr)
+        minmax(140px, 1.2fr) minmax(140px, 1.2fr) var(--space-9);
+      align-items: center;
       gap: var(--space-3);
       margin-bottom: var(--space-3);
     }
-    .log-material-row__select {
-      flex: 2;
+    .log-material-row--header {
+      margin-bottom: var(--space-2);
     }
-    .log-material-row__qty {
-      flex: 1;
+    .log-material-row--header .label {
+      font-size: var(--text-xs);
     }
 
     .log-images__grid {
@@ -879,6 +893,7 @@
           <h3 class="form-section__title">
             <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-box"></use></svg>
             Vật tư sử dụng
+            <span class="badge badge--info log-section-count" data-material-count hidden>0</span>
           </h3>
 
           <div class="notice notice--info" style="margin-bottom: var(--space-4);">
@@ -894,7 +909,18 @@
             </button>
           </div>
 
-          <div data-material-rows></div>
+          <div class="log-materials-scroll">
+            <div class="log-material-row log-material-row--header" data-material-header hidden>
+              <span class="label">Vật tư *</span>
+              <span class="label">Số lượng *</span>
+              <span class="label">Đơn vị *</span>
+              <span class="label">Phương pháp</span>
+              <span class="label">Mục đích</span>
+              <span class="sr-only">Thao tác</span>
+            </div>
+
+            <div data-material-rows></div>
+          </div>
 
           <p class="log-materials__empty" data-material-empty>Chưa có vật tư nào được thêm.</p>
         </section>
@@ -1039,6 +1065,6 @@
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=4" defer></script>
   <script src="js/app-shell.js?v=6" defer></script>
-  <script src="js/nong-trai-chi-tiet.js?v=10" defer></script>
+  <script src="js/nong-trai-chi-tiet.js?v=11" defer></script>
 </body>
 </html>

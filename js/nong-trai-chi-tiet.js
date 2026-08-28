@@ -42,6 +42,17 @@
 
   var BATCH_UNITS = ['kg', 'Tấn', 'Bó/Nài', 'Cái/Trái', 'Bao/Túi', 'Két/Thùng', 'Khác'];
 
+  // Đơn vị dùng riêng cho dòng "Vật tư sử dụng" trong form nhật ký — trùng
+  // nội dung với UNITS ở vat-tu.js nhưng khai báo lại vì 2 trang không nạp
+  // chéo JS của nhau (mỗi trang chỉ tự nạp file riêng của nó).
+  var MATERIAL_UNITS = ['kg', 'g', 'Lít', 'ml', 'Gói', 'Chai', 'Thùng/Hộp', 'Bao', 'Cái'];
+
+  var MATERIAL_METHODS = [
+    'Phun thuốc', 'Tưới nước', 'Bón vãi', 'Bón lá', 'Bón đất',
+    'Xử lý hạt giống', 'Bón phân qua hệ thống tưới', 'Tưới nhỏ giọt',
+    'Xông hơi', 'Khác'
+  ];
+
   var BATCH_STATUSES = [
     { key: 'planning',   label: 'Đang lập kế hoạch', badge: 'badge--neutral', icon: 'icon-file-text' },
     { key: 'planted',    label: 'Đang xuống giống',  badge: 'badge--info',    icon: 'icon-seedling' },
@@ -780,6 +791,8 @@
   var logCountNode = document.querySelector('[data-log-count]');
   var materialRowsContainer = document.querySelector('[data-material-rows]');
   var materialEmptyNode = document.querySelector('[data-material-empty]');
+  var materialHeaderNode = document.querySelector('[data-material-header]');
+  var materialCountNode = document.querySelector('[data-material-count]');
   var imagesInput = document.getElementById('log-images-input');
   var imagesGrid = document.querySelector('[data-image-grid]');
   var imagesEmptyNode = document.querySelector('[data-image-empty]');
@@ -816,18 +829,21 @@
   }
 
   function updateMaterialEmptyState() {
-    materialEmptyNode.hidden = materialRowsContainer.children.length > 0;
+    var count = materialRowsContainer.children.length;
+    materialEmptyNode.hidden = count > 0;
+    materialHeaderNode.hidden = count === 0;
+    materialCountNode.hidden = count === 0;
+    materialCountNode.textContent = String(count);
   }
 
   function addMaterialRow(prefill) {
     var row = el('div', 'log-material-row');
 
     var select = document.createElement('select');
-    select.className = 'select log-material-row__select';
+    select.className = 'select';
     fillMaterialSelect(select);
     if (prefill && prefill.supplyId) select.value = prefill.supplyId;
 
-    var qtyWrap = el('div', 'input-affix log-material-row__qty');
     var qtyInput = document.createElement('input');
     qtyInput.className = 'input';
     qtyInput.type = 'number';
@@ -835,13 +851,40 @@
     qtyInput.step = '0.01';
     qtyInput.placeholder = 'Số lượng';
     if (prefill && prefill.quantity != null) qtyInput.value = prefill.quantity;
-    var unitSpan = el('span', 'input-affix__unit', unitOfSupply(select.value));
-    qtyWrap.appendChild(qtyInput);
-    qtyWrap.appendChild(unitSpan);
 
-    select.addEventListener('change', function () {
-      unitSpan.textContent = unitOfSupply(select.value);
+    var unitSelect = document.createElement('select');
+    unitSelect.className = 'select';
+    MATERIAL_UNITS.forEach(function (unit) {
+      var option = el('option', null, unit);
+      option.value = unit;
+      unitSelect.appendChild(option);
     });
+    unitSelect.value = (prefill && prefill.unit) || unitOfSupply(select.value) || MATERIAL_UNITS[0];
+
+    // Chọn vật tư thì tự gợi ý đơn vị của đúng vật tư đó — vẫn chọn lại
+    // được tay nếu ghi nhận theo đơn vị khác cho lần dùng này.
+    select.addEventListener('change', function () {
+      var unit = unitOfSupply(select.value);
+      if (unit) unitSelect.value = unit;
+    });
+
+    var methodSelect = document.createElement('select');
+    methodSelect.className = 'select';
+    var methodPlaceholder = el('option', null, '— Chọn —');
+    methodPlaceholder.value = '';
+    methodSelect.appendChild(methodPlaceholder);
+    MATERIAL_METHODS.forEach(function (method) {
+      var option = el('option', null, method);
+      option.value = method;
+      methodSelect.appendChild(option);
+    });
+    if (prefill && prefill.method) methodSelect.value = prefill.method;
+
+    var purposeInput = document.createElement('input');
+    purposeInput.className = 'input';
+    purposeInput.type = 'text';
+    purposeInput.placeholder = 'Mục đích';
+    if (prefill && prefill.purpose) purposeInput.value = prefill.purpose;
 
     var remove = el('button', 'icon-btn icon-btn--danger');
     remove.type = 'button';
@@ -854,7 +897,10 @@
     });
 
     row.appendChild(select);
-    row.appendChild(qtyWrap);
+    row.appendChild(qtyInput);
+    row.appendChild(unitSelect);
+    row.appendChild(methodSelect);
+    row.appendChild(purposeInput);
     row.appendChild(remove);
 
     materialRowsContainer.appendChild(row);
@@ -869,16 +915,24 @@
   function getMaterialRowsData() {
     var result = [];
     materialRowsContainer.querySelectorAll('.log-material-row').forEach(function (row) {
-      var select = row.querySelector('select');
+      var selects = row.querySelectorAll('select');
+      var materialSelect = selects[0];
+      var unitSelect = selects[1];
+      var methodSelect = selects[2];
       var qtyInput = row.querySelector('input[type="number"]');
-      if (!select.value) return;
-      var supply = store.find('supplies', select.value);
+      var purposeInput = row.querySelector('input[type="text"]');
+
+      if (!materialSelect.value) return;
+      var supply = store.find('supplies', materialSelect.value);
       if (!supply) return;
+
       result.push({
         supplyId: supply.id,
         name: supply.name,
         quantity: Number(qtyInput.value) || 0,
-        unit: supply.unit
+        unit: unitSelect.value,
+        method: methodSelect.value,
+        purpose: purposeInput.value.trim()
       });
     });
     return result;
@@ -989,8 +1043,9 @@
       body.appendChild(logSectionLabel('icon-box', 'Sử dụng vật tư'));
       var supplies = el('div', 'log-item__supplies');
       log.supplies.forEach(function (supply) {
-        supplies.appendChild(el('span', 'badge badge--neutral',
-          supply.name + ' - ' + supply.quantity + ' ' + supply.unit));
+        var label = supply.name + ' - ' + supply.quantity + ' ' + supply.unit;
+        if (supply.method) label += ' (' + supply.method + ')';
+        supplies.appendChild(el('span', 'badge badge--neutral', label));
       });
       body.appendChild(supplies);
     }
@@ -1067,7 +1122,13 @@
       document.getElementById('log-description').value = log.description || '';
 
       (log.supplies || []).forEach(function (supply) {
-        addMaterialRow({ supplyId: supply.supplyId, quantity: supply.quantity });
+        addMaterialRow({
+          supplyId: supply.supplyId,
+          quantity: supply.quantity,
+          unit: supply.unit,
+          method: supply.method,
+          purpose: supply.purpose
+        });
       });
 
       resetImages(log.images);
