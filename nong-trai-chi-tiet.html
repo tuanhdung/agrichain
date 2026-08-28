@@ -648,18 +648,18 @@
 
           <div class="field">
             <label class="label" for="season-start-date">Ngày bắt đầu</label>
-            <input class="input" type="date" id="season-start-date" name="startDate" />
+            <input class="input" type="date" id="season-start-date" name="startDate" required />
           </div>
 
           <div class="field">
             <label class="label" for="season-end-date">Ngày kết thúc</label>
-            <input class="input" type="date" id="season-end-date" name="endDate" />
+            <input class="input" type="date" id="season-end-date" name="endDate" required />
           </div>
 
           <div class="field">
             <label class="label" for="season-planned-area">Diện tích dự kiến</label>
             <div class="input-affix">
-              <input class="input" type="number" id="season-planned-area" name="plannedArea" min="0" step="0.01" />
+              <input class="input" type="number" id="season-planned-area" name="plannedArea" min="0" step="0.01" value="0" required />
               <span class="input-affix__unit">ha</span>
             </div>
           </div>
@@ -667,7 +667,7 @@
           <div class="field">
             <label class="label" for="season-actual-area">Diện tích thực tế</label>
             <div class="input-affix">
-              <input class="input" type="number" id="season-actual-area" name="actualArea" min="0" step="0.01" />
+              <input class="input" type="number" id="season-actual-area" name="actualArea" min="0" step="0.01" value="0" required />
               <span class="input-affix__unit">ha</span>
             </div>
           </div>
@@ -1039,6 +1039,6 @@
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=4" defer></script>
   <script src="js/app-shell.js?v=5" defer></script>
-  <script src="js/nong-trai-chi-tiet.js?v=9" defer></script>
+  <script src="js/nong-trai-chi-tiet.js?v=10" defer></script>
 </body>
 </html>

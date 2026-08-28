@@ -569,6 +569,14 @@
     });
   }
 
+  // Gợi ý mã mùa vụ tiếp theo của CHÍNH nông trại đang xem — MV01, MV02...
+  // giống cách farm-code gợi ý ở nong-trai.js, chỉ là gợi ý, sửa được.
+  function suggestSeasonCode() {
+    var seq = String(seasonsOfFarm().length + 1);
+    while (seq.length < 2) seq = '0' + seq;
+    return 'MV' + seq;
+  }
+
   function openSeasonModal(season) {
     seasonForm.reset();
     clearErrors(seasonForm);
@@ -590,6 +598,7 @@
     } else {
       seasonModalTitle.textContent = 'Thêm mùa vụ mới';
       seasonSubmitLabel.textContent = 'Lưu mùa vụ';
+      document.getElementById('season-code').value = suggestSeasonCode();
       seasonStatusSelect.value = SEASON_STATUSES[0].key;
     }
 
@@ -607,6 +616,10 @@
     var problems = [];
     var code = document.getElementById('season-code');
     var name = document.getElementById('season-name');
+    var startDate = document.getElementById('season-start-date');
+    var endDate = document.getElementById('season-end-date');
+    var plannedArea = document.getElementById('season-planned-area');
+    var actualArea = document.getElementById('season-actual-area');
 
     if (!code.value.trim()) {
       showError(code, 'Nhập mã mùa vụ.');
@@ -625,6 +638,22 @@
     if (!name.value.trim()) {
       showError(name, 'Nhập tên mùa vụ.');
       problems.push(name);
+    }
+    if (!startDate.value) {
+      showError(startDate, 'Chọn ngày bắt đầu.');
+      problems.push(startDate);
+    }
+    if (!endDate.value) {
+      showError(endDate, 'Chọn ngày kết thúc.');
+      problems.push(endDate);
+    }
+    if (!plannedArea.value.trim()) {
+      showError(plannedArea, 'Nhập diện tích dự kiến.');
+      problems.push(plannedArea);
+    }
+    if (!actualArea.value.trim()) {
+      showError(actualArea, 'Nhập diện tích thực tế.');
+      problems.push(actualArea);
     }
 
     if (problems.length) {
