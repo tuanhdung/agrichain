@@ -358,6 +358,12 @@ a.card {
   color: var(--color-danger);
 }
 
+/* .badge dùng làm liên kết (thẻ <a> thay vì <span>) — bỏ gạch chân mặc định
+   của trình duyệt, giữ nguyên màu theo đúng biến thể badge--*. */
+a.badge {
+  text-decoration: none;
+}
+
 /* --- Icon --- */
 .icon {
   width: var(--space-6);

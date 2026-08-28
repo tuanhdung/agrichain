@@ -88,6 +88,24 @@
     field.parentNode.appendChild(el('p', 'field__error', message));
   }
 
+  // Một hàng trong thẻ dữ liệu: icon, rồi nhãn nhỏ (mờ) phía trên + giá trị
+  // bên dưới. `value` có thể là chuỗi hoặc 1 Node dựng sẵn (VD nhóm badge).
+  function fieldRow(iconName, label, value) {
+    var row = el('div', 'data-card__row');
+    row.appendChild(svgIcon(iconName));
+
+    var text = el('div');
+    text.appendChild(el('div', 'data-card__row-label', label));
+    if (value instanceof Node) {
+      text.appendChild(value);
+    } else {
+      text.appendChild(el('div', null, value));
+    }
+    row.appendChild(text);
+
+    return row;
+  }
+
   /* --- Bản đồ chỉ xem, không cho click-để-đánh-dấu -------------------------
      Dùng chung addMapBaseLayers() (js/map-layers.js) với bản đồ vẽ ranh giới
      ở nong-trai.html để có cùng 3 lớp nền vệ tinh/địa hình/mặc định. */
@@ -152,8 +170,7 @@
   var certStatusSelect = document.getElementById('cert-status');
   var certModalTitle = document.getElementById('cert-modal-title');
   var certSubmitLabel = document.querySelector('[data-cert-submit-label]');
-  var certTablePanel = document.querySelector('[data-cert-table-panel]');
-  var certTableBody = document.querySelector('[data-cert-table-body]');
+  var certListNode = document.querySelector('[data-cert-list]');
   var certEmptyNode = document.querySelector('[data-cert-empty]');
   var certCountNode = document.querySelector('[data-cert-count]');
   var certFileInput = document.getElementById('cert-file');
@@ -179,35 +196,37 @@
     });
   }
 
-  function certRow(cert) {
+  function certCard(cert) {
     var status = statusOf(CERT_STATUSES, cert.status);
-    var tr = el('tr');
+    var card = el('article', 'card card--hover');
 
-    tr.appendChild(el('td', 'table__name', cert.name));
-    tr.appendChild(el('td', 'table__code', cert.code));
-    tr.appendChild(el('td', null, cert.issuer || '—'));
+    var header = el('div', 'card__header data-card__header');
+    header.appendChild(el('h2', 'data-card__title', cert.name));
+    header.appendChild(el('span', 'badge ' + status.badge, status.label));
+    card.appendChild(header);
 
-    var statusCell = el('td');
-    statusCell.appendChild(el('span', 'badge ' + status.badge, status.label));
-    tr.appendChild(statusCell);
+    var rows = el('div', 'data-card__rows');
+    rows.appendChild(fieldRow('icon-qr-code', 'Mã', cert.code));
+    if (cert.issuer) rows.appendChild(fieldRow('icon-factory', 'Cơ quan cấp', cert.issuer));
+    rows.appendChild(fieldRow('icon-calendar', 'Ngày cấp', formatDate(cert.issueDate)));
+    rows.appendChild(fieldRow('icon-calendar', 'Ngày hết hạn', formatDate(cert.expiryDate)));
 
-    tr.appendChild(el('td', 'table__nowrap', formatDate(cert.issueDate)));
-    tr.appendChild(el('td', 'table__nowrap', formatDate(cert.expiryDate)));
-
-    var fileCell = el('td');
+    var fileValue;
     if (cert.fileDataUrl) {
-      var link = el('a', null, cert.fileName || 'Xem tệp');
-      link.href = cert.fileDataUrl;
-      link.target = '_blank';
-      link.rel = 'noopener';
-      fileCell.appendChild(link);
+      fileValue = el('a', 'badge badge--info', cert.fileName || 'Tệp đính kèm');
+      fileValue.href = cert.fileDataUrl;
+      fileValue.target = '_blank';
+      fileValue.rel = 'noopener';
     } else {
-      fileCell.textContent = '—';
+      fileValue = '—';
     }
-    tr.appendChild(fileCell);
+    rows.appendChild(fieldRow('icon-paperclip', 'Tệp tin', fileValue));
 
-    var actions = el('td');
-    var wrap = el('div', 'table__actions');
+    if (cert.note) rows.appendChild(fieldRow('icon-file-text', 'Ghi chú', cert.note));
+
+    card.appendChild(rows);
+
+    var actions = el('div', 'data-card__actions');
 
     var edit = el('button', 'icon-btn');
     edit.type = 'button';
@@ -223,29 +242,28 @@
     del.appendChild(svgIcon('icon-trash'));
     del.addEventListener('click', function () { deleteCert(cert); });
 
-    wrap.appendChild(edit);
-    wrap.appendChild(del);
-    actions.appendChild(wrap);
-    tr.appendChild(actions);
+    actions.appendChild(edit);
+    actions.appendChild(del);
+    card.appendChild(actions);
 
-    return tr;
+    return card;
   }
 
   function renderCertifications() {
     var certs = certsOfFarm();
     certCountNode.textContent = certs.length;
 
-    certTableBody.textContent = '';
+    certListNode.textContent = '';
     if (!certs.length) {
-      certTablePanel.hidden = true;
+      certListNode.hidden = true;
       certEmptyNode.hidden = false;
       return;
     }
 
     certEmptyNode.hidden = true;
-    certTablePanel.hidden = false;
+    certListNode.hidden = false;
     certs.forEach(function (cert) {
-      certTableBody.appendChild(certRow(cert));
+      certListNode.appendChild(certCard(cert));
     });
   }
 
@@ -397,8 +415,7 @@
   var seasonStatusSelect = document.getElementById('season-status');
   var seasonModalTitle = document.getElementById('season-modal-title');
   var seasonSubmitLabel = document.querySelector('[data-season-submit-label]');
-  var seasonTablePanel = document.querySelector('[data-season-table-panel]');
-  var seasonTableBody = document.querySelector('[data-season-table-body]');
+  var seasonListNode = document.querySelector('[data-season-list]');
   var seasonEmptyNode = document.querySelector('[data-season-empty]');
   var seasonCountNode = document.querySelector('[data-season-count]');
 
@@ -419,25 +436,30 @@
     });
   }
 
-  function seasonRow(season) {
+  function seasonCard(season) {
     var status = statusOf(SEASON_STATUSES, season.status);
-    var tr = el('tr');
+    var card = el('article', 'card card--hover');
 
-    tr.appendChild(el('td', 'table__code', season.code));
-    tr.appendChild(el('td', 'table__name', season.name));
-    tr.appendChild(el('td', 'table__nowrap', formatDate(season.startDate)));
-    tr.appendChild(el('td', 'table__nowrap', formatDate(season.endDate)));
-    tr.appendChild(el('td', null, formatArea(season.plannedArea)));
-    tr.appendChild(el('td', null, formatArea(season.actualArea)));
+    var header = el('div', 'card__header data-card__header');
+    header.appendChild(el('h2', 'data-card__title', season.name));
+    header.appendChild(el('span', 'badge ' + status.badge, status.label));
+    card.appendChild(header);
 
-    var statusCell = el('td');
-    statusCell.appendChild(el('span', 'badge ' + status.badge, status.label));
-    tr.appendChild(statusCell);
+    var rows = el('div', 'data-card__rows');
+    rows.appendChild(fieldRow('icon-qr-code', 'Mã', season.code));
+    rows.appendChild(fieldRow('icon-calendar', 'Ngày bắt đầu', formatDate(season.startDate)));
+    rows.appendChild(fieldRow('icon-calendar', 'Ngày kết thúc', formatDate(season.endDate)));
 
-    tr.appendChild(el('td', 'table__desc', season.note || '—'));
+    var chips = el('div', 'data-card__chip-group');
+    chips.appendChild(el('span', 'badge badge--info', 'Dự kiến: ' + formatArea(season.plannedArea)));
+    chips.appendChild(el('span', 'badge badge--warning', 'Thực tế: ' + formatArea(season.actualArea)));
+    rows.appendChild(fieldRow('icon-chart-bar', 'Diện tích', chips));
 
-    var actions = el('td');
-    var wrap = el('div', 'table__actions');
+    if (season.note) rows.appendChild(fieldRow('icon-file-text', 'Ghi chú', season.note));
+
+    card.appendChild(rows);
+
+    var actions = el('div', 'data-card__actions');
 
     var edit = el('button', 'icon-btn');
     edit.type = 'button';
@@ -453,29 +475,28 @@
     del.appendChild(svgIcon('icon-trash'));
     del.addEventListener('click', function () { deleteSeason(season); });
 
-    wrap.appendChild(edit);
-    wrap.appendChild(del);
-    actions.appendChild(wrap);
-    tr.appendChild(actions);
+    actions.appendChild(edit);
+    actions.appendChild(del);
+    card.appendChild(actions);
 
-    return tr;
+    return card;
   }
 
   function renderSeasons() {
     var seasons = seasonsOfFarm();
     seasonCountNode.textContent = seasons.length;
 
-    seasonTableBody.textContent = '';
+    seasonListNode.textContent = '';
     if (!seasons.length) {
-      seasonTablePanel.hidden = true;
+      seasonListNode.hidden = true;
       seasonEmptyNode.hidden = false;
       return;
     }
 
     seasonEmptyNode.hidden = true;
-    seasonTablePanel.hidden = false;
+    seasonListNode.hidden = false;
     seasons.forEach(function (season) {
-      seasonTableBody.appendChild(seasonRow(season));
+      seasonListNode.appendChild(seasonCard(season));
     });
   }
 

@@ -374,6 +374,26 @@
   color: var(--color-text-muted);
 }
 
+/* Header có kèm badge trạng thái bên phải (chứng nhận, mùa vụ) — tách khỏi
+   .card__header gốc (farmCard không có badge) nên chỉ thêm flex ở đây. */
+.data-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.data-card__header .badge {
+  flex-shrink: 0;
+}
+
+/* Nhiều badge cùng một hàng trong .data-card__row (VD diện tích dự kiến/thực tế) */
+.data-card__chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
 .data-card__actions {
   display: flex;
   justify-content: flex-end;
