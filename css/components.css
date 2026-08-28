@@ -44,7 +44,19 @@
   line-height: var(--leading-tight);
   white-space: nowrap;
   transition: background-color var(--transition-base),
-    border-color var(--transition-base), color var(--transition-base);
+    border-color var(--transition-base), color var(--transition-base),
+    transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+/* Mọi nút (mọi biến thể --primary/--secondary/--outline/...) đều nhô lên
+   khi di chuột vào, trừ khi bị disabled. */
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn:disabled {
