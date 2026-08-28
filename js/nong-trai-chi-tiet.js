@@ -38,8 +38,20 @@
     { key: 'other',        label: 'Khác',               icon: 'icon-box' }
   ];
 
+  var BATCH_UNITS = ['kg', 'Tấn', 'Bó/Nài', 'Cái/Trái', 'Bao/Túi', 'Két/Thùng', 'Khác'];
+
+  var BATCH_STATUSES = [
+    { key: 'planning',   label: 'Đang lập kế hoạch', badge: 'badge--neutral', icon: 'icon-file-text' },
+    { key: 'planted',    label: 'Đang xuống giống',  badge: 'badge--info',    icon: 'icon-seedling' },
+    { key: 'growing',    label: 'Đang canh tác',     badge: 'badge--info',    icon: 'icon-leaf' },
+    { key: 'harvested',  label: 'Đã thu hoạch',      badge: 'badge--warning', icon: 'icon-wheat' },
+    { key: 'processed',  label: 'Đã sơ chế',         badge: 'badge--warning', icon: 'icon-factory' },
+    { key: 'completed',  label: 'Hoàn thành',        badge: 'badge--success', icon: 'icon-check-circle' },
+    { key: 'failed',     label: 'Thất bại',          badge: 'badge--danger',  icon: 'icon-x-circle' }
+  ];
+
   // Dùng chung cho mọi danh mục { key, label, ... } — trạng thái chứng nhận/
-  // mùa vụ và loại hoạt động nhật ký đều tra cứu qua đây.
+  // mùa vụ/lô hàng và loại hoạt động nhật ký đều tra cứu qua đây.
   function statusOf(list, key) {
     for (var i = 0; i < list.length; i++) {
       if (list[i].key === key) return list[i];
@@ -691,6 +703,7 @@
     statusNode.appendChild(el('span', 'badge ' + status.badge, status.label));
 
     renderSeasonLogs();
+    renderBatches();
     seasonViewModal.showModal();
   }
 
@@ -1069,12 +1082,219 @@
     });
   }
 
+  /* ======================================================================
+     Lô hàng (tab "Lô hàng" trong modal xem chi tiết mùa vụ)
+     ====================================================================== */
+
+  var batchModal = document.getElementById('batch-modal');
+  var batchForm = document.getElementById('batch-form');
+  var batchUnitSelect = document.getElementById('batch-unit');
+  var batchStatusSelect = document.getElementById('batch-status');
+  var batchModalTitle = document.getElementById('batch-modal-title');
+  var batchModalSeasonTag = document.querySelector('[data-batch-modal-season]');
+  var batchSubmitLabel = document.querySelector('[data-batch-submit-label]');
+  var batchListNode = document.querySelector('[data-batch-list]');
+  var batchEmptyNode = document.querySelector('[data-batch-empty]');
+  var batchCountNode = document.querySelector('[data-batch-count]');
+
+  var editingBatchId = null;
+
+  function fillBatchUnits() {
+    BATCH_UNITS.forEach(function (unit) {
+      var option = el('option', null, unit);
+      option.value = unit;
+      batchUnitSelect.appendChild(option);
+    });
+  }
+
+  function fillBatchStatuses() {
+    BATCH_STATUSES.forEach(function (status) {
+      var option = el('option', null, status.label);
+      option.value = status.key;
+      batchStatusSelect.appendChild(option);
+    });
+  }
+
+  function batchesOfSeason(seasonId) {
+    return store.list('batches').filter(function (item) {
+      return item.seasonId === seasonId;
+    });
+  }
+
+  function batchCard(batch) {
+    var status = statusOf(BATCH_STATUSES, batch.status);
+    var card = el('article', 'card card--hover');
+
+    var header = el('div', 'card__header data-card__header');
+    header.appendChild(el('h2', 'data-card__title', batch.code));
+    header.appendChild(el('span', 'badge ' + status.badge, status.label));
+    card.appendChild(header);
+
+    var rows = el('div', 'data-card__rows');
+    rows.appendChild(fieldRow('icon-calendar', 'Ngày bắt đầu', formatDate(batch.startDate)));
+    rows.appendChild(fieldRow('icon-chart-bar', 'Diện tích', formatArea(batch.area)));
+    rows.appendChild(fieldRow('icon-calendar', 'Ngày thu hoạch (dự kiến)', formatDate(batch.harvestDate)));
+    rows.appendChild(fieldRow('icon-calendar', 'Ngày thu hoạch thực tế', formatDate(batch.actualHarvestDate)));
+    rows.appendChild(fieldRow('icon-wheat', 'Sản lượng dự kiến',
+      (batch.expectedYield || 0) + ' ' + (batch.unit || '')));
+    if (batch.note) rows.appendChild(fieldRow('icon-file-text', 'Ghi chú', batch.note));
+    card.appendChild(rows);
+
+    var actions = el('div', 'data-card__actions');
+
+    var edit = el('button', 'icon-btn');
+    edit.type = 'button';
+    edit.setAttribute('aria-label', 'Sửa lô hàng ' + batch.code);
+    edit.setAttribute('data-tooltip', 'Chỉnh sửa');
+    edit.appendChild(svgIcon('icon-pencil'));
+    edit.addEventListener('click', function () { openBatchModal(batch); });
+
+    var del = el('button', 'icon-btn icon-btn--danger');
+    del.type = 'button';
+    del.setAttribute('aria-label', 'Xoá lô hàng ' + batch.code);
+    del.setAttribute('data-tooltip', 'Xoá');
+    del.appendChild(svgIcon('icon-trash'));
+    del.addEventListener('click', function () { deleteBatch(batch); });
+
+    actions.appendChild(edit);
+    actions.appendChild(del);
+    card.appendChild(actions);
+
+    return card;
+  }
+
+  function renderBatches() {
+    if (!currentViewedSeason) return;
+
+    var batches = batchesOfSeason(currentViewedSeason.id);
+    batchCountNode.textContent = batches.length;
+
+    batchListNode.textContent = '';
+    if (!batches.length) {
+      batchListNode.hidden = true;
+      batchEmptyNode.hidden = false;
+      return;
+    }
+
+    batchEmptyNode.hidden = true;
+    batchListNode.hidden = false;
+    batches.forEach(function (batch) {
+      batchListNode.appendChild(batchCard(batch));
+    });
+  }
+
+  function openBatchModal(batch) {
+    batchForm.reset();
+    clearErrors(batchForm);
+    editingBatchId = batch ? batch.id : null;
+    batchModalSeasonTag.textContent = 'Mùa vụ: ' + (currentViewedSeason ? currentViewedSeason.code : '—');
+
+    if (batch) {
+      batchModalTitle.textContent = 'Sửa lô hàng';
+      batchSubmitLabel.textContent = 'Lưu thay đổi';
+      document.getElementById('batch-code').value = batch.code || '';
+      document.getElementById('batch-start-date').value = batch.startDate || '';
+      document.getElementById('batch-area').value = batch.area != null ? batch.area : '';
+      document.getElementById('batch-harvest-date').value = batch.harvestDate || '';
+      document.getElementById('batch-actual-harvest-date').value = batch.actualHarvestDate || '';
+      document.getElementById('batch-expected-yield').value =
+        batch.expectedYield != null ? batch.expectedYield : '';
+      batchUnitSelect.value = batch.unit || BATCH_UNITS[0];
+      batchStatusSelect.value = batch.status || BATCH_STATUSES[0].key;
+      document.getElementById('batch-note').value = batch.note || '';
+    } else {
+      batchModalTitle.textContent = 'Thêm lô hàng mới';
+      batchSubmitLabel.textContent = 'Xác nhận';
+      document.getElementById('batch-code').value = store.nextBatchCode();
+      batchUnitSelect.value = BATCH_UNITS[0];
+      batchStatusSelect.value = BATCH_STATUSES[0].key;
+    }
+
+    batchModal.showModal();
+    document.getElementById('batch-code').focus();
+  }
+
+  function closeBatchModal() {
+    batchModal.close();
+    editingBatchId = null;
+  }
+
+  function validateBatch() {
+    clearErrors(batchForm);
+    var problems = [];
+    var code = document.getElementById('batch-code');
+
+    if (!code.value.trim()) {
+      showError(code, 'Nhập mã lô hàng.');
+      problems.push(code);
+    } else {
+      var duplicate = batchesOfSeason(currentViewedSeason.id).some(function (item) {
+        return item.id !== editingBatchId &&
+          item.code.toLowerCase() === code.value.trim().toLowerCase();
+      });
+      if (duplicate) {
+        showError(code, 'Mã này đã dùng cho lô hàng khác của mùa vụ.');
+        problems.push(code);
+      }
+    }
+
+    if (problems.length) {
+      problems[0].focus();
+      return false;
+    }
+    return true;
+  }
+
+  function handleBatchSubmit(event) {
+    event.preventDefault();
+    if (!validateBatch() || !currentViewedSeason) return;
+
+    var data = new FormData(batchForm);
+    var record = {
+      seasonId: currentViewedSeason.id,
+      farmId: currentFarm.id,
+      code: String(data.get('code')).trim(),
+      startDate: String(data.get('startDate') || ''),
+      area: Number(data.get('area')) || 0,
+      harvestDate: String(data.get('harvestDate') || ''),
+      actualHarvestDate: String(data.get('actualHarvestDate') || ''),
+      expectedYield: Number(data.get('expectedYield')) || 0,
+      unit: String(data.get('unit') || ''),
+      status: String(data.get('status')),
+      note: String(data.get('note') || '').trim()
+    };
+
+    if (editingBatchId) {
+      store.update('batches', editingBatchId, record);
+      global.AgriChain.toast('Đã lưu thay đổi.');
+    } else {
+      store.insert('batches', record);
+      global.AgriChain.toast('Đã thêm lô hàng.');
+    }
+
+    closeBatchModal();
+    renderBatches();
+  }
+
+  function deleteBatch(batch) {
+    global.AgriChain.confirm(
+      'Xoá lô hàng "' + batch.code + '"? Hành động này không thể hoàn tác.'
+    ).then(function (confirmed) {
+      if (!confirmed) return;
+      store.remove('batches', batch.id);
+      renderBatches();
+      global.AgriChain.toast('Đã xoá lô hàng.');
+    });
+  }
+
   /* --- Khởi động ----------------------------------------------------------- */
 
   document.addEventListener('DOMContentLoaded', function () {
     fillCertStatuses();
     fillSeasonStatuses();
     fillActivityTypes();
+    fillBatchUnits();
+    fillBatchStatuses();
 
     var code = new URLSearchParams(global.location.search).get('ma') || '';
     var farm = store.list('farms').find(function (item) {
@@ -1121,5 +1341,13 @@
     });
     imagesInput.addEventListener('change', handleImagesInputChange);
     seasonLogForm.addEventListener('submit', handleSeasonLogSubmit);
+
+    document.querySelectorAll('[data-open-batch-form]').forEach(function (button) {
+      button.addEventListener('click', function () { openBatchModal(); });
+    });
+    document.querySelectorAll('[data-close-batch-form]').forEach(function (button) {
+      button.addEventListener('click', closeBatchModal);
+    });
+    batchForm.addEventListener('submit', handleBatchSubmit);
   });
 })(window);

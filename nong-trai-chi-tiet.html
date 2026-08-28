@@ -736,7 +736,20 @@
       </div>
 
       <div class="tabs__panel" id="season-view-tab-batches" data-tab-panel role="tabpanel" hidden>
-        <div class="empty-state">
+        <div class="tab-panel-header">
+          <div>
+            <h2 class="tab-panel-header__title">Danh sách lô hàng</h2>
+            <p class="tab-panel-header__meta">Tổng số: <strong data-batch-count>0</strong> lô hàng</p>
+          </div>
+          <button type="button" class="btn btn--primary btn--sm" data-open-batch-form>
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
+            Thêm mới
+          </button>
+        </div>
+
+        <div class="grid grid--3" data-batch-list hidden></div>
+
+        <div class="empty-state" data-batch-empty>
           <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-box"></use></svg>
           <p class="empty-state__title">Chưa có lô hàng</p>
           <p class="empty-state__desc">Các lô hàng thu hoạch từ mùa vụ này sẽ hiển thị tại đây.</p>
@@ -850,6 +863,75 @@
     </form>
   </dialog>
 
+  <!-- Modal: Thêm/Sửa lô hàng -->
+  <dialog class="modal" id="batch-modal" aria-labelledby="batch-modal-title">
+    <form class="modal__form" id="batch-form" novalidate>
+      <div class="modal__header">
+        <svg class="icon"><use href="icons/sprite.svg#icon-box"></use></svg>
+        <h2 class="modal__title" id="batch-modal-title">Thêm lô hàng mới</h2>
+        <span class="badge badge--neutral" data-batch-modal-season></span>
+        <button type="button" class="modal__close" data-close-batch-form aria-label="Đóng">&times;</button>
+      </div>
+
+      <div class="modal__body">
+        <div class="form-grid">
+          <div class="field">
+            <label class="label" for="batch-code">Mã</label>
+            <input class="input" type="text" id="batch-code" name="code" required />
+          </div>
+
+          <div class="field">
+            <label class="label" for="batch-start-date">Ngày bắt đầu</label>
+            <input class="input" type="date" id="batch-start-date" name="startDate" />
+          </div>
+
+          <div class="field">
+            <label class="label" for="batch-area">Diện tích</label>
+            <div class="input-affix">
+              <input class="input" type="number" id="batch-area" name="area" min="0" step="0.01" />
+              <span class="input-affix__unit">ha</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="batch-harvest-date">Ngày thu hoạch (dự kiến)</label>
+            <input class="input" type="date" id="batch-harvest-date" name="harvestDate" />
+          </div>
+
+          <div class="field">
+            <label class="label" for="batch-actual-harvest-date">Ngày thu hoạch thực tế</label>
+            <input class="input" type="date" id="batch-actual-harvest-date" name="actualHarvestDate" />
+          </div>
+
+          <div class="field">
+            <label class="label" for="batch-expected-yield">Sản lượng dự kiến</label>
+            <input class="input" type="number" id="batch-expected-yield" name="expectedYield" min="0" step="0.01" />
+          </div>
+
+          <div class="field">
+            <label class="label" for="batch-unit">Đơn vị</label>
+            <select class="select" id="batch-unit" name="unit"></select>
+          </div>
+
+          <div class="field">
+            <label class="label" for="batch-status">Trạng thái</label>
+            <select class="select" id="batch-status" name="status" required></select>
+          </div>
+
+          <div class="field form-grid__full">
+            <label class="label" for="batch-note">Ghi chú</label>
+            <textarea class="textarea" id="batch-note" name="note"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--secondary" data-close-batch-form>Hủy</button>
+        <button type="submit" class="btn btn--primary" data-batch-submit-label>Xác nhận</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- Xác nhận xoá (dùng chung, gọi qua AgriChain.confirm) -->
   <dialog class="modal modal--sm" id="confirm-dialog" aria-labelledby="confirm-dialog-title">
     <div class="modal__header">
@@ -877,6 +959,6 @@
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=3" defer></script>
   <script src="js/app-shell.js?v=5" defer></script>
-  <script src="js/nong-trai-chi-tiet.js?v=5" defer></script>
+  <script src="js/nong-trai-chi-tiet.js?v=6" defer></script>
 </body>
 </html>
