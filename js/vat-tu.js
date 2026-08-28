@@ -181,6 +181,34 @@
     });
   }
 
+  /* --- Gợi ý mã vật tư theo loại --------------------------------------------
+     "Thuốc trị nấm" -> chữ cái đầu mỗi từ (bỏ dấu) -> "TTN" + số thứ tự 2 chữ
+     số trong đúng loại đó, ví dụ TTN01. Chỉ gợi ý — người dùng vẫn sửa được. */
+  function stripDiacritics(text) {
+    // NFD tách mỗi chữ có dấu thành chữ cái gốc + dấu kết hợp riêng (combining
+    // mark, U+0300-U+036F) đứng liền sau — lớp regex dưới đây xoá đúng dải đó,
+    // chỉ còn lại chữ cái gốc không dấu. Riêng "đ/Đ" không tách được qua NFD
+    // (là chữ cái riêng trong bảng Unicode, không phải d+dấu) nên xử lý tay.
+    return text.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd');
+  }
+
+  function typeCodePrefix(type) {
+    return stripDiacritics(type.label)
+      .split(/\s+/)
+      .map(function (word) { return word.charAt(0).toUpperCase(); })
+      .join('');
+  }
+
+  function suggestMaterialCode(typeKey) {
+    var prefix = typeCodePrefix(typeOf(typeKey));
+    var count = store.list('supplies').filter(function (item) {
+      return item.type === typeKey;
+    }).length;
+    var seq = String(count + 1);
+    while (seq.length < 2) seq = '0' + seq;
+    return prefix + seq;
+  }
+
   /* --- Modal thêm/sửa ------------------------------------------------------ */
 
   function fillSelects() {
@@ -346,6 +374,13 @@
       button.addEventListener('click', function () { deleteModal.close(); });
     });
     document.querySelector('[data-confirm-delete]').addEventListener('click', confirmDelete);
+
+    // Chỉ gợi ý mã khi đang thêm mới — sửa vật tư đã có thì đổi loại không
+    // được tự ý ghi đè mã đang dùng.
+    typeSelect.addEventListener('change', function () {
+      if (editingId) return;
+      document.getElementById('material-code').value = suggestMaterialCode(typeSelect.value);
+    });
 
     form.addEventListener('submit', handleSubmit);
   });
