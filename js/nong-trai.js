@@ -12,7 +12,15 @@
   /* --- 34 tỉnh/thành sau sáp nhập đơn vị hành chính 2025 -------------------
      Chỉ còn 2 cấp: Tỉnh/Thành phố -> Phường/Xã (không còn cấp Quận/Huyện).
      Danh sách xã rất dài nên tạm để người dùng tự nhập; khi cần chuẩn hoá thì
-     thay ô nhập "Phường/Xã" bằng <select> nạp từ file JSON riêng. */
+     thay ô nhập "Phường/Xã" bằng <select> nạp từ file JSON riêng.
+
+     TODO (2026-08-28): dự định đổi "Phường/Xã" thành <select> phụ thuộc vào
+     "Tỉnh/Thành phố", nạp qua API AgriChain
+     (GET /1.0/commons/provinces, GET /1.0/commons/provinces/{code}/wards).
+     Đã thử gọi thẳng từ trình duyệt (không kèm gì) — cả 2 endpoint đều trả
+     401 Unauthorized, có vẻ cần đăng nhập/token mà phía backend chưa xác
+     nhận cách truyền. Tạm dừng ở đây, đang chờ hỏi lại backend xem có mở
+     /1.0/commons/* thành public được không. Ward vẫn là ô nhập tay như cũ. */
   var PROVINCES = [
     'An Giang', 'Bắc Ninh', 'Cà Mau', 'Cao Bằng', 'Cần Thơ',
     'Đà Nẵng', 'Đắk Lắk', 'Điện Biên', 'Đồng Nai', 'Đồng Tháp',
@@ -515,6 +523,10 @@
     var name = document.getElementById('farm-name');
     var province = document.getElementById('farm-province');
     var ward = document.getElementById('farm-ward');
+    var address = document.getElementById('farm-address');
+    var startDate = document.getElementById('farm-start-date');
+    var area = document.getElementById('farm-area');
+    var description = document.getElementById('farm-description');
 
     if (!code.value.trim()) {
       showError(code, 'Nhập mã nông trại.');
@@ -543,6 +555,22 @@
     if (!ward.value.trim()) {
       showError(ward, 'Nhập phường/xã.');
       problems.push(ward);
+    }
+    if (!address.value.trim()) {
+      showError(address, 'Nhập địa chỉ.');
+      problems.push(address);
+    }
+    if (!startDate.value) {
+      showError(startDate, 'Chọn ngày bắt đầu.');
+      problems.push(startDate);
+    }
+    if (!area.value.trim()) {
+      showError(area, 'Nhập diện tích.');
+      problems.push(area);
+    }
+    if (!description.value.trim()) {
+      showError(description, 'Nhập mô tả.');
+      problems.push(description);
     }
 
     if (problems.length) {

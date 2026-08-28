@@ -191,6 +191,18 @@ Trang truy xuất nguồn gốc (`truy-xuat.html`) đã có ở mức cơ bản:
 vụ liên quan. Chưa có: liệt kê nhiều lô hàng, tìm kiếm theo mã tự nhập tay trên trang, xác
 thực lại (verify) hash ngay tại trang này thay vì chỉ đọc `batch.hash` đã lưu sẵn.
 
+## Việc đang chờ (block bởi bên ngoài dự án)
+
+**Dropdown Phường/Xã phụ thuộc Tỉnh/Thành phố** (form Thêm nông trại, `nong-trai.html`):
+dự định gọi API AgriChain (`GET /1.0/commons/provinces`, `GET /1.0/commons/provinces/{code}/wards`
+— response `/wards` là mảng phẳng `{code, name, provinceCode}`) để thay ô nhập tay
+"Phường/Xã" bằng `<select>` nạp động theo tỉnh đã chọn. Gọi thẳng từ trình duyệt (2026-08-28)
+cả 2 endpoint đều trả 401 Unauthorized — có vẻ cần đăng nhập/token nhưng chưa rõ cách
+truyền. Đang chờ hỏi lại backend xem `/1.0/commons/*` có mở public được không. Trong lúc
+chờ: `farm-ward` vẫn là `<input type="text">` như cũ (xem TODO ở đầu `js/nong-trai.js`,
+cạnh mảng `PROVINCES`) — đừng tự bịa danh sách xã/phường để lấp chỗ trống, dữ liệu hành
+chính sai sẽ khó phát hiện và khó sửa sau này hơn là cứ để trống.
+
 ## Lỗi đã biết, chưa xử lý xong
 
 Cuộn tới anchor (`#tinh-nang`, qua menu header hoặc mũi tên cuộn ở hero) đôi khi dừng
