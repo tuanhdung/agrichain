@@ -1,7 +1,8 @@
 /* ==========================================================================
    AgriChain — Trang chi tiết 1 nông trại (nong-trai-chi-tiet.html?ma=...)
    Đọc mã nông trại từ query string (?ma=), tìm trong AgriChain.store rồi vẽ
-   lại thông tin — không sửa/xoá dữ liệu ở đây, chỉ xem. Nạp SAU js/store.js,
+   lại thông tin, cùng 2 danh sách con gắn theo farmId: chứng nhận nông trại
+   và lịch sử mùa vụ (thêm/sửa/xoá ngay tại đây). Nạp SAU js/store.js,
    js/app-shell.js và js/map-layers.js.
    ========================================================================== */
 
@@ -10,9 +11,52 @@
 
   var store = global.AgriChain.store;
 
+  var CERT_STATUSES = [
+    { key: 'active',    label: 'Hoạt động',    badge: 'badge--success' },
+    { key: 'expired',   label: 'Hết hạn',      badge: 'badge--danger' },
+    { key: 'suspended', label: 'Tạm đình chỉ', badge: 'badge--warning' },
+    { key: 'revoked',   label: 'Đã thu hồi',   badge: 'badge--neutral' }
+  ];
+
+  var SEASON_STATUSES = [
+    { key: 'planned',     label: 'Kế hoạch',       badge: 'badge--neutral' },
+    { key: 'in_progress', label: 'Đang thực hiện', badge: 'badge--info' },
+    { key: 'harvested',   label: 'Đã thu hoạch',   badge: 'badge--warning' },
+    { key: 'completed',   label: 'Hoàn thành',     badge: 'badge--success' },
+    { key: 'failed',      label: 'Thất bại',       badge: 'badge--danger' }
+  ];
+
+  function statusOf(list, key) {
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].key === key) return list[i];
+    }
+    return list[0];
+  }
+
   var notFoundNode = document.querySelector('[data-not-found]');
   var detailNode = document.querySelector('[data-farm-detail]');
   var breadcrumbNode = document.querySelector('[data-farm-breadcrumb]');
+
+  // Nông trại đang xem — chứng nhận/mùa vụ đều gắn theo farmId của nó.
+  var currentFarm = null;
+
+  /* --- Tiện ích -------------------------------------------------------------- */
+
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined && text !== null) node.textContent = text;
+    return node;
+  }
+
+  function svgIcon(name, className) {
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', className || 'icon icon--sm');
+    var use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttribute('href', 'icons/sprite.svg#' + name);
+    svg.appendChild(use);
+    return svg;
+  }
 
   function formatDate(value) {
     if (!value) return 'Chưa đặt';
@@ -30,6 +74,18 @@
   function fillField(selector, value) {
     var node = detailNode.querySelector(selector);
     if (node) node.textContent = value || '—';
+  }
+
+  function clearErrors(form) {
+    form.querySelectorAll('.field__error').forEach(function (node) { node.remove(); });
+    form.querySelectorAll('[aria-invalid="true"]').forEach(function (node) {
+      node.removeAttribute('aria-invalid');
+    });
+  }
+
+  function showError(field, message) {
+    field.setAttribute('aria-invalid', 'true');
+    field.parentNode.appendChild(el('p', 'field__error', message));
   }
 
   /* --- Bản đồ chỉ xem, không cho click-để-đánh-dấu -------------------------
@@ -66,6 +122,7 @@
   }
 
   function showFarm(farm) {
+    currentFarm = farm;
     notFoundNode.hidden = true;
     detailNode.hidden = false;
 
@@ -82,9 +139,457 @@
     fillField('[data-view-desc]', farm.description);
 
     showFarmOnMap(farm);
+    renderCertifications();
+    renderSeasons();
   }
 
+  /* ======================================================================
+     Chứng nhận nông trại
+     ====================================================================== */
+
+  var certModal = document.getElementById('cert-modal');
+  var certForm = document.getElementById('cert-form');
+  var certStatusSelect = document.getElementById('cert-status');
+  var certModalTitle = document.getElementById('cert-modal-title');
+  var certSubmitLabel = document.querySelector('[data-cert-submit-label]');
+  var certTablePanel = document.querySelector('[data-cert-table-panel]');
+  var certTableBody = document.querySelector('[data-cert-table-body]');
+  var certEmptyNode = document.querySelector('[data-cert-empty]');
+  var certCountNode = document.querySelector('[data-cert-count]');
+  var certFileInput = document.getElementById('cert-file');
+  var certFileCurrent = document.querySelector('[data-cert-file-current]');
+  var certFileLink = document.querySelector('[data-cert-file-link]');
+
+  var editingCertId = null;
+  var certFile = null;        // { name, type, dataUrl } — tệp MỚI vừa chọn, null nếu chưa đổi
+  var certFileRemoved = false; // true khi bấm "Gỡ tệp" — bỏ tệp cũ đi, không thay bằng tệp mới
+
+  function fillCertStatuses() {
+    CERT_STATUSES.forEach(function (status) {
+      var option = el('option', null, status.label);
+      option.value = status.key;
+      certStatusSelect.appendChild(option);
+    });
+  }
+
+  function certsOfFarm() {
+    if (!currentFarm) return [];
+    return store.list('certifications').filter(function (item) {
+      return item.farmId === currentFarm.id;
+    });
+  }
+
+  function certRow(cert) {
+    var status = statusOf(CERT_STATUSES, cert.status);
+    var tr = el('tr');
+
+    tr.appendChild(el('td', 'table__name', cert.name));
+    tr.appendChild(el('td', 'table__code', cert.code));
+    tr.appendChild(el('td', null, cert.issuer || '—'));
+
+    var statusCell = el('td');
+    statusCell.appendChild(el('span', 'badge ' + status.badge, status.label));
+    tr.appendChild(statusCell);
+
+    tr.appendChild(el('td', 'table__nowrap', formatDate(cert.issueDate)));
+    tr.appendChild(el('td', 'table__nowrap', formatDate(cert.expiryDate)));
+
+    var fileCell = el('td');
+    if (cert.fileDataUrl) {
+      var link = el('a', null, cert.fileName || 'Xem tệp');
+      link.href = cert.fileDataUrl;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      fileCell.appendChild(link);
+    } else {
+      fileCell.textContent = '—';
+    }
+    tr.appendChild(fileCell);
+
+    var actions = el('td');
+    var wrap = el('div', 'table__actions');
+
+    var edit = el('button', 'icon-btn');
+    edit.type = 'button';
+    edit.setAttribute('aria-label', 'Sửa ' + cert.name);
+    edit.setAttribute('data-tooltip', 'Chỉnh sửa');
+    edit.appendChild(svgIcon('icon-pencil'));
+    edit.addEventListener('click', function () { openCertModal(cert); });
+
+    var del = el('button', 'icon-btn icon-btn--danger');
+    del.type = 'button';
+    del.setAttribute('aria-label', 'Xoá ' + cert.name);
+    del.setAttribute('data-tooltip', 'Xoá');
+    del.appendChild(svgIcon('icon-trash'));
+    del.addEventListener('click', function () { deleteCert(cert); });
+
+    wrap.appendChild(edit);
+    wrap.appendChild(del);
+    actions.appendChild(wrap);
+    tr.appendChild(actions);
+
+    return tr;
+  }
+
+  function renderCertifications() {
+    var certs = certsOfFarm();
+    certCountNode.textContent = certs.length;
+
+    certTableBody.textContent = '';
+    if (!certs.length) {
+      certTablePanel.hidden = true;
+      certEmptyNode.hidden = false;
+      return;
+    }
+
+    certEmptyNode.hidden = true;
+    certTablePanel.hidden = false;
+    certs.forEach(function (cert) {
+      certTableBody.appendChild(certRow(cert));
+    });
+  }
+
+  function resetCertFileField() {
+    certFile = null;
+    certFileRemoved = false;
+    certFileInput.value = '';
+    certFileCurrent.hidden = true;
+  }
+
+  function openCertModal(cert) {
+    certForm.reset();
+    clearErrors(certForm);
+    resetCertFileField();
+    editingCertId = cert ? cert.id : null;
+
+    if (cert) {
+      certModalTitle.textContent = 'Sửa chứng nhận';
+      certSubmitLabel.textContent = 'Lưu thay đổi';
+      document.getElementById('cert-name').value = cert.name || '';
+      document.getElementById('cert-code').value = cert.code || '';
+      document.getElementById('cert-issuer').value = cert.issuer || '';
+      certStatusSelect.value = cert.status || CERT_STATUSES[0].key;
+      document.getElementById('cert-issue-date').value = cert.issueDate || '';
+      document.getElementById('cert-expiry-date').value = cert.expiryDate || '';
+      document.getElementById('cert-note').value = cert.note || '';
+
+      if (cert.fileDataUrl) {
+        certFileLink.textContent = cert.fileName || 'Xem tệp';
+        certFileLink.href = cert.fileDataUrl;
+        certFileCurrent.hidden = false;
+      }
+    } else {
+      certModalTitle.textContent = 'Thêm chứng nhận mới';
+      certSubmitLabel.textContent = 'Lưu chứng nhận';
+      certStatusSelect.value = CERT_STATUSES[0].key;
+    }
+
+    certModal.showModal();
+    document.getElementById('cert-name').focus();
+  }
+
+  function closeCertModal() {
+    certModal.close();
+    editingCertId = null;
+  }
+
+  function handleCertFileChange() {
+    var file = certFileInput.files && certFileInput.files[0];
+    if (!file) return;
+
+    var reader = new FileReader();
+    reader.onload = function () {
+      certFile = { name: file.name, type: file.type, dataUrl: reader.result };
+      certFileRemoved = false;
+      certFileCurrent.hidden = true; // tệp mới thay cho tệp cũ, khỏi hiện link cũ gây nhầm
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeCertFile() {
+    certFile = null;
+    certFileRemoved = true;
+    certFileInput.value = '';
+    certFileCurrent.hidden = true;
+  }
+
+  function validateCert() {
+    clearErrors(certForm);
+    var problems = [];
+    var name = document.getElementById('cert-name');
+    var code = document.getElementById('cert-code');
+
+    if (!name.value.trim()) {
+      showError(name, 'Nhập tên chứng nhận.');
+      problems.push(name);
+    }
+
+    if (!code.value.trim()) {
+      showError(code, 'Nhập mã chứng nhận.');
+      problems.push(code);
+    } else {
+      var duplicate = certsOfFarm().some(function (item) {
+        return item.id !== editingCertId &&
+          item.code.toLowerCase() === code.value.trim().toLowerCase();
+      });
+      if (duplicate) {
+        showError(code, 'Mã này đã dùng cho chứng nhận khác của nông trại.');
+        problems.push(code);
+      }
+    }
+
+    if (problems.length) {
+      problems[0].focus();
+      return false;
+    }
+    return true;
+  }
+
+  function handleCertSubmit(event) {
+    event.preventDefault();
+    if (!validateCert()) return;
+
+    var data = new FormData(certForm);
+    var existing = editingCertId ? store.find('certifications', editingCertId) : null;
+
+    var record = {
+      farmId: currentFarm.id,
+      name: String(data.get('name')).trim(),
+      code: String(data.get('code')).trim(),
+      issuer: String(data.get('issuer') || '').trim(),
+      status: String(data.get('status')),
+      issueDate: String(data.get('issueDate') || ''),
+      expiryDate: String(data.get('expiryDate') || ''),
+      note: String(data.get('note') || '').trim(),
+      fileName: certFile ? certFile.name : (certFileRemoved ? '' : (existing ? existing.fileName : '')),
+      fileDataUrl: certFile ? certFile.dataUrl : (certFileRemoved ? '' : (existing ? existing.fileDataUrl : ''))
+    };
+
+    if (editingCertId) {
+      store.update('certifications', editingCertId, record);
+      global.AgriChain.toast('Đã lưu thay đổi.');
+    } else {
+      store.insert('certifications', record);
+      global.AgriChain.toast('Đã thêm chứng nhận.');
+    }
+
+    closeCertModal();
+    renderCertifications();
+  }
+
+  function deleteCert(cert) {
+    global.AgriChain.confirm(
+      'Xoá chứng nhận "' + cert.name + '"? Hành động này không thể hoàn tác.'
+    ).then(function (confirmed) {
+      if (!confirmed) return;
+      store.remove('certifications', cert.id);
+      renderCertifications();
+      global.AgriChain.toast('Đã xoá chứng nhận.');
+    });
+  }
+
+  /* ======================================================================
+     Lịch sử mùa vụ
+     ====================================================================== */
+
+  var seasonModal = document.getElementById('season-modal');
+  var seasonForm = document.getElementById('season-form');
+  var seasonStatusSelect = document.getElementById('season-status');
+  var seasonModalTitle = document.getElementById('season-modal-title');
+  var seasonSubmitLabel = document.querySelector('[data-season-submit-label]');
+  var seasonTablePanel = document.querySelector('[data-season-table-panel]');
+  var seasonTableBody = document.querySelector('[data-season-table-body]');
+  var seasonEmptyNode = document.querySelector('[data-season-empty]');
+  var seasonCountNode = document.querySelector('[data-season-count]');
+
+  var editingSeasonId = null;
+
+  function fillSeasonStatuses() {
+    SEASON_STATUSES.forEach(function (status) {
+      var option = el('option', null, status.label);
+      option.value = status.key;
+      seasonStatusSelect.appendChild(option);
+    });
+  }
+
+  function seasonsOfFarm() {
+    if (!currentFarm) return [];
+    return store.list('seasons').filter(function (item) {
+      return item.farmId === currentFarm.id;
+    });
+  }
+
+  function seasonRow(season) {
+    var status = statusOf(SEASON_STATUSES, season.status);
+    var tr = el('tr');
+
+    tr.appendChild(el('td', 'table__code', season.code));
+    tr.appendChild(el('td', 'table__name', season.name));
+    tr.appendChild(el('td', 'table__nowrap', formatDate(season.startDate)));
+    tr.appendChild(el('td', 'table__nowrap', formatDate(season.endDate)));
+    tr.appendChild(el('td', null, formatArea(season.plannedArea)));
+    tr.appendChild(el('td', null, formatArea(season.actualArea)));
+
+    var statusCell = el('td');
+    statusCell.appendChild(el('span', 'badge ' + status.badge, status.label));
+    tr.appendChild(statusCell);
+
+    tr.appendChild(el('td', 'table__desc', season.note || '—'));
+
+    var actions = el('td');
+    var wrap = el('div', 'table__actions');
+
+    var edit = el('button', 'icon-btn');
+    edit.type = 'button';
+    edit.setAttribute('aria-label', 'Sửa ' + season.name);
+    edit.setAttribute('data-tooltip', 'Chỉnh sửa');
+    edit.appendChild(svgIcon('icon-pencil'));
+    edit.addEventListener('click', function () { openSeasonModal(season); });
+
+    var del = el('button', 'icon-btn icon-btn--danger');
+    del.type = 'button';
+    del.setAttribute('aria-label', 'Xoá ' + season.name);
+    del.setAttribute('data-tooltip', 'Xoá');
+    del.appendChild(svgIcon('icon-trash'));
+    del.addEventListener('click', function () { deleteSeason(season); });
+
+    wrap.appendChild(edit);
+    wrap.appendChild(del);
+    actions.appendChild(wrap);
+    tr.appendChild(actions);
+
+    return tr;
+  }
+
+  function renderSeasons() {
+    var seasons = seasonsOfFarm();
+    seasonCountNode.textContent = seasons.length;
+
+    seasonTableBody.textContent = '';
+    if (!seasons.length) {
+      seasonTablePanel.hidden = true;
+      seasonEmptyNode.hidden = false;
+      return;
+    }
+
+    seasonEmptyNode.hidden = true;
+    seasonTablePanel.hidden = false;
+    seasons.forEach(function (season) {
+      seasonTableBody.appendChild(seasonRow(season));
+    });
+  }
+
+  function openSeasonModal(season) {
+    seasonForm.reset();
+    clearErrors(seasonForm);
+    editingSeasonId = season ? season.id : null;
+
+    if (season) {
+      seasonModalTitle.textContent = 'Sửa mùa vụ';
+      seasonSubmitLabel.textContent = 'Lưu thay đổi';
+      document.getElementById('season-code').value = season.code || '';
+      document.getElementById('season-name').value = season.name || '';
+      document.getElementById('season-start-date').value = season.startDate || '';
+      document.getElementById('season-end-date').value = season.endDate || '';
+      document.getElementById('season-planned-area').value =
+        season.plannedArea != null ? season.plannedArea : '';
+      document.getElementById('season-actual-area').value =
+        season.actualArea != null ? season.actualArea : '';
+      seasonStatusSelect.value = season.status || SEASON_STATUSES[0].key;
+      document.getElementById('season-note').value = season.note || '';
+    } else {
+      seasonModalTitle.textContent = 'Thêm mùa vụ mới';
+      seasonSubmitLabel.textContent = 'Lưu mùa vụ';
+      seasonStatusSelect.value = SEASON_STATUSES[0].key;
+    }
+
+    seasonModal.showModal();
+    document.getElementById('season-code').focus();
+  }
+
+  function closeSeasonModal() {
+    seasonModal.close();
+    editingSeasonId = null;
+  }
+
+  function validateSeason() {
+    clearErrors(seasonForm);
+    var problems = [];
+    var code = document.getElementById('season-code');
+    var name = document.getElementById('season-name');
+
+    if (!code.value.trim()) {
+      showError(code, 'Nhập mã mùa vụ.');
+      problems.push(code);
+    } else {
+      var duplicate = seasonsOfFarm().some(function (item) {
+        return item.id !== editingSeasonId &&
+          item.code.toLowerCase() === code.value.trim().toLowerCase();
+      });
+      if (duplicate) {
+        showError(code, 'Mã này đã dùng cho mùa vụ khác của nông trại.');
+        problems.push(code);
+      }
+    }
+
+    if (!name.value.trim()) {
+      showError(name, 'Nhập tên mùa vụ.');
+      problems.push(name);
+    }
+
+    if (problems.length) {
+      problems[0].focus();
+      return false;
+    }
+    return true;
+  }
+
+  function handleSeasonSubmit(event) {
+    event.preventDefault();
+    if (!validateSeason()) return;
+
+    var data = new FormData(seasonForm);
+    var record = {
+      farmId: currentFarm.id,
+      code: String(data.get('code')).trim(),
+      name: String(data.get('name')).trim(),
+      startDate: String(data.get('startDate') || ''),
+      endDate: String(data.get('endDate') || ''),
+      plannedArea: Number(data.get('plannedArea')) || 0,
+      actualArea: Number(data.get('actualArea')) || 0,
+      status: String(data.get('status')),
+      note: String(data.get('note') || '').trim()
+    };
+
+    if (editingSeasonId) {
+      store.update('seasons', editingSeasonId, record);
+      global.AgriChain.toast('Đã lưu thay đổi.');
+    } else {
+      store.insert('seasons', record);
+      global.AgriChain.toast('Đã thêm mùa vụ.');
+    }
+
+    closeSeasonModal();
+    renderSeasons();
+  }
+
+  function deleteSeason(season) {
+    global.AgriChain.confirm(
+      'Xoá mùa vụ "' + season.name + '"? Hành động này không thể hoàn tác.'
+    ).then(function (confirmed) {
+      if (!confirmed) return;
+      store.remove('seasons', season.id);
+      renderSeasons();
+      global.AgriChain.toast('Đã xoá mùa vụ.');
+    });
+  }
+
+  /* --- Khởi động ----------------------------------------------------------- */
+
   document.addEventListener('DOMContentLoaded', function () {
+    fillCertStatuses();
+    fillSeasonStatuses();
+
     var code = new URLSearchParams(global.location.search).get('ma') || '';
     var farm = store.list('farms').find(function (item) {
       return item.code.toLowerCase() === code.trim().toLowerCase();
@@ -96,5 +601,23 @@
     }
 
     showFarm(farm);
+
+    document.querySelectorAll('[data-open-cert-form]').forEach(function (button) {
+      button.addEventListener('click', function () { openCertModal(); });
+    });
+    document.querySelectorAll('[data-close-cert-form]').forEach(function (button) {
+      button.addEventListener('click', closeCertModal);
+    });
+    certFileInput.addEventListener('change', handleCertFileChange);
+    document.querySelector('[data-cert-file-remove]').addEventListener('click', removeCertFile);
+    certForm.addEventListener('submit', handleCertSubmit);
+
+    document.querySelectorAll('[data-open-season-form]').forEach(function (button) {
+      button.addEventListener('click', function () { openSeasonModal(); });
+    });
+    document.querySelectorAll('[data-close-season-form]').forEach(function (button) {
+      button.addEventListener('click', closeSeasonModal);
+    });
+    seasonForm.addEventListener('submit', handleSeasonSubmit);
   });
 })(window);

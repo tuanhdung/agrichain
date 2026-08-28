@@ -353,6 +353,11 @@ a.card {
   border: 1px solid var(--color-border);
 }
 
+.badge--danger {
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
+}
+
 /* --- Icon --- */
 .icon {
   width: var(--space-6);

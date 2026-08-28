@@ -266,14 +266,35 @@
           <div class="tab-panel-header">
             <div>
               <h2 class="tab-panel-header__title">Danh sách chứng nhận</h2>
-              <p class="tab-panel-header__meta">Tổng số: <strong>0</strong> chứng nhận nông trại</p>
+              <p class="tab-panel-header__meta">Tổng số: <strong data-cert-count>0</strong> chứng nhận nông trại</p>
             </div>
-            <button type="button" class="btn btn--primary btn--sm" disabled>
+            <button type="button" class="btn btn--primary btn--sm" data-open-cert-form>
               <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
               Thêm mới
             </button>
           </div>
-          <div class="empty-state">
+
+          <div class="table-panel" data-cert-table-panel hidden>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">Tên</th>
+                    <th scope="col">Mã</th>
+                    <th scope="col">Cơ quan cấp</th>
+                    <th scope="col">Trạng thái</th>
+                    <th scope="col">Ngày cấp</th>
+                    <th scope="col">Ngày hết hạn</th>
+                    <th scope="col">Tệp</th>
+                    <th scope="col"><span class="sr-only">Thao tác</span>#</th>
+                  </tr>
+                </thead>
+                <tbody data-cert-table-body></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="empty-state" data-cert-empty>
             <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-qr-code"></use></svg>
             <p class="empty-state__title">Chưa có chứng nhận nào</p>
             <p class="empty-state__desc">
@@ -286,14 +307,36 @@
           <div class="tab-panel-header">
             <div>
               <h2 class="tab-panel-header__title">Lịch sử mùa vụ</h2>
-              <p class="tab-panel-header__meta">Tổng số: <strong>0</strong> mùa vụ</p>
+              <p class="tab-panel-header__meta">Tổng số: <strong data-season-count>0</strong> mùa vụ</p>
             </div>
-            <button type="button" class="btn btn--primary btn--sm" disabled>
+            <button type="button" class="btn btn--primary btn--sm" data-open-season-form>
               <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
               Thêm mới
             </button>
           </div>
-          <div class="empty-state">
+
+          <div class="table-panel" data-season-table-panel hidden>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">Mã</th>
+                    <th scope="col">Tên</th>
+                    <th scope="col">Ngày bắt đầu</th>
+                    <th scope="col">Ngày kết thúc</th>
+                    <th scope="col">Diện tích dự kiến</th>
+                    <th scope="col">Diện tích thực tế</th>
+                    <th scope="col">Trạng thái</th>
+                    <th scope="col">Ghi chú</th>
+                    <th scope="col"><span class="sr-only">Thao tác</span>#</th>
+                  </tr>
+                </thead>
+                <tbody data-season-table-body></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="empty-state" data-season-empty>
             <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-seedling"></use></svg>
             <p class="empty-state__title">Chưa có lịch sử mùa vụ</p>
             <p class="empty-state__desc">
@@ -306,6 +349,151 @@
     </div>
   </main>
 
+  <!-- Modal: Thêm/Sửa chứng nhận nông trại -->
+  <dialog class="modal" id="cert-modal" aria-labelledby="cert-modal-title">
+    <form class="modal__form" id="cert-form" novalidate>
+      <div class="modal__header">
+        <svg class="icon"><use href="icons/sprite.svg#icon-qr-code"></use></svg>
+        <h2 class="modal__title" id="cert-modal-title">Thêm chứng nhận mới</h2>
+        <button type="button" class="modal__close" data-close-cert-form aria-label="Đóng">&times;</button>
+      </div>
+
+      <div class="modal__body">
+        <div class="form-grid">
+          <div class="field">
+            <label class="label" for="cert-name">Tên</label>
+            <input class="input" type="text" id="cert-name" name="name" required />
+          </div>
+
+          <div class="field">
+            <label class="label" for="cert-code">Mã</label>
+            <input class="input" type="text" id="cert-code" name="code" required />
+          </div>
+
+          <div class="field">
+            <label class="label" for="cert-issuer">Cơ quan cấp</label>
+            <input class="input" type="text" id="cert-issuer" name="issuer" />
+          </div>
+
+          <div class="field">
+            <label class="label" for="cert-status">Trạng thái</label>
+            <select class="select" id="cert-status" name="status" required></select>
+          </div>
+
+          <div class="field">
+            <label class="label" for="cert-issue-date">Ngày cấp</label>
+            <input class="input" type="date" id="cert-issue-date" name="issueDate" />
+          </div>
+
+          <div class="field">
+            <label class="label" for="cert-expiry-date">Ngày hết hạn</label>
+            <input class="input" type="date" id="cert-expiry-date" name="expiryDate" />
+          </div>
+
+          <div class="field form-grid__full">
+            <label class="label" for="cert-file">Tệp tin</label>
+            <input class="input" type="file" id="cert-file" name="file" accept="image/*,.pdf" />
+            <p class="field__hint" data-cert-file-current hidden>
+              Tệp hiện tại: <a data-cert-file-link target="_blank" rel="noopener"></a>
+              <button type="button" class="btn btn--ghost btn--sm" data-cert-file-remove>Gỡ tệp</button>
+            </p>
+          </div>
+
+          <div class="field form-grid__full">
+            <label class="label" for="cert-note">Ghi chú</label>
+            <textarea class="textarea" id="cert-note" name="note"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--secondary" data-close-cert-form>Hủy</button>
+        <button type="submit" class="btn btn--primary" data-cert-submit-label>Lưu chứng nhận</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Modal: Thêm/Sửa mùa vụ -->
+  <dialog class="modal" id="season-modal" aria-labelledby="season-modal-title">
+    <form class="modal__form" id="season-form" novalidate>
+      <div class="modal__header">
+        <svg class="icon"><use href="icons/sprite.svg#icon-seedling"></use></svg>
+        <h2 class="modal__title" id="season-modal-title">Thêm mùa vụ mới</h2>
+        <button type="button" class="modal__close" data-close-season-form aria-label="Đóng">&times;</button>
+      </div>
+
+      <div class="modal__body">
+        <div class="form-grid">
+          <div class="field">
+            <label class="label" for="season-code">Mã</label>
+            <input class="input" type="text" id="season-code" name="code" required />
+          </div>
+
+          <div class="field">
+            <label class="label" for="season-name">Tên</label>
+            <input class="input" type="text" id="season-name" name="name" required />
+          </div>
+
+          <div class="field">
+            <label class="label" for="season-start-date">Ngày bắt đầu</label>
+            <input class="input" type="date" id="season-start-date" name="startDate" />
+          </div>
+
+          <div class="field">
+            <label class="label" for="season-end-date">Ngày kết thúc</label>
+            <input class="input" type="date" id="season-end-date" name="endDate" />
+          </div>
+
+          <div class="field">
+            <label class="label" for="season-planned-area">Diện tích dự kiến</label>
+            <div class="input-affix">
+              <input class="input" type="number" id="season-planned-area" name="plannedArea" min="0" step="0.01" />
+              <span class="input-affix__unit">ha</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="season-actual-area">Diện tích thực tế</label>
+            <div class="input-affix">
+              <input class="input" type="number" id="season-actual-area" name="actualArea" min="0" step="0.01" />
+              <span class="input-affix__unit">ha</span>
+            </div>
+          </div>
+
+          <div class="field form-grid__full">
+            <label class="label" for="season-status">Trạng thái</label>
+            <select class="select" id="season-status" name="status" required></select>
+          </div>
+
+          <div class="field form-grid__full">
+            <label class="label" for="season-note">Ghi chú</label>
+            <textarea class="textarea" id="season-note" name="note"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--secondary" data-close-season-form>Hủy</button>
+        <button type="submit" class="btn btn--primary" data-season-submit-label>Lưu mùa vụ</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Xác nhận xoá (dùng chung, gọi qua AgriChain.confirm) -->
+  <dialog class="modal modal--sm" id="confirm-dialog" aria-labelledby="confirm-dialog-title">
+    <div class="modal__header">
+      <svg class="icon"><use href="icons/sprite.svg#icon-trash"></use></svg>
+      <h2 class="modal__title" id="confirm-dialog-title">Xác nhận</h2>
+    </div>
+    <div class="modal__body">
+      <p data-confirm-message></p>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn--secondary" data-confirm-cancel>Huỷ</button>
+      <button type="button" class="btn btn--danger" data-confirm-ok>Xoá</button>
+    </div>
+  </dialog>
+
   <!-- Toast -->
   <div class="toast" role="status" aria-live="polite">
     <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
@@ -316,8 +504,8 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
   <script src="js/map-layers.js?v=1" defer></script>
   <script src="js/chain.js?v=1" defer></script>
-  <script src="js/store.js?v=2" defer></script>
+  <script src="js/store.js?v=3" defer></script>
   <script src="js/app-shell.js?v=5" defer></script>
-  <script src="js/nong-trai-chi-tiet.js?v=1" defer></script>
+  <script src="js/nong-trai-chi-tiet.js?v=2" defer></script>
 </body>
 </html>
