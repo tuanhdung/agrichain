@@ -57,6 +57,41 @@
       font-size: var(--text-sm);
       color: var(--color-text-muted);
     }
+
+    /* Modal xem chi tiết mùa vụ: dải 4 số liệu nổi bật phía trên tabs */
+    .season-view-code {
+      margin-bottom: var(--space-4);
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+    .season-view-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-4);
+    }
+    @media (min-width: 640px) {
+      .season-view-stats { grid-template-columns: repeat(4, 1fr); }
+    }
+    .season-view-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-1);
+      padding: var(--space-4);
+      background: var(--color-bg-subtle);
+      border-radius: var(--radius-md);
+      text-align: center;
+    }
+    .season-view-stat .icon {
+      color: var(--color-primary);
+    }
+    .season-view-stat__label {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+    }
+    .season-view-stat__value {
+      font-size: var(--text-lg);
+    }
   </style>
 </head>
 <body class="app-shell">
@@ -442,6 +477,119 @@
     </form>
   </dialog>
 
+  <!-- Modal: Xem chi tiết mùa vụ -->
+  <dialog class="modal" id="season-view-modal" aria-labelledby="season-view-title">
+    <div class="modal__header">
+      <svg class="icon"><use href="icons/sprite.svg#icon-seedling"></use></svg>
+      <h2 class="modal__title" id="season-view-title" data-season-view-name>Mùa vụ</h2>
+      <span class="badge" data-season-view-badge></span>
+      <button type="button" class="modal__close" data-close-season-view aria-label="Đóng">&times;</button>
+    </div>
+
+    <div class="modal__body">
+      <p class="season-view-code" data-season-view-code></p>
+
+      <div class="season-view-stats">
+        <div class="season-view-stat">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-calendar"></use></svg>
+          <span class="season-view-stat__label">Bắt đầu</span>
+          <strong class="season-view-stat__value" data-season-view-stat-start></strong>
+        </div>
+        <div class="season-view-stat">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-calendar"></use></svg>
+          <span class="season-view-stat__label">Kết thúc</span>
+          <strong class="season-view-stat__value" data-season-view-stat-end></strong>
+        </div>
+        <div class="season-view-stat">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-chart-bar"></use></svg>
+          <span class="season-view-stat__label">Diện tích dự kiến</span>
+          <strong class="season-view-stat__value" data-season-view-stat-planned></strong>
+        </div>
+        <div class="season-view-stat">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-chart-bar"></use></svg>
+          <span class="season-view-stat__label">Diện tích thực tế</span>
+          <strong class="season-view-stat__value" data-season-view-stat-actual></strong>
+        </div>
+      </div>
+
+      <div class="tabs" role="tablist" style="margin-top: var(--space-5);">
+        <button type="button" class="tabs__tab is-active" role="tab" aria-selected="true" data-tab-target="season-view-tab-info">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+          Thông tin
+        </button>
+        <button type="button" class="tabs__tab" role="tab" aria-selected="false" data-tab-target="season-view-tab-timeline">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-calendar"></use></svg>
+          Timeline mùa vụ
+        </button>
+        <button type="button" class="tabs__tab" role="tab" aria-selected="false" data-tab-target="season-view-tab-batches">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-box"></use></svg>
+          Lô hàng
+        </button>
+        <button type="button" class="tabs__tab" role="tab" aria-selected="false" data-tab-target="season-view-tab-process">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-tractor"></use></svg>
+          Quy trình mùa vụ
+        </button>
+      </div>
+
+      <div class="tabs__panel" id="season-view-tab-info" data-tab-panel role="tabpanel">
+        <div class="form-grid">
+          <div class="view-field">
+            <span class="label">Ngày bắt đầu</span>
+            <span data-season-view-start></span>
+          </div>
+          <div class="view-field">
+            <span class="label">Ngày kết thúc</span>
+            <span data-season-view-end></span>
+          </div>
+          <div class="view-field">
+            <span class="label">Diện tích kế hoạch</span>
+            <span data-season-view-planned></span>
+          </div>
+          <div class="view-field">
+            <span class="label">Diện tích thực tế</span>
+            <span data-season-view-actual></span>
+          </div>
+          <div class="view-field">
+            <span class="label">Trạng thái</span>
+            <span data-season-view-status></span>
+          </div>
+          <div class="view-field form-grid__full">
+            <span class="label">Ghi chú</span>
+            <span data-season-view-note></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabs__panel" id="season-view-tab-timeline" data-tab-panel role="tabpanel" hidden>
+        <div class="empty-state">
+          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-calendar"></use></svg>
+          <p class="empty-state__title">Chưa có timeline</p>
+          <p class="empty-state__desc">Các mốc sự kiện của mùa vụ này sẽ hiển thị tại đây.</p>
+        </div>
+      </div>
+
+      <div class="tabs__panel" id="season-view-tab-batches" data-tab-panel role="tabpanel" hidden>
+        <div class="empty-state">
+          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-box"></use></svg>
+          <p class="empty-state__title">Chưa có lô hàng</p>
+          <p class="empty-state__desc">Các lô hàng thu hoạch từ mùa vụ này sẽ hiển thị tại đây.</p>
+        </div>
+      </div>
+
+      <div class="tabs__panel" id="season-view-tab-process" data-tab-panel role="tabpanel" hidden>
+        <div class="empty-state">
+          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-tractor"></use></svg>
+          <p class="empty-state__title">Chưa có quy trình canh tác</p>
+          <p class="empty-state__desc">Các bước quy trình canh tác của mùa vụ này sẽ hiển thị tại đây.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal__footer">
+      <button type="button" class="btn btn--secondary" data-close-season-view>Đóng</button>
+    </div>
+  </dialog>
+
   <!-- Xác nhận xoá (dùng chung, gọi qua AgriChain.confirm) -->
   <dialog class="modal modal--sm" id="confirm-dialog" aria-labelledby="confirm-dialog-title">
     <div class="modal__header">
@@ -469,6 +617,6 @@
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=3" defer></script>
   <script src="js/app-shell.js?v=5" defer></script>
-  <script src="js/nong-trai-chi-tiet.js?v=3" defer></script>
+  <script src="js/nong-trai-chi-tiet.js?v=4" defer></script>
 </body>
 </html>

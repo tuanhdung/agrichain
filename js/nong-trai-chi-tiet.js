@@ -461,6 +461,13 @@
 
     var actions = el('div', 'data-card__actions');
 
+    var view = el('button', 'icon-btn');
+    view.type = 'button';
+    view.setAttribute('aria-label', 'Xem chi tiết ' + season.name);
+    view.setAttribute('data-tooltip', 'Xem chi tiết');
+    view.appendChild(svgIcon('icon-eye'));
+    view.addEventListener('click', function () { openSeasonViewModal(season); });
+
     var edit = el('button', 'icon-btn');
     edit.type = 'button';
     edit.setAttribute('aria-label', 'Sửa ' + season.name);
@@ -475,6 +482,7 @@
     del.appendChild(svgIcon('icon-trash'));
     del.addEventListener('click', function () { deleteSeason(season); });
 
+    actions.appendChild(view);
     actions.appendChild(edit);
     actions.appendChild(del);
     card.appendChild(actions);
@@ -605,6 +613,62 @@
     });
   }
 
+  /* --- Xem chi tiết mùa vụ ---------------------------------------------------
+     Modal riêng, có 4 tab: "Thông tin" hiện dữ liệu thật, 3 tab còn lại
+     (Timeline mùa vụ/Lô hàng/Quy trình mùa vụ) chỉ khung + trạng thái rỗng —
+     chưa có dữ liệu nguồn (sự kiện, lô hàng, quy trình canh tác) để hiển thị. */
+  var seasonViewModal = document.getElementById('season-view-modal');
+
+  function fillSeasonView(selector, value) {
+    var node = document.querySelector(selector);
+    if (node) node.textContent = value || '—';
+  }
+
+  function resetSeasonViewTabs() {
+    var tabs = seasonViewModal.querySelectorAll('[data-tab-target]');
+    tabs.forEach(function (tab, index) {
+      var active = index === 0;
+      tab.classList.toggle('is-active', active);
+      tab.setAttribute('aria-selected', String(active));
+    });
+    seasonViewModal.querySelectorAll('[data-tab-panel]').forEach(function (panel, index) {
+      panel.hidden = index !== 0;
+    });
+  }
+
+  function openSeasonViewModal(season) {
+    resetSeasonViewTabs(); // luôn mở lại ở tab "Thông tin", khỏi giữ tab của lần xem trước
+    var status = statusOf(SEASON_STATUSES, season.status);
+
+    fillSeasonView('[data-season-view-name]', season.name);
+    fillSeasonView('[data-season-view-code]', 'Mã: ' + season.code);
+
+    var headerBadge = document.querySelector('[data-season-view-badge]');
+    headerBadge.className = 'badge ' + status.badge;
+    headerBadge.textContent = status.label;
+
+    fillSeasonView('[data-season-view-stat-start]', formatDate(season.startDate));
+    fillSeasonView('[data-season-view-stat-end]', formatDate(season.endDate));
+    fillSeasonView('[data-season-view-stat-planned]', formatArea(season.plannedArea));
+    fillSeasonView('[data-season-view-stat-actual]', formatArea(season.actualArea));
+
+    fillSeasonView('[data-season-view-start]', formatDate(season.startDate));
+    fillSeasonView('[data-season-view-end]', formatDate(season.endDate));
+    fillSeasonView('[data-season-view-planned]', formatArea(season.plannedArea));
+    fillSeasonView('[data-season-view-actual]', formatArea(season.actualArea));
+    fillSeasonView('[data-season-view-note]', season.note);
+
+    var statusNode = document.querySelector('[data-season-view-status]');
+    statusNode.textContent = '';
+    statusNode.appendChild(el('span', 'badge ' + status.badge, status.label));
+
+    seasonViewModal.showModal();
+  }
+
+  function closeSeasonViewModal() {
+    seasonViewModal.close();
+  }
+
   /* --- Khởi động ----------------------------------------------------------- */
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -640,5 +704,9 @@
       button.addEventListener('click', closeSeasonModal);
     });
     seasonForm.addEventListener('submit', handleSeasonSubmit);
+
+    document.querySelectorAll('[data-close-season-view]').forEach(function (button) {
+      button.addEventListener('click', closeSeasonViewModal);
+    });
   });
 })(window);
