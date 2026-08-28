@@ -202,6 +202,7 @@
   var coordEmpty = document.querySelector('[data-coord-empty]');
   var areaBox = document.querySelector('[data-area-box]');
   var areaValue = document.querySelector('[data-area-value]');
+  var boundaryError = document.querySelector('[data-boundary-error]');
 
   /* --- Diện tích trên mặt cầu ----------------------------------------------
      Không dùng công thức phẳng: ở vĩ độ Việt Nam, 1 độ kinh tuyến ngắn hơn
@@ -270,6 +271,7 @@
 
     renderCoordList();
     renderArea();
+    if (points.length >= 3) boundaryError.hidden = true;
   }
 
   function renderCoordList() {
@@ -446,6 +448,7 @@
   function openModal(farm) {
     form.reset();
     clearErrors();
+    boundaryError.hidden = true; // clearErrors() cố tình bỏ qua nó — tự ẩn lại ở đây
     editingFarmId = farm ? farm.id : null;
     points = farm && farm.polygon ? farm.polygon.slice() : [];
 
@@ -501,7 +504,11 @@
      Dùng validity của trình duyệt nhưng tự hiển thị lỗi, vì bong bóng mặc định
      chỉ hiện được một lỗi tại một thời điểm và biến mất khi bấm ra ngoài. */
   function clearErrors() {
-    form.querySelectorAll('.field__error').forEach(function (node) {
+    // :not([data-boundary-error]) — lỗi ranh giới thửa đất là 1 phần tử
+    // tĩnh có sẵn trong HTML (ẩn/hiện bằng .hidden), khác với lỗi field
+    // thường được showError() tạo mới rồi gắn vào DOM — xoá nhầm nó ở đây
+    // sẽ làm mất luôn phần tử, không hiện lại được nữa.
+    form.querySelectorAll('.field__error:not([data-boundary-error])').forEach(function (node) {
       node.remove();
     });
     form.querySelectorAll('[aria-invalid="true"]').forEach(function (node) {
@@ -573,8 +580,17 @@
       problems.push(description);
     }
 
+    // Ranh giới không phải input nên không đưa vào `problems` (không
+    // .focus() được) — kiểm riêng, ưu tiên các lỗi field ở trên trước.
+    var boundaryValid = points.length >= 3;
+    boundaryError.hidden = boundaryValid;
+
     if (problems.length) {
       problems[0].focus();
+      return false;
+    }
+    if (!boundaryValid) {
+      boundaryError.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return false;
     }
     return true;
