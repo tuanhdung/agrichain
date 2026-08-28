@@ -140,6 +140,22 @@
     });
   }
 
+  /* --- Chọn sẵn nội dung khi focus vào ô số đang là "0" ---------------------
+     Input số mặc định giá trị 0 (diện tích, sản lượng...) — bấm vào gõ số
+     thường bị dính thành "05", "012" vì con 0 cũ không tự mất đi trước khi
+     gõ. Focus vào thì chọn sẵn toàn bộ nội dung, gõ số là thay thế luôn.
+     Dùng focusin (nổi bọt lên document, không như focus) + kiểm value ngay
+     lúc focus nên áp dụng được cho MỌI input[type=number] hiện có lẫn thêm
+     sau này, không cần gắn class/data-attribute riêng cho từng ô. */
+  function setupZeroDefaultInputs() {
+    document.addEventListener('focusin', function (event) {
+      var target = event.target;
+      if (target.tagName === 'INPUT' && target.type === 'number' && target.value === '0') {
+        target.select();
+      }
+    });
+  }
+
   /* --- Toast ---------------------------------------------------------------
      Một phần tử .toast duy nhất trên mỗi trang, gọi bằng AgriChain.toast(...) */
   var toastTimer = null;
@@ -200,6 +216,7 @@
     setupSidebar();
     setupNavSections();
     setupTabs();
+    setupZeroDefaultInputs();
     setupLogout();
   });
 
