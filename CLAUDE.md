@@ -89,6 +89,15 @@ kiểm tra (đã ghi rõ trong comment đầu mỗi file). Vài điểm cần nh
   Ví dụ: `.card`, `.card__header`, `.btn--primary`, `.btn--sm`.
 - CSS chỉ dùng riêng cho một trang demo (không phải component tái sử dụng) thì để trong
   thẻ `<style>` của chính trang đó, không đưa vào `css/components.css`.
+- **Cẩn thận khi đặt `display` lên phần tử tự ẩn/hiện bằng thuộc tính trình duyệt**
+  (`[hidden]`, `<dialog>` chưa có `open`, v.v.): CSS tác giả (author) luôn thắng CSS mặc
+  định của trình duyệt (user-agent) bất kể độ đặc hiệu (specificity) — không liên quan gì
+  đến thứ tự nạp file. Đặt `display` không điều kiện lên `.modal` từng khiến mọi `<dialog>`
+  hiện ra ngay cả khi chưa gọi `showModal()` (phải sửa lại thành `.modal[open]`); tương tự,
+  `[hidden]` từng bị `.empty-state{display:flex}` đè mất tác dụng, fix chung ở `base.css`
+  bằng `[hidden]{display:none!important}`. Khi thêm class có `display` lên phần tử có thể
+  ở trạng thái ẩn nhờ trình duyệt, luôn tự hỏi: class đó có vô tình làm mất tác dụng của
+  `hidden`/`[open]`/... không?
 
 ## Màu sắc
 

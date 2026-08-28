@@ -485,12 +485,17 @@
   color: var(--color-text);
   box-shadow: var(--shadow-xl);
   overflow: hidden;
-  /* .modal thiết lập flex column ở chính nó (không chỉ ở .modal__form) vì
-     một số modal (VD season-view-modal) không bọc nội dung trong <form> —
-     header/body/footer nằm thẳng trong .modal. Không có display:flex ở đây,
-     .modal__body không có chiều cao bị chặn để overflow-y:auto phát huy tác
-     dụng, nên nội dung dài chỉ bị .modal cắt cụt (overflow:hidden) thay vì
-     cuộn được — đây là lỗi "không lướt chuột được" đã gặp phải. */
+}
+/* display:flex phải đặt trong [open], KHÔNG đặt thẳng vào .modal — <dialog>
+   đóng dựa vào UA stylesheet "dialog:not([open]){display:none}", mà CSS tác
+   giả (author) luôn thắng CSS trình duyệt (user-agent) bất kể độ đặc hiệu.
+   Nếu .modal tự đặt display:flex không điều kiện, MỌI dialog sẽ hiện ra
+   ngay cả khi chưa gọi showModal() — đúng lỗi "cứ hiện hoài" đã gặp với
+   confirm-dialog. .modal thiết lập flex column ở chính nó (không chỉ ở
+   .modal__form) vì một số modal (VD season-view-modal) không bọc nội dung
+   trong <form> — header/body/footer nằm thẳng trong .modal, cần .modal__body
+   có chiều cao bị chặn thì overflow-y:auto mới cuộn được. */
+.modal[open] {
   display: flex;
   flex-direction: column;
 }
