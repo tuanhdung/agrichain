@@ -26,16 +26,18 @@
     { key: 'failed',      label: 'Thất bại',       badge: 'badge--danger' }
   ];
 
+  // `color` chọn trong 5 màu ngữ nghĩa sẵn có (success/info/warning/danger/
+  // neutral) — tô icon + viền trái của từng dòng nhật ký (xem .log-item--*).
   var ACTIVITY_TYPES = [
-    { key: 'planting',     label: 'Đang xuống giống',   icon: 'icon-seed' },
-    { key: 'fertilizing',  label: 'Bón phân',           icon: 'icon-flask' },
-    { key: 'watering',     label: 'Tưới nước',          icon: 'icon-droplet' },
-    { key: 'pest_control', label: 'Phòng trừ sâu bệnh', icon: 'icon-bug' },
-    { key: 'weeding',      label: 'Làm cỏ',             icon: 'icon-grass' },
-    { key: 'pruning',      label: 'Cắt tỉa',            icon: 'icon-scissors' },
-    { key: 'harvesting',   label: 'Thu hoạch',          icon: 'icon-wheat' },
-    { key: 'inspection',   label: 'Kiểm tra',           icon: 'icon-eye' },
-    { key: 'other',        label: 'Khác',               icon: 'icon-box' }
+    { key: 'planting',     label: 'Đang xuống giống',   icon: 'icon-seed',    color: 'success' },
+    { key: 'fertilizing',  label: 'Bón phân',           icon: 'icon-flask',   color: 'info' },
+    { key: 'watering',     label: 'Tưới nước',          icon: 'icon-droplet', color: 'info' },
+    { key: 'pest_control', label: 'Phòng trừ sâu bệnh', icon: 'icon-bug',     color: 'danger' },
+    { key: 'weeding',      label: 'Làm cỏ',             icon: 'icon-grass',   color: 'warning' },
+    { key: 'pruning',      label: 'Cắt tỉa',            icon: 'icon-scissors', color: 'warning' },
+    { key: 'harvesting',   label: 'Thu hoạch',          icon: 'icon-wheat',   color: 'success' },
+    { key: 'inspection',   label: 'Kiểm tra',           icon: 'icon-eye',     color: 'neutral' },
+    { key: 'other',        label: 'Khác',               icon: 'icon-box',     color: 'neutral' }
   ];
 
   var BATCH_UNITS = ['kg', 'Tấn', 'Bó/Nài', 'Cái/Trái', 'Bao/Túi', 'Két/Thùng', 'Khác'];
@@ -895,9 +897,25 @@
     });
   }
 
+  // Một dòng thông tin đơn (icon + text) trong thân thẻ nhật ký.
+  function logField(iconName, text) {
+    var row = el('div', 'log-item__field');
+    row.appendChild(svgIcon(iconName));
+    row.appendChild(el('span', null, text));
+    return row;
+  }
+
+  // Nhãn mở đầu 1 khối con (VD "Sử dụng vật tư") — đậm hơn logField().
+  function logSectionLabel(iconName, text) {
+    var row = el('div', 'log-item__section-label');
+    row.appendChild(svgIcon(iconName));
+    row.appendChild(el('span', null, text));
+    return row;
+  }
+
   function logItem(log) {
     var activity = statusOf(ACTIVITY_TYPES, log.activityType);
-    var item = el('div', 'log-item');
+    var item = el('div', 'log-item log-item--' + activity.color);
 
     var iconWrap = el('div', 'log-item__icon');
     iconWrap.appendChild(svgIcon(activity.icon));
@@ -910,24 +928,22 @@
     head.appendChild(el('span', 'log-item__time', formatDateTimeLocal(log.performedAt)));
     body.appendChild(head);
 
-    var metaText = 'Người thực hiện: ' + (log.performedBy || '—');
-    if (log.weather) metaText += ' · Thời tiết: ' + log.weather;
-    body.appendChild(el('p', 'log-item__meta', metaText));
-
-    if (log.description) {
-      body.appendChild(el('p', 'log-item__desc', log.description));
-    }
+    body.appendChild(logField('icon-user', 'Thực hiện bởi: ' + (log.performedBy || '—')));
+    if (log.weather) body.appendChild(logField('icon-sun', 'Điều kiện thời tiết: ' + log.weather));
+    if (log.description) body.appendChild(logField('icon-file-text', 'Mô tả: ' + log.description));
 
     if (log.supplies && log.supplies.length) {
+      body.appendChild(logSectionLabel('icon-box', 'Sử dụng vật tư'));
       var supplies = el('div', 'log-item__supplies');
       log.supplies.forEach(function (supply) {
         supplies.appendChild(el('span', 'badge badge--neutral',
-          supply.name + ': ' + supply.quantity + ' ' + supply.unit));
+          supply.name + ' - ' + supply.quantity + ' ' + supply.unit));
       });
       body.appendChild(supplies);
     }
 
     if (log.images && log.images.length) {
+      body.appendChild(logSectionLabel('icon-image', 'Hình ảnh hiện trường (' + log.images.length + ')'));
       var images = el('div', 'log-item__images');
       log.images.forEach(function (image) {
         var img = document.createElement('img');

@@ -178,9 +178,23 @@
       padding: var(--space-5);
       background: var(--color-bg);
       border: 1px solid var(--color-border);
+      border-left: 4px solid var(--color-border);
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow-sm);
     }
+    /* Viền trái + icon tô theo màu ngữ nghĩa của loại hoạt động (xem
+       ACTIVITY_TYPES.color trong nong-trai-chi-tiet.js) */
+    .log-item--success { border-left-color: var(--color-success); }
+    .log-item--success .log-item__icon { background: var(--color-success-subtle); color: var(--color-success); }
+    .log-item--info { border-left-color: var(--color-info); }
+    .log-item--info .log-item__icon { background: var(--color-info-subtle); color: var(--color-info); }
+    .log-item--warning { border-left-color: var(--color-warning); }
+    .log-item--warning .log-item__icon { background: var(--color-warning-subtle); color: var(--color-warning); }
+    .log-item--danger { border-left-color: var(--color-danger); }
+    .log-item--danger .log-item__icon { background: var(--color-danger-subtle); color: var(--color-danger); }
+    .log-item--neutral { border-left-color: var(--color-border); }
+    .log-item--neutral .log-item__icon { background: var(--color-neutral-subtle); color: var(--color-neutral); }
+
     .log-item__icon {
       display: flex;
       align-items: center;
@@ -189,8 +203,6 @@
       width: var(--space-10);
       height: var(--space-10);
       border-radius: var(--radius-full);
-      background: var(--color-primary-subtle);
-      color: var(--color-primary);
     }
     .log-item__body {
       flex: 1;
@@ -211,25 +223,40 @@
       font-size: var(--text-sm);
       color: var(--color-text-muted);
     }
-    .log-item__meta {
-      margin-top: var(--space-1);
+    .log-item__field {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-top: var(--space-2);
       font-size: var(--text-sm);
       color: var(--color-text-muted);
     }
-    .log-item__desc {
-      margin-top: var(--space-2);
+    .log-item__field .icon {
+      flex-shrink: 0;
+      color: var(--color-text-muted);
+    }
+    .log-item__section-label {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-top: var(--space-4);
+      font-size: var(--text-sm);
+      font-weight: 700;
+    }
+    .log-item__section-label .icon {
+      color: var(--color-primary);
     }
     .log-item__supplies {
       display: flex;
       flex-wrap: wrap;
       gap: var(--space-2);
-      margin-top: var(--space-3);
+      margin-top: var(--space-2);
     }
     .log-item__images {
       display: flex;
       flex-wrap: wrap;
       gap: var(--space-2);
-      margin-top: var(--space-3);
+      margin-top: var(--space-2);
     }
     .log-item__images img {
       width: 64px;
@@ -959,6 +986,6 @@
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=3" defer></script>
   <script src="js/app-shell.js?v=5" defer></script>
-  <script src="js/nong-trai-chi-tiet.js?v=6" defer></script>
+  <script src="js/nong-trai-chi-tiet.js?v=7" defer></script>
 </body>
 </html>

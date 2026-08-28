@@ -485,6 +485,14 @@
   color: var(--color-text);
   box-shadow: var(--shadow-xl);
   overflow: hidden;
+  /* .modal thiết lập flex column ở chính nó (không chỉ ở .modal__form) vì
+     một số modal (VD season-view-modal) không bọc nội dung trong <form> —
+     header/body/footer nằm thẳng trong .modal. Không có display:flex ở đây,
+     .modal__body không có chiều cao bị chặn để overflow-y:auto phát huy tác
+     dụng, nên nội dung dài chỉ bị .modal cắt cụt (overflow:hidden) thay vì
+     cuộn được — đây là lỗi "không lướt chuột được" đã gặp phải. */
+  display: flex;
+  flex-direction: column;
 }
 .modal::backdrop {
   background: var(--color-scrim);
@@ -509,7 +517,11 @@
 .modal__form {
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - var(--space-16));
+  /* min-height:0 thay vì max-height cố định: .modal (cha) đã giới hạn chiều
+     cao rồi, .modal__form chỉ cần được PHÉP co lại nhỏ hơn nội dung của nó
+     (mặc định flex item có min-height:auto, chặn .modal__body co lại để
+     cuộn — đây là "flexbug" kinh điển của flexbox lồng nhau). */
+  min-height: 0;
 }
 
 .modal__header {
@@ -551,6 +563,7 @@
 
 .modal__body {
   flex: 1;
+  min-height: 0; /* cùng lý do với .modal__form — cho phép co lại để cuộn được */
   overflow-y: auto;
   padding: var(--space-5);
   background: var(--color-bg-subtle);
