@@ -26,6 +26,20 @@
     { key: 'failed',      label: 'Thất bại',       badge: 'badge--danger' }
   ];
 
+  var ACTIVITY_TYPES = [
+    { key: 'planting',     label: 'Đang xuống giống',   icon: 'icon-seed' },
+    { key: 'fertilizing',  label: 'Bón phân',           icon: 'icon-flask' },
+    { key: 'watering',     label: 'Tưới nước',          icon: 'icon-droplet' },
+    { key: 'pest_control', label: 'Phòng trừ sâu bệnh', icon: 'icon-bug' },
+    { key: 'weeding',      label: 'Làm cỏ',             icon: 'icon-grass' },
+    { key: 'pruning',      label: 'Cắt tỉa',            icon: 'icon-scissors' },
+    { key: 'harvesting',   label: 'Thu hoạch',          icon: 'icon-wheat' },
+    { key: 'inspection',   label: 'Kiểm tra',           icon: 'icon-eye' },
+    { key: 'other',        label: 'Khác',               icon: 'icon-box' }
+  ];
+
+  // Dùng chung cho mọi danh mục { key, label, ... } — trạng thái chứng nhận/
+  // mùa vụ và loại hoạt động nhật ký đều tra cứu qua đây.
   function statusOf(list, key) {
     for (var i = 0; i < list.length; i++) {
       if (list[i].key === key) return list[i];
@@ -69,6 +83,15 @@
     var num = Number(value);
     if (!num) return '0 ha';
     return num + ' ha';
+  }
+
+  // input[type=datetime-local] trả về "2026-08-28T15:10" (không giây, không
+  // múi giờ) — tách theo "T" rồi tái dùng formatDate() cho phần ngày.
+  function formatDateTimeLocal(value) {
+    if (!value) return 'Chưa đặt';
+    var parts = value.split('T');
+    if (parts.length !== 2) return value;
+    return formatDate(parts[0]) + ' ' + parts[1];
   }
 
   function fillField(selector, value) {
@@ -619,6 +642,10 @@
      chưa có dữ liệu nguồn (sự kiện, lô hàng, quy trình canh tác) để hiển thị. */
   var seasonViewModal = document.getElementById('season-view-modal');
 
+  // Mùa vụ đang mở ở modal xem chi tiết — nhật ký (seasonLogs) gắn theo
+  // seasonId của nó, nên cần biết đang xem mùa vụ nào để lọc/thêm đúng chỗ.
+  var currentViewedSeason = null;
+
   function fillSeasonView(selector, value) {
     var node = document.querySelector(selector);
     if (node) node.textContent = value || '—';
@@ -638,6 +665,7 @@
 
   function openSeasonViewModal(season) {
     resetSeasonViewTabs(); // luôn mở lại ở tab "Thông tin", khỏi giữ tab của lần xem trước
+    currentViewedSeason = season;
     var status = statusOf(SEASON_STATUSES, season.status);
 
     fillSeasonView('[data-season-view-name]', season.name);
@@ -662,6 +690,7 @@
     statusNode.textContent = '';
     statusNode.appendChild(el('span', 'badge ' + status.badge, status.label));
 
+    renderSeasonLogs();
     seasonViewModal.showModal();
   }
 
@@ -669,11 +698,383 @@
     seasonViewModal.close();
   }
 
+  /* ======================================================================
+     Nhật ký mùa vụ (tab "Timeline mùa vụ" trong modal xem chi tiết mùa vụ)
+     ====================================================================== */
+
+  var seasonLogModal = document.getElementById('season-log-modal');
+  var seasonLogForm = document.getElementById('season-log-form');
+  var activityTypeSelect = document.getElementById('log-activity-type');
+  var seasonLogModalTitle = document.getElementById('season-log-modal-title');
+  var seasonLogSubmitLabel = document.querySelector('[data-season-log-submit-label]');
+  var logListNode = document.querySelector('[data-log-list]');
+  var logEmptyNode = document.querySelector('[data-log-empty]');
+  var logCountNode = document.querySelector('[data-log-count]');
+  var materialRowsContainer = document.querySelector('[data-material-rows]');
+  var materialEmptyNode = document.querySelector('[data-material-empty]');
+  var imagesInput = document.getElementById('log-images-input');
+  var imagesGrid = document.querySelector('[data-image-grid]');
+  var imagesEmptyNode = document.querySelector('[data-image-empty]');
+
+  var editingLogId = null;
+  var logImages = []; // { name, dataUrl } — ảnh của nhật ký đang mở trong modal
+
+  function fillActivityTypes() {
+    ACTIVITY_TYPES.forEach(function (type) {
+      var option = el('option', null, type.label);
+      option.value = type.key;
+      activityTypeSelect.appendChild(option);
+    });
+  }
+
+  /* --- Vật tư sử dụng: từng dòng thêm/xoá được, chọn từ kho vật tư thật --- */
+
+  function unitOfSupply(supplyId) {
+    if (!supplyId) return '';
+    var supply = store.find('supplies', supplyId);
+    return supply ? supply.unit : '';
+  }
+
+  function fillMaterialSelect(select) {
+    var placeholder = el('option', null, '— Chọn vật tư —');
+    placeholder.value = '';
+    select.appendChild(placeholder);
+
+    store.list('supplies').forEach(function (supply) {
+      var option = el('option', null, supply.code + ' — ' + supply.name);
+      option.value = supply.id;
+      select.appendChild(option);
+    });
+  }
+
+  function updateMaterialEmptyState() {
+    materialEmptyNode.hidden = materialRowsContainer.children.length > 0;
+  }
+
+  function addMaterialRow(prefill) {
+    var row = el('div', 'log-material-row');
+
+    var select = document.createElement('select');
+    select.className = 'select log-material-row__select';
+    fillMaterialSelect(select);
+    if (prefill && prefill.supplyId) select.value = prefill.supplyId;
+
+    var qtyWrap = el('div', 'input-affix log-material-row__qty');
+    var qtyInput = document.createElement('input');
+    qtyInput.className = 'input';
+    qtyInput.type = 'number';
+    qtyInput.min = '0';
+    qtyInput.step = '0.01';
+    qtyInput.placeholder = 'Số lượng';
+    if (prefill && prefill.quantity != null) qtyInput.value = prefill.quantity;
+    var unitSpan = el('span', 'input-affix__unit', unitOfSupply(select.value));
+    qtyWrap.appendChild(qtyInput);
+    qtyWrap.appendChild(unitSpan);
+
+    select.addEventListener('change', function () {
+      unitSpan.textContent = unitOfSupply(select.value);
+    });
+
+    var remove = el('button', 'icon-btn icon-btn--danger');
+    remove.type = 'button';
+    remove.setAttribute('aria-label', 'Xoá vật tư');
+    remove.setAttribute('data-tooltip', 'Xoá');
+    remove.appendChild(svgIcon('icon-trash'));
+    remove.addEventListener('click', function () {
+      row.remove();
+      updateMaterialEmptyState();
+    });
+
+    row.appendChild(select);
+    row.appendChild(qtyWrap);
+    row.appendChild(remove);
+
+    materialRowsContainer.appendChild(row);
+    updateMaterialEmptyState();
+  }
+
+  function clearMaterialRows() {
+    materialRowsContainer.textContent = '';
+    updateMaterialEmptyState();
+  }
+
+  function getMaterialRowsData() {
+    var result = [];
+    materialRowsContainer.querySelectorAll('.log-material-row').forEach(function (row) {
+      var select = row.querySelector('select');
+      var qtyInput = row.querySelector('input[type="number"]');
+      if (!select.value) return;
+      var supply = store.find('supplies', select.value);
+      if (!supply) return;
+      result.push({
+        supplyId: supply.id,
+        name: supply.name,
+        quantity: Number(qtyInput.value) || 0,
+        unit: supply.unit
+      });
+    });
+    return result;
+  }
+
+  /* --- Hình ảnh minh hoạ: đọc qua FileReader, lưu base64 như tệp chứng nhận */
+
+  function renderImages() {
+    imagesGrid.textContent = '';
+    if (!logImages.length) {
+      imagesGrid.hidden = true;
+      imagesEmptyNode.hidden = false;
+      return;
+    }
+
+    imagesEmptyNode.hidden = true;
+    imagesGrid.hidden = false;
+
+    logImages.forEach(function (image, index) {
+      var thumb = el('div', 'log-image-thumb');
+
+      var img = document.createElement('img');
+      img.src = image.dataUrl;
+      img.alt = image.name || '';
+      thumb.appendChild(img);
+
+      var remove = el('button', 'log-image-thumb__remove', '×');
+      remove.type = 'button';
+      remove.setAttribute('aria-label', 'Xoá ảnh ' + (image.name || ''));
+      remove.addEventListener('click', function () {
+        logImages.splice(index, 1);
+        renderImages();
+      });
+      thumb.appendChild(remove);
+
+      imagesGrid.appendChild(thumb);
+    });
+  }
+
+  function resetImages(initial) {
+    logImages = initial ? initial.slice() : [];
+    renderImages();
+  }
+
+  function handleImagesInputChange() {
+    var files = imagesInput.files;
+    if (!files || !files.length) return;
+
+    Array.prototype.forEach.call(files, function (file) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        logImages.push({ name: file.name, dataUrl: reader.result });
+        renderImages();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    imagesInput.value = '';
+  }
+
+  /* --- Danh sách + modal thêm/sửa nhật ký ----------------------------------- */
+
+  function seasonLogsOfSeason(seasonId) {
+    return store.list('seasonLogs').filter(function (item) {
+      return item.seasonId === seasonId;
+    }).sort(function (a, b) {
+      // Mới thực hiện gần đây nhất lên đầu
+      return String(b.performedAt).localeCompare(String(a.performedAt));
+    });
+  }
+
+  function logItem(log) {
+    var activity = statusOf(ACTIVITY_TYPES, log.activityType);
+    var item = el('div', 'log-item');
+
+    var iconWrap = el('div', 'log-item__icon');
+    iconWrap.appendChild(svgIcon(activity.icon));
+    item.appendChild(iconWrap);
+
+    var body = el('div', 'log-item__body');
+
+    var head = el('div', 'log-item__head');
+    head.appendChild(el('span', 'log-item__title', activity.label));
+    head.appendChild(el('span', 'log-item__time', formatDateTimeLocal(log.performedAt)));
+    body.appendChild(head);
+
+    var metaText = 'Người thực hiện: ' + (log.performedBy || '—');
+    if (log.weather) metaText += ' · Thời tiết: ' + log.weather;
+    body.appendChild(el('p', 'log-item__meta', metaText));
+
+    if (log.description) {
+      body.appendChild(el('p', 'log-item__desc', log.description));
+    }
+
+    if (log.supplies && log.supplies.length) {
+      var supplies = el('div', 'log-item__supplies');
+      log.supplies.forEach(function (supply) {
+        supplies.appendChild(el('span', 'badge badge--neutral',
+          supply.name + ': ' + supply.quantity + ' ' + supply.unit));
+      });
+      body.appendChild(supplies);
+    }
+
+    if (log.images && log.images.length) {
+      var images = el('div', 'log-item__images');
+      log.images.forEach(function (image) {
+        var img = document.createElement('img');
+        img.src = image.dataUrl;
+        img.alt = image.name || '';
+        images.appendChild(img);
+      });
+      body.appendChild(images);
+    }
+
+    var actions = el('div', 'log-item__actions');
+
+    var edit = el('button', 'icon-btn');
+    edit.type = 'button';
+    edit.setAttribute('aria-label', 'Sửa nhật ký');
+    edit.setAttribute('data-tooltip', 'Chỉnh sửa');
+    edit.appendChild(svgIcon('icon-pencil'));
+    edit.addEventListener('click', function () { openSeasonLogModal(log); });
+
+    var del = el('button', 'icon-btn icon-btn--danger');
+    del.type = 'button';
+    del.setAttribute('aria-label', 'Xoá nhật ký');
+    del.setAttribute('data-tooltip', 'Xoá');
+    del.appendChild(svgIcon('icon-trash'));
+    del.addEventListener('click', function () { deleteSeasonLog(log); });
+
+    actions.appendChild(edit);
+    actions.appendChild(del);
+    body.appendChild(actions);
+
+    item.appendChild(body);
+    return item;
+  }
+
+  function renderSeasonLogs() {
+    if (!currentViewedSeason) return;
+
+    var logs = seasonLogsOfSeason(currentViewedSeason.id);
+    logCountNode.textContent = logs.length;
+
+    logListNode.textContent = '';
+    if (!logs.length) {
+      logListNode.hidden = true;
+      logEmptyNode.hidden = false;
+      return;
+    }
+
+    logEmptyNode.hidden = true;
+    logListNode.hidden = false;
+    logs.forEach(function (log) {
+      logListNode.appendChild(logItem(log));
+    });
+  }
+
+  function openSeasonLogModal(log) {
+    seasonLogForm.reset();
+    clearErrors(seasonLogForm);
+    clearMaterialRows();
+    editingLogId = log ? log.id : null;
+
+    if (log) {
+      seasonLogModalTitle.textContent = 'Sửa nhật ký mùa vụ';
+      seasonLogSubmitLabel.textContent = 'Lưu thay đổi';
+      activityTypeSelect.value = log.activityType || ACTIVITY_TYPES[0].key;
+      document.getElementById('log-performed-at').value = log.performedAt || '';
+      document.getElementById('log-performed-by').value = log.performedBy || '';
+      document.getElementById('log-weather').value = log.weather || '';
+      document.getElementById('log-description').value = log.description || '';
+
+      (log.supplies || []).forEach(function (supply) {
+        addMaterialRow({ supplyId: supply.supplyId, quantity: supply.quantity });
+      });
+
+      resetImages(log.images);
+    } else {
+      seasonLogModalTitle.textContent = 'Thêm mới nhật ký mùa vụ';
+      seasonLogSubmitLabel.textContent = 'Xác nhận';
+      activityTypeSelect.value = ACTIVITY_TYPES[0].key;
+      resetImages();
+    }
+
+    seasonLogModal.showModal();
+    document.getElementById('log-activity-type').focus();
+  }
+
+  function closeSeasonLogModal() {
+    seasonLogModal.close();
+    editingLogId = null;
+  }
+
+  function validateSeasonLog() {
+    clearErrors(seasonLogForm);
+    var problems = [];
+    var performedAt = document.getElementById('log-performed-at');
+    var performedBy = document.getElementById('log-performed-by');
+
+    if (!performedAt.value) {
+      showError(performedAt, 'Chọn thời gian thực hiện.');
+      problems.push(performedAt);
+    }
+    if (!performedBy.value.trim()) {
+      showError(performedBy, 'Nhập người thực hiện.');
+      problems.push(performedBy);
+    }
+
+    if (problems.length) {
+      problems[0].focus();
+      return false;
+    }
+    return true;
+  }
+
+  function handleSeasonLogSubmit(event) {
+    event.preventDefault();
+    if (!validateSeasonLog() || !currentViewedSeason) return;
+
+    var data = new FormData(seasonLogForm);
+    var record = {
+      seasonId: currentViewedSeason.id,
+      farmId: currentFarm.id,
+      activityType: String(data.get('activityType')),
+      performedAt: String(data.get('performedAt') || ''),
+      performedBy: String(data.get('performedBy')).trim(),
+      weather: String(data.get('weather') || '').trim(),
+      description: String(data.get('description') || '').trim(),
+      supplies: getMaterialRowsData(),
+      images: logImages.slice()
+    };
+
+    if (editingLogId) {
+      store.update('seasonLogs', editingLogId, record);
+      global.AgriChain.toast('Đã lưu thay đổi.');
+    } else {
+      store.insert('seasonLogs', record);
+      global.AgriChain.toast('Đã thêm nhật ký.');
+    }
+
+    closeSeasonLogModal();
+    renderSeasonLogs();
+  }
+
+  function deleteSeasonLog(log) {
+    var activity = statusOf(ACTIVITY_TYPES, log.activityType);
+    global.AgriChain.confirm(
+      'Xoá nhật ký "' + activity.label + '" ngày ' + formatDateTimeLocal(log.performedAt) +
+      '? Hành động này không thể hoàn tác.'
+    ).then(function (confirmed) {
+      if (!confirmed) return;
+      store.remove('seasonLogs', log.id);
+      renderSeasonLogs();
+      global.AgriChain.toast('Đã xoá nhật ký.');
+    });
+  }
+
   /* --- Khởi động ----------------------------------------------------------- */
 
   document.addEventListener('DOMContentLoaded', function () {
     fillCertStatuses();
     fillSeasonStatuses();
+    fillActivityTypes();
 
     var code = new URLSearchParams(global.location.search).get('ma') || '';
     var farm = store.list('farms').find(function (item) {
@@ -708,5 +1109,17 @@
     document.querySelectorAll('[data-close-season-view]').forEach(function (button) {
       button.addEventListener('click', closeSeasonViewModal);
     });
+
+    document.querySelectorAll('[data-open-season-log-form]').forEach(function (button) {
+      button.addEventListener('click', function () { openSeasonLogModal(); });
+    });
+    document.querySelectorAll('[data-close-season-log-form]').forEach(function (button) {
+      button.addEventListener('click', closeSeasonLogModal);
+    });
+    document.querySelector('[data-add-material-row]').addEventListener('click', function () {
+      addMaterialRow();
+    });
+    imagesInput.addEventListener('change', handleImagesInputChange);
+    seasonLogForm.addEventListener('submit', handleSeasonLogSubmit);
   });
 })(window);

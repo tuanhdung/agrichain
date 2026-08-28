@@ -92,6 +92,160 @@
     .season-view-stat__value {
       font-size: var(--text-lg);
     }
+
+    /* Modal thêm/sửa nhật ký mùa vụ: danh sách vật tư sử dụng (từng dòng
+       thêm/xoá được) và lưới ảnh minh hoạ đã chọn. */
+    .log-materials__head,
+    .log-images__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      margin-bottom: var(--space-3);
+      flex-wrap: wrap;
+    }
+    .log-materials__title,
+    .log-images__title {
+      font-size: var(--text-sm);
+      font-weight: 700;
+    }
+    .log-materials__empty,
+    .log-images__empty {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+
+    .log-material-row {
+      display: flex;
+      align-items: flex-end;
+      gap: var(--space-3);
+      margin-bottom: var(--space-3);
+    }
+    .log-material-row__select {
+      flex: 2;
+    }
+    .log-material-row__qty {
+      flex: 1;
+    }
+
+    .log-images__grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+    }
+    .log-image-thumb {
+      position: relative;
+      width: 96px;
+      height: 96px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--color-border);
+    }
+    .log-image-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .log-image-thumb__remove {
+      position: absolute;
+      top: var(--space-1);
+      right: var(--space-1);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--space-6);
+      height: var(--space-6);
+      border-radius: var(--radius-full);
+      background: var(--overlay-white-subtle);
+      color: var(--color-text-inverse);
+      font-size: var(--text-sm);
+      line-height: 1;
+    }
+    .log-image-thumb__remove:hover {
+      background: var(--color-danger);
+    }
+
+    /* Danh sách nhật ký mùa vụ (tab Timeline) */
+    .log-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+    .log-item {
+      display: flex;
+      gap: var(--space-4);
+      padding: var(--space-5);
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+    }
+    .log-item__icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: var(--space-10);
+      height: var(--space-10);
+      border-radius: var(--radius-full);
+      background: var(--color-primary-subtle);
+      color: var(--color-primary);
+    }
+    .log-item__body {
+      flex: 1;
+      min-width: 0;
+    }
+    .log-item__head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+    }
+    .log-item__title {
+      font-size: var(--text-base);
+      font-weight: 700;
+    }
+    .log-item__time {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+    .log-item__meta {
+      margin-top: var(--space-1);
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+    .log-item__desc {
+      margin-top: var(--space-2);
+    }
+    .log-item__supplies {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin-top: var(--space-3);
+    }
+    .log-item__images {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin-top: var(--space-3);
+    }
+    .log-item__images img {
+      width: 64px;
+      height: 64px;
+      object-fit: cover;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+    }
+    .log-item__actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--space-1);
+      margin-top: var(--space-4);
+      padding-top: var(--space-4);
+      border-top: 1px solid var(--color-border);
+    }
   </style>
 </head>
 <body class="app-shell">
@@ -561,10 +715,23 @@
       </div>
 
       <div class="tabs__panel" id="season-view-tab-timeline" data-tab-panel role="tabpanel" hidden>
-        <div class="empty-state">
+        <div class="tab-panel-header">
+          <div>
+            <h2 class="tab-panel-header__title">Nhật ký mùa vụ</h2>
+            <p class="tab-panel-header__meta">Tổng số: <strong data-log-count>0</strong> nhật ký</p>
+          </div>
+          <button type="button" class="btn btn--primary btn--sm" data-open-season-log-form>
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
+            Thêm mới
+          </button>
+        </div>
+
+        <div class="log-list" data-log-list hidden></div>
+
+        <div class="empty-state" data-log-empty>
           <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-calendar"></use></svg>
-          <p class="empty-state__title">Chưa có timeline</p>
-          <p class="empty-state__desc">Các mốc sự kiện của mùa vụ này sẽ hiển thị tại đây.</p>
+          <p class="empty-state__title">Chưa có nhật ký nào</p>
+          <p class="empty-state__desc">Các hoạt động canh tác ghi nhận cho mùa vụ này sẽ hiển thị tại đây.</p>
         </div>
       </div>
 
@@ -588,6 +755,99 @@
     <div class="modal__footer">
       <button type="button" class="btn btn--secondary" data-close-season-view>Đóng</button>
     </div>
+  </dialog>
+
+  <!-- Modal: Thêm/Sửa nhật ký mùa vụ -->
+  <dialog class="modal" id="season-log-modal" aria-labelledby="season-log-modal-title">
+    <form class="modal__form" id="season-log-form" novalidate>
+      <div class="modal__header">
+        <svg class="icon"><use href="icons/sprite.svg#icon-calendar"></use></svg>
+        <h2 class="modal__title" id="season-log-modal-title">Thêm mới nhật ký mùa vụ</h2>
+        <button type="button" class="modal__close" data-close-season-log-form aria-label="Đóng">&times;</button>
+      </div>
+
+      <div class="modal__body">
+
+        <section class="form-section">
+          <h3 class="form-section__title">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+            Thông tin hoạt động
+          </h3>
+
+          <div class="form-grid">
+            <div class="field">
+              <label class="label" for="log-activity-type">Loại hoạt động</label>
+              <select class="select" id="log-activity-type" name="activityType" required></select>
+            </div>
+
+            <div class="field">
+              <label class="label" for="log-performed-at">Thời gian thực hiện</label>
+              <input class="input" type="datetime-local" id="log-performed-at" name="performedAt" required />
+            </div>
+
+            <div class="field">
+              <label class="label" for="log-performed-by">Người thực hiện</label>
+              <input class="input" type="text" id="log-performed-by" name="performedBy" required />
+            </div>
+
+            <div class="field">
+              <label class="label" for="log-weather">Điều kiện thời tiết</label>
+              <input class="input" type="text" id="log-weather" name="weather" />
+            </div>
+
+            <div class="field form-grid__full">
+              <label class="label" for="log-description">Mô tả chi tiết</label>
+              <textarea class="textarea" id="log-description" name="description"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h3 class="form-section__title">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-box"></use></svg>
+            Vật tư sử dụng
+          </h3>
+
+          <div class="notice notice--info" style="margin-bottom: var(--space-4);">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-box"></use></svg>
+            <span>Thêm các vật tư được sử dụng trong hoạt động này.</span>
+          </div>
+
+          <div class="log-materials__head">
+            <span class="log-materials__title">Danh sách vật tư</span>
+            <button type="button" class="btn btn--outline btn--sm" data-add-material-row>
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
+              Thêm vật tư
+            </button>
+          </div>
+
+          <div data-material-rows></div>
+
+          <p class="log-materials__empty" data-material-empty>Chưa có vật tư nào được thêm.</p>
+        </section>
+
+        <section class="form-section">
+          <h3 class="form-section__title">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-paperclip"></use></svg>
+            Hình ảnh minh họa
+          </h3>
+
+          <div class="log-images__head">
+            <span class="log-images__title">Hình ảnh đã tải lên</span>
+            <input class="input" type="file" id="log-images-input" accept="image/*" multiple />
+          </div>
+
+          <div class="log-images__grid" data-image-grid></div>
+          <p class="log-images__empty" data-image-empty>Không có dữ liệu.</p>
+        </section>
+
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--secondary" data-close-season-log-form>Hủy</button>
+        <button type="submit" class="btn btn--primary" data-season-log-submit-label>Xác nhận</button>
+      </div>
+    </form>
   </dialog>
 
   <!-- Xác nhận xoá (dùng chung, gọi qua AgriChain.confirm) -->
@@ -617,6 +877,6 @@
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=3" defer></script>
   <script src="js/app-shell.js?v=5" defer></script>
-  <script src="js/nong-trai-chi-tiet.js?v=4" defer></script>
+  <script src="js/nong-trai-chi-tiet.js?v=5" defer></script>
 </body>
 </html>
