@@ -457,52 +457,25 @@
     return option ? option.dataset.code : '';
   }
 
-  function setWardPlaceholder(text) {
-    wardSelect.disabled = true;
-    wardSelect.textContent = '';
-    var option = el('option', null, text);
-    option.value = '';
-    wardSelect.appendChild(option);
-  }
-
-  function fillWardSelect(wards, selectedName) {
-    wardSelect.textContent = '';
-    var placeholder = el('option', null, '— Chọn phường/xã —');
-    placeholder.value = '';
-    wardSelect.appendChild(placeholder);
-    wards.forEach(function (ward) {
-      var option = el('option', null, ward.name);
-      option.value = ward.name;
-      wardSelect.appendChild(option);
-    });
-    wardSelect.disabled = false;
-    if (selectedName) wardSelect.value = selectedName;
-  }
-
-  // Gọi khi đổi tỉnh/thành phố (tay hoặc lúc điền sẵn để sửa nông trại).
-  // `selectedWardName` chỉ dùng lúc sửa — chọn tay thì luôn để trống, khỏi
-  // giữ nhầm phường/xã của tỉnh cũ. Trả Promise để openModal() đợi tải xong
-  // trước khi set giá trị phường/xã đã lưu.
-  function handleProvinceChange(selectedWardName) {
-    var code = currentProvinceCode();
-    var errorField = wardSelect.closest('.field');
-    var existingError = errorField && errorField.querySelector('.field__error');
-    if (existingError) existingError.remove();
-    wardSelect.removeAttribute('aria-invalid');
-
-    if (!code) {
-      setWardPlaceholder('— Chọn tỉnh/thành phố trước —');
-      return Promise.resolve();
-    }
-
-    setWardPlaceholder('Đang tải...');
-    return loadWards(code).then(function (wards) {
-      fillWardSelect(wards, selectedWardName);
-    }).catch(function () {
-      setWardPlaceholder('— Không tải được —');
+  // Cơ chế "2 select phụ thuộc nhau" dùng chung — xem js/location-select.js.
+  // wardCascade.refresh(tênPhườngĐãLưu) gọi lúc sửa nông trại (điền sẵn +
+  // chọn đúng phường cũ); refresh() không tham số lúc người dùng tự đổi tỉnh
+  // (đã tự gắn sẵn qua sự kiện change của provinceSelect trong helper).
+  var wardCascade = global.AgriChain.setupCascadingSelect({
+    parentSelect: provinceSelect,
+    childSelect: wardSelect,
+    loadChildren: function () {
+      var code = currentProvinceCode();
+      return code ? loadWards(code) : [];
+    },
+    getOptionValue: function (ward) { return ward.name; },
+    getOptionLabel: function (ward) { return ward.name; },
+    placeholderEmpty: '— Chọn phường/xã —',
+    placeholderNoParent: '— Chọn tỉnh/thành phố trước —',
+    onError: function () {
       showError(wardSelect, 'Không tải được danh sách phường/xã. Thử chọn lại tỉnh/thành phố.');
-    });
-  }
+    }
+  });
 
   // null = đang thêm mới, có id = đang sửa nông trại đó (dùng ở handleSubmit
   // để quyết định gọi store.insert hay store.update).
@@ -528,7 +501,7 @@
       document.getElementById('farm-puc-national').value = farm.nationalPuc || '';
       document.getElementById('farm-puc-international').value = farm.internationalPuc || '';
       provinceSelect.value = farm.province || '';
-      handleProvinceChange(farm.ward); // tải phường/xã đúng tỉnh, chọn sẵn phường/xã đã lưu
+      wardCascade.refresh(farm.ward); // tải phường/xã đúng tỉnh, chọn sẵn phường/xã đã lưu
       document.getElementById('farm-address').value = farm.address || '';
       document.getElementById('farm-start-date').value = farm.startDate || '';
       document.getElementById('farm-area').value = farm.area != null ? farm.area : 0;
@@ -539,7 +512,7 @@
       // Gợi ý mã tiếp theo nhưng vẫn cho sửa — bản gốc để người dùng tự đặt mã.
       document.getElementById('farm-code').value = store.nextFarmCode();
       document.getElementById('farm-area').value = '0';
-      handleProvinceChange(); // reset phường/xã về trạng thái "chưa chọn tỉnh"
+      wardCascade.refresh(); // reset phường/xã về trạng thái "chưa chọn tỉnh"
     }
 
     modal.showModal();
@@ -709,12 +682,6 @@
     });
     document.querySelectorAll('[data-close-farm-form]').forEach(function (button) {
       button.addEventListener('click', closeModal);
-    });
-
-    // Người dùng tự đổi tỉnh/thành phố (không phải lúc điền sẵn để sửa) —
-    // luôn bỏ trống phường/xã, không giữ nhầm lựa chọn của tỉnh cũ.
-    provinceSelect.addEventListener('change', function () {
-      handleProvinceChange();
     });
 
     form.addEventListener('submit', handleSubmit);

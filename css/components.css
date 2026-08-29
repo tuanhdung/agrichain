@@ -179,6 +179,109 @@ a.card {
   gap: var(--space-3);
 }
 
+/* --- Batch card ------------------------------------------------------------
+   Thẻ lô hàng — dùng chung giữa tab "Lô hàng" trong modal xem chi tiết mùa vụ
+   (nong-trai-chi-tiet.html) và trang lo-hang.html. Đặt ở components.css (không
+   phải app-shell.css) vì là component tái dùng thật, không phải layout riêng
+   1 trang — dù hiện tại chỉ 2 trang quản trị dùng tới. Markup dựng bằng JS
+   (xem batchCard() ở mỗi trang), CSS ở đây chỉ định kiểu. */
+.batch-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.batch-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.batch-card__code {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.batch-card__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.batch-card__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.batch-card__row-label {
+  color: var(--color-text-muted);
+}
+
+.batch-card__yield {
+  text-align: center;
+  padding-block: var(--space-4);
+  margin-bottom: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.batch-card__yield-value {
+  display: block;
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--color-success);
+}
+
+.batch-card__yield-label {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.batch-card__note {
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.batch-card__note-label {
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--color-text-muted);
+}
+
+.batch-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  margin-top: auto;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Icon hành động màu cố định (không chỉ tô lúc hover như .icon-btn thường) —
+   khớp ảnh tham chiếu: sửa cam, xoá đỏ. Ghép với .icon-btn (định nghĩa trong
+   app-shell.css) để giữ nguyên kích thước/bo góc/hiệu ứng nhô lên khi hover;
+   chọn selector 2 class (.icon-btn.batch-card__action--*) để độ đặc hiệu cao
+   hơn 1 mình .icon-btn, không bị ghi đè mất màu bất kể thứ tự nạp CSS. */
+.icon-btn.batch-card__action--edit {
+  color: var(--color-warning);
+}
+.icon-btn.batch-card__action--edit:hover {
+  background: var(--color-warning-subtle);
+  color: var(--color-warning);
+}
+.icon-btn.batch-card__action--delete {
+  color: var(--color-danger);
+}
+.icon-btn.batch-card__action--delete:hover {
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
+}
+
 /* --- Site Header --- */
 .site-header {
   position: sticky;

@@ -605,6 +605,68 @@
     </div>
   </section>
 
+  <!-- Batch card -->
+  <section class="demo-section">
+    <div class="container">
+      <h2 class="demo-section__title">Thẻ lô hàng (Batch card)</h2>
+      <p class="demo-section__desc">
+        Dùng chung giữa tab "Lô hàng" ở trang chi tiết nông trại và trang Quản lý Lô hàng.
+        Icon sửa/xoá màu cố định (không chỉ tô lúc hover) — bo góc/hiệu ứng nhô lên thật của
+        icon nút chỉ có khi kết hợp với <code>.icon-btn</code> (định nghĩa ở app-shell.css,
+        trang này không nạp vì không phải khu vực quản trị).
+      </p>
+
+      <div class="grid grid--3">
+        <div class="card card--hover batch-card">
+          <div class="batch-card__header">
+            <h3 class="batch-card__code">L1-V1</h3>
+            <span class="badge badge--info">Đã Thu Hoạch</span>
+          </div>
+          <div class="batch-card__rows">
+            <div class="batch-card__row">
+              <span class="batch-card__row-label">Diện tích</span>
+              <span>0.21 ha</span>
+            </div>
+            <div class="batch-card__row">
+              <span class="batch-card__row-label">Ngày bắt đầu</span>
+              <span>2026-05-15</span>
+            </div>
+            <div class="batch-card__row">
+              <span class="batch-card__row-label">Ngày thu hoạch</span>
+              <span>2026-07-30</span>
+            </div>
+            <div class="batch-card__row">
+              <span class="batch-card__row-label">Ngày thu hoạch thực tế</span>
+              <span>2026-07-27</span>
+            </div>
+          </div>
+          <div class="batch-card__yield">
+            <strong class="batch-card__yield-value">7.500 kg</strong>
+            <span class="batch-card__yield-label">Sản lượng dự kiến</span>
+          </div>
+          <div class="batch-card__note">
+            <span class="batch-card__note-label">Ghi chú</span>
+            <span>oke</span>
+          </div>
+          <div class="batch-card__actions">
+            <button class="icon-btn" type="button" aria-label="Truy xuất nguồn gốc">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-qr-code"></use></svg>
+            </button>
+            <button class="icon-btn" type="button" aria-label="Xác thực blockchain">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-blockchain"></use></svg>
+            </button>
+            <button class="icon-btn batch-card__action--edit" type="button" aria-label="Sửa">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-pencil"></use></svg>
+            </button>
+            <button class="icon-btn batch-card__action--delete" type="button" aria-label="Xoá">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-trash"></use></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Grid -->
   <section class="demo-section" style="border-bottom: none;">
     <div class="container">

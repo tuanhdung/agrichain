@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lô hàng — AgriChain</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/app-shell.css" />
+
+  <style>
+    /* CSS chỉ dùng riêng cho trang Lô hàng, không phải component tái sử dụng
+       nên để tại đây theo quy ước dự án. */
+    .filter-card {
+      margin-bottom: var(--space-6);
+    }
+    .filter-card__title {
+      font-size: var(--text-lg);
+      font-weight: 700;
+      margin-bottom: var(--space-4);
+    }
+
+    /* Modal truy xuất nguồn gốc (QR) — giống nong-trai-chi-tiet.html */
+    .qr-modal__body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-3);
+      text-align: center;
+    }
+    .qr-modal__code {
+      font-weight: 700;
+    }
+    .qr-modal__canvas {
+      padding: var(--space-4);
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+    }
+    .qr-modal__hint {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+  </style>
+</head>
+<body class="app-shell">
+
+  <!-- Lớp phủ khi mở sidebar trên mobile -->
+  <div class="app-scrim"></div>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar" id="app-sidebar">
+    <div class="app-sidebar__brand">
+      <span class="app-sidebar__avatar" data-session-initials aria-hidden="true">TC</span>
+      <span class="app-sidebar__org" data-session-org>Tổ chức</span>
+    </div>
+
+    <div class="app-sidebar__scroll">
+      <nav aria-label="Menu quản trị">
+        <div class="app-nav__section">
+          <button type="button" class="app-nav__section-toggle" aria-expanded="true" aria-controls="nav-san-xuat">
+            <span class="app-nav__section-label">Hoạt động sản xuất</span>
+            <svg class="icon icon--sm app-nav__section-chevron"><use href="icons/sprite.svg#icon-chevron-down"></use></svg>
+          </button>
+          <ul class="app-nav__list" role="list" id="nav-san-xuat">
+            <li>
+              <a class="app-nav__link" href="nong-trai.html">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-seedling"></use></svg>
+                Nông trại
+              </a>
+            </li>
+            <li>
+              <a class="app-nav__link" href="vat-tu.html">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-box"></use></svg>
+                Vật tư
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="app-nav__section">
+          <button type="button" class="app-nav__section-toggle" aria-expanded="true" aria-controls="nav-truy-xuat">
+            <span class="app-nav__section-label">Truy xuất</span>
+            <svg class="icon icon--sm app-nav__section-chevron"><use href="icons/sprite.svg#icon-chevron-down"></use></svg>
+          </button>
+          <ul class="app-nav__list" role="list" id="nav-truy-xuat">
+            <li>
+              <a class="app-nav__link" href="lo-hang.html" aria-current="page">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-warehouse"></use></svg>
+                Lô hàng
+              </a>
+            </li>
+            <li>
+              <a class="app-nav__link" href="so-cai.html">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-blockchain"></use></svg>
+                Sổ cái blockchain
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="app-nav__section">
+          <button type="button" class="app-nav__section-toggle" aria-expanded="true" aria-controls="nav-kinh-doanh">
+            <span class="app-nav__section-label">Kinh doanh</span>
+            <svg class="icon icon--sm app-nav__section-chevron"><use href="icons/sprite.svg#icon-chevron-down"></use></svg>
+          </button>
+          <ul class="app-nav__list" role="list" id="nav-kinh-doanh">
+            <li>
+              <a class="app-nav__link" href="thuong-mai.html">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shopping-cart"></use></svg>
+                Thương mại điện tử
+              </a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+    </div>
+
+    <div class="app-sidebar__footer">
+      <p style="margin-bottom: var(--space-2);" data-session-name></p>
+      <a href="index.html">← Về trang giới thiệu</a>
+      <button type="button" class="app-sidebar__logout" data-logout>Đăng xuất</button>
+    </div>
+  </aside>
+
+  <!-- Topbar -->
+  <header class="app-topbar">
+    <button
+      type="button"
+      class="app-topbar__toggle"
+      aria-controls="app-sidebar"
+      aria-expanded="false"
+      aria-label="Mở menu"
+    >
+      <span class="app-topbar__toggle-bar"></span>
+      <span class="app-topbar__toggle-bar"></span>
+      <span class="app-topbar__toggle-bar"></span>
+    </button>
+
+    <a class="app-topbar__brand" href="nong-trai.html">
+      <span class="app-topbar__brand-mark" aria-hidden="true">A</span>
+      <span>AgriChain</span>
+    </a>
+    <span class="app-topbar__org">— <span data-session-org>Tổ chức</span></span>
+
+    <span class="app-topbar__spacer"></span>
+
+    <a class="btn btn--outline btn--sm" href="so-cai.html">
+      <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-blockchain"></use></svg>
+      Blockchain
+    </a>
+
+    <span class="app-topbar__user" data-session-initials aria-hidden="true">TC</span>
+  </header>
+
+  <!-- Nội dung -->
+  <main class="app-main">
+    <div class="app-content">
+
+      <nav class="breadcrumb" aria-label="Đường dẫn">
+        <a class="breadcrumb__link" href="nong-trai.html">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-chart-bar"></use></svg>
+          Vận hành
+        </a>
+        <span class="breadcrumb__sep" aria-hidden="true">/</span>
+        <span class="breadcrumb__current" aria-current="page">Lô hàng</span>
+      </nav>
+
+      <div class="page-header">
+        <div class="page-header__icon">
+          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-warehouse"></use></svg>
+        </div>
+        <div class="page-header__text">
+          <h1 class="page-header__title">Quản lý Lô hàng</h1>
+          <p class="page-header__meta">
+            Tổng số: <strong data-batch-count>0</strong> lô hàng
+          </p>
+        </div>
+      </div>
+
+      <!-- Bộ lọc -->
+      <div class="card filter-card">
+        <h2 class="filter-card__title">Bộ lọc</h2>
+        <div class="form-grid">
+          <div class="field">
+            <label class="label" for="filter-farm">Nông trại</label>
+            <select class="select" id="filter-farm">
+              <option value="">Tất cả</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label" for="filter-season">Mùa vụ</label>
+            <select class="select" id="filter-season">
+              <option value="">Tất cả</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Danh sách -->
+      <div class="grid grid--3" data-batch-list hidden></div>
+
+      <!-- Trạng thái rỗng -->
+      <div class="empty-state" data-batch-empty>
+        <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-warehouse"></use></svg>
+        <p class="empty-state__title">Chưa có lô hàng nào phù hợp</p>
+        <p class="empty-state__desc">
+          Đổi lại bộ lọc, hoặc vào trang chi tiết nông trại để thêm lô hàng mới cho một mùa vụ.
+        </p>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Modal: Truy xuất nguồn gốc (QR) -->
+  <dialog class="modal modal--sm" id="qr-modal" aria-labelledby="qr-modal-title">
+    <div class="modal__header">
+      <svg class="icon"><use href="icons/sprite.svg#icon-qr-code"></use></svg>
+      <h2 class="modal__title" id="qr-modal-title">Truy xuất nguồn gốc</h2>
+      <button type="button" class="modal__close" data-close-qr aria-label="Đóng">&times;</button>
+    </div>
+    <div class="modal__body qr-modal__body">
+      <p class="qr-modal__code" data-qr-batch-code></p>
+      <div class="qr-modal__canvas" data-qr-canvas></div>
+      <p class="qr-modal__hint">Quét mã QR bằng điện thoại, hoặc mở trực tiếp liên kết bên dưới.</p>
+      <a class="btn btn--outline btn--sm" data-qr-link target="_blank" rel="noopener">Mở trang truy xuất</a>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn--secondary" data-close-qr>Đóng</button>
+    </div>
+  </dialog>
+
+  <!-- Xác nhận xoá (dùng chung, gọi qua AgriChain.confirm) -->
+  <dialog class="modal modal--sm" id="confirm-dialog" aria-labelledby="confirm-dialog-title">
+    <div class="modal__header">
+      <svg class="icon"><use href="icons/sprite.svg#icon-trash"></use></svg>
+      <h2 class="modal__title" id="confirm-dialog-title">Xác nhận</h2>
+    </div>
+    <div class="modal__body">
+      <p data-confirm-message></p>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn--secondary" data-confirm-cancel>Huỷ</button>
+      <button type="button" class="btn btn--danger" data-confirm-ok>Xoá</button>
+    </div>
+  </dialog>
+
+  <!-- Toast -->
+  <div class="toast" role="status" aria-live="polite">
+    <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+    <span data-toast-message></span>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" defer></script>
+  <script src="js/chain.js?v=1" defer></script>
+  <script src="js/store.js?v=4" defer></script>
+  <script src="js/app-shell.js?v=6" defer></script>
+  <script src="js/location-select.js?v=1" defer></script>
+  <script src="js/lo-hang.js?v=1" defer></script>
+</body>
+</html>

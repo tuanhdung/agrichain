@@ -1251,32 +1251,54 @@
     });
   }
 
+  // Component .batch-card dùng chung với lo-hang.js (xem css/components.css)
+  // — markup phải khớp y hệt giữa 2 trang, chỉ khác hành vi nút sửa/xoá:
+  // ở đây mở thẳng modal, còn ở trang Quản lý Lô hàng thì điều hướng về đây.
   function batchCard(batch) {
     var status = statusOf(BATCH_STATUSES, batch.status);
-    var card = el('article', 'card card--hover');
+    var card = el('article', 'card card--hover batch-card');
 
-    var header = el('div', 'card__header data-card__header');
-    header.appendChild(el('h2', 'data-card__title', batch.code));
+    var header = el('div', 'batch-card__header');
+    header.appendChild(el('h2', 'batch-card__code', batch.code));
     header.appendChild(el('span', 'badge ' + status.badge, status.label));
     card.appendChild(header);
 
-    var rows = el('div', 'data-card__rows');
-    rows.appendChild(fieldRow('icon-calendar', 'Ngày bắt đầu', formatDate(batch.startDate)));
-    rows.appendChild(fieldRow('icon-chart-bar', 'Diện tích', formatArea(batch.area)));
-    rows.appendChild(fieldRow('icon-calendar', 'Ngày thu hoạch (dự kiến)', formatDate(batch.harvestDate)));
-    rows.appendChild(fieldRow('icon-calendar', 'Ngày thu hoạch thực tế', formatDate(batch.actualHarvestDate)));
-    rows.appendChild(fieldRow('icon-wheat', 'Sản lượng dự kiến',
-      (batch.expectedYield || 0) + ' ' + (batch.unit || '')));
-    if (batch.note) rows.appendChild(fieldRow('icon-file-text', 'Ghi chú', batch.note));
-
+    var rows = el('div', 'batch-card__rows');
+    var rowDefs = [
+      ['Diện tích', formatArea(batch.area)],
+      ['Ngày bắt đầu', formatDate(batch.startDate)],
+      ['Ngày thu hoạch', formatDate(batch.harvestDate)],
+      ['Ngày thu hoạch thực tế', formatDate(batch.actualHarvestDate)]
+    ];
+    rowDefs.forEach(function (pair) {
+      var row = el('div', 'batch-card__row');
+      row.appendChild(el('span', 'batch-card__row-label', pair[0]));
+      row.appendChild(el('span', null, pair[1]));
+      rows.appendChild(row);
+    });
     if (batch.sealed) {
-      rows.appendChild(fieldRow('icon-blockchain', 'Đã xác thực blockchain',
+      var sealedRow = el('div', 'batch-card__row');
+      sealedRow.appendChild(el('span', 'batch-card__row-label', 'Đã xác thực blockchain'));
+      sealedRow.appendChild(el('span', null,
         global.AgriChain.chain.shorten(batch.hash) + ' · khối #' + batch.blockIndex));
+      rows.appendChild(sealedRow);
     }
-
     card.appendChild(rows);
 
-    var actions = el('div', 'data-card__actions');
+    var yieldBox = el('div', 'batch-card__yield');
+    yieldBox.appendChild(el('strong', 'batch-card__yield-value',
+      (batch.expectedYield || 0) + ' ' + (batch.unit || '')));
+    yieldBox.appendChild(el('span', 'batch-card__yield-label', 'Sản lượng dự kiến'));
+    card.appendChild(yieldBox);
+
+    if (batch.note) {
+      var noteBox = el('div', 'batch-card__note');
+      noteBox.appendChild(el('span', 'batch-card__note-label', 'Ghi chú'));
+      noteBox.appendChild(el('span', null, batch.note));
+      card.appendChild(noteBox);
+    }
+
+    var actions = el('div', 'batch-card__actions');
 
     var qrButton = el('button', 'icon-btn');
     qrButton.type = 'button';
@@ -1303,7 +1325,7 @@
       sealButton.addEventListener('click', function () { sealBatchRecord(batch); });
       actions.appendChild(sealButton);
 
-      var edit = el('button', 'icon-btn');
+      var edit = el('button', 'icon-btn batch-card__action--edit');
       edit.type = 'button';
       edit.setAttribute('aria-label', 'Sửa lô hàng ' + batch.code);
       edit.setAttribute('data-tooltip', 'Chỉnh sửa');
@@ -1311,7 +1333,7 @@
       edit.addEventListener('click', function () { openBatchModal(batch); });
       actions.appendChild(edit);
 
-      var del = el('button', 'icon-btn icon-btn--danger');
+      var del = el('button', 'icon-btn batch-card__action--delete');
       del.type = 'button';
       del.setAttribute('aria-label', 'Xoá lô hàng ' + batch.code);
       del.setAttribute('data-tooltip', 'Xoá');
@@ -1561,6 +1583,24 @@
     }
 
     showFarm(farm);
+
+    // Điều hướng thẳng tới đúng mùa vụ + tab "Lô hàng" — dùng khi bấm nút
+    // sửa/xoá ở trang lo-hang.html, ví dụ
+    // nong-trai-chi-tiet.html?ma=NV01&season=MV01-2026#lo-hang.
+    var seasonCode = new URLSearchParams(global.location.search).get('season');
+    if (seasonCode) {
+      var targetSeason = store.list('seasons').find(function (item) {
+        return item.farmId === farm.id &&
+          item.code.toLowerCase() === seasonCode.trim().toLowerCase();
+      });
+      if (targetSeason) {
+        openSeasonViewModal(targetSeason);
+        if (global.location.hash === '#lo-hang') {
+          var batchesTab = seasonViewModal.querySelector('[data-tab-target="season-view-tab-batches"]');
+          if (batchesTab) batchesTab.click();
+        }
+      }
+    }
 
     document.querySelectorAll('[data-open-cert-form]').forEach(function (button) {
       button.addEventListener('click', function () { openCertModal(); });

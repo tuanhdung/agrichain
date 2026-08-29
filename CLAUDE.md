@@ -21,7 +21,7 @@ css/
   components.css         # Component dùng chung: button, card, container, grid, form, badge, icon, header
   auth.css               # Layout riêng cho dang-nhap.html/dang-ky.html (2 cột: giới thiệu + form)
   app-shell.css          # Layout riêng cho khung quản trị (sidebar + topbar): nong-trai.html, vat-tu.html,
-                          # nong-trai-chi-tiet.html
+                          # nong-trai-chi-tiet.html, lo-hang.html
 js/
   header.js              # Xử lý tương tác cho .site-header (toggle menu mobile, cuộn anchor)
   contact-form.js        # Validate + hiện thông báo thành công cho form ở section Liên Hệ
@@ -33,10 +33,16 @@ js/
                            # hộp thoại xác nhận AgriChain.confirm...)
   map-layers.js           # 3 lớp nền bản đồ Leaflet dùng chung (vệ tinh/địa hình/mặc định) —
                            # AgriChain.addMapBaseLayers(map), dùng ở cả nong-trai.js lẫn nong-trai-chi-tiet.js
+  location-select.js      # Cơ chế "2 select phụ thuộc nhau" dùng chung — AgriChain.setupCascadingSelect(),
+                           # dùng ở nong-trai.js (Tỉnh/Thành phố -> Phường/Xã) và lo-hang.js
+                           # (Nông trại -> Mùa vụ). Chỉ định nghĩa cơ chế, không biết gì về dữ liệu cụ thể.
   nong-trai.js            # Logic riêng cho nong-trai.html (danh sách + thêm/sửa/xoá nông trại)
   nong-trai-chi-tiet.js   # Logic riêng cho nong-trai-chi-tiet.html (trang xem chi tiết 1 nông trại,
                           # gồm cả chứng nhận/mùa vụ/nhật ký/lô hàng con của nó)
   vat-tu.js               # Logic riêng cho vat-tu.html
+  lo-hang.js               # Logic riêng cho lo-hang.html (danh sách TẤT CẢ lô hàng, lọc theo nông trại/
+                           # mùa vụ, QR + xác thực blockchain tại chỗ — thêm/sửa/xoá vẫn ở
+                           # nong-trai-chi-tiet.html, nút sửa/xoá ở đây chỉ điều hướng qua đó)
   truy-xuat.js            # Logic riêng cho truy-xuat.html (trang truy xuất công khai — KHÔNG nạp
                           # js/app-shell.js, trang này không cần đăng nhập)
 icons/
@@ -48,8 +54,13 @@ dang-ky.html              # Đăng ký tài khoản (khách hàng / đơn vị-t
 nong-trai.html            # Trang quản trị: nông trại (dùng chung khung app-shell)
 nong-trai-chi-tiet.html   # Trang chi tiết 1 nông trại, mở từ thẻ nông trại ở nong-trai.html —
                           # đọc mã nông trại qua query string ?ma=..., KHÔNG phải route thật (xem ghi
-                          # chú bên dưới)
+                          # chú bên dưới). Còn nhận thêm ?season=<mã mùa vụ>#lo-hang (tuỳ chọn) để tự mở
+                          # đúng modal mùa vụ và chuyển sẵn sang tab "Lô hàng" — dùng bởi nút sửa/xoá ở
+                          # lo-hang.html.
 vat-tu.html               # Trang quản trị: vật tư (dùng chung khung app-shell)
+lo-hang.html              # Trang quản trị: danh sách tất cả lô hàng (dùng chung khung app-shell) —
+                          # CHỈ xem/lọc/QR/xác thực blockchain, không có form thêm/sửa lô hàng riêng
+                          # (xem js/lo-hang.js)
 truy-xuat.html            # Trang truy xuất nguồn gốc CÔNG KHAI (không cần đăng nhập, không dùng
                           # app-shell) — đọc mã lô hàng qua query string ?ma=..., mở từ mã QR ở nút
                           # "Truy xuất nguồn gốc" trên thẻ lô hàng (nong-trai-chi-tiet.js). Dùng lại
@@ -137,6 +148,14 @@ kiểm tra (đã ghi rõ trong comment đầu mỗi file). Vài điểm cần nh
   (viền/chữ trắng, nền trong suốt — dùng trên nền tối như hero); cỡ: mặc định, `--sm`, `--lg`.
 - `.card` — gồm `.card__header`, `.card__title`, `.card__subtitle`, `.card__body`,
   `.card__footer`. Thêm `.card--hover` nếu card có thể click/tương tác.
+- `.batch-card` — thẻ lô hàng (kết hợp `class="card batch-card"`), dùng chung giữa tab
+  "Lô hàng" ở `nong-trai-chi-tiet.html` và `lo-hang.html`. Gồm `.batch-card__header`
+  (mã lô + badge trạng thái), `.batch-card__rows`/`.batch-card__row`/`.batch-card__row-label`
+  (nhãn trái - giá trị phải), `.batch-card__yield`/`__yield-value`/`__yield-label` (khối sản
+  lượng nổi bật), `.batch-card__note`/`__note-label`, `.batch-card__actions` (hàng icon
+  cuối). Icon sửa/xoá dùng `.icon-btn.batch-card__action--edit`/`--delete` — màu cố định
+  (cam/đỏ) chứ không chỉ tô lúc hover như `.icon-btn` thường; ghép 2 class để độ đặc hiệu
+  thắng `.icon-btn` bất kể thứ tự nạp CSS.
 - `.container` — bọc nội dung, giới hạn `--container-max-width` (1200px), tự canh giữa.
 - `.grid` — kết hợp `.grid--2`, `.grid--3`, `.grid--4`, tự đổi cột theo breakpoint
   (640px, 960px).
