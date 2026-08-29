@@ -11,25 +11,31 @@
 
   /* --- 34 tỉnh/thành sau sáp nhập đơn vị hành chính 2025 -------------------
      Chỉ còn 2 cấp: Tỉnh/Thành phố -> Phường/Xã (không còn cấp Quận/Huyện).
-     Danh sách xã rất dài nên tạm để người dùng tự nhập; khi cần chuẩn hoá thì
-     thay ô nhập "Phường/Xã" bằng <select> nạp từ file JSON riêng.
+     API AgriChain định dùng cho việc này (GET /1.0/commons/provinces,
+     GET /1.0/commons/provinces/{code}/wards) trả 401 Unauthorized khi gọi
+     thẳng từ trình duyệt (xem CLAUDE.md) — chuyển sang dữ liệu tĩnh trong
+     data/provinces.json + data/wards/{provinceCode}.json, tách sẵn 1 file/
+     tỉnh từ gói dữ liệu MIT "vietnam-address-data" (34 tỉnh, 3321 xã/phường,
+     hiệu lực 01/07/2025). Nạp qua fetch() lúc dựng trang, không hard-code
+     danh sách nữa. */
+  var wardCache = {}; // provinceCode -> Promise<[{id,name,provinceId}]> — khỏi tải lại khi quay lại cùng tỉnh
 
-     TODO (2026-08-28): dự định đổi "Phường/Xã" thành <select> phụ thuộc vào
-     "Tỉnh/Thành phố", nạp qua API AgriChain
-     (GET /1.0/commons/provinces, GET /1.0/commons/provinces/{code}/wards).
-     Đã thử gọi thẳng từ trình duyệt (không kèm gì) — cả 2 endpoint đều trả
-     401 Unauthorized, có vẻ cần đăng nhập/token mà phía backend chưa xác
-     nhận cách truyền. Tạm dừng ở đây, đang chờ hỏi lại backend xem có mở
-     /1.0/commons/* thành public được không. Ward vẫn là ô nhập tay như cũ. */
-  var PROVINCES = [
-    'An Giang', 'Bắc Ninh', 'Cà Mau', 'Cao Bằng', 'Cần Thơ',
-    'Đà Nẵng', 'Đắk Lắk', 'Điện Biên', 'Đồng Nai', 'Đồng Tháp',
-    'Gia Lai', 'Hà Nội', 'Hà Tĩnh', 'Hải Phòng', 'Huế',
-    'Hưng Yên', 'Khánh Hòa', 'Lai Châu', 'Lâm Đồng', 'Lạng Sơn',
-    'Lào Cai', 'Nghệ An', 'Ninh Bình', 'Phú Thọ', 'Quảng Ngãi',
-    'Quảng Ninh', 'Quảng Trị', 'Sơn La', 'Tây Ninh', 'Thái Nguyên',
-    'Thanh Hóa', 'TP. Hồ Chí Minh', 'Tuyên Quang', 'Vĩnh Long'
-  ];
+  function loadProvinces() {
+    return fetch('data/provinces.json').then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    });
+  }
+
+  function loadWards(provinceCode) {
+    if (!wardCache[provinceCode]) {
+      wardCache[provinceCode] = fetch('data/wards/' + provinceCode + '.json').then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      });
+    }
+    return wardCache[provinceCode];
+  }
 
   var modal = document.getElementById('farm-modal');
   var form = document.getElementById('farm-form');
@@ -37,6 +43,7 @@
   var emptyNode = document.querySelector('[data-farm-empty]');
   var countNode = document.querySelector('[data-farm-count]');
   var provinceSelect = document.getElementById('farm-province');
+  var wardSelect = document.getElementById('farm-ward');
 
   /* --- Tiện ích ------------------------------------------------------------ */
 
@@ -429,11 +436,71 @@
 
   /* --- Modal --------------------------------------------------------------- */
 
+  // option.value giữ nguyên TÊN tỉnh (không phải mã) — farm.province vẫn
+  // lưu chuỗi tên như trước giờ, khỏi phải sửa lại dữ liệu cũ/chỗ hiển thị.
+  // Mã tỉnh (cần để tải đúng file phường/xã) gắn riêng vào data-code.
   function fillProvinces() {
-    PROVINCES.forEach(function (name) {
-      var option = el('option', null, name);
-      option.value = name;
-      provinceSelect.appendChild(option);
+    return loadProvinces().then(function (provinces) {
+      provinces.forEach(function (province) {
+        var option = el('option', null, province.name);
+        option.value = province.name;
+        option.dataset.code = province.id;
+        provinceSelect.appendChild(option);
+      });
+    }).catch(function () {
+      global.AgriChain.toast('Không tải được danh sách tỉnh/thành phố.');
+    });
+  }
+
+  function currentProvinceCode() {
+    var option = provinceSelect.selectedOptions[0];
+    return option ? option.dataset.code : '';
+  }
+
+  function setWardPlaceholder(text) {
+    wardSelect.disabled = true;
+    wardSelect.textContent = '';
+    var option = el('option', null, text);
+    option.value = '';
+    wardSelect.appendChild(option);
+  }
+
+  function fillWardSelect(wards, selectedName) {
+    wardSelect.textContent = '';
+    var placeholder = el('option', null, '— Chọn phường/xã —');
+    placeholder.value = '';
+    wardSelect.appendChild(placeholder);
+    wards.forEach(function (ward) {
+      var option = el('option', null, ward.name);
+      option.value = ward.name;
+      wardSelect.appendChild(option);
+    });
+    wardSelect.disabled = false;
+    if (selectedName) wardSelect.value = selectedName;
+  }
+
+  // Gọi khi đổi tỉnh/thành phố (tay hoặc lúc điền sẵn để sửa nông trại).
+  // `selectedWardName` chỉ dùng lúc sửa — chọn tay thì luôn để trống, khỏi
+  // giữ nhầm phường/xã của tỉnh cũ. Trả Promise để openModal() đợi tải xong
+  // trước khi set giá trị phường/xã đã lưu.
+  function handleProvinceChange(selectedWardName) {
+    var code = currentProvinceCode();
+    var errorField = wardSelect.closest('.field');
+    var existingError = errorField && errorField.querySelector('.field__error');
+    if (existingError) existingError.remove();
+    wardSelect.removeAttribute('aria-invalid');
+
+    if (!code) {
+      setWardPlaceholder('— Chọn tỉnh/thành phố trước —');
+      return Promise.resolve();
+    }
+
+    setWardPlaceholder('Đang tải...');
+    return loadWards(code).then(function (wards) {
+      fillWardSelect(wards, selectedWardName);
+    }).catch(function () {
+      setWardPlaceholder('— Không tải được —');
+      showError(wardSelect, 'Không tải được danh sách phường/xã. Thử chọn lại tỉnh/thành phố.');
     });
   }
 
@@ -461,7 +528,7 @@
       document.getElementById('farm-puc-national').value = farm.nationalPuc || '';
       document.getElementById('farm-puc-international').value = farm.internationalPuc || '';
       provinceSelect.value = farm.province || '';
-      document.getElementById('farm-ward').value = farm.ward || '';
+      handleProvinceChange(farm.ward); // tải phường/xã đúng tỉnh, chọn sẵn phường/xã đã lưu
       document.getElementById('farm-address').value = farm.address || '';
       document.getElementById('farm-start-date').value = farm.startDate || '';
       document.getElementById('farm-area').value = farm.area != null ? farm.area : 0;
@@ -472,6 +539,7 @@
       // Gợi ý mã tiếp theo nhưng vẫn cho sửa — bản gốc để người dùng tự đặt mã.
       document.getElementById('farm-code').value = store.nextFarmCode();
       document.getElementById('farm-area').value = '0';
+      handleProvinceChange(); // reset phường/xã về trạng thái "chưa chọn tỉnh"
     }
 
     modal.showModal();
@@ -641,6 +709,12 @@
     });
     document.querySelectorAll('[data-close-farm-form]').forEach(function (button) {
       button.addEventListener('click', closeModal);
+    });
+
+    // Người dùng tự đổi tỉnh/thành phố (không phải lúc điền sẵn để sửa) —
+    // luôn bỏ trống phường/xã, không giữ nhầm lựa chọn của tỉnh cũ.
+    provinceSelect.addEventListener('change', function () {
+      handleProvinceChange();
     });
 
     form.addEventListener('submit', handleSubmit);

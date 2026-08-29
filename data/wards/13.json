@@ -1,0 +1,227 @@
+[
+  {
+    "id": "30101002",
+    "name": "Phường Điện Biên Phủ",
+    "provinceId": "13"
+  },
+  {
+    "id": "30103004",
+    "name": "Phường Mường Lay",
+    "provinceId": "13"
+  },
+  {
+    "id": "30101003",
+    "name": "Phường Mường Thanh",
+    "provinceId": "13"
+  },
+  {
+    "id": "30121044",
+    "name": "Xã Búng Lao",
+    "provinceId": "13"
+  },
+  {
+    "id": "30123035",
+    "name": "Xã Chà Tở",
+    "provinceId": "13"
+  },
+  {
+    "id": "30115015",
+    "name": "Xã Chiềng Sinh",
+    "provinceId": "13"
+  },
+  {
+    "id": "30121042",
+    "name": "Xã Mường Ảng",
+    "provinceId": "13"
+  },
+  {
+    "id": "30123032",
+    "name": "Xã Mường Chà",
+    "provinceId": "13"
+  },
+  {
+    "id": "30121045",
+    "name": "Xã Mường Lạn",
+    "provinceId": "13"
+  },
+  {
+    "id": "30119029",
+    "name": "Xã Mường Luân",
+    "provinceId": "13"
+  },
+  {
+    "id": "30115013",
+    "name": "Xã Mường Mùn",
+    "provinceId": "13"
+  },
+  {
+    "id": "30117010",
+    "name": "Xã Mường Nhà",
+    "provinceId": "13"
+  },
+  {
+    "id": "30104037",
+    "name": "Xã Mường Nhé",
+    "provinceId": "13"
+  },
+  {
+    "id": "30101001",
+    "name": "Xã Mường Phăng",
+    "provinceId": "13"
+  },
+  {
+    "id": "30111025",
+    "name": "Xã Mường Pồn",
+    "provinceId": "13"
+  },
+  {
+    "id": "30104039",
+    "name": "Xã Mường Toong",
+    "provinceId": "13"
+  },
+  {
+    "id": "30111022",
+    "name": "Xã Mường Tùng",
+    "provinceId": "13"
+  },
+  {
+    "id": "30123034",
+    "name": "Xã Nà Bủng",
+    "provinceId": "13"
+  },
+  {
+    "id": "30123033",
+    "name": "Xã Nà Hỳ",
+    "provinceId": "13"
+  },
+  {
+    "id": "30111021",
+    "name": "Xã Na Sang",
+    "provinceId": "13"
+  },
+  {
+    "id": "30119026",
+    "name": "Xã Na Son",
+    "provinceId": "13"
+  },
+  {
+    "id": "30121043",
+    "name": "Xã Nà Tấu",
+    "provinceId": "13"
+  },
+  {
+    "id": "30104040",
+    "name": "Xã Nậm Kè",
+    "provinceId": "13"
+  },
+  {
+    "id": "30111024",
+    "name": "Xã Nậm Nèn",
+    "provinceId": "13"
+  },
+  {
+    "id": "30117009",
+    "name": "Xã Núa Ngam",
+    "provinceId": "13"
+  },
+  {
+    "id": "30111023",
+    "name": "Xã Pa Ham",
+    "provinceId": "13"
+  },
+  {
+    "id": "30119031",
+    "name": "Xã Phình Giàng",
+    "provinceId": "13"
+  },
+  {
+    "id": "30119028",
+    "name": "Xã Pu Nhi",
+    "provinceId": "13"
+  },
+  {
+    "id": "30115014",
+    "name": "Xã Pú Nhung",
+    "provinceId": "13"
+  },
+  {
+    "id": "30115012",
+    "name": "Xã Quài Tở",
+    "provinceId": "13"
+  },
+  {
+    "id": "30104041",
+    "name": "Xã Quảng Lâm",
+    "provinceId": "13"
+  },
+  {
+    "id": "30117008",
+    "name": "Xã Sam Mứn",
+    "provinceId": "13"
+  },
+  {
+    "id": "30113020",
+    "name": "Xã Sáng Nhè",
+    "provinceId": "13"
+  },
+  {
+    "id": "30123036",
+    "name": "Xã Si Pa Phìn",
+    "provinceId": "13"
+  },
+  {
+    "id": "30113017",
+    "name": "Xã Sín Chải",
+    "provinceId": "13"
+  },
+  {
+    "id": "30104038",
+    "name": "Xã Sín Thầu",
+    "provinceId": "13"
+  },
+  {
+    "id": "30113018",
+    "name": "Xã Sính Phình",
+    "provinceId": "13"
+  },
+  {
+    "id": "30117006",
+    "name": "Xã Thanh An",
+    "provinceId": "13"
+  },
+  {
+    "id": "30117005",
+    "name": "Xã Thanh Nưa",
+    "provinceId": "13"
+  },
+  {
+    "id": "30117007",
+    "name": "Xã Thanh Yên",
+    "provinceId": "13"
+  },
+  {
+    "id": "30119030",
+    "name": "Xã Tìa Dình",
+    "provinceId": "13"
+  },
+  {
+    "id": "30113016",
+    "name": "Xã Tủa Chùa",
+    "provinceId": "13"
+  },
+  {
+    "id": "30113019",
+    "name": "Xã Tủa Thàng",
+    "provinceId": "13"
+  },
+  {
+    "id": "30115011",
+    "name": "Xã Tuần Giáo",
+    "provinceId": "13"
+  },
+  {
+    "id": "30119027",
+    "name": "Xã Xa Dung",
+    "provinceId": "13"
+  }
+]

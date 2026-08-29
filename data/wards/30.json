@@ -1,0 +1,622 @@
+[
+  {
+    "id": "81101077",
+    "name": "Phường An Hội",
+    "provinceId": "30"
+  },
+  {
+    "id": "81101079",
+    "name": "Phường Bến Tre",
+    "provinceId": "30"
+  },
+  {
+    "id": "80907033",
+    "name": "Phường Bình Minh",
+    "provinceId": "30"
+  },
+  {
+    "id": "80907034",
+    "name": "Phường Cái Vồn",
+    "provinceId": "30"
+  },
+  {
+    "id": "81716069",
+    "name": "Phường Duyên Hải",
+    "provinceId": "30"
+  },
+  {
+    "id": "80907035",
+    "name": "Phường Đông Thành",
+    "provinceId": "30"
+  },
+  {
+    "id": "81701039",
+    "name": "Phường Hòa Thuận",
+    "provinceId": "30"
+  },
+  {
+    "id": "80901009",
+    "name": "Phường Long Châu",
+    "provinceId": "30"
+  },
+  {
+    "id": "81701036",
+    "name": "Phường Long Đức",
+    "provinceId": "30"
+  },
+  {
+    "id": "81701038",
+    "name": "Phường Nguyệt Hóa",
+    "provinceId": "30"
+  },
+  {
+    "id": "81101078",
+    "name": "Phường Phú Khương",
+    "provinceId": "30"
+  },
+  {
+    "id": "81103081",
+    "name": "Phường Phú Tân",
+    "provinceId": "30"
+  },
+  {
+    "id": "80901010",
+    "name": "Phường Phước Hậu",
+    "provinceId": "30"
+  },
+  {
+    "id": "81101080",
+    "name": "Phường Sơn Đông",
+    "provinceId": "30"
+  },
+  {
+    "id": "80901011",
+    "name": "Phường Tân Hạnh",
+    "provinceId": "30"
+  },
+  {
+    "id": "80901012",
+    "name": "Phường Tân Ngãi",
+    "provinceId": "30"
+  },
+  {
+    "id": "80901008",
+    "name": "Phường Thanh Đức",
+    "provinceId": "30"
+  },
+  {
+    "id": "81701037",
+    "name": "Phường Trà Vinh",
+    "provinceId": "30"
+  },
+  {
+    "id": "81716070",
+    "name": "Phường Trường Long Hòa",
+    "provinceId": "30"
+  },
+  {
+    "id": "80903005",
+    "name": "Xã An Bình",
+    "provinceId": "30"
+  },
+  {
+    "id": "81107096",
+    "name": "Xã An Định",
+    "provinceId": "30"
+  },
+  {
+    "id": "81113110",
+    "name": "Xã An Hiệp",
+    "provinceId": "30"
+  },
+  {
+    "id": "81113109",
+    "name": "Xã An Ngãi Trung",
+    "provinceId": "30"
+  },
+  {
+    "id": "81707052",
+    "name": "Xã An Phú Tân",
+    "provinceId": "30"
+  },
+  {
+    "id": "81115101",
+    "name": "Xã An Qui",
+    "provinceId": "30"
+  },
+  {
+    "id": "81703040",
+    "name": "Xã An Trường",
+    "provinceId": "30"
+  },
+  {
+    "id": "81113106",
+    "name": "Xã Ba Tri",
+    "provinceId": "30"
+  },
+  {
+    "id": "81113105",
+    "name": "Xã Bảo Thạnh",
+    "provinceId": "30"
+  },
+  {
+    "id": "81111120",
+    "name": "Xã Bình Đại",
+    "provinceId": "30"
+  },
+  {
+    "id": "81703044",
+    "name": "Xã Bình Phú",
+    "provinceId": "30"
+  },
+  {
+    "id": "80905004",
+    "name": "Xã Bình Phước",
+    "provinceId": "30"
+  },
+  {
+    "id": "80909029",
+    "name": "Xã Cái Ngang",
+    "provinceId": "30"
+  },
+  {
+    "id": "80905001",
+    "name": "Xã Cái Nhum",
+    "provinceId": "30"
+  },
+  {
+    "id": "81703042",
+    "name": "Xã Càng Long",
+    "provinceId": "30"
+  },
+  {
+    "id": "81707050",
+    "name": "Xã Cầu Kè",
+    "provinceId": "30"
+  },
+  {
+    "id": "81711060",
+    "name": "Xã Cầu Ngang",
+    "provinceId": "30"
+  },
+  {
+    "id": "81109116",
+    "name": "Xã Châu Hòa",
+    "provinceId": "30"
+  },
+  {
+    "id": "81111123",
+    "name": "Xã Châu Hưng",
+    "provinceId": "30"
+  },
+  {
+    "id": "81705046",
+    "name": "Xã Châu Thành",
+    "provinceId": "30"
+  },
+  {
+    "id": "81105087",
+    "name": "Xã Chợ Lách",
+    "provinceId": "30"
+  },
+  {
+    "id": "81713064",
+    "name": "Xã Đại An",
+    "provinceId": "30"
+  },
+  {
+    "id": "81115098",
+    "name": "Xã Đại Điền",
+    "provinceId": "30"
+  },
+  {
+    "id": "81715075",
+    "name": "Xã Đôn Châu",
+    "provinceId": "30"
+  },
+  {
+    "id": "81715073",
+    "name": "Xã Đông Hải",
+    "provinceId": "30"
+  },
+  {
+    "id": "81107093",
+    "name": "Xã Đồng Khởi",
+    "provinceId": "30"
+  },
+  {
+    "id": "81103083",
+    "name": "Xã Giao Long",
+    "provinceId": "30"
+  },
+  {
+    "id": "81109112",
+    "name": "Xã Giồng Trôm",
+    "provinceId": "30"
+  },
+  {
+    "id": "81713065",
+    "name": "Xã Hàm Giang",
+    "provinceId": "30"
+  },
+  {
+    "id": "81711062",
+    "name": "Xã Hiệp Mỹ",
+    "provinceId": "30"
+  },
+  {
+    "id": "80913018",
+    "name": "Xã Hiếu Phụng",
+    "provinceId": "30"
+  },
+  {
+    "id": "80913019",
+    "name": "Xã Hiếu Thành",
+    "provinceId": "30"
+  },
+  {
+    "id": "80911024",
+    "name": "Xã Hòa Bình",
+    "provinceId": "30"
+  },
+  {
+    "id": "80909025",
+    "name": "Xã Hòa Hiệp",
+    "provinceId": "30"
+  },
+  {
+    "id": "81705048",
+    "name": "Xã Hòa Minh",
+    "provinceId": "30"
+  },
+  {
+    "id": "81709055",
+    "name": "Xã Hùng Hòa",
+    "provinceId": "30"
+  },
+  {
+    "id": "81105089",
+    "name": "Xã Hưng Khánh Trung",
+    "provinceId": "30"
+  },
+  {
+    "id": "81705047",
+    "name": "Xã Hưng Mỹ",
+    "provinceId": "30"
+  },
+  {
+    "id": "81109111",
+    "name": "Xã Hưng Nhượng",
+    "provinceId": "30"
+  },
+  {
+    "id": "81107097",
+    "name": "Xã Hương Mỹ",
+    "provinceId": "30"
+  },
+  {
+    "id": "81713067",
+    "name": "Xã Long Hiệp",
+    "provinceId": "30"
+  },
+  {
+    "id": "81705049",
+    "name": "Xã Long Hòa",
+    "provinceId": "30"
+  },
+  {
+    "id": "80903006",
+    "name": "Xã Long Hồ",
+    "provinceId": "30"
+  },
+  {
+    "id": "81716071",
+    "name": "Xã Long Hữu",
+    "provinceId": "30"
+  },
+  {
+    "id": "81715072",
+    "name": "Xã Long Thành",
+    "provinceId": "30"
+  },
+  {
+    "id": "81715074",
+    "name": "Xã Long Vĩnh",
+    "provinceId": "30"
+  },
+  {
+    "id": "81111122",
+    "name": "Xã Lộc Thuận",
+    "provinceId": "30"
+  },
+  {
+    "id": "80911020",
+    "name": "Xã Lục Sỹ Thành",
+    "provinceId": "30"
+  },
+  {
+    "id": "81109117",
+    "name": "Xã Lương Hòa",
+    "provinceId": "30"
+  },
+  {
+    "id": "81109115",
+    "name": "Xã Lương Phú",
+    "provinceId": "30"
+  },
+  {
+    "id": "81713063",
+    "name": "Xã Lưu Nghiệp Anh",
+    "provinceId": "30"
+  },
+  {
+    "id": "81107094",
+    "name": "Xã Mỏ Cày",
+    "provinceId": "30"
+  },
+  {
+    "id": "81113108",
+    "name": "Xã Mỹ Chánh Hòa",
+    "provinceId": "30"
+  },
+  {
+    "id": "81711058",
+    "name": "Xã Mỹ Long",
+    "provinceId": "30"
+  },
+  {
+    "id": "80908032",
+    "name": "Xã Mỹ Thuận",
+    "provinceId": "30"
+  },
+  {
+    "id": "80909027",
+    "name": "Xã Ngãi Tứ",
+    "provinceId": "30"
+  },
+  {
+    "id": "81715076",
+    "name": "Xã Ngũ Lạc",
+    "provinceId": "30"
+  },
+  {
+    "id": "81703043",
+    "name": "Xã Nhị Long",
+    "provinceId": "30"
+  },
+  {
+    "id": "81711061",
+    "name": "Xã Nhị Trường",
+    "provinceId": "30"
+  },
+  {
+    "id": "80905003",
+    "name": "Xã Nhơn Phú",
+    "provinceId": "30"
+  },
+  {
+    "id": "81108092",
+    "name": "Xã Nhuận Phú Tân",
+    "provinceId": "30"
+  },
+  {
+    "id": "81707051",
+    "name": "Xã Phong Thạnh",
+    "provinceId": "30"
+  },
+  {
+    "id": "81105086",
+    "name": "Xã Phú Phụng",
+    "provinceId": "30"
+  },
+  {
+    "id": "80903007",
+    "name": "Xã Phú Quới",
+    "provinceId": "30"
+  },
+  {
+    "id": "81111124",
+    "name": "Xã Phú Thuận",
+    "provinceId": "30"
+  },
+  {
+    "id": "81103082",
+    "name": "Xã Phú Túc",
+    "provinceId": "30"
+  },
+  {
+    "id": "81109114",
+    "name": "Xã Phước Long",
+    "provinceId": "30"
+  },
+  {
+    "id": "81108090",
+    "name": "Xã Phước Mỹ Trung",
+    "provinceId": "30"
+  },
+  {
+    "id": "80913016",
+    "name": "Xã Quới An",
+    "provinceId": "30"
+  },
+  {
+    "id": "81115099",
+    "name": "Xã Quới Điền",
+    "provinceId": "30"
+  },
+  {
+    "id": "80913013",
+    "name": "Xã Quới Thiện",
+    "provinceId": "30"
+  },
+  {
+    "id": "81705045",
+    "name": "Xã Song Lộc",
+    "provinceId": "30"
+  },
+  {
+    "id": "80909028",
+    "name": "Xã Song Phú",
+    "provinceId": "30"
+  },
+  {
+    "id": "80909026",
+    "name": "Xã Tam Bình",
+    "provinceId": "30"
+  },
+  {
+    "id": "81707053",
+    "name": "Xã Tam Ngãi",
+    "provinceId": "30"
+  },
+  {
+    "id": "81703041",
+    "name": "Xã Tân An",
+    "provinceId": "30"
+  },
+  {
+    "id": "81109113",
+    "name": "Xã Tân Hào",
+    "provinceId": "30"
+  },
+  {
+    "id": "81709054",
+    "name": "Xã Tân Hòa",
+    "provinceId": "30"
+  },
+  {
+    "id": "80905002",
+    "name": "Xã Tân Long Hội",
+    "provinceId": "30"
+  },
+  {
+    "id": "80908031",
+    "name": "Xã Tân Lược",
+    "provinceId": "30"
+  },
+  {
+    "id": "81103085",
+    "name": "Xã Tân Phú",
+    "provinceId": "30"
+  },
+  {
+    "id": "80908030",
+    "name": "Xã Tân Quới",
+    "provinceId": "30"
+  },
+  {
+    "id": "81108091",
+    "name": "Xã Tân Thành Bình",
+    "provinceId": "30"
+  },
+  {
+    "id": "81113104",
+    "name": "Xã Tân Thủy",
+    "provinceId": "30"
+  },
+  {
+    "id": "81113107",
+    "name": "Xã Tân Xuân",
+    "provinceId": "30"
+  },
+  {
+    "id": "81709057",
+    "name": "Xã Tập Ngãi",
+    "provinceId": "30"
+  },
+  {
+    "id": "81713068",
+    "name": "Xã Tập Sơn",
+    "provinceId": "30"
+  },
+  {
+    "id": "81115102",
+    "name": "Xã Thạnh Hải",
+    "provinceId": "30"
+  },
+  {
+    "id": "81115103",
+    "name": "Xã Thạnh Phong",
+    "provinceId": "30"
+  },
+  {
+    "id": "81115100",
+    "name": "Xã Thạnh Phú",
+    "provinceId": "30"
+  },
+  {
+    "id": "81111119",
+    "name": "Xã Thạnh Phước",
+    "provinceId": "30"
+  },
+  {
+    "id": "81107095",
+    "name": "Xã Thành Thới",
+    "provinceId": "30"
+  },
+  {
+    "id": "81111121",
+    "name": "Xã Thạnh Trị",
+    "provinceId": "30"
+  },
+  {
+    "id": "81111118",
+    "name": "Xã Thới Thuận",
+    "provinceId": "30"
+  },
+  {
+    "id": "81103084",
+    "name": "Xã Tiên Thủy",
+    "provinceId": "30"
+  },
+  {
+    "id": "81709056",
+    "name": "Xã Tiểu Cần",
+    "provinceId": "30"
+  },
+  {
+    "id": "80911022",
+    "name": "Xã Trà Côn",
+    "provinceId": "30"
+  },
+  {
+    "id": "81713066",
+    "name": "Xã Trà Cú",
+    "provinceId": "30"
+  },
+  {
+    "id": "80911021",
+    "name": "Xã Trà Ôn",
+    "provinceId": "30"
+  },
+  {
+    "id": "80913017",
+    "name": "Xã Trung Hiệp",
+    "provinceId": "30"
+  },
+  {
+    "id": "80913015",
+    "name": "Xã Trung Ngãi",
+    "provinceId": "30"
+  },
+  {
+    "id": "80913014",
+    "name": "Xã Trung Thành",
+    "provinceId": "30"
+  },
+  {
+    "id": "81711059",
+    "name": "Xã Vinh Kim",
+    "provinceId": "30"
+  },
+  {
+    "id": "81105088",
+    "name": "Xã Vĩnh Thành",
+    "provinceId": "30"
+  },
+  {
+    "id": "80911023",
+    "name": "Xã Vĩnh Xuân",
+    "provinceId": "30"
+  }
+]

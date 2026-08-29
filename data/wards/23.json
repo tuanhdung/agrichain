@@ -1,0 +1,327 @@
+[
+  {
+    "id": "51115041",
+    "name": "Đặc khu Trường Sa",
+    "provinceId": "23"
+  },
+  {
+    "id": "51109008",
+    "name": "Phường Ba Ngòi",
+    "provinceId": "23"
+  },
+  {
+    "id": "70501045",
+    "name": "Phường Bảo An",
+    "provinceId": "23"
+  },
+  {
+    "id": "51109005",
+    "name": "Phường Bắc Cam Ranh",
+    "provinceId": "23"
+  },
+  {
+    "id": "51101002",
+    "name": "Phường Bắc Nha Trang",
+    "provinceId": "23"
+  },
+  {
+    "id": "51109007",
+    "name": "Phường Cam Linh",
+    "provinceId": "23"
+  },
+  {
+    "id": "51109006",
+    "name": "Phường Cam Ranh",
+    "provinceId": "23"
+  },
+  {
+    "id": "70501046",
+    "name": "Phường Đô Vinh",
+    "provinceId": "23"
+  },
+  {
+    "id": "70501043",
+    "name": "Phường Đông Hải",
+    "provinceId": "23"
+  },
+  {
+    "id": "51105013",
+    "name": "Phường Đông Ninh Hoà",
+    "provinceId": "23"
+  },
+  {
+    "id": "51105014",
+    "name": "Phường Hoà Thắng",
+    "provinceId": "23"
+  },
+  {
+    "id": "51101004",
+    "name": "Phường Nam Nha Trang",
+    "provinceId": "23"
+  },
+  {
+    "id": "51101001",
+    "name": "Phường Nha Trang",
+    "provinceId": "23"
+  },
+  {
+    "id": "70505044",
+    "name": "Phường Ninh Chử",
+    "provinceId": "23"
+  },
+  {
+    "id": "51105011",
+    "name": "Phường Ninh Hoà",
+    "provinceId": "23"
+  },
+  {
+    "id": "70501042",
+    "name": "Phường Phan Rang",
+    "provinceId": "23"
+  },
+  {
+    "id": "51101003",
+    "name": "Phường Tây Nha Trang",
+    "provinceId": "23"
+  },
+  {
+    "id": "70503061",
+    "name": "Xã Anh Dũng",
+    "provinceId": "23"
+  },
+  {
+    "id": "70509064",
+    "name": "Xã Bác Ái",
+    "provinceId": "23"
+  },
+  {
+    "id": "70509063",
+    "name": "Xã Bác Ái Đông",
+    "provinceId": "23"
+  },
+  {
+    "id": "70509065",
+    "name": "Xã Bác Ái Tây",
+    "provinceId": "23"
+  },
+  {
+    "id": "51111033",
+    "name": "Xã Bắc Khánh Vĩnh",
+    "provinceId": "23"
+  },
+  {
+    "id": "51105010",
+    "name": "Xã Bắc Ninh Hoà",
+    "provinceId": "23"
+  },
+  {
+    "id": "70513051",
+    "name": "Xã Cà Ná",
+    "provinceId": "23"
+  },
+  {
+    "id": "51117032",
+    "name": "Xã Cam An",
+    "provinceId": "23"
+  },
+  {
+    "id": "51117031",
+    "name": "Xã Cam Hiệp",
+    "provinceId": "23"
+  },
+  {
+    "id": "51117029",
+    "name": "Xã Cam Lâm",
+    "provinceId": "23"
+  },
+  {
+    "id": "70511058",
+    "name": "Xã Công Hải",
+    "provinceId": "23"
+  },
+  {
+    "id": "51107025",
+    "name": "Xã Diên Điền",
+    "provinceId": "23"
+  },
+  {
+    "id": "51107023",
+    "name": "Xã Diên Khánh",
+    "provinceId": "23"
+  },
+  {
+    "id": "51107024",
+    "name": "Xã Diên Lạc",
+    "provinceId": "23"
+  },
+  {
+    "id": "51107026",
+    "name": "Xã Diên Lâm",
+    "provinceId": "23"
+  },
+  {
+    "id": "51107027",
+    "name": "Xã Diên Thọ",
+    "provinceId": "23"
+  },
+  {
+    "id": "51103018",
+    "name": "Xã Đại Lãnh",
+    "provinceId": "23"
+  },
+  {
+    "id": "51113040",
+    "name": "Xã Đông Khánh Sơn",
+    "provinceId": "23"
+  },
+  {
+    "id": "51105017",
+    "name": "Xã Hoà Trí",
+    "provinceId": "23"
+  },
+  {
+    "id": "51113038",
+    "name": "Xã Khánh Sơn",
+    "provinceId": "23"
+  },
+  {
+    "id": "51111037",
+    "name": "Xã Khánh Vĩnh",
+    "provinceId": "23"
+  },
+  {
+    "id": "70503060",
+    "name": "Xã Lâm Sơn",
+    "provinceId": "23"
+  },
+  {
+    "id": "70503062",
+    "name": "Xã Mỹ Sơn",
+    "provinceId": "23"
+  },
+  {
+    "id": "51109009",
+    "name": "Xã Nam Cam Ranh",
+    "provinceId": "23"
+  },
+  {
+    "id": "51111036",
+    "name": "Xã Nam Khánh Vĩnh",
+    "provinceId": "23"
+  },
+  {
+    "id": "51105015",
+    "name": "Xã Nam Ninh Hoà",
+    "provinceId": "23"
+  },
+  {
+    "id": "70505054",
+    "name": "Xã Ninh Hải",
+    "provinceId": "23"
+  },
+  {
+    "id": "70507047",
+    "name": "Xã Ninh Phước",
+    "provinceId": "23"
+  },
+  {
+    "id": "70503059",
+    "name": "Xã Ninh Sơn",
+    "provinceId": "23"
+  },
+  {
+    "id": "70513053",
+    "name": "Xã Phước Dinh",
+    "provinceId": "23"
+  },
+  {
+    "id": "70513052",
+    "name": "Xã Phước Hà",
+    "provinceId": "23"
+  },
+  {
+    "id": "70507049",
+    "name": "Xã Phước Hậu",
+    "provinceId": "23"
+  },
+  {
+    "id": "70507048",
+    "name": "Xã Phước Hữu",
+    "provinceId": "23"
+  },
+  {
+    "id": "51117030",
+    "name": "Xã Suối Dầu",
+    "provinceId": "23"
+  },
+  {
+    "id": "51107028",
+    "name": "Xã Suối Hiệp",
+    "provinceId": "23"
+  },
+  {
+    "id": "51105012",
+    "name": "Xã Tân Định",
+    "provinceId": "23"
+  },
+  {
+    "id": "51113039",
+    "name": "Xã Tây Khánh Sơn",
+    "provinceId": "23"
+  },
+  {
+    "id": "51111035",
+    "name": "Xã Tây Khánh Vĩnh",
+    "provinceId": "23"
+  },
+  {
+    "id": "51105016",
+    "name": "Xã Tây Ninh Hoà",
+    "provinceId": "23"
+  },
+  {
+    "id": "70511057",
+    "name": "Xã Thuận Bắc",
+    "provinceId": "23"
+  },
+  {
+    "id": "70513050",
+    "name": "Xã Thuận Nam",
+    "provinceId": "23"
+  },
+  {
+    "id": "51111034",
+    "name": "Xã Trung Khánh Vĩnh",
+    "provinceId": "23"
+  },
+  {
+    "id": "51103019",
+    "name": "Xã Tu Bông",
+    "provinceId": "23"
+  },
+  {
+    "id": "51103022",
+    "name": "Xã Vạn Hưng",
+    "provinceId": "23"
+  },
+  {
+    "id": "51103021",
+    "name": "Xã Vạn Ninh",
+    "provinceId": "23"
+  },
+  {
+    "id": "51103020",
+    "name": "Xã Vạn Thắng",
+    "provinceId": "23"
+  },
+  {
+    "id": "70505056",
+    "name": "Xã Vĩnh Hải",
+    "provinceId": "23"
+  },
+  {
+    "id": "70505055",
+    "name": "Xã Xuân Hải",
+    "provinceId": "23"
+  }
+]

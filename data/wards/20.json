@@ -1,0 +1,202 @@
+[
+  {
+    "id": "41101006",
+    "name": "Phường An Cựu",
+    "provinceId": "20"
+  },
+  {
+    "id": "41101040",
+    "name": "Phường Dương Nỗ",
+    "provinceId": "20"
+  },
+  {
+    "id": "41119002",
+    "name": "Phường Hóa Châu",
+    "provinceId": "20"
+  },
+  {
+    "id": "41119009",
+    "name": "Phường Hương An",
+    "provinceId": "20"
+  },
+  {
+    "id": "41111014",
+    "name": "Phường Hương Thủy",
+    "provinceId": "20"
+  },
+  {
+    "id": "41107011",
+    "name": "Phường Hương Trà",
+    "provinceId": "20"
+  },
+  {
+    "id": "41119008",
+    "name": "Phường Kim Long",
+    "provinceId": "20"
+  },
+  {
+    "id": "41107012",
+    "name": "Phường Kim Trà",
+    "provinceId": "20"
+  },
+  {
+    "id": "41109003",
+    "name": "Phường Mỹ Thượng",
+    "provinceId": "20"
+  },
+  {
+    "id": "41103018",
+    "name": "Phường Phong Dinh",
+    "provinceId": "20"
+  },
+  {
+    "id": "41103016",
+    "name": "Phường Phong Điền",
+    "provinceId": "20"
+  },
+  {
+    "id": "41103019",
+    "name": "Phường Phong Phú",
+    "provinceId": "20"
+  },
+  {
+    "id": "41105020",
+    "name": "Phường Phong Quảng",
+    "provinceId": "20"
+  },
+  {
+    "id": "41103017",
+    "name": "Phường Phong Thái",
+    "provinceId": "20"
+  },
+  {
+    "id": "41111015",
+    "name": "Phường Phú Bài",
+    "provinceId": "20"
+  },
+  {
+    "id": "41119010",
+    "name": "Phường Phú Xuân",
+    "provinceId": "20"
+  },
+  {
+    "id": "41111013",
+    "name": "Phường Thanh Thủy",
+    "provinceId": "20"
+  },
+  {
+    "id": "41109001",
+    "name": "Phường Thuận An",
+    "provinceId": "20"
+  },
+  {
+    "id": "41101005",
+    "name": "Phường Thuận Hóa",
+    "provinceId": "20"
+  },
+  {
+    "id": "41101007",
+    "name": "Phường Thủy Xuân",
+    "provinceId": "20"
+  },
+  {
+    "id": "41101004",
+    "name": "Phường Vỹ Dạ",
+    "provinceId": "20"
+  },
+  {
+    "id": "41115035",
+    "name": "Xã A Lưới 1",
+    "provinceId": "20"
+  },
+  {
+    "id": "41115036",
+    "name": "Xã A Lưới 2",
+    "provinceId": "20"
+  },
+  {
+    "id": "41115037",
+    "name": "Xã A Lưới 3",
+    "provinceId": "20"
+  },
+  {
+    "id": "41115038",
+    "name": "Xã A Lưới 4",
+    "provinceId": "20"
+  },
+  {
+    "id": "41115039",
+    "name": "Xã A Lưới 5",
+    "provinceId": "20"
+  },
+  {
+    "id": "41107034",
+    "name": "Xã Bình Điền",
+    "provinceId": "20"
+  },
+  {
+    "id": "41113030",
+    "name": "Xã Chân Mây – Lăng Cô",
+    "provinceId": "20"
+  },
+  {
+    "id": "41105021",
+    "name": "Xã Đan Điền",
+    "provinceId": "20"
+  },
+  {
+    "id": "41113027",
+    "name": "Xã Hưng Lộc",
+    "provinceId": "20"
+  },
+  {
+    "id": "41113033",
+    "name": "Xã Khe Tre",
+    "provinceId": "20"
+  },
+  {
+    "id": "41113031",
+    "name": "Xã Long Quảng",
+    "provinceId": "20"
+  },
+  {
+    "id": "41113028",
+    "name": "Xã Lộc An",
+    "provinceId": "20"
+  },
+  {
+    "id": "41113032",
+    "name": "Xã Nam Đông",
+    "provinceId": "20"
+  },
+  {
+    "id": "41109024",
+    "name": "Xã Phú Hồ",
+    "provinceId": "20"
+  },
+  {
+    "id": "41113029",
+    "name": "Xã Phú Lộc",
+    "provinceId": "20"
+  },
+  {
+    "id": "41109025",
+    "name": "Xã Phú Vang",
+    "provinceId": "20"
+  },
+  {
+    "id": "41109023",
+    "name": "Xã Phú Vinh",
+    "provinceId": "20"
+  },
+  {
+    "id": "41105022",
+    "name": "Xã Quảng Điền",
+    "provinceId": "20"
+  },
+  {
+    "id": "41113026",
+    "name": "Xã Vinh Lộc",
+    "provinceId": "20"
+  }
+]

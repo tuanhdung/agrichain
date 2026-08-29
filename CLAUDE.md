@@ -11,6 +11,10 @@ HTML/CSS/JS thuần — **không dùng framework, không dùng build tool** (kh�
 ## Cấu trúc thư mục
 
 ```
+data/
+  provinces.json         # 34 tỉnh/thành sau sáp nhập 2025 — {id, name}, xem mục "Dữ liệu hành
+                          # chính" bên dưới để biết nguồn và cách làm mới
+  wards/{provinceCode}.json  # Phường/xã của từng tỉnh, 1 file/tỉnh — {id, name, provinceId}
 css/
   tokens.css             # Biến CSS gốc: màu, khoảng cách, cỡ chữ, bo góc, đổ bóng
   base.css               # Reset + typography mặc định
@@ -191,17 +195,29 @@ Trang truy xuất nguồn gốc (`truy-xuat.html`) đã có ở mức cơ bản:
 vụ liên quan. Chưa có: liệt kê nhiều lô hàng, tìm kiếm theo mã tự nhập tay trên trang, xác
 thực lại (verify) hash ngay tại trang này thay vì chỉ đọc `batch.hash` đã lưu sẵn.
 
-## Việc đang chờ (block bởi bên ngoài dự án)
+## Dữ liệu hành chính (tỉnh/thành, phường/xã)
 
-**Dropdown Phường/Xã phụ thuộc Tỉnh/Thành phố** (form Thêm nông trại, `nong-trai.html`):
-dự định gọi API AgriChain (`GET /1.0/commons/provinces`, `GET /1.0/commons/provinces/{code}/wards`
-— response `/wards` là mảng phẳng `{code, name, provinceCode}`) để thay ô nhập tay
-"Phường/Xã" bằng `<select>` nạp động theo tỉnh đã chọn. Gọi thẳng từ trình duyệt (2026-08-28)
-cả 2 endpoint đều trả 401 Unauthorized — có vẻ cần đăng nhập/token nhưng chưa rõ cách
-truyền. Đang chờ hỏi lại backend xem `/1.0/commons/*` có mở public được không. Trong lúc
-chờ: `farm-ward` vẫn là `<input type="text">` như cũ (xem TODO ở đầu `js/nong-trai.js`,
-cạnh mảng `PROVINCES`) — đừng tự bịa danh sách xã/phường để lấp chỗ trống, dữ liệu hành
-chính sai sẽ khó phát hiện và khó sửa sau này hơn là cứ để trống.
+`data/provinces.json` (34 tỉnh/thành) và `data/wards/{provinceCode}.json` (1 file/tỉnh,
+3321 xã/phường) — dữ liệu hiệu lực từ 01/07/2025 sau sáp nhập, lấy từ gói MIT
+[`vietnam-address-data`](https://github.com/phucanhle/vn-xaphuong-2025) (`{id, name}` cho
+tỉnh, `{id, name, provinceId}` cho xã/phường). Form Thêm nông trại (`nong-trai.html`,
+`js/nong-trai.js`) `fetch()` 2 file này lúc cần: nạp `provinces.json` một lần lúc dựng
+trang để đổ vào `<select id="farm-province">`; đổi tỉnh xong mới `fetch()`
+`wards/{code}.json` tương ứng để đổ vào `<select id="farm-ward">` (disabled tới lúc đó),
+có cache theo mã tỉnh (`wardCache`) khỏi tải lại. `<option>` của tỉnh lưu `value` là TÊN
+tỉnh (không phải mã) — khớp với cách `farm.province`/`farm.ward` đã lưu từ trước giờ (chuỗi
+tên, không phải mã), mã tỉnh chỉ gắn thêm vào `data-code` để biết tải đúng file phường/xã.
+
+Lý do dùng dữ liệu tĩnh thay vì gọi thẳng API AgriChain: 2 endpoint định dùng ban đầu
+(`GET /1.0/commons/provinces`, `GET /1.0/commons/provinces/{code}/wards`) trả 401
+Unauthorized khi gọi từ trình duyệt không kèm gì (2026-08-28), chưa rõ cách xác thực —
+nếu sau này API mở public được thì có thể quay lại dùng API thay vì file tĩnh, nhưng dữ
+liệu tĩnh vẫn hoạt động độc lập, không phụ thuộc dịch vụ ngoài.
+
+**Cách làm mới lại dữ liệu nếu nguồn gốc cập nhật:** không tự tay sửa 2 thư mục trên —
+tải lại `src/data/provinces.json` + `src/data/wards.json` từ repo nguồn, tách bằng script
+Node tương tự lần đầu (đọc cả 2 file, `JSON.stringify` từng tỉnh ra `data/wards/{id}.json`,
+sort theo tên bằng `Intl.Collator('vi')`), rồi xoá script đi — không để lại trong dự án.
 
 ## Lỗi đã biết, chưa xử lý xong
 

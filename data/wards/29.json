@@ -1,0 +1,842 @@
+[
+  {
+    "id": "71713027",
+    "name": "Đặc khu Côn Đảo",
+    "provinceId": "29"
+  },
+  {
+    "id": "70109074",
+    "name": "Phường An Đông",
+    "provinceId": "29"
+  },
+  {
+    "id": "70125112",
+    "name": "Phường An Hội Đông",
+    "provinceId": "29"
+  },
+  {
+    "id": "70125114",
+    "name": "Phường An Hội Tây",
+    "provinceId": "29"
+  },
+  {
+    "id": "70145140",
+    "name": "Phường An Khánh",
+    "provinceId": "29"
+  },
+  {
+    "id": "70134099",
+    "name": "Phường An Lạc",
+    "provinceId": "29"
+  },
+  {
+    "id": "70125110",
+    "name": "Phường An Nhơn",
+    "provinceId": "29"
+  },
+  {
+    "id": "71107035",
+    "name": "Phường An Phú",
+    "provinceId": "29"
+  },
+  {
+    "id": "70123098",
+    "name": "Phường An Phú Đông",
+    "provinceId": "29"
+  },
+  {
+    "id": "71703005",
+    "name": "Phường Bà Rịa",
+    "provinceId": "29"
+  },
+  {
+    "id": "70105067",
+    "name": "Phường Bàn Cờ",
+    "provinceId": "29"
+  },
+  {
+    "id": "70127121",
+    "name": "Phường Bảy Hiền",
+    "provinceId": "29"
+  },
+  {
+    "id": "71115049",
+    "name": "Phường Bến Cát",
+    "provinceId": "29"
+  },
+  {
+    "id": "70101065",
+    "name": "Phường Bến Thành",
+    "provinceId": "29"
+  },
+  {
+    "id": "71105041",
+    "name": "Phường Bình Cơ",
+    "provinceId": "29"
+  },
+  {
+    "id": "71101036",
+    "name": "Phường Bình Dương",
+    "provinceId": "29"
+  },
+  {
+    "id": "70115086",
+    "name": "Phường Bình Đông",
+    "provinceId": "29"
+  },
+  {
+    "id": "71107033",
+    "name": "Phường Bình Hoà",
+    "provinceId": "29"
+  },
+  {
+    "id": "70134103",
+    "name": "Phường Bình Hưng Hoà",
+    "provinceId": "29"
+  },
+  {
+    "id": "70129106",
+    "name": "Phường Bình Lợi Trung",
+    "provinceId": "29"
+  },
+  {
+    "id": "70111078",
+    "name": "Phường Bình Phú",
+    "provinceId": "29"
+  },
+  {
+    "id": "70129108",
+    "name": "Phường Bình Quới",
+    "provinceId": "29"
+  },
+  {
+    "id": "70134101",
+    "name": "Phường Bình Tân",
+    "provinceId": "29"
+  },
+  {
+    "id": "70111076",
+    "name": "Phường Bình Tây",
+    "provinceId": "29"
+  },
+  {
+    "id": "70129105",
+    "name": "Phường Bình Thạnh",
+    "provinceId": "29"
+  },
+  {
+    "id": "70121091",
+    "name": "Phường Bình Thới",
+    "provinceId": "29"
+  },
+  {
+    "id": "70111077",
+    "name": "Phường Bình Tiên",
+    "provinceId": "29"
+  },
+  {
+    "id": "70134102",
+    "name": "Phường Bình Trị Đông",
+    "provinceId": "29"
+  },
+  {
+    "id": "70145138",
+    "name": "Phường Bình Trưng",
+    "provinceId": "29"
+  },
+  {
+    "id": "70145137",
+    "name": "Phường Cát Lái",
+    "provinceId": "29"
+  },
+  {
+    "id": "70131116",
+    "name": "Phường Cầu Kiệu",
+    "provinceId": "29"
+  },
+  {
+    "id": "70101066",
+    "name": "Phường Cầu Ông Lãnh",
+    "provinceId": "29"
+  },
+  {
+    "id": "71101037",
+    "name": "Phường Chánh Hiệp",
+    "provinceId": "29"
+  },
+  {
+    "id": "70115084",
+    "name": "Phường Chánh Hưng",
+    "provinceId": "29"
+  },
+  {
+    "id": "71115050",
+    "name": "Phường Chánh Phú Hoà",
+    "provinceId": "29"
+  },
+  {
+    "id": "70109075",
+    "name": "Phường Chợ Lớn",
+    "provinceId": "29"
+  },
+  {
+    "id": "70109073",
+    "name": "Phường Chợ Quán",
+    "provinceId": "29"
+  },
+  {
+    "id": "71109029",
+    "name": "Phường Dĩ An",
+    "provinceId": "29"
+  },
+  {
+    "id": "70119087",
+    "name": "Phường Diên Hồng",
+    "provinceId": "29"
+  },
+  {
+    "id": "71109028",
+    "name": "Phường Đông Hoà",
+    "provinceId": "29"
+  },
+  {
+    "id": "70123094",
+    "name": "Phường Đông Hưng Thuận",
+    "provinceId": "29"
+  },
+  {
+    "id": "70131115",
+    "name": "Phường Đức Nhuận",
+    "provinceId": "29"
+  },
+  {
+    "id": "70129104",
+    "name": "Phường Gia Định",
+    "provinceId": "29"
+  },
+  {
+    "id": "70125111",
+    "name": "Phường Gò Vấp",
+    "provinceId": "29"
+  },
+  {
+    "id": "70125109",
+    "name": "Phường Hạnh Thông",
+    "provinceId": "29"
+  },
+  {
+    "id": "70145129",
+    "name": "Phường Hiệp Bình",
+    "provinceId": "29"
+  },
+  {
+    "id": "70121092",
+    "name": "Phường Hoà Bình",
+    "provinceId": "29"
+  },
+  {
+    "id": "70119089",
+    "name": "Phường Hoà Hưng",
+    "provinceId": "29"
+  },
+  {
+    "id": "71103045",
+    "name": "Phường Hoà Lợi",
+    "provinceId": "29"
+  },
+  {
+    "id": "70107071",
+    "name": "Phường Khánh Hội",
+    "provinceId": "29"
+  },
+  {
+    "id": "71107034",
+    "name": "Phường Lái Thiêu",
+    "provinceId": "29"
+  },
+  {
+    "id": "70145132",
+    "name": "Phường Linh Xuân",
+    "provinceId": "29"
+  },
+  {
+    "id": "70145134",
+    "name": "Phường Long Bình",
+    "provinceId": "29"
+  },
+  {
+    "id": "71703006",
+    "name": "Phường Long Hương",
+    "provinceId": "29"
+  },
+  {
+    "id": "71115048",
+    "name": "Phường Long Nguyên",
+    "provinceId": "29"
+  },
+  {
+    "id": "70145135",
+    "name": "Phường Long Phước",
+    "provinceId": "29"
+  },
+  {
+    "id": "70145136",
+    "name": "Phường Long Trường",
+    "provinceId": "29"
+  },
+  {
+    "id": "70121090",
+    "name": "Phường Minh Phụng",
+    "provinceId": "29"
+  },
+  {
+    "id": "70105069",
+    "name": "Phường Nhiêu Lộc",
+    "provinceId": "29"
+  },
+  {
+    "id": "71101046",
+    "name": "Phường Phú An",
+    "provinceId": "29"
+  },
+  {
+    "id": "70115085",
+    "name": "Phường Phú Định",
+    "provinceId": "29"
+  },
+  {
+    "id": "70111079",
+    "name": "Phường Phú Lâm",
+    "provinceId": "29"
+  },
+  {
+    "id": "71101039",
+    "name": "Phường Phú Lợi",
+    "provinceId": "29"
+  },
+  {
+    "id": "71709007",
+    "name": "Phường Phú Mỹ",
+    "provinceId": "29"
+  },
+  {
+    "id": "70131117",
+    "name": "Phường Phú Nhuận",
+    "provinceId": "29"
+  },
+  {
+    "id": "70128128",
+    "name": "Phường Phú Thạnh",
+    "provinceId": "29"
+  },
+  {
+    "id": "70121093",
+    "name": "Phường Phú Thọ",
+    "provinceId": "29"
+  },
+  {
+    "id": "70128126",
+    "name": "Phường Phú Thọ Hoà",
+    "provinceId": "29"
+  },
+  {
+    "id": "70113081",
+    "name": "Phường Phú Thuận",
+    "provinceId": "29"
+  },
+  {
+    "id": "70145139",
+    "name": "Phường Phước Long",
+    "provinceId": "29"
+  },
+  {
+    "id": "71701004",
+    "name": "Phường Phước Thắng",
+    "provinceId": "29"
+  },
+  {
+    "id": "71701003",
+    "name": "Phường Rạch Dừa",
+    "provinceId": "29"
+  },
+  {
+    "id": "70101063",
+    "name": "Phường Sài Gòn",
+    "provinceId": "29"
+  },
+  {
+    "id": "70145131",
+    "name": "Phường Tam Bình",
+    "provinceId": "29"
+  },
+  {
+    "id": "71703008",
+    "name": "Phường Tam Long",
+    "provinceId": "29"
+  },
+  {
+    "id": "71701002",
+    "name": "Phường Tam Thắng",
+    "provinceId": "29"
+  },
+  {
+    "id": "70145133",
+    "name": "Phường Tăng Nhơn Phú",
+    "provinceId": "29"
+  },
+  {
+    "id": "70127122",
+    "name": "Phường Tân Bình",
+    "provinceId": "29"
+  },
+  {
+    "id": "70101064",
+    "name": "Phường Tân Định",
+    "provinceId": "29"
+  },
+  {
+    "id": "71109030",
+    "name": "Phường Tân Đông Hiệp",
+    "provinceId": "29"
+  },
+  {
+    "id": "71709011",
+    "name": "Phường Tân Hải",
+    "provinceId": "29"
+  },
+  {
+    "id": "71105043",
+    "name": "Phường Tân Hiệp",
+    "provinceId": "29"
+  },
+  {
+    "id": "70127120",
+    "name": "Phường Tân Hoà",
+    "provinceId": "29"
+  },
+  {
+    "id": "70113083",
+    "name": "Phường Tân Hưng",
+    "provinceId": "29"
+  },
+  {
+    "id": "71105044",
+    "name": "Phường Tân Khánh",
+    "provinceId": "29"
+  },
+  {
+    "id": "70113082",
+    "name": "Phường Tân Mỹ",
+    "provinceId": "29"
+  },
+  {
+    "id": "70128127",
+    "name": "Phường Tân Phú",
+    "provinceId": "29"
+  },
+  {
+    "id": "71709010",
+    "name": "Phường Tân Phước",
+    "provinceId": "29"
+  },
+  {
+    "id": "70127123",
+    "name": "Phường Tân Sơn",
+    "provinceId": "29"
+  },
+  {
+    "id": "70127118",
+    "name": "Phường Tân Sơn Hoà",
+    "provinceId": "29"
+  },
+  {
+    "id": "70127119",
+    "name": "Phường Tân Sơn Nhất",
+    "provinceId": "29"
+  },
+  {
+    "id": "70128125",
+    "name": "Phường Tân Sơn Nhì",
+    "provinceId": "29"
+  },
+  {
+    "id": "70134100",
+    "name": "Phường Tân Tạo",
+    "provinceId": "29"
+  },
+  {
+    "id": "71709009",
+    "name": "Phường Tân Thành",
+    "provinceId": "29"
+  },
+  {
+    "id": "70123096",
+    "name": "Phường Tân Thới Hiệp",
+    "provinceId": "29"
+  },
+  {
+    "id": "70113080",
+    "name": "Phường Tân Thuận",
+    "provinceId": "29"
+  },
+  {
+    "id": "71105042",
+    "name": "Phường Tân Uyên",
+    "provinceId": "29"
+  },
+  {
+    "id": "71113047",
+    "name": "Phường Tây Nam",
+    "provinceId": "29"
+  },
+  {
+    "id": "70128124",
+    "name": "Phường Tây Thạnh",
+    "provinceId": "29"
+  },
+  {
+    "id": "70129107",
+    "name": "Phường Thạnh Mỹ Tây",
+    "provinceId": "29"
+  },
+  {
+    "id": "70125113",
+    "name": "Phường Thông Tây Hội",
+    "provinceId": "29"
+  },
+  {
+    "id": "70123097",
+    "name": "Phường Thới An",
+    "provinceId": "29"
+  },
+  {
+    "id": "71103167",
+    "name": "Phường Thới Hoà",
+    "provinceId": "29"
+  },
+  {
+    "id": "71101038",
+    "name": "Phường Thủ Dầu Một",
+    "provinceId": "29"
+  },
+  {
+    "id": "70145130",
+    "name": "Phường Thủ Đức",
+    "provinceId": "29"
+  },
+  {
+    "id": "71107031",
+    "name": "Phường Thuận An",
+    "provinceId": "29"
+  },
+  {
+    "id": "71107032",
+    "name": "Phường Thuận Giao",
+    "provinceId": "29"
+  },
+  {
+    "id": "70123095",
+    "name": "Phường Trung Mỹ Tây",
+    "provinceId": "29"
+  },
+  {
+    "id": "70107072",
+    "name": "Phường Vĩnh Hội",
+    "provinceId": "29"
+  },
+  {
+    "id": "71105040",
+    "name": "Phường Vĩnh Tân",
+    "provinceId": "29"
+  },
+  {
+    "id": "71701001",
+    "name": "Phường Vũng Tàu",
+    "provinceId": "29"
+  },
+  {
+    "id": "70119088",
+    "name": "Phường Vườn Lài",
+    "provinceId": "29"
+  },
+  {
+    "id": "70107070",
+    "name": "Phường Xóm Chiếu",
+    "provinceId": "29"
+  },
+  {
+    "id": "70105068",
+    "name": "Phường Xuân Hoà",
+    "provinceId": "29"
+  },
+  {
+    "id": "71111053",
+    "name": "Xã An Long",
+    "provinceId": "29"
+  },
+  {
+    "id": "70135154",
+    "name": "Xã An Nhơn Tây",
+    "provinceId": "29"
+  },
+  {
+    "id": "70143149",
+    "name": "Xã An Thới Đông",
+    "provinceId": "29"
+  },
+  {
+    "id": "70137161",
+    "name": "Xã Bà Điểm",
+    "provinceId": "29"
+  },
+  {
+    "id": "71115058",
+    "name": "Xã Bàu Bàng",
+    "provinceId": "29"
+  },
+  {
+    "id": "71707022",
+    "name": "Xã Bàu Lâm",
+    "provinceId": "29"
+  },
+  {
+    "id": "71117051",
+    "name": "Xã Bắc Tân Uyên",
+    "provinceId": "29"
+  },
+  {
+    "id": "70139145",
+    "name": "Xã Bình Chánh",
+    "provinceId": "29"
+  },
+  {
+    "id": "71707166",
+    "name": "Xã Bình Châu",
+    "provinceId": "29"
+  },
+  {
+    "id": "71705014",
+    "name": "Xã Bình Giã",
+    "provinceId": "29"
+  },
+  {
+    "id": "70139147",
+    "name": "Xã Bình Hưng",
+    "provinceId": "29"
+  },
+  {
+    "id": "70143148",
+    "name": "Xã Bình Khánh",
+    "provinceId": "29"
+  },
+  {
+    "id": "70139143",
+    "name": "Xã Bình Lợi",
+    "provinceId": "29"
+  },
+  {
+    "id": "70135157",
+    "name": "Xã Bình Mỹ",
+    "provinceId": "29"
+  },
+  {
+    "id": "70143150",
+    "name": "Xã Cần Giờ",
+    "provinceId": "29"
+  },
+  {
+    "id": "71705016",
+    "name": "Xã Châu Đức",
+    "provinceId": "29"
+  },
+  {
+    "id": "71709012",
+    "name": "Xã Châu Pha",
+    "provinceId": "29"
+  },
+  {
+    "id": "70135151",
+    "name": "Xã Củ Chi",
+    "provinceId": "29"
+  },
+  {
+    "id": "71113061",
+    "name": "Xã Dầu Tiếng",
+    "provinceId": "29"
+  },
+  {
+    "id": "71712025",
+    "name": "Xã Đất Đỏ",
+    "provinceId": "29"
+  },
+  {
+    "id": "70137158",
+    "name": "Xã Đông Thạnh",
+    "provinceId": "29"
+  },
+  {
+    "id": "70141163",
+    "name": "Xã Hiệp Phước",
+    "provinceId": "29"
+  },
+  {
+    "id": "71707165",
+    "name": "Xã Hòa Hiệp",
+    "provinceId": "29"
+  },
+  {
+    "id": "71707021",
+    "name": "Xã Hòa Hội",
+    "provinceId": "29"
+  },
+  {
+    "id": "70137159",
+    "name": "Xã Hóc Môn",
+    "provinceId": "29"
+  },
+  {
+    "id": "71707019",
+    "name": "Xã Hồ Tràm",
+    "provinceId": "29"
+  },
+  {
+    "id": "70139146",
+    "name": "Xã Hưng Long",
+    "provinceId": "29"
+  },
+  {
+    "id": "71705015",
+    "name": "Xã Kim Long",
+    "provinceId": "29"
+  },
+  {
+    "id": "71712026",
+    "name": "Xã Long Điền",
+    "provinceId": "29"
+  },
+  {
+    "id": "71712024",
+    "name": "Xã Long Hải",
+    "provinceId": "29"
+  },
+  {
+    "id": "71113060",
+    "name": "Xã Long Hoà",
+    "provinceId": "29"
+  },
+  {
+    "id": "71701164",
+    "name": "Xã Long Sơn",
+    "provinceId": "29"
+  },
+  {
+    "id": "71113059",
+    "name": "Xã Minh Thạnh",
+    "provinceId": "29"
+  },
+  {
+    "id": "71705013",
+    "name": "Xã Ngãi Giao",
+    "provinceId": "29"
+  },
+  {
+    "id": "71705018",
+    "name": "Xã Nghĩa Thành",
+    "provinceId": "29"
+  },
+  {
+    "id": "70141162",
+    "name": "Xã Nhà Bè",
+    "provinceId": "29"
+  },
+  {
+    "id": "70135155",
+    "name": "Xã Nhuận Đức",
+    "provinceId": "29"
+  },
+  {
+    "id": "71111056",
+    "name": "Xã Phú Giáo",
+    "provinceId": "29"
+  },
+  {
+    "id": "70135156",
+    "name": "Xã Phú Hoà Đông",
+    "provinceId": "29"
+  },
+  {
+    "id": "71712023",
+    "name": "Xã Phước Hải",
+    "provinceId": "29"
+  },
+  {
+    "id": "71111055",
+    "name": "Xã Phước Hoà",
+    "provinceId": "29"
+  },
+  {
+    "id": "71111054",
+    "name": "Xã Phước Thành",
+    "provinceId": "29"
+  },
+  {
+    "id": "70135152",
+    "name": "Xã Tân An Hội",
+    "provinceId": "29"
+  },
+  {
+    "id": "70139144",
+    "name": "Xã Tân Nhựt",
+    "provinceId": "29"
+  },
+  {
+    "id": "70139142",
+    "name": "Xã Tân Vĩnh Lộc",
+    "provinceId": "29"
+  },
+  {
+    "id": "70135153",
+    "name": "Xã Thái Mỹ",
+    "provinceId": "29"
+  },
+  {
+    "id": "70143168",
+    "name": "Xã Thạnh An",
+    "provinceId": "29"
+  },
+  {
+    "id": "71113062",
+    "name": "Xã Thanh An",
+    "provinceId": "29"
+  },
+  {
+    "id": "71117052",
+    "name": "Xã Thường Tân",
+    "provinceId": "29"
+  },
+  {
+    "id": "71115057",
+    "name": "Xã Trừ Văn Thố",
+    "provinceId": "29"
+  },
+  {
+    "id": "70139141",
+    "name": "Xã Vĩnh Lộc",
+    "provinceId": "29"
+  },
+  {
+    "id": "71705017",
+    "name": "Xã Xuân Sơn",
+    "provinceId": "29"
+  },
+  {
+    "id": "70137160",
+    "name": "Xã Xuân Thới Sơn",
+    "provinceId": "29"
+  },
+  {
+    "id": "71707020",
+    "name": "Xã Xuyên Mộc",
+    "provinceId": "29"
+  }
+]

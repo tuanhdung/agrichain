@@ -1,0 +1,272 @@
+[
+  {
+    "id": "22523053",
+    "name": "Đặc khu Cô Tô",
+    "provinceId": "03"
+  },
+  {
+    "id": "22517052",
+    "name": "Đặc khu Vân Đồn",
+    "provinceId": "03"
+  },
+  {
+    "id": "22521001",
+    "name": "Phường An Sinh",
+    "provinceId": "03"
+  },
+  {
+    "id": "22501017",
+    "name": "Phường Bãi Cháy",
+    "provinceId": "03"
+  },
+  {
+    "id": "22521003",
+    "name": "Phường Bình Khê",
+    "provinceId": "03"
+  },
+  {
+    "id": "22501020",
+    "name": "Phường Cao Xanh",
+    "provinceId": "03"
+  },
+  {
+    "id": "22503028",
+    "name": "Phường Cẩm Phả",
+    "provinceId": "03"
+  },
+  {
+    "id": "22503029",
+    "name": "Phường Cửa Ông",
+    "provinceId": "03"
+  },
+  {
+    "id": "22525009",
+    "name": "Phường Đông Mai",
+    "provinceId": "03"
+  },
+  {
+    "id": "22521002",
+    "name": "Phường Đông Triều",
+    "provinceId": "03"
+  },
+  {
+    "id": "22525012",
+    "name": "Phường Hà An",
+    "provinceId": "03"
+  },
+  {
+    "id": "22501019",
+    "name": "Phường Hà Lầm",
+    "provinceId": "03"
+  },
+  {
+    "id": "22501022",
+    "name": "Phường Hạ Long",
+    "provinceId": "03"
+  },
+  {
+    "id": "22501018",
+    "name": "Phường Hà Tu",
+    "provinceId": "03"
+  },
+  {
+    "id": "22525010",
+    "name": "Phường Hiệp Hoà",
+    "provinceId": "03"
+  },
+  {
+    "id": "22521005",
+    "name": "Phường Hoàng Quế",
+    "provinceId": "03"
+  },
+  {
+    "id": "22501023",
+    "name": "Phường Hoành Bồ",
+    "provinceId": "03"
+  },
+  {
+    "id": "22501021",
+    "name": "Phường Hồng Gai",
+    "provinceId": "03"
+  },
+  {
+    "id": "22525014",
+    "name": "Phường Liên Hoà",
+    "provinceId": "03"
+  },
+  {
+    "id": "22521004",
+    "name": "Phường Mạo Khê",
+    "provinceId": "03"
+  },
+  {
+    "id": "22509049",
+    "name": "Phường Móng Cái 1",
+    "provinceId": "03"
+  },
+  {
+    "id": "22509050",
+    "name": "Phường Móng Cái 2",
+    "provinceId": "03"
+  },
+  {
+    "id": "22509051",
+    "name": "Phường Móng Cái 3",
+    "provinceId": "03"
+  },
+  {
+    "id": "22503026",
+    "name": "Phường Mông Dương",
+    "provinceId": "03"
+  },
+  {
+    "id": "22525013",
+    "name": "Phường Phong Cốc",
+    "provinceId": "03"
+  },
+  {
+    "id": "22503027",
+    "name": "Phường Quang Hanh",
+    "provinceId": "03"
+  },
+  {
+    "id": "22525011",
+    "name": "Phường Quảng Yên",
+    "provinceId": "03"
+  },
+  {
+    "id": "22501015",
+    "name": "Phường Tuần Châu",
+    "provinceId": "03"
+  },
+  {
+    "id": "22505008",
+    "name": "Phường Uông Bí",
+    "provinceId": "03"
+  },
+  {
+    "id": "22505007",
+    "name": "Phường Vàng Danh",
+    "provinceId": "03"
+  },
+  {
+    "id": "22501016",
+    "name": "Phường Việt Hưng",
+    "provinceId": "03"
+  },
+  {
+    "id": "22505006",
+    "name": "Phường Yên Tử",
+    "provinceId": "03"
+  },
+  {
+    "id": "22515037",
+    "name": "Xã Ba Chẽ",
+    "provinceId": "03"
+  },
+  {
+    "id": "22507045",
+    "name": "Xã Bình Liêu",
+    "provinceId": "03"
+  },
+  {
+    "id": "22511054",
+    "name": "Xã Cái Chiên",
+    "provinceId": "03"
+  },
+  {
+    "id": "22527039",
+    "name": "Xã Đầm Hà",
+    "provinceId": "03"
+  },
+  {
+    "id": "22513032",
+    "name": "Xã Điền Xá",
+    "provinceId": "03"
+  },
+  {
+    "id": "22513033",
+    "name": "Xã Đông Ngũ",
+    "provinceId": "03"
+  },
+  {
+    "id": "22511041",
+    "name": "Xã Đường Hoa",
+    "provinceId": "03"
+  },
+  {
+    "id": "22503030",
+    "name": "Xã Hải Hoà",
+    "provinceId": "03"
+  },
+  {
+    "id": "22513034",
+    "name": "Xã Hải Lạng",
+    "provinceId": "03"
+  },
+  {
+    "id": "22509047",
+    "name": "Xã Hải Ninh",
+    "provinceId": "03"
+  },
+  {
+    "id": "22509046",
+    "name": "Xã Hải Sơn",
+    "provinceId": "03"
+  },
+  {
+    "id": "22507043",
+    "name": "Xã Hoành Mô",
+    "provinceId": "03"
+  },
+  {
+    "id": "22515036",
+    "name": "Xã Kỳ Thượng",
+    "provinceId": "03"
+  },
+  {
+    "id": "22507044",
+    "name": "Xã Lục Hồn",
+    "provinceId": "03"
+  },
+  {
+    "id": "22501035",
+    "name": "Xã Lương Minh",
+    "provinceId": "03"
+  },
+  {
+    "id": "22511042",
+    "name": "Xã Quảng Đức",
+    "provinceId": "03"
+  },
+  {
+    "id": "22511040",
+    "name": "Xã Quảng Hà",
+    "provinceId": "03"
+  },
+  {
+    "id": "22501024",
+    "name": "Xã Quảng La",
+    "provinceId": "03"
+  },
+  {
+    "id": "22527038",
+    "name": "Xã Quảng Tân",
+    "provinceId": "03"
+  },
+  {
+    "id": "22501025",
+    "name": "Xã Thống Nhất",
+    "provinceId": "03"
+  },
+  {
+    "id": "22513031",
+    "name": "Xã Tiên Yên",
+    "provinceId": "03"
+  },
+  {
+    "id": "22509048",
+    "name": "Xã Vĩnh Thực",
+    "provinceId": "03"
+  }
+]
