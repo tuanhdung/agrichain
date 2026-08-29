@@ -1401,6 +1401,16 @@
     });
   }
 
+  // Gợi ý mã lô hàng tiếp theo của CHÍNH mùa vụ đang xem — dạng
+  // <mã nông trại>-<mã mùa vụ>-001, ví dụ NV01-MV02-001. Chỉ gợi ý, sửa
+  // được, giống suggestSeasonCode()/store.nextFarmCode().
+  function suggestBatchCode() {
+    if (!currentFarm || !currentViewedSeason) return '';
+    var seq = String(batchesOfSeason(currentViewedSeason.id).length + 1);
+    while (seq.length < 3) seq = '0' + seq;
+    return currentFarm.code + '-' + currentViewedSeason.code + '-' + seq;
+  }
+
   function openBatchModal(batch) {
     batchForm.reset();
     clearErrors(batchForm);
@@ -1423,7 +1433,7 @@
     } else {
       batchModalTitle.textContent = 'Thêm lô hàng mới';
       batchSubmitLabel.textContent = 'Xác nhận';
-      document.getElementById('batch-code').value = store.nextBatchCode();
+      document.getElementById('batch-code').value = suggestBatchCode();
       batchUnitSelect.value = BATCH_UNITS[0];
       batchStatusSelect.value = BATCH_STATUSES[0].key;
     }
@@ -1441,6 +1451,11 @@
     clearErrors(batchForm);
     var problems = [];
     var code = document.getElementById('batch-code');
+    var startDate = document.getElementById('batch-start-date');
+    var area = document.getElementById('batch-area');
+    var harvestDate = document.getElementById('batch-harvest-date');
+    var actualHarvestDate = document.getElementById('batch-actual-harvest-date');
+    var expectedYield = document.getElementById('batch-expected-yield');
 
     if (!code.value.trim()) {
       showError(code, 'Nhập mã lô hàng.');
@@ -1454,6 +1469,27 @@
         showError(code, 'Mã này đã dùng cho lô hàng khác của mùa vụ.');
         problems.push(code);
       }
+    }
+
+    if (!startDate.value) {
+      showError(startDate, 'Chọn ngày bắt đầu.');
+      problems.push(startDate);
+    }
+    if (!area.value.trim()) {
+      showError(area, 'Nhập diện tích.');
+      problems.push(area);
+    }
+    if (!harvestDate.value) {
+      showError(harvestDate, 'Chọn ngày thu hoạch dự kiến.');
+      problems.push(harvestDate);
+    }
+    if (!actualHarvestDate.value) {
+      showError(actualHarvestDate, 'Chọn ngày thu hoạch thực tế.');
+      problems.push(actualHarvestDate);
+    }
+    if (!expectedYield.value.trim()) {
+      showError(expectedYield, 'Nhập sản lượng dự kiến.');
+      problems.push(expectedYield);
     }
 
     if (problems.length) {

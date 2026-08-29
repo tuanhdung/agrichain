@@ -968,35 +968,35 @@
 
           <div class="field">
             <label class="label" for="batch-start-date">Ngày bắt đầu</label>
-            <input class="input" type="date" id="batch-start-date" name="startDate" />
+            <input class="input" type="date" id="batch-start-date" name="startDate" required />
           </div>
 
           <div class="field">
             <label class="label" for="batch-area">Diện tích</label>
             <div class="input-affix">
-              <input class="input" type="number" id="batch-area" name="area" min="0" step="0.01" />
+              <input class="input" type="number" id="batch-area" name="area" min="0" step="0.01" value="0" required />
               <span class="input-affix__unit">ha</span>
             </div>
           </div>
 
           <div class="field">
             <label class="label" for="batch-harvest-date">Ngày thu hoạch (dự kiến)</label>
-            <input class="input" type="date" id="batch-harvest-date" name="harvestDate" />
+            <input class="input" type="date" id="batch-harvest-date" name="harvestDate" required />
           </div>
 
           <div class="field">
             <label class="label" for="batch-actual-harvest-date">Ngày thu hoạch thực tế</label>
-            <input class="input" type="date" id="batch-actual-harvest-date" name="actualHarvestDate" />
+            <input class="input" type="date" id="batch-actual-harvest-date" name="actualHarvestDate" required />
           </div>
 
           <div class="field">
             <label class="label" for="batch-expected-yield">Sản lượng dự kiến</label>
-            <input class="input" type="number" id="batch-expected-yield" name="expectedYield" min="0" step="0.01" />
+            <input class="input" type="number" id="batch-expected-yield" name="expectedYield" min="0" step="0.01" value="0" required />
           </div>
 
           <div class="field">
             <label class="label" for="batch-unit">Đơn vị</label>
-            <select class="select" id="batch-unit" name="unit"></select>
+            <select class="select" id="batch-unit" name="unit" required></select>
           </div>
 
           <div class="field">
@@ -1065,6 +1065,6 @@
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=4" defer></script>
   <script src="js/app-shell.js?v=6" defer></script>
-  <script src="js/nong-trai-chi-tiet.js?v=11" defer></script>
+  <script src="js/nong-trai-chi-tiet.js?v=12" defer></script>
 </body>
 </html>
