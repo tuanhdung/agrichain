@@ -30,8 +30,8 @@ js/
   contact-form.js        # Validate + hiện thông báo thành công cho form ở section Liên Hệ
   chain.js               # Sổ cái băm nối chuỗi (hash chain) bằng Web Crypto API — chạy trong trình duyệt
   store.js               # Lớp lưu trữ qua localStorage (users, farms, supplies, batches, events, ledger,
-                          # orgUsers, phiên đăng nhập) — mọi trang đọc/ghi dữ liệu qua đây, không gọi
-                          # thẳng localStorage
+                          # orgUsers, shops, phiên đăng nhập) — mọi trang đọc/ghi dữ liệu qua đây, không
+                          # gọi thẳng localStorage
   password-field.js      # Nút hiện/ẩn mật khẩu (data-password-toggle) + danh sách điều kiện mật khẩu
                           # (data-password-rules="<id ô mật khẩu>") dùng chung — tách từ js/auth.js để
                           # js/tai-khoan.js dùng lại được, không chép lại 2 hàm này.
@@ -55,6 +55,9 @@ js/
                           # thêm người dùng + modal phân quyền theo phân hệ)
   truy-xuat.js            # Logic riêng cho truy-xuat.html (trang truy xuất công khai — KHÔNG nạp
                           # js/app-shell.js, trang này không cần đăng nhập)
+  thuong-mai-tong-quan.js  # Logic riêng cho thuong-mai-tong-quan.html (khởi tạo/chỉnh sửa hồ sơ
+                           # cửa hàng Ecommerce — collection "shops", 1 bản ghi/Đơn vị, khoá bằng
+                           # ownerId = session.id hiện tại)
 icons/
   sprite.svg              # SVG sprite dùng chung, tham chiếu bằng <use href="icons/sprite.svg#icon-...">
 index.html                # Trang chủ thật của AgriChain
@@ -78,8 +81,10 @@ goi-phan-mem.html         # Trang tạm "Đang phát triển" — mục "Gói Ph
                           # "Quản lý Đơn vị", chưa có nghiệp vụ thật
 lich-su-mua-goi.html      # Trang tạm "Đang phát triển" — mục "Lịch sử mua Gói" trong nhóm sidebar
                           # "Quản lý Đơn vị", chưa có nghiệp vụ thật
-thuong-mai-tong-quan.html    # Trang tạm "Đang phát triển" — mục "Tổng quan" trong nhóm sidebar
-                             # "Thương mại điện tử" (7 mục, tất cả đều tạm), chưa có nghiệp vụ thật
+thuong-mai-tong-quan.html    # Mục "Tổng quan" trong nhóm sidebar "Thương mại điện tử" — trang duy
+                             # nhất trong nhóm đã có nghiệp vụ thật: khởi tạo/xem/sửa hồ sơ cửa hàng
+                             # Ecommerce của Đơn vị (modal 4 tab, xem js/thuong-mai-tong-quan.js).
+                             # 6 mục còn lại trong nhóm vẫn là trang tạm "Đang phát triển".
 thuong-mai-san-pham.html     # Trang tạm "Đang phát triển" — mục "Sản phẩm"
 thuong-mai-don-hang.html     # Trang tạm "Đang phát triển" — mục "Đơn hàng"
 thuong-mai-van-chuyen.html   # Trang tạm "Đang phát triển" — mục "Vận chuyển"
@@ -258,6 +263,36 @@ Trang truy xuất nguồn gốc (`truy-xuat.html`) đã có ở mức cơ bản:
 (hoặc `?ma=...` trực tiếp), thấy trạng thái xác thực blockchain + thông tin nông trại/mùa
 vụ liên quan. Chưa có: liệt kê nhiều lô hàng, tìm kiếm theo mã tự nhập tay trên trang, xác
 thực lại (verify) hash ngay tại trang này thay vì chỉ đọc `batch.hash` đã lưu sẵn.
+
+## Thương mại điện tử — hồ sơ cửa hàng (`thuong-mai-tong-quan.html`)
+
+Collection `shops` (`store.js`) chỉ có **1 bản ghi cho mỗi Đơn vị đăng nhập**, khoá bằng
+`ownerId = session.id` (không phải id tổ chức thật — dự án chưa có khái niệm đó). Trang tự
+lọc `store.list('shops')` để tìm bản ghi khớp `ownerId`, không có hàm riêng trong `store.js`
+cho việc này (theo đúng quy ước: `store.js` chỉ generic insert/update/list, lọc theo nghiệp
+vụ nằm ở JS riêng của trang, giống cách `lo-hang.js` tự lọc `batches` theo farm/season).
+
+Modal "Khởi tạo/Chỉnh sửa cửa hàng" chia 4 tab (Tổng quan, Liên hệ & Social, Địa chỉ & Pháp
+lý, Vận hành & Chính sách) — các trường bắt buộc nằm rải trên nhiều tab khác nhau, nên
+`validate()` trong `js/thuong-mai-tong-quan.js` phải tự nhảy đúng tab (`tabOf(field)` +
+`activateTab()` gọi `.click()` lên đúng nút tab) trước khi `.focus()` field lỗi đầu tiên —
+`.focus()` trên field nằm trong tab đang ẩn (`hidden`) sẽ không có tác dụng.
+
+Logo/banner cửa hàng đọc qua `FileReader` thành base64 (`dataUrl`), lưu thẳng trong bản ghi
+`shops` — cùng cơ chế với ảnh minh hoạ nhật ký mùa vụ (`js/nong-trai-chi-tiet.js`), không có
+backend upload thật.
+
+Địa chỉ kinh doanh dùng lại đúng cơ chế Tỉnh/Thành phố → Phường/Xã của `nong-trai.html`
+(`data/provinces.json` + `data/wards/{code}.json` qua `AgriChain.setupCascadingSelect()`) —
+`js/thuong-mai-tong-quan.js` tự chép lại 2 hàm `loadProvinces()`/`loadWards()` nhỏ thay vì
+import từ `nong-trai.js`, đúng quy ước "mỗi trang tự chứa JS riêng" của dự án.
+
+"Phương thức thanh toán/vận chuyển hỗ trợ" là nhóm chip chọn nhiều (bấm để bật/tắt
+`aria-pressed`) và công tắc "Cho phép miễn phí vận chuyển"/"Cho phép thanh toán COD" là
+toggle switch tự dựng bằng `<input type="checkbox">` ẩn + `<span>` — cả 2 kiểu control này
+(`.chip`/`.chip-group`, `.switch`) hiện chỉ dùng ở trang này nên để trong `<style>` riêng của
+`thuong-mai-tong-quan.html`, chưa đưa vào `components.css`; nếu trang khác cần dùng lại thì
+mới tách ra theo đúng quy ước "component dùng lại nhiều nơi".
 
 ## Dữ liệu hành chính (tỉnh/thành, phường/xã)
 

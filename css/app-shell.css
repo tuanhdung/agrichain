@@ -677,6 +677,14 @@
   color: var(--color-info);
   flex-shrink: 0;
 }
+.notice--warning {
+  background: var(--color-warning-subtle);
+  color: var(--color-warning);
+}
+.notice--warning .icon {
+  color: var(--color-warning);
+  flex-shrink: 0;
+}
 
 /* --- Toast (xác nhận sau khi lưu) ----------------------------------------
    Đặt ở góc dưới phải, tự ẩn. Dùng aria-live để trình đọc màn hình đọc lên
