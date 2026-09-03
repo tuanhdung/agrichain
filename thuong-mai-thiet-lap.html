@@ -16,6 +16,43 @@
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/app-shell.css" />
+
+  <style>
+    /* CSS chỉ dùng riêng cho trang Thiết lập Shop, không phải component tái
+       sử dụng nên để tại đây theo quy ước dự án. */
+
+    /* --- Bố cục 3 cột: Thông tin thương hiệu / Pháp lý & Liên hệ / Vận hành */
+    .shop-settings-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-6);
+      align-items: start;
+    }
+    @media (min-width: 960px) {
+      .shop-settings-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .settings-section__title {
+      padding-left: var(--space-3);
+      margin-bottom: var(--space-6);
+      border-left: 3px solid var(--color-primary);
+      font-size: var(--text-lg);
+      font-weight: 700;
+      color: var(--color-primary);
+    }
+
+    .settings-upload-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-4);
+      margin-bottom: var(--space-5);
+    }
+    .settings-upload-row .upload-box {
+      min-height: var(--space-20);
+    }
+  </style>
 </head>
 <body class="app-shell">
 
@@ -193,18 +230,142 @@
           <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-settings"></use></svg>
         </div>
         <div class="page-header__text">
-          <h1 class="page-header__title">Thiết lập Shop</h1>
-          <p class="page-header__meta">Cấu hình thông tin gian hàng của bạn.</p>
+          <h1 class="page-header__title">Hồ sơ cửa hàng</h1>
+          <p class="page-header__meta">Quản lý thông tin thương hiệu và vận hành cửa hàng của bạn trên AgriChain.</p>
         </div>
       </div>
 
-      <div class="empty-state">
-        <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-settings"></use></svg>
-        <p class="empty-state__title">Đang phát triển</p>
-        <p class="empty-state__desc">
-          Tính năng này chưa sẵn sàng. Quay lại sau nhé.
-        </p>
-      </div>
+      <form id="shop-settings-form" novalidate>
+        <div class="shop-settings-grid">
+
+          <!-- Thông tin thương hiệu -->
+          <section class="form-section">
+            <h2 class="settings-section__title">Thông tin thương hiệu</h2>
+
+            <div class="settings-upload-row">
+              <div class="field">
+                <label class="label" for="settings-logo-input">Logo cửa hàng</label>
+                <label class="upload-box" for="settings-logo-input">
+                  <svg class="icon"><use href="icons/sprite.svg#icon-camera"></use></svg>
+                  <span class="upload-box__hint">Logo</span>
+                  <img class="upload-box__preview" data-settings-logo-preview alt="" hidden />
+                  <input type="file" id="settings-logo-input" accept="image/*" />
+                </label>
+              </div>
+              <div class="field">
+                <label class="label" for="settings-banner-input">Ảnh bìa (Banner)</label>
+                <label class="upload-box" for="settings-banner-input">
+                  <svg class="icon"><use href="icons/sprite.svg#icon-camera"></use></svg>
+                  <span class="upload-box__hint">Banner</span>
+                  <img class="upload-box__preview" data-settings-banner-preview alt="" hidden />
+                  <input type="file" id="settings-banner-input" accept="image/*" />
+                </label>
+              </div>
+            </div>
+
+            <div class="field" style="margin-bottom: var(--space-5);">
+              <label class="label" for="settings-name">Tên cửa hàng</label>
+              <input class="input" type="text" id="settings-name" name="name" placeholder="Nhập tên cửa hàng của bạn" required />
+            </div>
+
+            <div class="field" style="margin-bottom: var(--space-5);">
+              <label class="label" for="settings-slogan">Slogan</label>
+              <input class="input" type="text" id="settings-slogan" name="slogan" placeholder="Khẩu hiệu thương hiệu" />
+            </div>
+
+            <div class="field">
+              <label class="label" for="settings-description">Mô tả cửa hàng</label>
+              <textarea class="textarea" id="settings-description" name="description" placeholder="Giới thiệu về cửa hàng của bạn..."></textarea>
+            </div>
+          </section>
+
+          <!-- Thông tin pháp lý & Liên hệ -->
+          <section class="form-section">
+            <h2 class="settings-section__title">Thông tin pháp lý &amp; Liên hệ</h2>
+
+            <div class="field" style="margin-bottom: var(--space-5);">
+              <label class="label" for="settings-owner-name">Chủ sở hữu</label>
+              <input class="input" type="text" id="settings-owner-name" name="ownerName" required />
+            </div>
+
+            <div class="field" style="margin-bottom: var(--space-5);">
+              <label class="label" for="settings-owner-phone">Số điện thoại chủ shop</label>
+              <input class="input" type="tel" id="settings-owner-phone" name="ownerPhone" required />
+            </div>
+
+            <div class="field" style="margin-bottom: var(--space-5);">
+              <label class="label" for="settings-owner-email">Email chủ shop</label>
+              <input class="input" type="email" id="settings-owner-email" name="ownerEmail" required />
+            </div>
+
+            <div class="field" style="margin-bottom: var(--space-5);">
+              <label class="label" for="settings-tax-code">Mã số thuế</label>
+              <input class="input" type="text" id="settings-tax-code" name="taxCode" />
+            </div>
+
+            <div class="field" style="margin-bottom: var(--space-5);">
+              <label class="label" for="settings-business-license">Số ĐKKD</label>
+              <input class="input" type="text" id="settings-business-license" name="businessLicense" />
+            </div>
+
+            <div class="field" style="margin-bottom: var(--space-5);">
+              <label class="label" for="settings-province">Tỉnh/Thành phố</label>
+              <select class="select" id="settings-province" name="province" required>
+                <option value="">Chọn tỉnh/thành phố</option>
+              </select>
+            </div>
+
+            <div class="field" style="margin-bottom: var(--space-5);">
+              <label class="label" for="settings-ward">Phường/Xã</label>
+              <select class="select" id="settings-ward" name="ward" required disabled>
+                <option value="">Chọn phường/xã</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label class="label" for="settings-address">Địa chỉ chi tiết (Số nhà, tên đường)</label>
+              <input class="input" type="text" id="settings-address" name="address" placeholder="Ví dụ: 123 Đường ABC..." required />
+            </div>
+          </section>
+
+          <!-- Vận hành & Chính sách -->
+          <section class="form-section">
+            <h2 class="settings-section__title">Vận hành &amp; Chính sách</h2>
+
+            <div class="field" style="margin-bottom: var(--space-5);">
+              <label class="label" for="settings-working-hours">Giờ mở cửa</label>
+              <input class="input" type="text" id="settings-working-hours" name="workingHours" />
+            </div>
+
+            <div class="field" style="margin-bottom: var(--space-5);">
+              <label class="label" for="settings-working-days">Ngày làm việc</label>
+              <input class="input" type="text" id="settings-working-days" name="workingDays" />
+            </div>
+
+            <div class="field" style="margin-bottom: var(--space-5);">
+              <label class="label" for="settings-shipping-policy">Chính sách vận chuyển</label>
+              <textarea class="textarea" id="settings-shipping-policy" name="shippingPolicy"></textarea>
+            </div>
+
+            <div class="field" style="margin-bottom: var(--space-5);">
+              <label class="label" for="settings-return-policy">Chính sách đổi trả</label>
+              <textarea class="textarea" id="settings-return-policy" name="returnPolicy"></textarea>
+            </div>
+
+            <div class="field">
+              <label class="label" for="settings-warranty-policy">Chính sách bảo hành</label>
+              <textarea class="textarea" id="settings-warranty-policy" name="warrantyPolicy"></textarea>
+            </div>
+          </section>
+
+        </div>
+
+        <div style="margin-top: var(--space-6);">
+          <button type="submit" class="btn btn--primary btn--lg" data-shop-settings-submit>
+            Tạo cửa hàng mới
+          </button>
+        </div>
+      </form>
 
     </div>
   </main>
@@ -218,5 +379,7 @@
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=10" defer></script>
   <script src="js/app-shell.js?v=6" defer></script>
+  <script src="js/location-select.js?v=1" defer></script>
+  <script src="js/thuong-mai-thiet-lap.js?v=1" defer></script>
 </body>
 </html>

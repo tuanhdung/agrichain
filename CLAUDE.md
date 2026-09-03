@@ -76,6 +76,10 @@ js/
                                # thêm vào giỏ, "Thanh toán" trừ tồn kho + ghi 1 đơn hàng MỚI vào
                                # collection "orders" — nơi DUY NHẤT trong app tạo dữ liệu orders
                                # thật, xem mục riêng bên dưới)
+  thuong-mai-thiet-lap.js  # Logic riêng cho thuong-mai-thiet-lap.html (hồ sơ cửa hàng dạng đầy đủ
+                           # trên 1 trang, 3 cột — đọc/ghi CÙNG bản ghi "shops" như modal ở
+                           # thuong-mai-tong-quan.html, chỉ khác tập field quản lý, xem mục riêng
+                           # bên dưới)
 icons/
   sprite.svg              # SVG sprite dùng chung, tham chiếu bằng <use href="icons/sprite.svg#icon-...">
 index.html                # Trang chủ thật của AgriChain
@@ -101,9 +105,8 @@ lich-su-mua-goi.html      # Trang tạm "Đang phát triển" — mục "Lịch 
                           # "Quản lý Đơn vị", chưa có nghiệp vụ thật
 thuong-mai-tong-quan.html    # Mục "Tổng quan" trong nhóm sidebar "Thương mại điện tử" — khởi tạo/
                              # xem/sửa hồ sơ cửa hàng Ecommerce của Đơn vị (modal 4 tab, xem
-                             # js/thuong-mai-tong-quan.js). Chỉ còn "Thiết lập Shop" là trang tạm
-                             # "Đang phát triển" — 6 mục còn lại (kể cả trang này) đã có nghiệp vụ
-                             # thật, xem mô tả riêng từng trang bên dưới.
+                             # js/thuong-mai-tong-quan.js). Cả 7 mục trong nhóm này đều đã có
+                             # nghiệp vụ thật — xem mô tả riêng từng trang bên dưới.
 thuong-mai-san-pham.html     # Mục "Sản phẩm" trong nhóm sidebar "Thương mại điện tử" — đã có nghiệp
                              # vụ thật: danh sách/lọc/tìm kiếm + thêm/sửa/xoá sản phẩm, mỗi sản phẩm
                              # nhiều biến thể có thể gắn lô hàng thật (xem js/thuong-mai-san-pham.js)
@@ -117,6 +120,9 @@ thuong-mai-nhap-hang.html    # Mục "Nhập hàng" trong nhóm sidebar "Thươn
 thuong-mai-may-tinh-tien.html # Mục "Máy tính tiền (POS)" trong nhóm sidebar "Thương mại điện tử" —
                               # bán tại quầy bằng barcode, "Thanh toán" tạo đơn hàng thật (xem
                               # js/thuong-mai-may-tinh-tien.js)
+thuong-mai-thiet-lap.html    # Mục "Thiết lập Shop" trong nhóm sidebar "Thương mại điện tử" — hồ sơ
+                             # cửa hàng dạng trang đầy đủ (3 cột), cùng bản ghi "shops" với modal ở
+                             # thuong-mai-tong-quan.html (xem js/thuong-mai-thiet-lap.js)
 thuong-mai-nhap-hang.html    # Trang tạm "Đang phát triển" — mục "Nhập hàng"
 thuong-mai-may-tinh-tien.html # Trang tạm "Đang phát triển" — mục "Máy tính tiền (POS)"
 thuong-mai-thiet-lap.html    # Trang tạm "Đang phát triển" — mục "Thiết lập Shop"
@@ -429,6 +435,24 @@ người dùng báo). Cách đúng: chỉ cập nhật `textContent` của đún
 gọi `updateTotals()` (chỉ tính lại số, không đụng DOM danh sách) — xem `cartRow()` trong
 `js/thuong-mai-may-tinh-tien.js`. Nếu sau này sửa lại bảng nào có input inline tương tự
 (số lượng, giá...), nhớ tránh đúng lỗi này.
+
+`thuong-mai-thiet-lap.html` ("Hồ sơ cửa hàng") và modal "Khởi tạo cửa hàng" ở
+`thuong-mai-tong-quan.html` đọc/ghi **CÙNG MỘT bản ghi** trong collection `shops` (cùng lọc
+theo `ownerId = session.id`) — không phải 2 khái niệm khác nhau. Trang Thiết lập Shop chỉ hiển
+thị/quản lý 1 tập con field (thương hiệu, pháp lý, chủ shop, địa chỉ, giờ mở cửa/ngày làm
+việc, 3 chính sách) — các field còn lại của `shops` (liên hệ khách hàng, website, mạng xã hội,
+cấu hình bán hàng/vận chuyển, phương thức thanh toán) vẫn chỉ sửa được qua modal ở Tổng quan.
+`store.update()` chỉ ghi đè đúng field trong `payload` truyền vào (merge nông theo từng key,
+xem `update()` trong `js/store.js`) nên 2 trang không đụng dữ liệu của nhau dù cùng sửa 1 bản
+ghi. Tạo cửa hàng mới từ trang nào cũng khiến trang kia thấy ngay bản ghi đó (không cần đồng
+bộ gì thêm, cùng đọc thẳng từ `store.list('shops')`) — VD tạo từ Thiết lập Shop xong thì Tổng
+quan tự chuyển sang trạng thái "đã khởi tạo" ở lần tải trang kế tiếp.
+
+Trang JS trùng lặp gần như toàn bộ cơ chế province/ward cascading + đọc ảnh qua `FileReader`
+với `js/thuong-mai-tong-quan.js` (đúng quy ước "mỗi trang tự chứa JS riêng", không import lẫn
+nhau) — 2 field "Giờ mở cửa"/"Ngày làm việc" có giá trị mặc định gợi ý (`'08:00 - 18:00'`,
+`'Thứ 2 - Thứ 7'`) khi CHƯA có cửa hàng, khớp giao diện tham khảo (2 field này hiện chữ đen
+chứ không phải placeholder xám như các field khác).
 
 ## Dữ liệu hành chính (tỉnh/thành, phường/xã)
 
