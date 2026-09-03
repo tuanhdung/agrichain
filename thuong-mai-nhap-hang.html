@@ -16,6 +16,88 @@
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/app-shell.css" />
+
+  <style>
+    /* CSS chỉ dùng riêng cho trang Nhập hàng Thương mại điện tử, không phải
+       component tái sử dụng nên để tại đây theo quy ước dự án. */
+
+    /* --- Ô quét/nhập mã barcode, canh giữa và nổi bật ------------------------ */
+    .barcode-search {
+      max-width: 640px;
+      margin: 0 auto var(--space-6);
+    }
+    .barcode-search__box {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      padding-inline: var(--space-4);
+      transition: border-color var(--transition-base), box-shadow var(--transition-base);
+    }
+    .barcode-search__box:focus-within {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px var(--color-primary-subtle);
+    }
+    .barcode-search__box .icon {
+      flex-shrink: 0;
+      color: var(--color-text-muted);
+    }
+    .barcode-search__input {
+      flex: 1;
+      min-width: 0;
+      border: none;
+      background: none;
+      padding: var(--space-4) var(--space-3);
+      font-size: var(--text-base);
+      color: var(--color-text);
+    }
+    .barcode-search__input:focus {
+      outline: none;
+    }
+    .barcode-search__submit {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--space-9);
+      height: var(--space-9);
+      border-radius: var(--radius-md);
+      color: var(--color-text-muted);
+      transition: background-color var(--transition-base), color var(--transition-base);
+    }
+    .barcode-search__submit:hover {
+      background: var(--color-bg-subtle);
+      color: var(--color-primary);
+    }
+
+    /* --- Kết quả tra cứu / thông báo không tìm thấy -------------------------- */
+    .import-result {
+      max-width: 640px;
+      margin: 0 auto var(--space-8);
+    }
+    .import-result__header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--space-3);
+    }
+    .import-result__name {
+      font-size: var(--text-lg);
+    }
+    .import-result__meta {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+    .import-result__preview {
+      display: block;
+      font-size: var(--text-lg);
+      font-weight: 700;
+      color: var(--color-primary);
+    }
+  </style>
 </head>
 <body class="app-shell">
 
@@ -90,7 +172,7 @@
             </li>
             <li>
               <a class="app-nav__link" href="thuong-mai-nhap-hang.html" aria-current="page">
-                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-qr-code"></use></svg>
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-barcode"></use></svg>
                 Nhập hàng
               </a>
             </li>
@@ -190,20 +272,83 @@
 
       <div class="page-header">
         <div class="page-header__icon">
-          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-qr-code"></use></svg>
+          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-barcode"></use></svg>
         </div>
         <div class="page-header__text">
           <h1 class="page-header__title">Nhập hàng</h1>
-          <p class="page-header__meta">Ghi nhận nhập kho sản phẩm mới.</p>
+          <p class="page-header__meta">Quét barcode để cập nhật số lượng tồn kho.</p>
         </div>
       </div>
 
-      <div class="empty-state">
-        <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-qr-code"></use></svg>
-        <p class="empty-state__title">Đang phát triển</p>
-        <p class="empty-state__desc">
-          Tính năng này chưa sẵn sàng. Quay lại sau nhé.
-        </p>
+      <div class="barcode-search">
+        <div class="barcode-search__box">
+          <svg class="icon"><use href="icons/sprite.svg#icon-barcode"></use></svg>
+          <input
+            type="text"
+            id="import-barcode-input"
+            class="barcode-search__input"
+            placeholder="Quét hoặc nhập mã barcode..."
+            autocomplete="off"
+          />
+          <button type="button" class="barcode-search__submit" id="import-search-btn" aria-label="Tìm kiếm">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-search"></use></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Kết quả tra cứu -->
+      <div class="card import-result" data-import-result hidden>
+        <div class="import-result__header">
+          <div>
+            <h2 class="import-result__name" data-result-name></h2>
+            <p class="import-result__meta" data-result-meta></p>
+          </div>
+          <span class="badge badge--neutral" data-result-stock></span>
+        </div>
+
+        <div class="form-grid" style="margin-top: var(--space-5);">
+          <div class="field">
+            <label class="label" for="import-quantity">Số lượng nhập thêm</label>
+            <input class="input" type="number" id="import-quantity" min="1" value="1" />
+          </div>
+          <div class="field">
+            <span class="label">Tồn kho sau khi nhập</span>
+            <span class="import-result__preview" data-result-preview>—</span>
+          </div>
+        </div>
+
+        <div style="margin-top: var(--space-5); display: flex; justify-content: flex-end;">
+          <button type="button" class="btn btn--primary" data-confirm-import>
+            Xác nhận nhập kho
+          </button>
+        </div>
+      </div>
+
+      <!-- Không tìm thấy -->
+      <div class="notice notice--warning import-result" data-import-not-found hidden>
+        <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+        <span data-not-found-message></span>
+      </div>
+
+      <!-- Lịch sử nhập hàng gần đây -->
+      <div class="table-panel">
+        <div class="table-panel__header">
+          <h2 class="table-panel__title">Lịch sử nhập hàng gần đây</h2>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Sản phẩm</th>
+                <th scope="col">Mã barcode</th>
+                <th scope="col">Số lượng</th>
+                <th scope="col">Tồn kho mới</th>
+                <th scope="col">Thời gian</th>
+              </tr>
+            </thead>
+            <tbody data-import-history-body></tbody>
+          </table>
+        </div>
       </div>
 
     </div>
@@ -216,7 +361,8 @@
   </div>
 
   <script src="js/chain.js?v=1" defer></script>
-  <script src="js/store.js?v=9" defer></script>
+  <script src="js/store.js?v=10" defer></script>
   <script src="js/app-shell.js?v=6" defer></script>
+  <script src="js/thuong-mai-nhap-hang.js?v=1" defer></script>
 </body>
 </html>
