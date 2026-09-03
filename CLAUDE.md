@@ -24,7 +24,7 @@ css/
                           # với tai-khoan.html), auth.css giờ chỉ còn layout 2 cột thật sự riêng
   app-shell.css          # Layout riêng cho khung quản trị (sidebar + topbar): nong-trai.html, vat-tu.html,
                           # nong-trai-chi-tiet.html, lo-hang.html, tai-khoan.html, goi-phan-mem.html,
-                          # lich-su-mua-goi.html
+                          # lich-su-mua-goi.html, và 7 trang thuong-mai-*.html
 js/
   header.js              # Xử lý tương tác cho .site-header (toggle menu mobile, cuộn anchor)
   contact-form.js        # Validate + hiện thông báo thành công cho form ở section Liên Hệ
@@ -78,6 +78,14 @@ goi-phan-mem.html         # Trang tạm "Đang phát triển" — mục "Gói Ph
                           # "Quản lý Đơn vị", chưa có nghiệp vụ thật
 lich-su-mua-goi.html      # Trang tạm "Đang phát triển" — mục "Lịch sử mua Gói" trong nhóm sidebar
                           # "Quản lý Đơn vị", chưa có nghiệp vụ thật
+thuong-mai-tong-quan.html    # Trang tạm "Đang phát triển" — mục "Tổng quan" trong nhóm sidebar
+                             # "Thương mại điện tử" (7 mục, tất cả đều tạm), chưa có nghiệp vụ thật
+thuong-mai-san-pham.html     # Trang tạm "Đang phát triển" — mục "Sản phẩm"
+thuong-mai-don-hang.html     # Trang tạm "Đang phát triển" — mục "Đơn hàng"
+thuong-mai-van-chuyen.html   # Trang tạm "Đang phát triển" — mục "Vận chuyển"
+thuong-mai-nhap-hang.html    # Trang tạm "Đang phát triển" — mục "Nhập hàng"
+thuong-mai-may-tinh-tien.html # Trang tạm "Đang phát triển" — mục "Máy tính tiền (POS)"
+thuong-mai-thiet-lap.html    # Trang tạm "Đang phát triển" — mục "Thiết lập Shop"
 truy-xuat.html            # Trang truy xuất nguồn gốc CÔNG KHAI (không cần đăng nhập, không dùng
                           # app-shell) — đọc mã lô hàng qua query string ?ma=..., mở từ mã QR ở nút
                           # "Truy xuất nguồn gốc" trên thẻ lô hàng (nong-trai-chi-tiet.js). Dùng lại
