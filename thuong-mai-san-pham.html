@@ -36,21 +36,6 @@
       min-width: 160px;
     }
 
-    .search-field {
-      position: relative;
-    }
-    .search-field__icon {
-      position: absolute;
-      top: 50%;
-      left: var(--space-3);
-      transform: translateY(-50%);
-      color: var(--color-text-muted);
-      pointer-events: none;
-    }
-    .search-field .input {
-      padding-left: var(--space-10);
-    }
-
     /* --- Bố cục 2 cột cho form sản phẩm trong modal ------------------------- */
     .product-form-grid {
       display: grid;
@@ -109,19 +94,6 @@
     }
     .image-thumb__remove:hover {
       background: var(--color-danger);
-    }
-
-    /* --- Dòng "rỗng" nằm ngay trong bảng (thay vì .empty-state tách riêng) —
-       giữ nguyên hàng tiêu đề cột (Ảnh/Tên sản phẩm/...) khi chưa có/không lọc
-       ra sản phẩm nào, khớp giao diện tham khảo. --------------------------- */
-    td.table-empty {
-      padding: var(--space-16) var(--space-6);
-      text-align: center;
-      color: var(--color-text-muted);
-    }
-    .table-empty .icon {
-      display: block;
-      margin: 0 auto var(--space-3);
     }
 
     /* --- Biến thể sản phẩm --------------------------------------------------- */
@@ -552,7 +524,7 @@
   </div>
 
   <script src="js/chain.js?v=1" defer></script>
-  <script src="js/store.js?v=7" defer></script>
+  <script src="js/store.js?v=8" defer></script>
   <script src="js/app-shell.js?v=6" defer></script>
   <script src="js/thuong-mai-san-pham.js?v=2" defer></script>
 </body>

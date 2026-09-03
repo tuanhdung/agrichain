@@ -500,6 +500,12 @@
                 </button>
               </td>
             </tr>
+            <tr>
+              <td class="table-empty" colspan="4">
+                <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-box"></use></svg>
+                <p>Không tìm thấy kết quả nào.</p>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -537,6 +543,14 @@
         <div class="field">
           <label class="label" for="demo-input-disabled">Trạng thái disabled</label>
           <input class="input" type="text" id="demo-input-disabled" value="Không thể chỉnh sửa" disabled />
+        </div>
+
+        <div class="field">
+          <label class="label" for="demo-search">Tìm kiếm</label>
+          <div class="search-field">
+            <svg class="icon icon--sm search-field__icon"><use href="icons/sprite.svg#icon-search"></use></svg>
+            <input class="input" type="search" id="demo-search" placeholder="Tìm kiếm sản phẩm..." />
+          </div>
         </div>
 
         <div class="field">
@@ -580,6 +594,11 @@
         <div class="field" style="grid-column: 1 / -1;">
           <label class="label" for="demo-textarea">Ghi chú</label>
           <textarea class="textarea" id="demo-textarea" placeholder="Mô tả thêm về lô hàng..."></textarea>
+        </div>
+
+        <div class="view-field">
+          <span class="label">Mã đơn hàng</span>
+          <span>DH-0001</span>
         </div>
       </div>
 
@@ -651,6 +670,7 @@
         <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-search"></use></svg><span>search</span></div>
         <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-camera"></use></svg><span>camera</span></div>
         <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-layers"></use></svg><span>layers</span></div>
+        <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-shopping-cart-off"></use></svg><span>shopping-cart-off</span></div>
       </div>
     </div>
   </section>

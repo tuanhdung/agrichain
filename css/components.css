@@ -518,6 +518,20 @@ a.badge {
   background: var(--color-bg-subtle);
 }
 
+/* Dòng "rỗng" render NGAY trong <tbody> (colspan hết các cột) thay vì ẩn cả
+   bảng đi + hiện .empty-state tách riêng — nhờ vậy hàng tiêu đề cột vẫn luôn
+   hiển thị kể cả khi chưa có/không lọc ra kết quả nào. Dùng ở
+   thuong-mai-san-pham.html, thuong-mai-don-hang.html. */
+td.table-empty {
+  padding: var(--space-16) var(--space-6);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+.table-empty .icon {
+  display: block;
+  margin: 0 auto var(--space-3);
+}
+
 /* --- Avatar --- */
 .avatar {
   display: inline-flex;
@@ -678,6 +692,37 @@ a.badge {
 .upload-box.is-filled .upload-box__hint,
 .upload-box.is-filled .icon {
   display: none;
+}
+
+/* --- Ô tìm kiếm có icon bên trái ------------------------------------------
+   Bọc .input trong .search-field để icon kính lúp nằm đè lên phía trái ô
+   nhập (input tự chừa padding-left). Dùng ở thuong-mai-san-pham.html,
+   thuong-mai-don-hang.html. */
+.search-field {
+  position: relative;
+}
+.search-field__icon {
+  position: absolute;
+  top: 50%;
+  left: var(--space-3);
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+.search-field .input {
+  padding-left: var(--space-10);
+}
+
+/* --- Cặp nhãn/giá trị chỉ đọc (trang xem chi tiết) -------------------------
+   Dùng trong các modal/tab chỉ xem, không phải form nhập — VD chi tiết nông
+   trại (nong-trai-chi-tiet.html), chi tiết đơn hàng (thuong-mai-don-hang.html). */
+.view-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.view-field .label {
+  color: var(--color-text-muted);
 }
 
 .checkbox,

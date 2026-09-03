@@ -218,6 +218,16 @@ kiểm tra (đã ghi rõ trong comment đầu mỗi file). Vài điểm cần nh
   ảnh qua `FileReader` và gán vào `.upload-box__preview` (`<img>`) — ẩn icon/hint đi để
   không đè chữ lên ảnh. Dùng ở `thuong-mai-tong-quan.html` (logo/banner cửa hàng) và
   `thuong-mai-san-pham.html` (hình ảnh sản phẩm).
+- `.search-field`/`.search-field__icon` — ô `.input` bọc trong `.search-field` để icon kính
+  lúp (`icon-search`) nằm đè bên trái, `.input` tự chừa `padding-left`. Dùng ở
+  `thuong-mai-san-pham.html` và `thuong-mai-don-hang.html`.
+- `.view-field` — cặp nhãn/giá trị chỉ đọc (`<span class="label">` + giá trị), dùng trong
+  modal/tab chỉ xem (không phải form nhập). Dùng ở `nong-trai-chi-tiet.html` (tab "Thông
+  tin") và `thuong-mai-don-hang.html` (modal chi tiết đơn hàng).
+- `td.table-empty` — dòng "rỗng" của bảng, render NGAY trong `<tbody>` bằng 1
+  `<tr><td colspan="..." class="table-empty">` (icon + thông báo) thay vì ẩn cả bảng và hiện
+  `.empty-state` tách riêng — nhờ vậy hàng tiêu đề cột luôn hiển thị. Dùng ở
+  `thuong-mai-san-pham.html`, `thuong-mai-don-hang.html`.
 - `.container` — bọc nội dung, giới hạn `--container-max-width` (1200px), tự canh giữa.
 - `.grid` — kết hợp `.grid--2`, `.grid--3`, `.grid--4`, tự đổi cột theo breakpoint
   (640px, 960px).
@@ -336,8 +346,10 @@ trang, cố tình không gộp — xem quy ước "mỗi trang tự chứa CSS/J
 Bảng danh sách sản phẩm **không** dùng cặp `.table-panel[hidden]`/`.empty-state` tách rời như
 `tai-khoan.html` — hàng tiêu đề cột (Ảnh/Tên sản phẩm/...) phải luôn hiển thị kể cả khi chưa
 có/không lọc ra sản phẩm nào (khớp giao diện tham khảo), nên trạng thái rỗng render thành 1
-`<tr><td colspan="7" class="table-empty">` nằm ngay trong `<tbody>` (`emptyRow()` trong
-`js/thuong-mai-san-pham.js`) thay vì ẩn nguyên khối bảng đi.
+`<tr><td colspan="..." class="table-empty">` nằm ngay trong `<tbody>` (`emptyRow()` trong
+`js/thuong-mai-san-pham.js`, cùng cơ chế ở `js/thuong-mai-don-hang.js`) thay vì ẩn nguyên khối
+bảng đi — `.table-empty` đã chuyển sang `components.css` vì dùng ở cả 2 trang (xem "Component
+hiện có").
 
 ## Dữ liệu hành chính (tỉnh/thành, phường/xã)
 

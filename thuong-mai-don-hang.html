@@ -16,6 +16,67 @@
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/app-shell.css" />
+
+  <style>
+    /* CSS chỉ dùng riêng cho trang Đơn hàng Thương mại điện tử, không phải
+       component tái sử dụng nên để tại đây theo quy ước dự án. */
+
+    /* --- Tab lọc theo trạng thái (dạng viên thuốc, khác .tabs gạch chân
+       dùng cho chuyển nội dung ở nơi khác trong app) ------------------------ */
+    .status-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+    .status-tab {
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--color-text-muted);
+      transition: background-color var(--transition-base), color var(--transition-base);
+    }
+    .status-tab:hover {
+      background: var(--color-bg-subtle);
+    }
+    .status-tab.is-active {
+      background: var(--color-primary);
+      color: var(--color-text-inverse);
+    }
+
+    /* --- Nút sắp xếp trong tiêu đề cột bảng --------------------------------- */
+    .table-sort {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      font: inherit;
+      color: inherit;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    .table-sort:hover {
+      color: var(--color-primary);
+    }
+
+    /* --- Danh sách sản phẩm trong modal chi tiết đơn hàng ------------------- */
+    .order-items {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .order-items__row {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding-block: var(--space-2);
+      border-bottom: 1px solid var(--color-border);
+      font-size: var(--text-sm);
+    }
+    .order-items__row:last-child {
+      border-bottom: none;
+    }
+  </style>
 </head>
 <body class="app-shell">
 
@@ -193,21 +254,117 @@
           <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-shopping-cart"></use></svg>
         </div>
         <div class="page-header__text">
-          <h1 class="page-header__title">Đơn hàng</h1>
-          <p class="page-header__meta">Theo dõi và xử lý đơn hàng của khách.</p>
+          <h1 class="page-header__title">Quản lý đơn hàng</h1>
+          <p class="page-header__meta">Theo dõi và xử lý các đơn hàng từ khách hàng của bạn.</p>
         </div>
       </div>
 
-      <div class="empty-state">
-        <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-shopping-cart"></use></svg>
-        <p class="empty-state__title">Đang phát triển</p>
-        <p class="empty-state__desc">
-          Tính năng này chưa sẵn sàng. Quay lại sau nhé.
-        </p>
+      <!-- Tab trạng thái + tìm kiếm -->
+      <div class="card" style="margin-bottom: var(--space-6);">
+        <div class="status-tabs" role="tablist">
+          <button type="button" class="status-tab is-active" data-status-tab="" role="tab" aria-selected="true">Tất cả</button>
+          <button type="button" class="status-tab" data-status-tab="pending" role="tab" aria-selected="false">Chờ xác nhận</button>
+          <button type="button" class="status-tab" data-status-tab="confirmed" role="tab" aria-selected="false">Đã xác nhận</button>
+          <button type="button" class="status-tab" data-status-tab="shipping" role="tab" aria-selected="false">Đang giao</button>
+          <button type="button" class="status-tab" data-status-tab="completed" role="tab" aria-selected="false">Hoàn thành</button>
+          <button type="button" class="status-tab" data-status-tab="cancelled" role="tab" aria-selected="false">Đã hủy</button>
+        </div>
+
+        <div class="search-field" style="margin-top: var(--space-5);">
+          <svg class="icon icon--sm search-field__icon"><use href="icons/sprite.svg#icon-search"></use></svg>
+          <input class="input" type="search" id="order-search" aria-label="Tìm kiếm đơn hàng" placeholder="Tìm theo mã đơn hàng, tên khách hàng..." />
+        </div>
+      </div>
+
+      <!-- Bảng đơn hàng -->
+      <div class="table-panel">
+        <div class="table-panel__header">
+          <h2 class="table-panel__title">Danh sách đơn hàng</h2>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Đơn hàng</th>
+                <th scope="col">Khách hàng</th>
+                <th scope="col">
+                  <button type="button" class="table-sort" data-sort-key="createdAt">
+                    Thời gian
+                    <span data-sort-arrow="createdAt"></span>
+                  </button>
+                </th>
+                <th scope="col">
+                  <button type="button" class="table-sort" data-sort-key="total">
+                    Giá trị
+                    <span data-sort-arrow="total"></span>
+                  </button>
+                </th>
+                <th scope="col">Thanh toán</th>
+                <th scope="col">Trạng thái</th>
+                <th scope="col"><span class="sr-only">Thao tác</span></th>
+              </tr>
+            </thead>
+            <tbody data-order-table-body></tbody>
+          </table>
+        </div>
       </div>
 
     </div>
   </main>
+
+  <!-- Modal chi tiết đơn hàng -->
+  <dialog class="modal modal--sm" id="order-modal" aria-labelledby="order-modal-title">
+    <div class="modal__header">
+      <svg class="icon"><use href="icons/sprite.svg#icon-shopping-cart"></use></svg>
+      <h2 class="modal__title" id="order-modal-title">Chi tiết đơn hàng</h2>
+      <button type="button" class="modal__close" data-close-order-modal aria-label="Đóng">&times;</button>
+    </div>
+    <div class="modal__body">
+      <div class="form-grid" style="margin-bottom: var(--space-5);">
+        <div class="view-field">
+          <span class="label">Mã đơn hàng</span>
+          <span data-order-code></span>
+        </div>
+        <div class="view-field">
+          <span class="label">Thời gian</span>
+          <span data-order-time></span>
+        </div>
+        <div class="view-field">
+          <span class="label">Khách hàng</span>
+          <span data-order-customer></span>
+        </div>
+        <div class="view-field">
+          <span class="label">Số điện thoại</span>
+          <span data-order-phone></span>
+        </div>
+        <div class="view-field">
+          <span class="label">Giá trị</span>
+          <span data-order-total></span>
+        </div>
+        <div class="view-field">
+          <span class="label">Thanh toán</span>
+          <span data-order-payment></span>
+        </div>
+      </div>
+
+      <section class="form-section">
+        <h3 class="form-section__title">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-box"></use></svg>
+          Sản phẩm
+        </h3>
+        <ul class="order-items" data-order-items></ul>
+      </section>
+
+      <div class="field">
+        <label class="label" for="order-status-select">Trạng thái đơn hàng</label>
+        <select class="select" id="order-status-select"></select>
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn--secondary" data-close-order-modal>Đóng</button>
+      <button type="button" class="btn btn--primary" data-save-order-status>Lưu trạng thái</button>
+    </div>
+  </dialog>
 
   <!-- Toast -->
   <div class="toast" role="status" aria-live="polite">
@@ -216,7 +373,8 @@
   </div>
 
   <script src="js/chain.js?v=1" defer></script>
-  <script src="js/store.js?v=7" defer></script>
+  <script src="js/store.js?v=8" defer></script>
   <script src="js/app-shell.js?v=6" defer></script>
+  <script src="js/thuong-mai-don-hang.js?v=1" defer></script>
 </body>
 </html>
