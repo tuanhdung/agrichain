@@ -16,6 +16,66 @@
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/app-shell.css" />
+
+  <style>
+    /* CSS chỉ dùng riêng cho trang Máy tính tiền Thương mại điện tử, không
+       phải component tái sử dụng nên để tại đây theo quy ước dự án. */
+
+    /* --- Bố cục 2 cột: giỏ hàng bên trái, tổng đơn hàng bên phải ------------ */
+    .pos-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-6);
+      align-items: start;
+    }
+    @media (min-width: 960px) {
+      .pos-layout {
+        grid-template-columns: 2fr 1fr;
+      }
+      .pos-layout__summary {
+        position: sticky;
+        top: var(--space-6);
+      }
+    }
+
+    .pos-cart__qty {
+      width: 72px;
+    }
+
+    /* --- Khối "Tổng đơn hàng" bên phải --------------------------------------- */
+    .pos-summary__row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-4);
+    }
+    .pos-summary__row--total {
+      margin-top: var(--space-5);
+      margin-bottom: var(--space-5);
+      font-size: var(--text-lg);
+      font-weight: 700;
+    }
+    .pos-summary__row--total .pos-summary__value {
+      color: var(--color-primary);
+    }
+    .pos-summary__value {
+      font-weight: 700;
+    }
+
+    .pos-change {
+      padding: var(--space-3) var(--space-4);
+      margin-bottom: var(--space-5);
+      background: var(--color-info-subtle);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .pos-change__value {
+      font-weight: 700;
+      color: var(--color-info);
+    }
+  </style>
 </head>
 <body class="app-shell">
 
@@ -193,17 +253,87 @@
           <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-credit-card"></use></svg>
         </div>
         <div class="page-header__text">
-          <h1 class="page-header__title">Máy tính tiền (POS)</h1>
-          <p class="page-header__meta">Bán hàng trực tiếp tại quầy.</p>
+          <h1 class="page-header__title">Máy tính tiền</h1>
+          <p class="page-header__meta">Bán hàng trực tiếp tại quầy bằng barcode.</p>
         </div>
       </div>
 
-      <div class="empty-state">
-        <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-credit-card"></use></svg>
-        <p class="empty-state__title">Đang phát triển</p>
-        <p class="empty-state__desc">
-          Tính năng này chưa sẵn sàng. Quay lại sau nhé.
-        </p>
+      <div class="pos-layout">
+
+        <!-- Cột trái: quét sản phẩm + giỏ hàng -->
+        <div>
+          <div class="barcode-search__box" style="margin-bottom: var(--space-6);">
+            <svg class="icon"><use href="icons/sprite.svg#icon-barcode"></use></svg>
+            <input
+              type="text"
+              id="pos-barcode-input"
+              class="barcode-search__input"
+              placeholder="Quét sản phẩm..."
+              autocomplete="off"
+            />
+            <button type="button" class="barcode-search__submit" id="pos-search-btn" aria-label="Tìm kiếm">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-search"></use></svg>
+            </button>
+          </div>
+
+          <div class="table-panel">
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">Sản phẩm</th>
+                    <th scope="col">Đơn giá</th>
+                    <th scope="col">Số lượng</th>
+                    <th scope="col">Thành tiền</th>
+                  </tr>
+                </thead>
+                <tbody data-cart-body></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cột phải: tổng đơn hàng + thanh toán -->
+        <div class="card pos-layout__summary">
+          <h2 style="margin-bottom: var(--space-5);">Tổng đơn hàng</h2>
+
+          <div class="pos-summary__row">
+            <span>Tạm tính</span>
+            <span class="pos-summary__value" data-subtotal>0 đ</span>
+          </div>
+
+          <div class="field" style="margin-bottom: var(--space-5);">
+            <label class="label" for="pos-payment-method">Phương thức thanh toán</label>
+            <select class="select" id="pos-payment-method"></select>
+          </div>
+
+          <div data-cash-fields hidden>
+            <div class="field" style="margin-bottom: var(--space-5);">
+              <label class="label" for="pos-cash-given">Tiền khách đưa</label>
+              <input class="input" type="number" min="0" step="1000" id="pos-cash-given" />
+            </div>
+            <div class="pos-change">
+              <span>Tiền thừa</span>
+              <span class="pos-change__value" data-change>0 đ</span>
+            </div>
+          </div>
+
+          <div class="field" style="margin-bottom: var(--space-5);">
+            <label class="label" for="pos-note">Ghi chú đơn hàng</label>
+            <textarea class="textarea" id="pos-note" placeholder="Ghi chú đơn hàng"></textarea>
+          </div>
+
+          <div class="pos-summary__row pos-summary__row--total">
+            <span>Tổng tiền</span>
+            <span class="pos-summary__value" data-total>0 đ</span>
+          </div>
+
+          <button type="button" class="btn btn--primary btn--lg" style="width: 100%;" data-checkout>
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-credit-card"></use></svg>
+            Thanh toán
+          </button>
+        </div>
+
       </div>
 
     </div>
@@ -218,5 +348,6 @@
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=10" defer></script>
   <script src="js/app-shell.js?v=6" defer></script>
+  <script src="js/thuong-mai-may-tinh-tien.js?v=1" defer></script>
 </body>
 </html>

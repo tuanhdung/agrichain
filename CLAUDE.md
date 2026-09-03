@@ -72,6 +72,10 @@ js/
   thuong-mai-nhap-hang.js  # Logic riêng cho thuong-mai-nhap-hang.html (gõ/quét mã barcode để cộng
                            # thêm tồn kho 1 biến thể sản phẩm — tìm trong products[].variants[].
                            # barcode, ghi lịch sử vào collection "inventoryImports")
+  thuong-mai-may-tinh-tien.js  # Logic riêng cho thuong-mai-may-tinh-tien.html (POS: quét barcode
+                               # thêm vào giỏ, "Thanh toán" trừ tồn kho + ghi 1 đơn hàng MỚI vào
+                               # collection "orders" — nơi DUY NHẤT trong app tạo dữ liệu orders
+                               # thật, xem mục riêng bên dưới)
 icons/
   sprite.svg              # SVG sprite dùng chung, tham chiếu bằng <use href="icons/sprite.svg#icon-...">
 index.html                # Trang chủ thật của AgriChain
@@ -97,9 +101,9 @@ lich-su-mua-goi.html      # Trang tạm "Đang phát triển" — mục "Lịch 
                           # "Quản lý Đơn vị", chưa có nghiệp vụ thật
 thuong-mai-tong-quan.html    # Mục "Tổng quan" trong nhóm sidebar "Thương mại điện tử" — khởi tạo/
                              # xem/sửa hồ sơ cửa hàng Ecommerce của Đơn vị (modal 4 tab, xem
-                             # js/thuong-mai-tong-quan.js). Chỉ còn Máy tính tiền (POS)/Thiết lập
-                             # Shop là trang tạm "Đang phát triển" — 5 mục còn lại (kể cả trang này)
-                             # đã có nghiệp vụ thật, xem mô tả riêng từng trang bên dưới.
+                             # js/thuong-mai-tong-quan.js). Chỉ còn "Thiết lập Shop" là trang tạm
+                             # "Đang phát triển" — 6 mục còn lại (kể cả trang này) đã có nghiệp vụ
+                             # thật, xem mô tả riêng từng trang bên dưới.
 thuong-mai-san-pham.html     # Mục "Sản phẩm" trong nhóm sidebar "Thương mại điện tử" — đã có nghiệp
                              # vụ thật: danh sách/lọc/tìm kiếm + thêm/sửa/xoá sản phẩm, mỗi sản phẩm
                              # nhiều biến thể có thể gắn lô hàng thật (xem js/thuong-mai-san-pham.js)
@@ -110,6 +114,9 @@ thuong-mai-van-chuyen.html   # Mục "Vận chuyển" trong nhóm sidebar "Thư�
                              # chỉ lấy hàng/trả hàng của cửa hàng (xem js/thuong-mai-van-chuyen.js)
 thuong-mai-nhap-hang.html    # Mục "Nhập hàng" trong nhóm sidebar "Thương mại điện tử" — gõ/quét mã
                              # barcode để cộng thêm tồn kho (xem js/thuong-mai-nhap-hang.js)
+thuong-mai-may-tinh-tien.html # Mục "Máy tính tiền (POS)" trong nhóm sidebar "Thương mại điện tử" —
+                              # bán tại quầy bằng barcode, "Thanh toán" tạo đơn hàng thật (xem
+                              # js/thuong-mai-may-tinh-tien.js)
 thuong-mai-nhap-hang.html    # Trang tạm "Đang phát triển" — mục "Nhập hàng"
 thuong-mai-may-tinh-tien.html # Trang tạm "Đang phát triển" — mục "Máy tính tiền (POS)"
 thuong-mai-thiet-lap.html    # Trang tạm "Đang phát triển" — mục "Thiết lập Shop"
@@ -237,6 +244,11 @@ kiểm tra (đã ghi rõ trong comment đầu mỗi file). Vài điểm cần nh
 - `.search-field`/`.search-field__icon` — ô `.input` bọc trong `.search-field` để icon kính
   lúp (`icon-search`) nằm đè bên trái, `.input` tự chừa `padding-left`. Dùng ở
   `thuong-mai-san-pham.html` và `thuong-mai-don-hang.html`.
+- `.barcode-search__box`/`__input`/`__submit` — ô quét/nhập mã barcode, icon `icon-barcode`
+  bên trái + nút icon `icon-search` bên phải; không dùng `<input class="input">` (input con tự
+  style riêng, không viền — viền nằm ở khung ngoài `__box`). Dùng ở `thuong-mai-nhap-hang.html`
+  (canh giữa trong khung `.barcode-search` riêng của trang) và `thuong-mai-may-tinh-tien.html`
+  (chiếm hết bề rộng cột trái).
 - `.view-field` — cặp nhãn/giá trị chỉ đọc (`<span class="label">` + giá trị), dùng trong
   modal/tab chỉ xem (không phải form nhập). Dùng ở `nong-trai-chi-tiet.html` (tab "Thông
   tin") và `thuong-mai-don-hang.html` (modal chi tiết đơn hàng).
@@ -367,16 +379,18 @@ có/không lọc ra sản phẩm nào (khớp giao diện tham khảo), nên tr�
 bảng đi — `.table-empty` đã chuyển sang `components.css` vì dùng ở cả 2 trang (xem "Component
 hiện có").
 
-## Thương mại điện tử — đơn hàng & vận chuyển & nhập hàng
+## Thương mại điện tử — đơn hàng & vận chuyển & nhập hàng & POS
 
-`thuong-mai-don-hang.html` **cố tình không có form tạo đơn hàng** — đơn hàng thật phải do
-khách đặt qua một trang mua hàng công khai, mà dự án chưa có trang đó (chưa có giỏ hàng/
-checkout nào cho khách truy cập). Trang chỉ xem/lọc theo trạng thái (tab dạng viên thuốc,
-`.status-tabs`/`.status-tab` — khác `.tabs` gạch chân dùng để chuyển nội dung ở nơi khác
-trong app) + tìm kiếm + sắp xếp + modal xem chi tiết kèm đổi trạng thái, đọc từ collection
-`orders` (`store.js`) — collection này sẽ luôn rỗng cho tới khi có nơi khác trong app ghi vào
-nó, giống quan hệ giữa `lo-hang.html` (chỉ xem lô hàng) và `nong-trai-chi-tiet.html` (nơi tạo
-ra chúng thật sự).
+`thuong-mai-don-hang.html` **cố tình không có form tạo đơn hàng thủ công** — trang chỉ xem/
+lọc theo trạng thái (tab dạng viên thuốc, `.status-tabs`/`.status-tab` — khác `.tabs` gạch
+chân dùng để chuyển nội dung ở nơi khác trong app) + tìm kiếm + sắp xếp + modal xem chi tiết
+kèm đổi trạng thái, đọc từ collection `orders` (`store.js`). Ban đầu collection này luôn rỗng
+vì chưa có trang mua hàng công khai nào cho khách đặt đơn thật — từ khi có
+`thuong-mai-may-tinh-tien.html` (xem bên dưới), đơn bán tại quầy (POS) là nguồn dữ liệu thật
+DUY NHẤT hiện có cho `orders`, tương tự quan hệ giữa `lo-hang.html` (chỉ xem lô hàng) và
+`nong-trai-chi-tiet.html` (nơi tạo ra chúng thật sự) — modal xem chi tiết ở
+`thuong-mai-don-hang.html` còn hiện thêm "Ghi chú đơn hàng" (`order.note`, ẩn cả khối nếu
+rỗng) do đơn từ POS có thể kèm ghi chú.
 
 `thuong-mai-van-chuyen.html` quản lý địa chỉ lấy hàng/trả hàng — collection
 `shippingAddresses`, khoá `ownerId` như các collection thương mại điện tử khác, thêm trường
@@ -396,6 +410,25 @@ ghi đè đúng phần tử khi cộng tồn kho — xem `findVariantByBarcode()
 `js/thuong-mai-nhap-hang.js`. Mỗi lần xác nhận ghi thêm 1 dòng vào collection
 `inventoryImports` (lịch sử nhập hàng, hiển thị ngay dưới trang) — collection này CÓ nơi tạo
 dữ liệu thật ngay trong app (khác `orders`), nên không rơi vào tình trạng luôn rỗng.
+
+`thuong-mai-may-tinh-tien.html` (POS) dùng lại đúng cơ chế quét barcode + tra `variantIndex`
+của `thuong-mai-nhap-hang.html`, nhưng CỘNG dồn vào giỏ hàng tạm trong bộ nhớ (mảng `cart`,
+JS) thay vì ghi ngay xuống store — chỉ khi bấm "Thanh toán" mới thật sự trừ tồn kho từng biến
+thể trong giỏ VÀ chèn 1 bản ghi mới vào `orders` (khách mặc định `'Khách tại quầy'`, trạng
+thái đơn `'completed'`, `paymentStatus` là `'unpaid'` nếu chọn COD còn lại đều `'paid'`) — đây
+là nơi DUY NHẤT trong app hiện tạo dữ liệu `orders` thật, xem mục trên. Component
+`.barcode-search__box`/`__input`/`__submit` (icon barcode trái + nút tìm phải) đã chuyển sang
+`components.css` vì dùng ở cả 2 trang nhập hàng/POS — trang nhập hàng còn bọc thêm khung
+`.barcode-search` riêng (canh giữa, giới hạn bề rộng) mà POS không cần vì ô quét đã chiếm hết
+bề rộng cột trái theo layout `.pos-layout` (lưới 2 cột `2fr 1fr`, riêng của trang này).
+
+**Sửa số lượng trong giỏ KHÔNG được gọi lại toàn bộ `renderCart()`** — nếu render lại cả
+`<tbody>` mỗi lần gõ số lượng, DOM sẽ tạo `<input>` mới thay cho ô đang gõ dở, làm mất focus/
+con trỏ sau mỗi phím bấm (tự phát hiện khi rà lại code trước khi bàn giao, không phải do
+người dùng báo). Cách đúng: chỉ cập nhật `textContent` của đúng ô "Thành tiền" dòng đó +
+gọi `updateTotals()` (chỉ tính lại số, không đụng DOM danh sách) — xem `cartRow()` trong
+`js/thuong-mai-may-tinh-tien.js`. Nếu sau này sửa lại bảng nào có input inline tương tự
+(số lượng, giá...), nhớ tránh đúng lỗi này.
 
 ## Dữ liệu hành chính (tỉnh/thành, phường/xã)
 

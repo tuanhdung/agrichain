@@ -221,6 +221,10 @@
       itemsList.appendChild(line);
     });
 
+    var noteWrap = document.querySelector('[data-order-note-wrap]');
+    noteWrap.hidden = !order.note;
+    if (order.note) document.querySelector('[data-order-note]').textContent = order.note;
+
     statusSelect.value = order.status;
 
     modal.showModal();

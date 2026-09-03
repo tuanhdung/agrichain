@@ -713,6 +713,59 @@ td.table-empty {
   padding-left: var(--space-10);
 }
 
+/* --- Ô quét/nhập mã barcode (icon barcode trái + icon tìm kiếm phải) ------
+   Khác .search-field (chỉ 1 icon trái, dùng .input thật): đây là khung tự
+   dựng để có icon CẢ 2 bên, không dùng <input class="input"> nên cần style
+   riêng cho phần input con. Dùng ở thuong-mai-nhap-hang.html (canh giữa
+   trong khung .barcode-search riêng của trang đó) và thuong-mai-may-tinh-
+   tien.html (chiếm hết bề rộng cột trái). */
+.barcode-search__box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding-inline: var(--space-4);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+.barcode-search__box:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-subtle);
+}
+.barcode-search__box .icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+.barcode-search__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: var(--space-4) var(--space-3);
+  font-size: var(--text-base);
+  color: var(--color-text);
+}
+.barcode-search__input:focus {
+  outline: none;
+}
+.barcode-search__submit {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  transition: background-color var(--transition-base), color var(--transition-base);
+}
+.barcode-search__submit:hover {
+  background: var(--color-bg-subtle);
+  color: var(--color-primary);
+}
+
 /* --- Cặp nhãn/giá trị chỉ đọc (trang xem chi tiết) -------------------------
    Dùng trong các modal/tab chỉ xem, không phải form nhập — VD chi tiết nông
    trại (nong-trai-chi-tiet.html), chi tiết đơn hàng (thuong-mai-don-hang.html). */

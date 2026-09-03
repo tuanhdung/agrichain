@@ -21,56 +21,13 @@
     /* CSS chỉ dùng riêng cho trang Nhập hàng Thương mại điện tử, không phải
        component tái sử dụng nên để tại đây theo quy ước dự án. */
 
-    /* --- Ô quét/nhập mã barcode, canh giữa và nổi bật ------------------------ */
+    /* --- Khung canh giữa cho .barcode-search__box (component chung, xem
+       components.css) — chỉ trang này cần canh giữa + giới hạn bề rộng, ở
+       thuong-mai-may-tinh-tien.html ô barcode chiếm hết bề rộng cột trái
+       nên không cần khung này. --------------------------------------------- */
     .barcode-search {
       max-width: 640px;
       margin: 0 auto var(--space-6);
-    }
-    .barcode-search__box {
-      position: relative;
-      display: flex;
-      align-items: center;
-      background: var(--color-bg);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-sm);
-      padding-inline: var(--space-4);
-      transition: border-color var(--transition-base), box-shadow var(--transition-base);
-    }
-    .barcode-search__box:focus-within {
-      border-color: var(--color-primary);
-      box-shadow: 0 0 0 3px var(--color-primary-subtle);
-    }
-    .barcode-search__box .icon {
-      flex-shrink: 0;
-      color: var(--color-text-muted);
-    }
-    .barcode-search__input {
-      flex: 1;
-      min-width: 0;
-      border: none;
-      background: none;
-      padding: var(--space-4) var(--space-3);
-      font-size: var(--text-base);
-      color: var(--color-text);
-    }
-    .barcode-search__input:focus {
-      outline: none;
-    }
-    .barcode-search__submit {
-      flex-shrink: 0;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: var(--space-9);
-      height: var(--space-9);
-      border-radius: var(--radius-md);
-      color: var(--color-text-muted);
-      transition: background-color var(--transition-base), color var(--transition-base);
-    }
-    .barcode-search__submit:hover {
-      background: var(--color-bg-subtle);
-      color: var(--color-primary);
     }
 
     /* --- Kết quả tra cứu / thông báo không tìm thấy -------------------------- */
