@@ -19,16 +19,24 @@ css/
   tokens.css             # Biến CSS gốc: màu, khoảng cách, cỡ chữ, bo góc, đổ bóng
   base.css               # Reset + typography mặc định
   components.css         # Component dùng chung: button, card, container, grid, form, badge, icon, header
-  auth.css               # Layout riêng cho dang-nhap.html/dang-ky.html (2 cột: giới thiệu + form)
+  auth.css               # Layout riêng cho dang-nhap.html/dang-ky.html (2 cột: giới thiệu + form) —
+                          # .password-field/.password-rules đã chuyển sang components.css (dùng chung
+                          # với tai-khoan.html), auth.css giờ chỉ còn layout 2 cột thật sự riêng
   app-shell.css          # Layout riêng cho khung quản trị (sidebar + topbar): nong-trai.html, vat-tu.html,
-                          # nong-trai-chi-tiet.html, lo-hang.html
+                          # nong-trai-chi-tiet.html, lo-hang.html, tai-khoan.html, goi-phan-mem.html,
+                          # lich-su-mua-goi.html
 js/
   header.js              # Xử lý tương tác cho .site-header (toggle menu mobile, cuộn anchor)
   contact-form.js        # Validate + hiện thông báo thành công cho form ở section Liên Hệ
   chain.js               # Sổ cái băm nối chuỗi (hash chain) bằng Web Crypto API — chạy trong trình duyệt
   store.js               # Lớp lưu trữ qua localStorage (users, farms, supplies, batches, events, ledger,
-                          # phiên đăng nhập) — mọi trang đọc/ghi dữ liệu qua đây, không gọi thẳng localStorage
+                          # orgUsers, phiên đăng nhập) — mọi trang đọc/ghi dữ liệu qua đây, không gọi
+                          # thẳng localStorage
+  password-field.js      # Nút hiện/ẩn mật khẩu (data-password-toggle) + danh sách điều kiện mật khẩu
+                          # (data-password-rules="<id ô mật khẩu>") dùng chung — tách từ js/auth.js để
+                          # js/tai-khoan.js dùng lại được, không chép lại 2 hàm này.
   auth.js                # Xử lý form đăng nhập/đăng ký (dang-nhap.html, dang-ky.html), dựa vào store.js
+                          # và js/password-field.js
   app-shell.js            # Tương tác khung quản trị (sidebar mobile, thu gọn/xổ nhóm menu, tab dùng chung,
                            # hộp thoại xác nhận AgriChain.confirm...)
   map-layers.js           # 3 lớp nền bản đồ Leaflet dùng chung (vệ tinh/địa hình/mặc định) —
@@ -43,6 +51,8 @@ js/
   lo-hang.js               # Logic riêng cho lo-hang.html (danh sách TẤT CẢ lô hàng, lọc theo nông trại/
                            # mùa vụ, QR + xác thực blockchain tại chỗ — thêm/sửa/xoá vẫn ở
                            # nong-trai-chi-tiet.html, nút sửa/xoá ở đây chỉ điều hướng qua đó)
+  tai-khoan.js            # Logic riêng cho tai-khoan.html (danh sách người dùng trong Đơn vị + modal
+                          # thêm người dùng + modal phân quyền theo phân hệ)
   truy-xuat.js            # Logic riêng cho truy-xuat.html (trang truy xuất công khai — KHÔNG nạp
                           # js/app-shell.js, trang này không cần đăng nhập)
 icons/
@@ -61,6 +71,13 @@ vat-tu.html               # Trang quản trị: vật tư (dùng chung khung app
 lo-hang.html              # Trang quản trị: danh sách tất cả lô hàng (dùng chung khung app-shell) —
                           # CHỈ xem/lọc/QR/xác thực blockchain, không có form thêm/sửa lô hàng riêng
                           # (xem js/lo-hang.js)
+tai-khoan.html            # Trang quản trị: danh sách người dùng trong Đơn vị + phân quyền theo phân hệ
+                          # (dùng chung khung app-shell) — mục "Quản lý Tài khoản" trong nhóm sidebar
+                          # "Quản lý Đơn vị"
+goi-phan-mem.html         # Trang tạm "Đang phát triển" — mục "Gói Phần mềm" trong nhóm sidebar
+                          # "Quản lý Đơn vị", chưa có nghiệp vụ thật
+lich-su-mua-goi.html      # Trang tạm "Đang phát triển" — mục "Lịch sử mua Gói" trong nhóm sidebar
+                          # "Quản lý Đơn vị", chưa có nghiệp vụ thật
 truy-xuat.html            # Trang truy xuất nguồn gốc CÔNG KHAI (không cần đăng nhập, không dùng
                           # app-shell) — đọc mã lô hàng qua query string ?ma=..., mở từ mã QR ở nút
                           # "Truy xuất nguồn gốc" trên thẻ lô hàng (nong-trai-chi-tiet.js). Dùng lại
@@ -99,6 +116,15 @@ kiểm tra (đã ghi rõ trong comment đầu mỗi file). Vài điểm cần nh
   `dang-nhap.html`/`dang-ky.html` — **không dùng anchor `#dang-nhap`/`#bat-dau-ngay`
   nữa** (đó là placeholder từ lúc 2 trang này chưa tồn tại; đã sửa ở `index.html` và
   `styleguide.html`, nếu thêm trang mới nhớ trỏ đúng luôn).
+- Nút hiện/ẩn mật khẩu và danh sách điều kiện mật khẩu tách riêng thành
+  `js/password-field.js` (dùng chung giữa `dang-ky.html` và modal "Thêm người dùng" ở
+  `tai-khoan.html`) — sửa logic mật khẩu thì sửa ở đó, không sửa trong `js/auth.js`.
+- **Người dùng trong "Quản lý Tài khoản" (`orgUsers`, tách khỏi `users` — collection
+  gốc dùng cho đăng nhập/đăng ký) KHÔNG lưu mật khẩu dưới bất kỳ hình thức nào**, kể cả
+  "giả vờ" băm bằng `chain.js` (đó là hash một-chiều cho sổ cái, không phải hashing mật
+  khẩu đúng nghĩa — dùng sai mục đích sẽ tạo cảm giác an toàn giả). Mật khẩu nhập vào chỉ
+  để validate định dạng phía trình duyệt rồi bỏ, chờ backend thật đảm nhiệm xác thực sau
+  này (xem comment ở `handleUserSubmit()` trong `js/tai-khoan.js`).
 
 ## Quy ước CSS
 
@@ -156,6 +182,17 @@ kiểm tra (đã ghi rõ trong comment đầu mỗi file). Vài điểm cần nh
   cuối). Icon sửa/xoá dùng `.icon-btn.batch-card__action--edit`/`--delete` — màu cố định
   (cam/đỏ) chứ không chỉ tô lúc hover như `.icon-btn` thường; ghép 2 class để độ đặc hiệu
   thắng `.icon-btn` bất kể thứ tự nạp CSS.
+- `.table` — bảng dữ liệu: header nền `--color-bg-subtle`, viền dưới mỗi dòng theo
+  `--color-border`. Bọc trong `.table-wrap` (`overflow-x: auto`) để cuộn ngang trên màn
+  hình hẹp thay vì vỡ layout. `.table-panel`/`.table-panel__header`/`.table-panel__title`
+  (khung card + tiêu đề bọc ngoài) và `.table__code`/`.table__name`/`.table__muted`/
+  `.table__nowrap`/`.table__desc`/`.table__actions` (căn chỉnh riêng theo cột dữ liệu) vẫn
+  ở `app-shell.css`, không phải phần cốt lõi của component.
+- `.avatar` — vòng tròn chữ cái viết tắt tên (nền `--color-primary-subtle`, chữ
+  `--color-primary-active`); cỡ mặc định, `--sm`, `--lg`.
+- `.password-field`/`.password-toggle`/`.password-rules`/`.password-rule` — ô mật khẩu có
+  nút hiện/ẩn + danh sách điều kiện (đủ 8 ký tự, 1 chữ hoa, 1 chữ số, 1 ký tự đặc biệt),
+  tô xanh khi đạt (`.is-met`). Logic JS ở `js/password-field.js`.
 - `.container` — bọc nội dung, giới hạn `--container-max-width` (1200px), tự canh giữa.
 - `.grid` — kết hợp `.grid--2`, `.grid--3`, `.grid--4`, tự đổi cột theo breakpoint
   (640px, 960px).

@@ -440,6 +440,72 @@
     </div>
   </section>
 
+  <!-- Avatar -->
+  <section class="demo-section">
+    <div class="container">
+      <h2 class="demo-section__title">Ảnh đại diện (Avatar)</h2>
+      <p class="demo-section__desc">Vòng tròn chữ cái viết tắt — cỡ mặc định, <code>--sm</code>, <code>--lg</code>.</p>
+
+      <div class="btn-row" style="align-items: center;">
+        <span class="avatar avatar--sm">TA</span>
+        <span class="avatar">NV</span>
+        <span class="avatar avatar--lg">HD</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Table -->
+  <section class="demo-section">
+    <div class="container">
+      <h2 class="demo-section__title">Bảng (Table)</h2>
+      <p class="demo-section__desc">
+        Header nền xám nhạt, viền dưới mỗi dòng. Bọc trong <code>.table-wrap</code> để cuộn
+        ngang khi màn hình hẹp thay vì vỡ layout.
+      </p>
+
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Email</th>
+              <th scope="col">Họ tên</th>
+              <th scope="col"><span class="sr-only">Thao tác</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="avatar avatar--sm">TA</span></td>
+              <td>tuan.anh@agrichain.vn</td>
+              <td>Trần Tuấn Anh</td>
+              <td>
+                <button class="icon-btn" type="button" aria-label="Phân quyền" style="color: var(--color-info);">
+                  <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+                </button>
+                <button class="icon-btn" type="button" aria-label="Xoá" style="color: var(--color-danger);">
+                  <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-trash"></use></svg>
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="avatar avatar--sm">NV</span></td>
+              <td>ngoc.van@agrichain.vn</td>
+              <td>Nguyễn Ngọc Vân</td>
+              <td>
+                <button class="icon-btn" type="button" aria-label="Phân quyền" style="color: var(--color-info);">
+                  <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+                </button>
+                <button class="icon-btn" type="button" aria-label="Xoá" style="color: var(--color-danger);">
+                  <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-trash"></use></svg>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
   <!-- Form -->
   <section class="demo-section">
     <div class="container">
@@ -480,6 +546,26 @@
             <option>Trái cây</option>
             <option>Ngũ cốc</option>
           </select>
+        </div>
+
+        <div class="field">
+          <label class="label" for="demo-password">Mật khẩu</label>
+          <div class="password-field">
+            <input class="input" type="password" id="demo-password" value="Xem123!@" />
+            <button type="button" class="password-toggle" aria-label="Hiện mật khẩu">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-eye"></use></svg>
+            </button>
+          </div>
+          <ul class="password-rules" role="list">
+            <li class="password-rule is-met">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-check-circle"></use></svg>
+              Ít nhất 8 ký tự
+            </li>
+            <li class="password-rule">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-check-circle"></use></svg>
+              1 chữ hoa
+            </li>
+          </ul>
         </div>
 
         <div class="field" style="grid-column: 1 / -1;">
@@ -549,6 +635,7 @@
         <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-x-circle"></use></svg><span>x-circle</span></div>
         <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-user"></use></svg><span>user</span></div>
         <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-image"></use></svg><span>image</span></div>
+        <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-x"></use></svg><span>x</span></div>
       </div>
     </div>
   </section>

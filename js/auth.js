@@ -1,7 +1,8 @@
 /* ==========================================================================
    AgriChain — Đăng nhập / Đăng ký
    Một file dùng cho cả hai trang; tự nhận biết theo id của form có mặt.
-   Nạp SAU js/chain.js và js/store.js.
+   Nạp SAU js/chain.js, js/store.js và js/password-field.js (nút hiện/ẩn +
+   điều kiện mật khẩu dùng chung, xem file đó).
 
    NHẮC LẠI: đây không phải xác thực thật. Toàn bộ tài khoản nằm trong
    localStorage của chính trình duyệt này. Không dùng cho dữ liệu thật.
@@ -11,13 +12,7 @@
   'use strict';
 
   var store = global.AgriChain.store;
-
-  var PASSWORD_RULES = {
-    length:  function (value) { return value.length >= 8; },
-    upper:   function (value) { return /[A-Z]/.test(value); },
-    digit:   function (value) { return /[0-9]/.test(value); },
-    special: function (value) { return /[^A-Za-z0-9]/.test(value); }
-  };
+  var passwordProblems = global.AgriChain.passwordProblems;
 
   /* --- Tiện ích chung ------------------------------------------------------ */
 
@@ -53,51 +48,6 @@
 
   function isEmail(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-  }
-
-  /* --- Nút hiện/ẩn mật khẩu ------------------------------------------------ */
-
-  function setupPasswordToggles() {
-    document.querySelectorAll('[data-password-toggle]').forEach(function (button) {
-      var input = document.getElementById(button.getAttribute('data-password-toggle'));
-      if (!input) return;
-
-      button.addEventListener('click', function () {
-        var showing = input.type === 'text';
-        input.type = showing ? 'password' : 'text';
-        button.setAttribute('aria-label', showing ? 'Hiện mật khẩu' : 'Ẩn mật khẩu');
-        button.querySelector('use').setAttribute(
-          'href',
-          'icons/sprite.svg#' + (showing ? 'icon-eye' : 'icon-eye-off')
-        );
-        input.focus();
-      });
-    });
-  }
-
-  /* --- Danh sách điều kiện mật khẩu ---------------------------------------- */
-
-  function setupPasswordRules() {
-    var input = document.getElementById('register-password');
-    var list = document.querySelector('[data-password-rules]');
-    if (!input || !list) return;
-
-    input.addEventListener('input', function () {
-      var value = input.value;
-      list.querySelectorAll('[data-rule]').forEach(function (item) {
-        var rule = PASSWORD_RULES[item.getAttribute('data-rule')];
-        item.classList.toggle('is-met', Boolean(rule && rule(value)));
-      });
-    });
-  }
-
-  function passwordProblems(value) {
-    var missing = [];
-    if (!PASSWORD_RULES.length(value)) missing.push('ít nhất 8 ký tự');
-    if (!PASSWORD_RULES.upper(value)) missing.push('1 chữ hoa');
-    if (!PASSWORD_RULES.digit(value)) missing.push('1 chữ số');
-    if (!PASSWORD_RULES.special(value)) missing.push('1 ký tự đặc biệt');
-    return missing;
   }
 
   /* --- Chuyển loại tài khoản ----------------------------------------------- */
@@ -269,8 +219,8 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    setupPasswordToggles();
-    setupPasswordRules();
+    global.AgriChain.setupPasswordToggles();
+    global.AgriChain.setupPasswordRules();
     setupTypeTabs();
     setupLogin();
     setupRegister();

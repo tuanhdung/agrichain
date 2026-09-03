@@ -543,6 +543,14 @@
   color: var(--color-text-inverse);
 }
 
+/* Biến thể xanh dương — modal "Phân quyền" ở tai-khoan.html. Chỉ 1 sắc xanh
+   dương trong tokens.css (--color-info) nên dùng nền đặc thay vì gradient
+   2 sắc như bản xanh lá mặc định, khỏi phải thêm token màu mới chỉ để có
+   điểm dừng gradient thứ 2. */
+.modal__header--info {
+  background: var(--color-info);
+}
+
 .modal__title {
   flex: 1;
   font-size: var(--text-xl);
@@ -779,8 +787,10 @@
 }
 
 /* --- Bảng dữ liệu ---------------------------------------------------------
-   Bọc trong .table-wrap để cuộn ngang trên màn hình hẹp thay vì ép bảng co
-   lại tới mức không đọc nổi. */
+   .table/.table-wrap (component cốt lõi) chuyển sang css/components.css —
+   ở đây chỉ còn khung card bọc ngoài (.table-panel*) và các lớp căn chỉnh
+   riêng theo cột dữ liệu (.table__*), gắn với cách vat-tu.html trình bày
+   danh sách, không phải phần dùng chung mọi nơi. */
 .table-panel {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
@@ -796,39 +806,6 @@
 
 .table-panel__title {
   font-size: var(--text-xl);
-}
-
-.table-wrap {
-  overflow-x: auto;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-}
-
-.table th,
-.table td {
-  padding: var(--space-4) var(--space-5);
-  text-align: left;
-  vertical-align: top;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.table th {
-  font-weight: 600;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  background: var(--color-bg-subtle);
-}
-
-.table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.table tbody tr:hover {
-  background: var(--color-bg-subtle);
 }
 
 .table__code {
@@ -877,6 +854,17 @@
 .icon-btn--danger:hover {
   background: var(--color-danger-subtle);
   color: var(--color-danger);
+}
+
+/* Màu cố định (không chỉ tô lúc hover như .icon-btn--danger ở trên) — dùng
+   cho nút "Phân quyền" ở tai-khoan.html, đứng cạnh nút xoá nên cần phân
+   biệt được ngay cả khi không hover. */
+.icon-btn--info {
+  color: var(--color-info);
+}
+.icon-btn--info:hover {
+  background: var(--color-info-subtle);
+  color: var(--color-info);
 }
 
 /* --- Tooltip ----------------------------------------------------------

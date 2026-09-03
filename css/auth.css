@@ -176,62 +176,6 @@
   outline-offset: 2px;
 }
 
-/* --- Ô mật khẩu có nút hiện/ẩn -------------------------------------------- */
-.password-field {
-  position: relative;
-}
-
-.password-field .input {
-  padding-right: var(--space-12);
-}
-
-.password-toggle {
-  position: absolute;
-  top: 50%;
-  right: var(--space-2);
-  transform: translateY(-50%);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--space-9);
-  height: var(--space-9);
-  border-radius: var(--radius-md);
-  color: var(--color-text-muted);
-  transition: color var(--transition-base), background-color var(--transition-base);
-}
-.password-toggle:hover {
-  background: var(--color-bg-subtle);
-  color: var(--color-text);
-}
-
-/* --- Danh sách điều kiện mật khẩu ----------------------------------------- */
-.password-rules {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-1);
-}
-
-.password-rule {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-  transition: color var(--transition-base);
-}
-.password-rule .icon {
-  flex-shrink: 0;
-  color: var(--color-border);
-  transition: color var(--transition-base);
-}
-.password-rule.is-met {
-  color: var(--color-success);
-}
-.password-rule.is-met .icon {
-  color: var(--color-success);
-}
-
 /* --- Hàng phụ dưới ô mật khẩu --------------------------------------------- */
 .auth-row {
   display: flex;

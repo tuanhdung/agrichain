@@ -479,6 +479,73 @@ a.badge {
   text-decoration: none;
 }
 
+/* --- Table -------------------------------------------------------------
+   Bọc trong .table-wrap để cuộn ngang trên màn hình hẹp thay vì ép bảng co
+   lại tới mức không đọc nổi. .table-panel (khung card + tiêu đề bọc ngoài)
+   và các lớp .table__* (căn chỉnh riêng theo cột dữ liệu) vẫn ở
+   app-shell.css — gắn với cách vat-tu.html trình bày danh sách, không phải
+   phần cốt lõi của component bảng. */
+.table-wrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table th,
+.table td {
+  padding: var(--space-4) var(--space-5);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table th {
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  background: var(--color-bg-subtle);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background: var(--color-bg-subtle);
+}
+
+/* --- Avatar --- */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-subtle);
+  color: var(--color-primary-active);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  line-height: 1;
+}
+
+.avatar--sm {
+  width: var(--space-8);
+  height: var(--space-8);
+  font-size: var(--text-xs);
+}
+
+.avatar--lg {
+  width: var(--space-12);
+  height: var(--space-12);
+  font-size: var(--text-lg);
+}
+
 /* --- Icon --- */
 .icon {
   width: var(--space-6);
@@ -594,4 +661,63 @@ a.badge {
 .radio__input:disabled ~ .radio__label {
   color: var(--color-text-muted);
   cursor: not-allowed;
+}
+
+/* --- Ô mật khẩu có nút hiện/ẩn ---------------------------------------------
+   Dùng chung giữa dang-ky.html và modal "Thêm người dùng" ở tai-khoan.html
+   (chuyển từ css/auth.css sang đây vì không còn là thứ riêng của 2 trang
+   đăng nhập/đăng ký nữa — logic JS tương ứng nằm ở js/password-field.js). */
+.password-field {
+  position: relative;
+}
+
+.password-field .input {
+  padding-right: var(--space-12);
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: var(--space-2);
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  transition: color var(--transition-base), background-color var(--transition-base);
+}
+.password-toggle:hover {
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+}
+
+/* --- Danh sách điều kiện mật khẩu ----------------------------------------- */
+.password-rules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.password-rule {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  transition: color var(--transition-base);
+}
+.password-rule .icon {
+  flex-shrink: 0;
+  color: var(--color-border);
+  transition: color var(--transition-base);
+}
+.password-rule.is-met {
+  color: var(--color-success);
+}
+.password-rule.is-met .icon {
+  color: var(--color-success);
 }

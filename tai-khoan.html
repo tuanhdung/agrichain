@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quản lý Tài khoản — AgriChain</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/app-shell.css" />
+
+  <style>
+    /* CSS chỉ dùng riêng cho trang Quản lý Tài khoản, không phải component
+       tái sử dụng nên để tại đây theo quy ước dự án. */
+    .permission-person {
+      display: flex;
+      flex-shrink: 0; /* .modal[open] là flex column — khỏi bị co lại nhường chỗ cho .modal__body */
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-5);
+      background: var(--color-bg-subtle);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .permission-person__name {
+      font-weight: 700;
+    }
+    .permission-person__email {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+
+    .permission-table th,
+    .permission-table td {
+      text-align: center;
+    }
+    .permission-table th:first-child,
+    .permission-table td:first-child {
+      text-align: left;
+    }
+    .permission-table__module {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-weight: 600;
+    }
+    .permission-table th .icon--view { color: var(--color-info); }
+    .permission-table th .icon--add { color: var(--color-primary); }
+    .permission-table th .icon--edit { color: var(--color-warning); }
+    .permission-table th .icon--delete { color: var(--color-danger); }
+  </style>
+</head>
+<body class="app-shell">
+
+  <!-- Lớp phủ khi mở sidebar trên mobile -->
+  <div class="app-scrim"></div>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar" id="app-sidebar">
+    <div class="app-sidebar__brand">
+      <span class="app-sidebar__avatar" data-session-initials aria-hidden="true">TC</span>
+      <span class="app-sidebar__org" data-session-org>Tổ chức</span>
+    </div>
+
+    <div class="app-sidebar__scroll">
+      <nav aria-label="Menu quản trị">
+        <div class="app-nav__section">
+          <button type="button" class="app-nav__section-toggle" aria-expanded="true" aria-controls="nav-san-xuat">
+            <span class="app-nav__section-label">Hoạt động sản xuất</span>
+            <svg class="icon icon--sm app-nav__section-chevron"><use href="icons/sprite.svg#icon-chevron-down"></use></svg>
+          </button>
+          <ul class="app-nav__list" role="list" id="nav-san-xuat">
+            <li>
+              <a class="app-nav__link" href="nong-trai.html">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-seedling"></use></svg>
+                Nông trại
+              </a>
+            </li>
+            <li>
+              <a class="app-nav__link" href="vat-tu.html">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-tractor"></use></svg>
+                Vật tư
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="app-nav__section">
+          <button type="button" class="app-nav__section-toggle" aria-expanded="true" aria-controls="nav-truy-xuat">
+            <span class="app-nav__section-label">Truy xuất</span>
+            <svg class="icon icon--sm app-nav__section-chevron"><use href="icons/sprite.svg#icon-chevron-down"></use></svg>
+          </button>
+          <ul class="app-nav__list" role="list" id="nav-truy-xuat">
+            <li>
+              <a class="app-nav__link" href="lo-hang.html">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-warehouse"></use></svg>
+                Lô hàng
+              </a>
+            </li>
+            <li>
+              <a class="app-nav__link" href="so-cai.html">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-blockchain"></use></svg>
+                Sổ cái blockchain
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="app-nav__section">
+          <button type="button" class="app-nav__section-toggle" aria-expanded="true" aria-controls="nav-kinh-doanh">
+            <span class="app-nav__section-label">Kinh doanh</span>
+            <svg class="icon icon--sm app-nav__section-chevron"><use href="icons/sprite.svg#icon-chevron-down"></use></svg>
+          </button>
+          <ul class="app-nav__list" role="list" id="nav-kinh-doanh">
+            <li>
+              <a class="app-nav__link" href="thuong-mai.html">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shopping-cart"></use></svg>
+                Thương mại điện tử
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="app-nav__section">
+          <button type="button" class="app-nav__section-toggle" aria-expanded="true" aria-controls="nav-quan-ly-don-vi">
+            <span class="app-nav__section-label">Quản lý Đơn vị</span>
+            <svg class="icon icon--sm app-nav__section-chevron"><use href="icons/sprite.svg#icon-chevron-down"></use></svg>
+          </button>
+          <ul class="app-nav__list" role="list" id="nav-quan-ly-don-vi">
+            <li>
+              <a class="app-nav__link" href="tai-khoan.html" aria-current="page">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-user"></use></svg>
+                Quản lý Tài khoản
+              </a>
+            </li>
+            <li>
+              <a class="app-nav__link" href="goi-phan-mem.html">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-box"></use></svg>
+                Gói Phần mềm
+              </a>
+            </li>
+            <li>
+              <a class="app-nav__link" href="lich-su-mua-goi.html">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-file-text"></use></svg>
+                Lịch sử mua Gói
+              </a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+    </div>
+
+    <div class="app-sidebar__footer">
+      <p style="margin-bottom: var(--space-2);" data-session-name></p>
+      <a href="index.html">← Về trang giới thiệu</a>
+      <button type="button" class="app-sidebar__logout" data-logout>Đăng xuất</button>
+    </div>
+  </aside>
+
+  <!-- Topbar -->
+  <header class="app-topbar">
+    <button
+      type="button"
+      class="app-topbar__toggle"
+      aria-controls="app-sidebar"
+      aria-expanded="false"
+      aria-label="Mở menu"
+    >
+      <span class="app-topbar__toggle-bar"></span>
+      <span class="app-topbar__toggle-bar"></span>
+      <span class="app-topbar__toggle-bar"></span>
+    </button>
+
+    <a class="app-topbar__brand" href="nong-trai.html">
+      <span class="app-topbar__brand-mark" aria-hidden="true">A</span>
+      <span>AgriChain</span>
+    </a>
+    <span class="app-topbar__org">— <span data-session-org>Tổ chức</span></span>
+
+    <span class="app-topbar__spacer"></span>
+
+    <a class="btn btn--outline btn--sm" href="so-cai.html">
+      <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-blockchain"></use></svg>
+      Blockchain
+    </a>
+
+    <span class="app-topbar__user" data-session-initials aria-hidden="true">TC</span>
+  </header>
+
+  <!-- Nội dung -->
+  <main class="app-main">
+    <div class="app-content">
+
+      <nav class="breadcrumb" aria-label="Đường dẫn">
+        <a class="breadcrumb__link" href="tai-khoan.html">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+          Quản lý đơn vị
+        </a>
+        <span class="breadcrumb__sep" aria-hidden="true">/</span>
+        <span class="breadcrumb__current" aria-current="page">Quản lý người dùng trong Đơn vị của bạn</span>
+      </nav>
+
+      <div class="page-header">
+        <div class="page-header__icon">
+          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-user"></use></svg>
+        </div>
+        <div class="page-header__text">
+          <h1 class="page-header__title">Quản lý Người dùng</h1>
+          <p class="page-header__meta">Quản lý người dùng trong Đơn vị của bạn.</p>
+        </div>
+        <button type="button" class="btn btn--primary btn--lg" data-open-user-form>
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
+          Thêm người dùng
+        </button>
+      </div>
+
+      <!-- Bảng -->
+      <div class="table-panel" data-user-table-panel hidden>
+        <div class="table-panel__header">
+          <h2 class="table-panel__title">Danh sách người dùng</h2>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col"><span class="sr-only">Ảnh đại diện</span>#</th>
+                <th scope="col">Email</th>
+                <th scope="col">Họ tên</th>
+                <th scope="col"><span class="sr-only">Hành động</span></th>
+              </tr>
+            </thead>
+            <tbody data-user-table-body></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Trạng thái rỗng -->
+      <div class="empty-state" data-user-empty>
+        <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-user"></use></svg>
+        <p class="empty-state__title">Chưa có người dùng nào</p>
+        <p class="empty-state__desc">
+          Thêm người dùng để cấp quyền truy cập vào từng phân hệ của Đơn vị bạn.
+        </p>
+        <button type="button" class="btn btn--primary" data-open-user-form>Thêm người dùng</button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Modal: Thêm người dùng -->
+  <dialog class="modal modal--sm" id="user-modal" aria-labelledby="user-modal-title">
+    <form class="modal__form" id="user-form" novalidate>
+      <div class="modal__header">
+        <svg class="icon"><use href="icons/sprite.svg#icon-user"></use></svg>
+        <h2 class="modal__title" id="user-modal-title">Thêm người dùng</h2>
+        <button type="button" class="modal__close" data-close-user-form aria-label="Đóng">&times;</button>
+      </div>
+
+      <div class="modal__body">
+        <div class="field">
+          <label class="label" for="user-email">Email</label>
+          <input class="input" type="email" id="user-email" name="email" required />
+        </div>
+
+        <div class="field">
+          <label class="label" for="user-full-name">Họ tên</label>
+          <input class="input" type="text" id="user-full-name" name="fullName" required />
+        </div>
+
+        <div class="field">
+          <label class="label" for="user-password">Mật khẩu</label>
+          <div class="password-field">
+            <input class="input" type="password" id="user-password" name="password"
+              autocomplete="new-password" required />
+            <button type="button" class="password-toggle" data-password-toggle="user-password"
+              aria-label="Hiện mật khẩu">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-eye"></use></svg>
+            </button>
+          </div>
+        </div>
+
+        <ul class="password-rules" role="list" data-password-rules="user-password" aria-live="polite">
+          <li class="password-rule" data-rule="length">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-check-circle"></use></svg>
+            Ít nhất 8 ký tự
+          </li>
+          <li class="password-rule" data-rule="upper">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-check-circle"></use></svg>
+            1 chữ hoa
+          </li>
+          <li class="password-rule" data-rule="digit">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-check-circle"></use></svg>
+            1 chữ số
+          </li>
+          <li class="password-rule" data-rule="special">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-check-circle"></use></svg>
+            1 ký tự đặc biệt
+          </li>
+        </ul>
+
+        <p class="field__hint">
+          Đây là trang demo tĩnh — mật khẩu chỉ dùng để kiểm tra định dạng phía trình
+          duyệt, KHÔNG được lưu lại (kể cả dưới dạng mã hoá). Xác thực thật sẽ do backend
+          đảm nhiệm sau này.
+        </p>
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--secondary" data-close-user-form>Hủy</button>
+        <button type="submit" class="btn btn--primary">Thêm người dùng</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Modal: Phân quyền -->
+  <dialog class="modal" id="permission-modal" aria-labelledby="permission-modal-title">
+    <div class="modal__header modal__header--info">
+      <svg class="icon"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+      <h2 class="modal__title" id="permission-modal-title">Phân quyền</h2>
+      <button type="button" class="modal__close" data-close-permission aria-label="Đóng">&times;</button>
+    </div>
+
+    <div class="permission-person">
+      <span class="avatar" data-permission-avatar></span>
+      <div>
+        <p class="permission-person__name" data-permission-name></p>
+        <p class="permission-person__email" data-permission-email></p>
+      </div>
+    </div>
+
+    <div class="modal__body">
+      <div class="table-wrap">
+        <table class="table permission-table">
+          <thead>
+            <tr>
+              <th scope="col">Phân hệ</th>
+              <th scope="col">
+                <svg class="icon icon--sm icon--view"><use href="icons/sprite.svg#icon-eye"></use></svg>
+                <span class="sr-only">Xem</span>
+              </th>
+              <th scope="col">
+                <svg class="icon icon--sm icon--add"><use href="icons/sprite.svg#icon-plus"></use></svg>
+                <span class="sr-only">Thêm</span>
+              </th>
+              <th scope="col">
+                <svg class="icon icon--sm icon--edit"><use href="icons/sprite.svg#icon-pencil"></use></svg>
+                <span class="sr-only">Sửa</span>
+              </th>
+              <th scope="col">
+                <svg class="icon icon--sm icon--delete"><use href="icons/sprite.svg#icon-x"></use></svg>
+                <span class="sr-only">Xoá</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody data-permission-table-body></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal__footer">
+      <button type="button" class="btn btn--secondary" data-close-permission>Huỷ</button>
+      <button type="button" class="btn btn--primary" data-save-permission>Lưu</button>
+    </div>
+  </dialog>
+
+  <!-- Xác nhận xoá (dùng chung, gọi qua AgriChain.confirm) -->
+  <dialog class="modal modal--sm" id="confirm-dialog" aria-labelledby="confirm-dialog-title">
+    <div class="modal__header">
+      <svg class="icon"><use href="icons/sprite.svg#icon-trash"></use></svg>
+      <h2 class="modal__title" id="confirm-dialog-title">Xác nhận</h2>
+    </div>
+    <div class="modal__body">
+      <p data-confirm-message></p>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn--secondary" data-confirm-cancel>Huỷ</button>
+      <button type="button" class="btn btn--danger" data-confirm-ok>Xoá</button>
+    </div>
+  </dialog>
+
+  <!-- Toast -->
+  <div class="toast" role="status" aria-live="polite">
+    <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+    <span data-toast-message></span>
+  </div>
+
+  <script src="js/chain.js?v=1" defer></script>
+  <script src="js/store.js?v=5" defer></script>
+  <script src="js/app-shell.js?v=6" defer></script>
+  <script src="js/password-field.js?v=1" defer></script>
+  <script src="js/tai-khoan.js?v=1" defer></script>
+</body>
+</html>
