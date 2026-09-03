@@ -61,6 +61,11 @@
       display: block;
       margin: 0 auto; /* input tự canh giữa theo chiều ngang trong ô, không dựa vào text-align của ô cha */
     }
+    .permission-table th .icon {
+      display: block;
+      margin: 0 auto; /* icon header dùng CHUNG cách canh giữa với checkbox ở trên — text-align: center
+                          một mình không đủ (span .sr-only đứng cạnh icon vẫn kéo lệch dù đã absolute) */
+    }
     .permission-table__module {
       display: flex;
       align-items: center;
