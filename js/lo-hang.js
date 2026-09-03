@@ -200,6 +200,18 @@
         del.setAttribute('data-tooltip', 'Xoá (mở trang mùa vụ)');
         del.appendChild(svgIcon('icon-trash'));
         actions.appendChild(del);
+      } else {
+        // Nông trại hoặc mùa vụ của lô hàng này đã bị xoá — không còn trang
+        // nào để điều hướng tới (không sửa được nữa), nhưng vẫn phải xoá
+        // được để dọn rác dữ liệu mồ côi, nên xoá thẳng tại đây thay vì
+        // điều hướng đi đâu cả.
+        var orphanDelete = el('button', 'icon-btn batch-card__action--delete');
+        orphanDelete.type = 'button';
+        orphanDelete.setAttribute('aria-label', 'Xoá lô hàng ' + batch.code);
+        orphanDelete.setAttribute('data-tooltip', 'Xoá (nông trại/mùa vụ đã bị xoá)');
+        orphanDelete.appendChild(svgIcon('icon-trash'));
+        orphanDelete.addEventListener('click', function () { deleteOrphanBatch(batch); });
+        actions.appendChild(orphanDelete);
       }
     }
 
@@ -223,6 +235,18 @@
     batchListNode.hidden = false;
     batches.forEach(function (batch) {
       batchListNode.appendChild(batchCard(batch));
+    });
+  }
+
+  function deleteOrphanBatch(batch) {
+    global.AgriChain.confirm(
+      'Nông trại/mùa vụ của lô hàng "' + batch.code + '" không còn tồn tại. ' +
+      'Xoá lô hàng mồ côi này? Hành động này không thể hoàn tác.'
+    ).then(function (confirmed) {
+      if (!confirmed) return;
+      store.remove('batches', batch.id);
+      render();
+      global.AgriChain.toast('Đã xoá lô hàng.');
     });
   }
 
