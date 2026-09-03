@@ -16,6 +16,77 @@
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/app-shell.css" />
+
+  <style>
+    /* CSS chỉ dùng riêng cho trang Vận chuyển Thương mại điện tử, không phải
+       component tái sử dụng nên để tại đây theo quy ước dự án. */
+
+    /* --- Tiêu đề mỗi khối (icon + tên loại địa chỉ + mô tả) ------------------ */
+    .shipping-card__header {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      padding-bottom: var(--space-4);
+      margin-bottom: var(--space-4);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .shipping-card__header .icon {
+      flex-shrink: 0;
+      color: var(--color-primary);
+    }
+    .shipping-card__title {
+      font-size: var(--text-lg);
+      font-weight: 700;
+      margin-bottom: var(--space-1);
+    }
+    .shipping-card__desc {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+
+    /* --- Thẻ 1 địa chỉ -------------------------------------------------------- */
+    .shipping-address-card {
+      padding: var(--space-4);
+      margin-bottom: var(--space-3);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+    }
+    .shipping-address-card:last-child {
+      margin-bottom: 0;
+    }
+    .shipping-address-card__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      margin-bottom: var(--space-3);
+    }
+    .shipping-address-card__name {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-weight: 700;
+    }
+    .shipping-address-card__actions {
+      display: flex;
+      gap: var(--space-2);
+      flex-shrink: 0;
+    }
+    .shipping-address-card__row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-top: var(--space-2);
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+    .shipping-address-card__row:first-of-type {
+      margin-top: 0;
+    }
+    .shipping-address-card__row .icon {
+      flex-shrink: 0;
+    }
+  </style>
 </head>
 <body class="app-shell">
 
@@ -193,21 +264,134 @@
           <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-truck"></use></svg>
         </div>
         <div class="page-header__text">
-          <h1 class="page-header__title">Vận chuyển</h1>
-          <p class="page-header__meta">Quản lý đơn vị vận chuyển và trạng thái giao hàng.</p>
+          <h1 class="page-header__title">Thiết lập vận chuyển</h1>
+          <p class="page-header__meta">Quản lý địa chỉ lấy hàng và trả hàng cho cửa hàng của bạn.</p>
         </div>
+        <button type="button" class="btn btn--primary btn--lg" data-open-shipping-form>
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
+          Thêm địa chỉ
+        </button>
       </div>
 
-      <div class="empty-state">
-        <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-truck"></use></svg>
-        <p class="empty-state__title">Đang phát triển</p>
-        <p class="empty-state__desc">
-          Tính năng này chưa sẵn sàng. Quay lại sau nhé.
-        </p>
+      <div class="grid grid--2">
+
+        <!-- Địa chỉ lấy hàng -->
+        <div class="card">
+          <div class="shipping-card__header">
+            <svg class="icon"><use href="icons/sprite.svg#icon-truck"></use></svg>
+            <div>
+              <h2 class="shipping-card__title">Địa chỉ lấy hàng</h2>
+              <p class="shipping-card__desc">Đây là địa chỉ mà đơn vị vận chuyển sẽ đến lấy hàng.</p>
+            </div>
+          </div>
+
+          <div data-pickup-list hidden></div>
+          <div class="empty-state" data-pickup-empty>
+            <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-map-pin-off"></use></svg>
+            <p class="empty-state__title">Không có dữ liệu</p>
+            <button type="button" class="btn btn--ghost btn--sm" data-open-shipping-form data-shipping-type="pickup">
+              Thêm địa chỉ
+            </button>
+          </div>
+        </div>
+
+        <!-- Địa chỉ trả hàng -->
+        <div class="card">
+          <div class="shipping-card__header">
+            <svg class="icon"><use href="icons/sprite.svg#icon-corner-up-left"></use></svg>
+            <div>
+              <h2 class="shipping-card__title">Địa chỉ trả hàng</h2>
+              <p class="shipping-card__desc">Đây là địa chỉ mà hàng sẽ được trả về nếu giao không thành công.</p>
+            </div>
+          </div>
+
+          <div data-return-list hidden></div>
+          <div class="empty-state" data-return-empty>
+            <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-map-pin-off"></use></svg>
+            <p class="empty-state__title">Không có dữ liệu</p>
+            <button type="button" class="btn btn--ghost btn--sm" data-open-shipping-form data-shipping-type="return">
+              Thêm địa chỉ
+            </button>
+          </div>
+        </div>
+
       </div>
 
     </div>
   </main>
+
+  <!-- Modal Thêm/Sửa địa chỉ -->
+  <dialog class="modal modal--sm" id="shipping-modal" aria-labelledby="shipping-modal-title">
+    <form class="modal__form" id="shipping-form" novalidate>
+      <div class="modal__header">
+        <svg class="icon"><use href="icons/sprite.svg#icon-truck"></use></svg>
+        <h2 class="modal__title" id="shipping-modal-title">Thêm địa chỉ</h2>
+        <button type="button" class="modal__close" data-close-shipping-form aria-label="Đóng">&times;</button>
+      </div>
+
+      <div class="modal__body">
+        <div class="field" style="margin-bottom: var(--space-5);">
+          <label class="label" for="shipping-type">Loại</label>
+          <select class="select" id="shipping-type" name="type">
+            <option value="pickup">Địa chỉ lấy hàng</option>
+            <option value="return">Địa chỉ trả hàng</option>
+          </select>
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label class="label" for="shipping-contact-name">Tên người liên hệ</label>
+            <input class="input" type="text" id="shipping-contact-name" name="contactName" required />
+          </div>
+          <div class="field">
+            <label class="label" for="shipping-phone">Số điện thoại</label>
+            <input class="input" type="tel" id="shipping-phone" name="phone" required />
+          </div>
+          <div class="field">
+            <label class="label" for="shipping-province">Tỉnh/Thành phố</label>
+            <select class="select" id="shipping-province" name="province" required>
+              <option value="">— Chọn tỉnh/thành phố —</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="label" for="shipping-ward">Phường/Xã</label>
+            <select class="select" id="shipping-ward" name="ward" required disabled>
+              <option value="">— Chọn tỉnh/thành phố trước —</option>
+            </select>
+          </div>
+          <div class="field form-grid__full">
+            <label class="label" for="shipping-address">Địa chỉ chi tiết</label>
+            <input class="input" type="text" id="shipping-address" name="addressDetail" required />
+          </div>
+        </div>
+
+        <label class="checkbox" style="margin-top: var(--space-5);">
+          <input class="checkbox__input" type="checkbox" id="shipping-default" name="isDefault" />
+          <span class="checkbox__label">Đặt làm mặc định</span>
+        </label>
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--secondary" data-close-shipping-form>Hủy</button>
+        <button type="submit" class="btn btn--primary" data-shipping-submit-label>Xác nhận</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Xác nhận xoá (dùng chung, gọi qua AgriChain.confirm) -->
+  <dialog class="modal modal--sm" id="confirm-dialog" aria-labelledby="confirm-dialog-title">
+    <div class="modal__header">
+      <svg class="icon"><use href="icons/sprite.svg#icon-trash"></use></svg>
+      <h2 class="modal__title" id="confirm-dialog-title">Xác nhận</h2>
+    </div>
+    <div class="modal__body">
+      <p data-confirm-message></p>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn--secondary" data-confirm-cancel>Huỷ</button>
+      <button type="button" class="btn btn--danger" data-confirm-ok>Xoá</button>
+    </div>
+  </dialog>
 
   <!-- Toast -->
   <div class="toast" role="status" aria-live="polite">
@@ -216,7 +400,9 @@
   </div>
 
   <script src="js/chain.js?v=1" defer></script>
-  <script src="js/store.js?v=8" defer></script>
+  <script src="js/store.js?v=9" defer></script>
   <script src="js/app-shell.js?v=6" defer></script>
+  <script src="js/location-select.js?v=1" defer></script>
+  <script src="js/thuong-mai-van-chuyen.js?v=1" defer></script>
 </body>
 </html>

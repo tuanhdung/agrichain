@@ -30,8 +30,8 @@ js/
   contact-form.js        # Validate + hiện thông báo thành công cho form ở section Liên Hệ
   chain.js               # Sổ cái băm nối chuỗi (hash chain) bằng Web Crypto API — chạy trong trình duyệt
   store.js               # Lớp lưu trữ qua localStorage (users, farms, supplies, batches, events, ledger,
-                          # orgUsers, shops, products, phiên đăng nhập) — mọi trang đọc/ghi dữ liệu qua
-                          # đây, không gọi thẳng localStorage
+                          # orgUsers, shops, products, orders, shippingAddresses, phiên đăng nhập) — mọi
+                          # trang đọc/ghi dữ liệu qua đây, không gọi thẳng localStorage
   password-field.js      # Nút hiện/ẩn mật khẩu (data-password-toggle) + danh sách điều kiện mật khẩu
                           # (data-password-rules="<id ô mật khẩu>") dùng chung — tách từ js/auth.js để
                           # js/tai-khoan.js dùng lại được, không chép lại 2 hàm này.
@@ -62,6 +62,12 @@ js/
                            # phẩm — collection "products", nhiều bản ghi/Đơn vị cùng khoá ownerId;
                            # mỗi sản phẩm có nhiều "biến thể", mỗi biến thể tuỳ chọn gắn 1 lô hàng
                            # thật từ collection "batches" để truy xuất nguồn gốc)
+  thuong-mai-don-hang.js   # Logic riêng cho thuong-mai-don-hang.html (CHỈ xem/lọc/đổi trạng thái —
+                           # collection "orders" chưa có nơi nào trong app ghi dữ liệu vào, trang sẽ
+                           # luôn rỗng cho tới khi có trang mua hàng công khai)
+  thuong-mai-van-chuyen.js # Logic riêng cho thuong-mai-van-chuyen.html (thêm/sửa/xoá địa chỉ lấy
+                           # hàng + trả hàng — collection "shippingAddresses", nhiều bản ghi/loại/
+                           # Đơn vị, mỗi loại tối đa 1 địa chỉ mặc định tại một thời điểm)
 icons/
   sprite.svg              # SVG sprite dùng chung, tham chiếu bằng <use href="icons/sprite.svg#icon-...">
 index.html                # Trang chủ thật của AgriChain
@@ -87,13 +93,17 @@ lich-su-mua-goi.html      # Trang tạm "Đang phát triển" — mục "Lịch 
                           # "Quản lý Đơn vị", chưa có nghiệp vụ thật
 thuong-mai-tong-quan.html    # Mục "Tổng quan" trong nhóm sidebar "Thương mại điện tử" — khởi tạo/
                              # xem/sửa hồ sơ cửa hàng Ecommerce của Đơn vị (modal 4 tab, xem
-                             # js/thuong-mai-tong-quan.js). 5 mục còn lại (trừ Sản phẩm, xem dưới)
-                             # vẫn là trang tạm "Đang phát triển".
+                             # js/thuong-mai-tong-quan.js). Nhập hàng/Máy tính tiền (POS)/Thiết lập
+                             # Shop vẫn là trang tạm "Đang phát triển", 4 mục còn lại (kể cả trang
+                             # này) đã có nghiệp vụ thật — xem mô tả riêng từng trang bên dưới.
 thuong-mai-san-pham.html     # Mục "Sản phẩm" trong nhóm sidebar "Thương mại điện tử" — đã có nghiệp
                              # vụ thật: danh sách/lọc/tìm kiếm + thêm/sửa/xoá sản phẩm, mỗi sản phẩm
                              # nhiều biến thể có thể gắn lô hàng thật (xem js/thuong-mai-san-pham.js)
-thuong-mai-don-hang.html     # Trang tạm "Đang phát triển" — mục "Đơn hàng"
-thuong-mai-van-chuyen.html   # Trang tạm "Đang phát triển" — mục "Vận chuyển"
+thuong-mai-don-hang.html     # Mục "Đơn hàng" trong nhóm sidebar "Thương mại điện tử" — xem/lọc/đổi
+                             # trạng thái đơn hàng, nhưng KHÔNG có form tạo đơn (xem js/thuong-mai-
+                             # don-hang.js ở trên và mục riêng bên dưới)
+thuong-mai-van-chuyen.html   # Mục "Vận chuyển" trong nhóm sidebar "Thương mại điện tử" — quản lý địa
+                             # chỉ lấy hàng/trả hàng của cửa hàng (xem js/thuong-mai-van-chuyen.js)
 thuong-mai-nhap-hang.html    # Trang tạm "Đang phát triển" — mục "Nhập hàng"
 thuong-mai-may-tinh-tien.html # Trang tạm "Đang phát triển" — mục "Máy tính tiền (POS)"
 thuong-mai-thiet-lap.html    # Trang tạm "Đang phát triển" — mục "Thiết lập Shop"
@@ -350,6 +360,26 @@ có/không lọc ra sản phẩm nào (khớp giao diện tham khảo), nên tr�
 `js/thuong-mai-san-pham.js`, cùng cơ chế ở `js/thuong-mai-don-hang.js`) thay vì ẩn nguyên khối
 bảng đi — `.table-empty` đã chuyển sang `components.css` vì dùng ở cả 2 trang (xem "Component
 hiện có").
+
+## Thương mại điện tử — đơn hàng & vận chuyển
+
+`thuong-mai-don-hang.html` **cố tình không có form tạo đơn hàng** — đơn hàng thật phải do
+khách đặt qua một trang mua hàng công khai, mà dự án chưa có trang đó (chưa có giỏ hàng/
+checkout nào cho khách truy cập). Trang chỉ xem/lọc theo trạng thái (tab dạng viên thuốc,
+`.status-tabs`/`.status-tab` — khác `.tabs` gạch chân dùng để chuyển nội dung ở nơi khác
+trong app) + tìm kiếm + sắp xếp + modal xem chi tiết kèm đổi trạng thái, đọc từ collection
+`orders` (`store.js`) — collection này sẽ luôn rỗng cho tới khi có nơi khác trong app ghi vào
+nó, giống quan hệ giữa `lo-hang.html` (chỉ xem lô hàng) và `nong-trai-chi-tiet.html` (nơi tạo
+ra chúng thật sự).
+
+`thuong-mai-van-chuyen.html` quản lý địa chỉ lấy hàng/trả hàng — collection
+`shippingAddresses`, khoá `ownerId` như các collection thương mại điện tử khác, thêm trường
+`type` (`'pickup'`/`'return'`) và `isDefault`. Mỗi loại địa chỉ chỉ được phép có tối đa 1 địa
+chỉ mặc định tại một thời điểm — khi tick "Đặt làm mặc định", `js/thuong-mai-van-chuyen.js`
+tự bỏ tick ở các địa chỉ khác CÙNG loại trước khi lưu (không giới hạn qua UI, xử lý hoàn toàn
+ở tầng logic). Form địa chỉ dùng lại đúng cơ chế Tỉnh/Thành phố → Phường/Xã của
+`nong-trai.html`/`thuong-mai-tong-quan.html` (chép lại 2 hàm `loadProvinces()`/`loadWards()`
+nhỏ, đúng quy ước "mỗi trang tự chứa JS riêng").
 
 ## Dữ liệu hành chính (tỉnh/thành, phường/xã)
 

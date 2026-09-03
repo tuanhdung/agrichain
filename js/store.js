@@ -11,7 +11,8 @@
 
   // Các "bảng" dữ liệu. Mỗi bảng là một mảng lưu dưới 1 key riêng.
   var COLLECTIONS = ['users', 'farms', 'supplies', 'batches', 'events', 'ledger',
-    'certifications', 'seasons', 'seasonLogs', 'orgUsers', 'shops', 'products', 'orders'];
+    'certifications', 'seasons', 'seasonLogs', 'orgUsers', 'shops', 'products', 'orders',
+    'shippingAddresses'];
 
   /* --- Đọc/ghi thô ---------------------------------------------------------
      localStorage có thể ném lỗi: chế độ riêng tư (Safari), người dùng tắt
