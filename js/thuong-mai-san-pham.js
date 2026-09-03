@@ -79,12 +79,7 @@
   var statusFilter = document.getElementById('product-filter-status');
   var sortSelect = document.getElementById('product-filter-sort');
 
-  var tablePanel = document.querySelector('[data-product-table-panel]');
   var tableBody = document.querySelector('[data-product-table-body]');
-  var emptyNode = document.querySelector('[data-product-empty]');
-  var emptyTitle = document.querySelector('[data-product-empty-title]');
-  var emptyDesc = document.querySelector('[data-product-empty-desc]');
-  var emptyAction = document.querySelector('[data-product-empty-action]');
 
   function fillFilterOptions() {
     CATEGORIES.forEach(function (category) {
@@ -178,6 +173,24 @@
     return row;
   }
 
+  // Hàng "rỗng" nằm NGAY trong <tbody> (colspan hết các cột) thay vì một khối
+  // .empty-state tách riêng — nhờ vậy hàng tiêu đề cột (Ảnh/Tên sản phẩm/...)
+  // vẫn luôn hiển thị kể cả khi chưa có/không lọc ra sản phẩm nào.
+  function emptyRow(totalCount) {
+    var row = el('tr');
+    var cell = el('td', 'table-empty');
+    cell.colSpan = 7;
+    cell.appendChild(svgIcon('icon-box', 'icon icon--lg'));
+    if (totalCount === 0) {
+      cell.appendChild(el('p', null, 'Chưa có sản phẩm nào'));
+      cell.appendChild(el('p', 'field__hint', 'Thêm sản phẩm đầu tiên để bắt đầu đăng bán trên gian hàng của bạn.'));
+    } else {
+      cell.appendChild(el('p', null, 'Không tìm thấy sản phẩm nào.'));
+    }
+    row.appendChild(cell);
+    return row;
+  }
+
   function render() {
     var totalCount = myProducts().length;
     var products = filteredProducts();
@@ -185,23 +198,10 @@
     tableBody.textContent = '';
 
     if (!products.length) {
-      tablePanel.hidden = true;
-      emptyNode.hidden = false;
-
-      if (totalCount === 0) {
-        emptyTitle.textContent = 'Chưa có sản phẩm nào';
-        emptyDesc.textContent = 'Thêm sản phẩm đầu tiên để bắt đầu đăng bán trên gian hàng của bạn.';
-        emptyAction.hidden = false;
-      } else {
-        emptyTitle.textContent = 'Không tìm thấy sản phẩm nào';
-        emptyDesc.textContent = 'Thử thay đổi từ khoá tìm kiếm hoặc bộ lọc.';
-        emptyAction.hidden = true;
-      }
+      tableBody.appendChild(emptyRow(totalCount));
       return;
     }
 
-    tablePanel.hidden = false;
-    emptyNode.hidden = true;
     products.forEach(function (product) {
       tableBody.appendChild(productRow(product));
     });

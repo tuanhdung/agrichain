@@ -111,6 +111,19 @@
       background: var(--color-danger);
     }
 
+    /* --- Dòng "rỗng" nằm ngay trong bảng (thay vì .empty-state tách riêng) —
+       giữ nguyên hàng tiêu đề cột (Ảnh/Tên sản phẩm/...) khi chưa có/không lọc
+       ra sản phẩm nào, khớp giao diện tham khảo. --------------------------- */
+    td.table-empty {
+      padding: var(--space-16) var(--space-6);
+      text-align: center;
+      color: var(--color-text-muted);
+    }
+    .table-empty .icon {
+      display: block;
+      margin: 0 auto var(--space-3);
+    }
+
     /* --- Biến thể sản phẩm --------------------------------------------------- */
     .variant-card {
       padding: var(--space-4);
@@ -340,7 +353,7 @@
       </div>
 
       <!-- Bảng sản phẩm -->
-      <div class="table-panel" data-product-table-panel hidden>
+      <div class="table-panel">
         <div class="table-panel__header">
           <h2 class="table-panel__title">Danh sách sản phẩm</h2>
         </div>
@@ -360,18 +373,6 @@
             <tbody data-product-table-body></tbody>
           </table>
         </div>
-      </div>
-
-      <!-- Trạng thái rỗng -->
-      <div class="empty-state" data-product-empty>
-        <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-box"></use></svg>
-        <p class="empty-state__title" data-product-empty-title>Chưa có sản phẩm nào</p>
-        <p class="empty-state__desc" data-product-empty-desc>
-          Thêm sản phẩm đầu tiên để bắt đầu đăng bán trên gian hàng của bạn.
-        </p>
-        <button type="button" class="btn btn--primary" data-open-product-form data-product-empty-action>
-          Thêm sản phẩm
-        </button>
       </div>
 
     </div>
@@ -553,6 +554,6 @@
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=7" defer></script>
   <script src="js/app-shell.js?v=6" defer></script>
-  <script src="js/thuong-mai-san-pham.js?v=1" defer></script>
+  <script src="js/thuong-mai-san-pham.js?v=2" defer></script>
 </body>
 </html>

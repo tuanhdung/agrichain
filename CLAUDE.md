@@ -333,6 +333,12 @@ O2O`/`Thông tin bổ sung` bên phải) chỉ để trong `<style>` riêng củ
 từ `.log-images__grid`/`.log-image-thumb` đã có ở `nong-trai-chi-tiet.html` (cùng kiểu, khác
 trang, cố tình không gộp — xem quy ước "mỗi trang tự chứa CSS/JS riêng" ở đầu file này).
 
+Bảng danh sách sản phẩm **không** dùng cặp `.table-panel[hidden]`/`.empty-state` tách rời như
+`tai-khoan.html` — hàng tiêu đề cột (Ảnh/Tên sản phẩm/...) phải luôn hiển thị kể cả khi chưa
+có/không lọc ra sản phẩm nào (khớp giao diện tham khảo), nên trạng thái rỗng render thành 1
+`<tr><td colspan="7" class="table-empty">` nằm ngay trong `<tbody>` (`emptyRow()` trong
+`js/thuong-mai-san-pham.js`) thay vì ẩn nguyên khối bảng đi.
+
 ## Dữ liệu hành chính (tỉnh/thành, phường/xã)
 
 `data/provinces.json` (34 tỉnh/thành) và `data/wards/{provinceCode}.json` (1 file/tỉnh,
