@@ -283,6 +283,10 @@
   document.addEventListener('DOMContentLoaded', function () {
     fillFarmFilter();
     render();
+    // Điền sẵn select Mùa vụ với TẤT CẢ mùa vụ (allowEmptyParent) — không có
+    // dòng này thì nó chỉ có mỗi option "Tất cả" tĩnh trong HTML, đứng im
+    // cho tới khi người dùng đụng vào select Nông trại.
+    seasonCascade.refresh();
 
     seasonFilterSelect.addEventListener('change', render);
 
