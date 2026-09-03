@@ -248,11 +248,36 @@
       checkbox.setAttribute('data-action', action.key);
       checkbox.setAttribute('aria-label',
         'Quyền ' + action.label.toLowerCase() + ' phân hệ ' + module.label);
+      checkbox.addEventListener('change', function () {
+        syncViewPermission(module.key, action.key, checkbox.checked);
+      });
       cell.appendChild(checkbox);
       tr.appendChild(cell);
     });
 
     return tr;
+  }
+
+  function permissionCheckbox(moduleKey, actionKey) {
+    return permissionTableBody.querySelector(
+      'input[data-module="' + moduleKey + '"][data-action="' + actionKey + '"]');
+  }
+
+  // Thêm/Sửa/Xoá không có nghĩa nếu không xem được, nên 2 chiều đều khoá
+  // theo Xem: tick Thêm/Sửa/Xoá thì tự tick luôn Xem; bỏ Xem thì Thêm/Sửa/
+  // Xoá cũng tự bỏ theo — khỏi bao giờ có tổ hợp "sửa được nhưng không xem
+  // được" vô lý.
+  function syncViewPermission(moduleKey, actionKey, checked) {
+    if (actionKey === 'view') {
+      if (checked) return;
+      ['add', 'edit', 'delete'].forEach(function (otherKey) {
+        var other = permissionCheckbox(moduleKey, otherKey);
+        if (other) other.checked = false;
+      });
+    } else if (checked) {
+      var view = permissionCheckbox(moduleKey, 'view');
+      if (view) view.checked = true;
+    }
   }
 
   function openPermissionModal(user) {
