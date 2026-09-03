@@ -37,13 +37,24 @@
       color: var(--color-text-muted);
     }
 
+    /* table-layout: fixed + width cố định cho từng cột — auto layout mặc
+       định của bảng để trình duyệt tự tính bề rộng cột theo nội dung, cột
+       "Phân hệ" (icon + chữ) rộng hơn hẳn 4 cột quyền (chỉ 1 icon/checkbox)
+       khiến bề rộng 4 cột đó không thật sự bằng nhau giữa dòng header và
+       dòng dữ liệu — icon tiêu đề và checkbox bên dưới vì vậy lệch nhau dù
+       cả hai đều đã text-align: center. Ép width cố định cho chắc ăn. */
+    .permission-table {
+      table-layout: fixed;
+    }
     .permission-table th,
     .permission-table td {
+      width: 15%;
       text-align: center;
       vertical-align: middle; /* .table mặc định vertical-align: top — icon/checkbox lệch trên nếu để nguyên */
     }
     .permission-table th:first-child,
     .permission-table td:first-child {
+      width: 40%;
       text-align: left;
     }
     .permission-table td .checkbox__input {
@@ -60,6 +71,15 @@
     .permission-table th .icon--add { color: var(--color-primary); }
     .permission-table th .icon--edit { color: var(--color-warning); }
     .permission-table th .icon--delete { color: var(--color-danger); }
+
+    /* Tooltip mặc định hiện PHÍA TRÊN phần tử — nhưng hàng tiêu đề của bảng
+       này nằm sát mép trên của .modal__body (overflow-y: auto), không đủ
+       chỗ phía trên nên tooltip bị cắt mất/không thấy được. Đảo xuống dưới
+       cho riêng mấy ô tiêu đề này. */
+    .permission-table th[data-tooltip]::after {
+      top: calc(100% + var(--space-1));
+      bottom: auto;
+    }
   </style>
 </head>
 <body class="app-shell">
