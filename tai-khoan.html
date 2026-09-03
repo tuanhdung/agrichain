@@ -40,10 +40,15 @@
     .permission-table th,
     .permission-table td {
       text-align: center;
+      vertical-align: middle; /* .table mặc định vertical-align: top — icon/checkbox lệch trên nếu để nguyên */
     }
     .permission-table th:first-child,
     .permission-table td:first-child {
       text-align: left;
+    }
+    .permission-table td .checkbox__input {
+      display: block;
+      margin: 0 auto; /* input tự canh giữa theo chiều ngang trong ô, không dựa vào text-align của ô cha */
     }
     .permission-table__module {
       display: flex;
@@ -341,19 +346,19 @@
           <thead>
             <tr>
               <th scope="col">Phân hệ</th>
-              <th scope="col">
+              <th scope="col" data-tooltip="Xem">
                 <svg class="icon icon--sm icon--view"><use href="icons/sprite.svg#icon-eye"></use></svg>
                 <span class="sr-only">Xem</span>
               </th>
-              <th scope="col">
+              <th scope="col" data-tooltip="Thêm">
                 <svg class="icon icon--sm icon--add"><use href="icons/sprite.svg#icon-plus"></use></svg>
                 <span class="sr-only">Thêm</span>
               </th>
-              <th scope="col">
+              <th scope="col" data-tooltip="Sửa">
                 <svg class="icon icon--sm icon--edit"><use href="icons/sprite.svg#icon-pencil"></use></svg>
                 <span class="sr-only">Sửa</span>
               </th>
-              <th scope="col">
+              <th scope="col" data-tooltip="Xoá">
                 <svg class="icon icon--sm icon--delete"><use href="icons/sprite.svg#icon-x"></use></svg>
                 <span class="sr-only">Xoá</span>
               </th>
