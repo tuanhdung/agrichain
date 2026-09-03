@@ -16,6 +16,121 @@
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/app-shell.css" />
+
+  <style>
+    /* CSS chỉ dùng riêng cho trang Sản phẩm Thương mại điện tử, không phải
+       component tái sử dụng nên để tại đây theo quy ước dự án. */
+
+    /* --- Thanh bộ lọc: tìm kiếm + 3 select ---------------------------------- */
+    .product-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+    }
+    .product-filters .search-field {
+      flex: 2;
+      min-width: 220px;
+    }
+    .product-filters .select {
+      flex: 1;
+      min-width: 160px;
+    }
+
+    .search-field {
+      position: relative;
+    }
+    .search-field__icon {
+      position: absolute;
+      top: 50%;
+      left: var(--space-3);
+      transform: translateY(-50%);
+      color: var(--color-text-muted);
+      pointer-events: none;
+    }
+    .search-field .input {
+      padding-left: var(--space-10);
+    }
+
+    /* --- Bố cục 2 cột cho form sản phẩm trong modal ------------------------- */
+    .product-form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-5);
+    }
+    @media (min-width: 960px) {
+      .product-form-grid {
+        grid-template-columns: 2fr 1fr;
+        align-items: start;
+      }
+    }
+    .product-form-grid__col {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-5);
+    }
+
+    /* --- Lưới ảnh sản phẩm (nhiều ảnh) --------------------------------------
+       Cùng cơ chế với .log-image-thumb ở nong-trai-chi-tiet.html — chép lại
+       vì đây là CSS chỉ dùng riêng trang, không phải component chung. */
+    .image-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+      margin-bottom: var(--space-3);
+    }
+    .image-thumb {
+      position: relative;
+      width: 96px;
+      height: 96px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--color-border);
+    }
+    .image-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .image-thumb__remove {
+      position: absolute;
+      top: var(--space-1);
+      right: var(--space-1);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--space-5);
+      height: var(--space-5);
+      border-radius: var(--radius-full);
+      background: var(--color-scrim);
+      color: var(--color-text-inverse);
+      line-height: 1;
+      font-size: var(--text-sm);
+    }
+    .image-thumb__remove:hover {
+      background: var(--color-danger);
+    }
+
+    /* --- Biến thể sản phẩm --------------------------------------------------- */
+    .variant-card {
+      padding: var(--space-4);
+      margin-bottom: var(--space-4);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-bg-subtle);
+    }
+    .variant-card:last-child {
+      margin-bottom: 0;
+    }
+    .variant-card__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-4);
+      font-weight: 700;
+      color: var(--color-primary);
+    }
+  </style>
 </head>
 <body class="app-shell">
 
@@ -193,21 +308,241 @@
           <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-box"></use></svg>
         </div>
         <div class="page-header__text">
-          <h1 class="page-header__title">Sản phẩm</h1>
-          <p class="page-header__meta">Quản lý danh sách sản phẩm đang bán.</p>
+          <h1 class="page-header__title">Quản lý sản phẩm</h1>
+          <p class="page-header__meta">Xem và quản lý danh sách sản phẩm trong cửa hàng của bạn.</p>
+        </div>
+        <button type="button" class="btn btn--primary btn--lg" data-open-product-form>
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
+          Thêm sản phẩm
+        </button>
+      </div>
+
+      <!-- Bộ lọc -->
+      <div class="card" style="margin-bottom: var(--space-6);">
+        <div class="product-filters">
+          <div class="field search-field">
+            <svg class="icon icon--sm search-field__icon"><use href="icons/sprite.svg#icon-search"></use></svg>
+            <input class="input" type="search" id="product-search" aria-label="Tìm kiếm sản phẩm" placeholder="Tìm kiếm sản phẩm..." />
+          </div>
+          <select class="select" id="product-filter-category" aria-label="Lọc theo danh mục">
+            <option value="">Tất cả danh mục</option>
+          </select>
+          <select class="select" id="product-filter-status" aria-label="Lọc theo trạng thái">
+            <option value="">Tất cả trạng thái</option>
+          </select>
+          <select class="select" id="product-filter-sort" aria-label="Sắp xếp">
+            <option value="newest">Mới nhất</option>
+            <option value="oldest">Cũ nhất</option>
+            <option value="price-asc">Giá tăng dần</option>
+            <option value="price-desc">Giá giảm dần</option>
+          </select>
         </div>
       </div>
 
-      <div class="empty-state">
+      <!-- Bảng sản phẩm -->
+      <div class="table-panel" data-product-table-panel hidden>
+        <div class="table-panel__header">
+          <h2 class="table-panel__title">Danh sách sản phẩm</h2>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col"><span class="sr-only">Ảnh</span></th>
+                <th scope="col">Tên sản phẩm</th>
+                <th scope="col">Mã SP</th>
+                <th scope="col">Loại</th>
+                <th scope="col">Giá</th>
+                <th scope="col">Trạng thái</th>
+                <th scope="col"><span class="sr-only">Thao tác</span></th>
+              </tr>
+            </thead>
+            <tbody data-product-table-body></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Trạng thái rỗng -->
+      <div class="empty-state" data-product-empty>
         <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-box"></use></svg>
-        <p class="empty-state__title">Đang phát triển</p>
-        <p class="empty-state__desc">
-          Tính năng này chưa sẵn sàng. Quay lại sau nhé.
+        <p class="empty-state__title" data-product-empty-title>Chưa có sản phẩm nào</p>
+        <p class="empty-state__desc" data-product-empty-desc>
+          Thêm sản phẩm đầu tiên để bắt đầu đăng bán trên gian hàng của bạn.
         </p>
+        <button type="button" class="btn btn--primary" data-open-product-form data-product-empty-action>
+          Thêm sản phẩm
+        </button>
       </div>
 
     </div>
   </main>
+
+  <!-- Modal Thêm/Sửa sản phẩm -->
+  <dialog class="modal" id="product-modal" aria-labelledby="product-modal-title">
+    <form class="modal__form" id="product-form" novalidate>
+      <div class="modal__header">
+        <svg class="icon"><use href="icons/sprite.svg#icon-box"></use></svg>
+        <h2 class="modal__title" id="product-modal-title">Thêm sản phẩm mới</h2>
+        <button type="button" class="modal__close" data-close-product-form aria-label="Đóng">&times;</button>
+      </div>
+
+      <div class="modal__body">
+        <div class="product-form-grid">
+
+          <!-- Cột trái -->
+          <div class="product-form-grid__col">
+
+            <section class="form-section">
+              <h3 class="form-section__title">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-box"></use></svg>
+                Thông tin cơ bản
+              </h3>
+              <div class="form-grid">
+                <div class="field">
+                  <label class="label" for="product-name">Tên sản phẩm</label>
+                  <input class="input" type="text" id="product-name" name="name" required />
+                </div>
+                <div class="field">
+                  <label class="label" for="product-sku">Mã sản phẩm (SKU)</label>
+                  <input class="input" type="text" id="product-sku" name="sku" required />
+                </div>
+                <div class="field form-grid__full">
+                  <label class="label" for="product-short-desc">Mô tả ngắn</label>
+                  <textarea class="textarea" id="product-short-desc" name="shortDesc" placeholder="Giới thiệu ngắn về sản phẩm..."></textarea>
+                </div>
+                <div class="field form-grid__full">
+                  <label class="label" for="product-description">Mô tả chi tiết</label>
+                  <textarea class="textarea" id="product-description" name="description" placeholder="Thông tin chi tiết về sản phẩm, đặc điểm nổi bật..."></textarea>
+                </div>
+              </div>
+            </section>
+
+            <section class="form-section">
+              <h3 class="form-section__title">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-camera"></use></svg>
+                Hình ảnh sản phẩm
+              </h3>
+              <div class="image-grid" data-product-images-grid></div>
+              <label class="upload-box" for="product-images-input" style="max-width: 200px;">
+                <svg class="icon"><use href="icons/sprite.svg#icon-camera"></use></svg>
+                <span class="upload-box__hint">Thêm ảnh</span>
+                <input type="file" id="product-images-input" accept="image/*" multiple />
+              </label>
+              <p class="field__hint" style="margin-top: var(--space-3);">
+                Bạn nên tải lên ít nhất 3 hình ảnh rõ nét để khách hàng dễ dàng quan sát sản phẩm.
+              </p>
+            </section>
+
+            <section class="form-section">
+              <h3 class="form-section__title">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-layers"></use></svg>
+                Biến thể sản phẩm
+              </h3>
+              <div style="display: flex; justify-content: flex-end; margin-bottom: var(--space-4);">
+                <button type="button" class="btn btn--outline btn--sm" data-add-variant>
+                  <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
+                  Thêm biến thể
+                </button>
+              </div>
+              <div data-variants-list></div>
+              <div class="empty-state" data-variants-empty>
+                <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-layers"></use></svg>
+                <p class="empty-state__desc">Chưa có biến thể nào — bấm "Thêm biến thể" để bắt đầu.</p>
+              </div>
+            </section>
+
+          </div>
+
+          <!-- Cột phải -->
+          <div class="product-form-grid__col">
+
+            <section class="form-section">
+              <h3 class="form-section__title">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-file-text"></use></svg>
+                Phân loại &amp; Trạng thái
+              </h3>
+              <div class="field" style="margin-bottom: var(--space-5);">
+                <label class="label" for="product-category">Danh mục</label>
+                <select class="select" id="product-category" name="category" required>
+                  <option value="">Chọn danh mục</option>
+                </select>
+              </div>
+              <div class="field" style="margin-bottom: var(--space-5);">
+                <label class="label" for="product-type">Loại sản phẩm</label>
+                <select class="select" id="product-type" name="type"></select>
+              </div>
+              <div class="field" style="margin-bottom: var(--space-5);">
+                <label class="label" for="product-status">Trạng thái</label>
+                <select class="select" id="product-status" name="status"></select>
+              </div>
+              <label class="checkbox">
+                <input class="checkbox__input" type="checkbox" id="product-featured" />
+                <span class="checkbox__label">Sản phẩm nổi bật</span>
+              </label>
+            </section>
+
+            <section class="form-section">
+              <h3 class="form-section__title">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-truck"></use></svg>
+                Cấu hình O2O (Giao hàng/Nhận tại chỗ)
+              </h3>
+              <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+                <label class="checkbox">
+                  <input class="checkbox__input" type="checkbox" id="product-allow-delivery" />
+                  <span class="checkbox__label">Cho phép giao hàng</span>
+                </label>
+                <label class="checkbox">
+                  <input class="checkbox__input" type="checkbox" id="product-allow-pickup" />
+                  <span class="checkbox__label">Cho phép nhận tại cửa hàng</span>
+                </label>
+              </div>
+            </section>
+
+            <section class="form-section">
+              <h3 class="form-section__title">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+                Thông tin bổ sung
+              </h3>
+              <div class="field" style="margin-bottom: var(--space-5);">
+                <label class="label" for="product-highlights">Điểm nổi bật</label>
+                <textarea class="textarea" id="product-highlights" name="highlights" placeholder="Ví dụ: Organic, Không thuốc trừ sâu..."></textarea>
+              </div>
+              <div class="field" style="margin-bottom: var(--space-5);">
+                <label class="label" for="product-usage-guide">Hướng dẫn sử dụng</label>
+                <textarea class="textarea" id="product-usage-guide" name="usageGuide"></textarea>
+              </div>
+              <div class="field">
+                <label class="label" for="product-storage">Bảo quản</label>
+                <textarea class="textarea" id="product-storage" name="storage"></textarea>
+              </div>
+            </section>
+
+          </div>
+
+        </div>
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--ghost" data-close-product-form>Hủy</button>
+        <button type="submit" class="btn btn--primary" data-product-submit-label>Lưu sản phẩm</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Xác nhận xoá (dùng chung, gọi qua AgriChain.confirm) -->
+  <dialog class="modal modal--sm" id="confirm-dialog" aria-labelledby="confirm-dialog-title">
+    <div class="modal__header">
+      <svg class="icon"><use href="icons/sprite.svg#icon-trash"></use></svg>
+      <h2 class="modal__title" id="confirm-dialog-title">Xác nhận</h2>
+    </div>
+    <div class="modal__body">
+      <p data-confirm-message></p>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn--secondary" data-confirm-cancel>Huỷ</button>
+      <button type="button" class="btn btn--danger" data-confirm-ok>Xoá</button>
+    </div>
+  </dialog>
 
   <!-- Toast -->
   <div class="toast" role="status" aria-live="polite">
@@ -216,7 +551,8 @@
   </div>
 
   <script src="js/chain.js?v=1" defer></script>
-  <script src="js/store.js?v=6" defer></script>
+  <script src="js/store.js?v=7" defer></script>
   <script src="js/app-shell.js?v=6" defer></script>
+  <script src="js/thuong-mai-san-pham.js?v=1" defer></script>
 </body>
 </html>

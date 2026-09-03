@@ -30,8 +30,8 @@ js/
   contact-form.js        # Validate + hiện thông báo thành công cho form ở section Liên Hệ
   chain.js               # Sổ cái băm nối chuỗi (hash chain) bằng Web Crypto API — chạy trong trình duyệt
   store.js               # Lớp lưu trữ qua localStorage (users, farms, supplies, batches, events, ledger,
-                          # orgUsers, shops, phiên đăng nhập) — mọi trang đọc/ghi dữ liệu qua đây, không
-                          # gọi thẳng localStorage
+                          # orgUsers, shops, products, phiên đăng nhập) — mọi trang đọc/ghi dữ liệu qua
+                          # đây, không gọi thẳng localStorage
   password-field.js      # Nút hiện/ẩn mật khẩu (data-password-toggle) + danh sách điều kiện mật khẩu
                           # (data-password-rules="<id ô mật khẩu>") dùng chung — tách từ js/auth.js để
                           # js/tai-khoan.js dùng lại được, không chép lại 2 hàm này.
@@ -58,6 +58,10 @@ js/
   thuong-mai-tong-quan.js  # Logic riêng cho thuong-mai-tong-quan.html (khởi tạo/chỉnh sửa hồ sơ
                            # cửa hàng Ecommerce — collection "shops", 1 bản ghi/Đơn vị, khoá bằng
                            # ownerId = session.id hiện tại)
+  thuong-mai-san-pham.js   # Logic riêng cho thuong-mai-san-pham.html (danh sách + thêm/sửa/xoá sản
+                           # phẩm — collection "products", nhiều bản ghi/Đơn vị cùng khoá ownerId;
+                           # mỗi sản phẩm có nhiều "biến thể", mỗi biến thể tuỳ chọn gắn 1 lô hàng
+                           # thật từ collection "batches" để truy xuất nguồn gốc)
 icons/
   sprite.svg              # SVG sprite dùng chung, tham chiếu bằng <use href="icons/sprite.svg#icon-...">
 index.html                # Trang chủ thật của AgriChain
@@ -81,11 +85,13 @@ goi-phan-mem.html         # Trang tạm "Đang phát triển" — mục "Gói Ph
                           # "Quản lý Đơn vị", chưa có nghiệp vụ thật
 lich-su-mua-goi.html      # Trang tạm "Đang phát triển" — mục "Lịch sử mua Gói" trong nhóm sidebar
                           # "Quản lý Đơn vị", chưa có nghiệp vụ thật
-thuong-mai-tong-quan.html    # Mục "Tổng quan" trong nhóm sidebar "Thương mại điện tử" — trang duy
-                             # nhất trong nhóm đã có nghiệp vụ thật: khởi tạo/xem/sửa hồ sơ cửa hàng
-                             # Ecommerce của Đơn vị (modal 4 tab, xem js/thuong-mai-tong-quan.js).
-                             # 6 mục còn lại trong nhóm vẫn là trang tạm "Đang phát triển".
-thuong-mai-san-pham.html     # Trang tạm "Đang phát triển" — mục "Sản phẩm"
+thuong-mai-tong-quan.html    # Mục "Tổng quan" trong nhóm sidebar "Thương mại điện tử" — khởi tạo/
+                             # xem/sửa hồ sơ cửa hàng Ecommerce của Đơn vị (modal 4 tab, xem
+                             # js/thuong-mai-tong-quan.js). 5 mục còn lại (trừ Sản phẩm, xem dưới)
+                             # vẫn là trang tạm "Đang phát triển".
+thuong-mai-san-pham.html     # Mục "Sản phẩm" trong nhóm sidebar "Thương mại điện tử" — đã có nghiệp
+                             # vụ thật: danh sách/lọc/tìm kiếm + thêm/sửa/xoá sản phẩm, mỗi sản phẩm
+                             # nhiều biến thể có thể gắn lô hàng thật (xem js/thuong-mai-san-pham.js)
 thuong-mai-don-hang.html     # Trang tạm "Đang phát triển" — mục "Đơn hàng"
 thuong-mai-van-chuyen.html   # Trang tạm "Đang phát triển" — mục "Vận chuyển"
 thuong-mai-nhap-hang.html    # Trang tạm "Đang phát triển" — mục "Nhập hàng"
@@ -206,6 +212,12 @@ kiểm tra (đã ghi rõ trong comment đầu mỗi file). Vài điểm cần nh
 - `.password-field`/`.password-toggle`/`.password-rules`/`.password-rule` — ô mật khẩu có
   nút hiện/ẩn + danh sách điều kiện (đủ 8 ký tự, 1 chữ hoa, 1 chữ số, 1 ký tự đặc biệt),
   tô xanh khi đạt (`.is-met`). Logic JS ở `js/password-field.js`.
+- `.upload-box` — khung tải ảnh dạng viền đứt nét, bọc `<input type="file">` phủ kín
+  (`opacity:0`) để bấm bất kỳ đâu trong khung cũng mở hộp thoại chọn tệp. Gắn class
+  `.is-filled` bằng JS (mỗi trang tự viết, không có helper JS chung) sau khi đã đọc xong
+  ảnh qua `FileReader` và gán vào `.upload-box__preview` (`<img>`) — ẩn icon/hint đi để
+  không đè chữ lên ảnh. Dùng ở `thuong-mai-tong-quan.html` (logo/banner cửa hàng) và
+  `thuong-mai-san-pham.html` (hình ảnh sản phẩm).
 - `.container` — bọc nội dung, giới hạn `--container-max-width` (1200px), tự canh giữa.
 - `.grid` — kết hợp `.grid--2`, `.grid--3`, `.grid--4`, tự đổi cột theo breakpoint
   (640px, 960px).
@@ -280,7 +292,8 @@ lý, Vận hành & Chính sách) — các trường bắt buộc nằm rải tr�
 
 Logo/banner cửa hàng đọc qua `FileReader` thành base64 (`dataUrl`), lưu thẳng trong bản ghi
 `shops` — cùng cơ chế với ảnh minh hoạ nhật ký mùa vụ (`js/nong-trai-chi-tiet.js`), không có
-backend upload thật.
+backend upload thật. Khung tải ảnh dùng component `.upload-box` chung (xem "Component hiện
+có" bên dưới) — dùng lại y hệt cho hình ảnh sản phẩm ở `thuong-mai-san-pham.html`.
 
 Địa chỉ kinh doanh dùng lại đúng cơ chế Tỉnh/Thành phố → Phường/Xã của `nong-trai.html`
 (`data/provinces.json` + `data/wards/{code}.json` qua `AgriChain.setupCascadingSelect()`) —
@@ -293,6 +306,32 @@ toggle switch tự dựng bằng `<input type="checkbox">` ẩn + `<span>` — c
 (`.chip`/`.chip-group`, `.switch`) hiện chỉ dùng ở trang này nên để trong `<style>` riêng của
 `thuong-mai-tong-quan.html`, chưa đưa vào `components.css`; nếu trang khác cần dùng lại thì
 mới tách ra theo đúng quy ước "component dùng lại nhiều nơi".
+
+## Thương mại điện tử — sản phẩm (`thuong-mai-san-pham.html`)
+
+Collection `products` (`store.js`) — nhiều bản ghi/Đơn vị, mỗi bản ghi khoá bằng
+`ownerId = session.id` (cùng quy ước với `shops`, xem mục trên). Trang tự lọc
+`store.list('products')` theo `ownerId` trong `js/thuong-mai-san-pham.js`, không có hàm lọc
+riêng trong `store.js` — đúng quy ước "store.js chỉ generic, lọc nghiệp vụ nằm ở JS trang".
+
+Mỗi sản phẩm có mảng `variants` (biến thể: size/quy cách đóng gói khác nhau, mỗi cái có giá/
+tồn kho/mã vạch/trọng lượng/kích thước riêng) — **mỗi biến thể có thể gắn với 1 lô hàng thật**
+trong collection `batches` qua `variant.batchId` (select trong modal liệt kê
+`store.list('batches')`, hiển thị `batch.code` — mã lô đã tự mang thông tin nông trại+mùa vụ
+nhờ định dạng `<mã nông trại>-<mã mùa vụ>-NNN`, xem `js/nong-trai-chi-tiet.js`). Đây là điểm
+nối giữa "Hoạt động sản xuất" và "Thương mại điện tử": sản phẩm rao bán có thể truy xuất
+ngược về đúng lô hàng đã ghi nhận trên blockchain.
+
+Modal thêm/sửa không dùng `<dialog>` full-page như bản tham khảo (dự án không có router) —
+vẫn theo đúng quy ước "modal trên cùng trang danh sách" như mọi form khác trong app. Layout
+2 cột (`Thông tin cơ bản`/`Hình ảnh`/`Biến thể` bên trái, `Phân loại & Trạng thái`/`Cấu hình
+O2O`/`Thông tin bổ sung` bên phải) chỉ để trong `<style>` riêng của trang
+(`.product-form-grid`), không phải component chung.
+
+Ảnh sản phẩm (nhiều ảnh, khác với logo/banner cửa hàng chỉ 1 ảnh) đọc qua `FileReader` giống
+`shops`, hiển thị dạng lưới thumbnail có nút xoá — CSS `.image-grid`/`.image-thumb` chép lại
+từ `.log-images__grid`/`.log-image-thumb` đã có ở `nong-trai-chi-tiet.html` (cùng kiểu, khác
+trang, cố tình không gộp — xem quy ước "mỗi trang tự chứa CSS/JS riêng" ở đầu file này).
 
 ## Dữ liệu hành chính (tỉnh/thành, phường/xã)
 

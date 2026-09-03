@@ -124,46 +124,6 @@
       opacity: 0.85;
     }
 
-    /* --- Ô tải ảnh logo/banner ---------------------------------------------- */
-    .upload-box {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: var(--space-2);
-      padding: var(--space-5);
-      min-height: var(--space-24);
-      border: 1px dashed var(--color-border);
-      border-radius: var(--radius-md);
-      color: var(--color-text-muted);
-      font-size: var(--text-sm);
-      text-align: center;
-      cursor: pointer;
-      overflow: hidden;
-    }
-    .upload-box:hover {
-      border-color: var(--color-primary);
-      color: var(--color-primary);
-    }
-    .upload-box input[type="file"] {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-    }
-    .upload-box__preview {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .upload-box.is-filled .upload-box__hint,
-    .upload-box.is-filled .icon {
-      display: none;
-    }
-
     /* --- Công tắc bật/tắt (toggle switch) ----------------------------------- */
     .switch {
       display: inline-flex;
@@ -768,7 +728,7 @@
   </div>
 
   <script src="js/chain.js?v=1" defer></script>
-  <script src="js/store.js?v=6" defer></script>
+  <script src="js/store.js?v=7" defer></script>
   <script src="js/app-shell.js?v=6" defer></script>
   <script src="js/location-select.js?v=1" defer></script>
   <script src="js/thuong-mai-tong-quan.js?v=1" defer></script>
