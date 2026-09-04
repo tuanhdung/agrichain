@@ -815,10 +815,14 @@
   <section class="demo-section">
     <div class="container">
       <h2 class="demo-section__title">Thẻ bài viết (Post card)</h2>
-      <p class="demo-section__desc">Dùng ở trang Blog (blog.html) cho danh sách bài viết.</p>
+      <p class="demo-section__desc">
+        Dùng ở trang Blog (blog.html) cho danh sách bài viết. Cả thẻ là 1 liên kết
+        (<code>&lt;a class="post-card"&gt;</code>) — bấm bất kỳ đâu trong thẻ đều mở bài viết,
+        "Đọc tiếp" chỉ còn là chữ trang trí (<code>&lt;span&gt;</code>), không phải link riêng.
+      </p>
 
       <div class="grid grid--3">
-        <article class="post-card">
+        <a class="post-card" href="blog-chi-tiet.html?slug=blockchain-trong-truy-xuat-nguon-goc-nong-nghiep">
           <div class="post-card__media">
             <img class="post-card__cover" src="images/blog/post-1.jpg" alt="" loading="lazy" />
             <span class="badge badge--solid post-card__category">Công nghệ</span>
@@ -845,12 +849,12 @@
               <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-user"></use></svg>
               <span>Nguyễn Văn A</span>
             </span>
-            <a class="post-card__link" href="#">
+            <span class="post-card__link">
               Đọc tiếp
               <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-arrow-right"></use></svg>
-            </a>
+            </span>
           </div>
-        </article>
+        </a>
       </div>
     </div>
   </section>

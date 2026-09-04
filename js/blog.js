@@ -20,7 +20,10 @@
   function postCard(post) {
     var detailUrl = 'blog-chi-tiet.html?slug=' + encodeURIComponent(post.slug);
 
-    var article = el('article', 'post-card');
+    // Cả thẻ là 1 liên kết (<a>, không phải <article>) — bấm vào bất kỳ đâu
+    // trong thẻ đều mở bài viết, không chỉ riêng chữ "Đọc tiếp"/tiêu đề.
+    var article = el('a', 'post-card');
+    article.href = detailUrl;
 
     var media = el('div', 'post-card__media');
     var cover = el('img', 'post-card__cover');
@@ -47,10 +50,7 @@
     meta.appendChild(dateItem);
     meta.appendChild(readItem);
 
-    var title = el('h3', 'post-card__title');
-    var titleLink = el('a', null, post.title);
-    titleLink.href = detailUrl;
-    title.appendChild(titleLink);
+    var title = el('h3', 'post-card__title', post.title);
 
     var excerpt = el('p', 'post-card__excerpt', post.excerpt);
 
@@ -63,8 +63,7 @@
     author.innerHTML = '<svg class="icon icon--sm"><use href="icons/sprite.svg#icon-user"></use></svg>';
     author.appendChild(el('span', null, post.author));
 
-    var readMore = el('a', 'post-card__link');
-    readMore.href = detailUrl;
+    var readMore = el('span', 'post-card__link');
     readMore.appendChild(el('span', null, 'Đọc tiếp'));
     readMore.insertAdjacentHTML('beforeend', '<svg class="icon icon--sm"><use href="icons/sprite.svg#icon-arrow-right"></use></svg>');
 

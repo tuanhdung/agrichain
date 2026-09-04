@@ -980,6 +980,14 @@ td.table-empty {
   box-shadow: var(--shadow-md);
   transform: translateY(-4px);
 }
+/* Cả thẻ là 1 liên kết (thẻ <a>, không phải <article>) — bấm bất kỳ đâu
+   trong thẻ (ảnh, tiêu đề, mô tả...) đều mở bài viết, không chỉ riêng chữ
+   "Đọc tiếp". Bỏ kiểu link mặc định của trình duyệt, giống a.card ở trên. */
+a.post-card {
+  display: flex;
+  text-decoration: none;
+  color: inherit;
+}
 
 .post-card__media {
   position: relative;
@@ -1028,14 +1036,6 @@ td.table-empty {
   line-clamp: 2;
   overflow: hidden;
 }
-.post-card__title a {
-  color: inherit;
-  text-decoration: none;
-}
-.post-card__title a:hover {
-  color: var(--color-primary);
-}
-
 .post-card__excerpt {
   margin-top: var(--space-3);
   font-size: var(--text-base);
@@ -1063,6 +1063,9 @@ td.table-empty {
   color: var(--color-text-muted);
 }
 
+/* Chỉ còn là chữ trang trí (<span>, không phải <a> riêng) — cả thẻ đã là
+   liên kết (a.post-card ở trên) nên đổi màu/dịch icon theo :hover của CẢ
+   thẻ, không phải hover riêng đoạn chữ này. */
 .post-card__link {
   display: inline-flex;
   align-items: center;
@@ -1075,9 +1078,9 @@ td.table-empty {
 .post-card__link .icon {
   transition: transform var(--transition-base);
 }
-.post-card__link:hover {
+.post-card:hover .post-card__link {
   color: var(--color-primary-hover);
 }
-.post-card__link:hover .icon {
+.post-card:hover .post-card__link .icon {
   transform: translateX(4px);
 }

@@ -376,13 +376,17 @@ kiểm tra (đã ghi rõ trong comment đầu mỗi file). Vài điểm cần nh
   kiểu "Hữu cơ", "Đã xác thực".
 - `.icon` — bọc `<svg>` tham chiếu `icons/sprite.svg`; cỡ mặc định, `--sm`, `--lg`.
   Icon dùng `stroke="currentColor"` nên đổi màu qua CSS `color`.
-- `.post-card` — thẻ bài viết Blog, dùng ở `blog.html`. Gồm `.post-card__media` (ảnh bìa
-  `object-fit: cover` + `.post-card__category` là `.badge--solid` đè góc trên trái),
-  `.post-card__body` (`.post-card__meta` ngày+thời gian đọc, `.post-card__title` cắt tối
-  đa 2 dòng — chữ bọc trong `<a>` trỏ tới `blog-chi-tiet.html?slug=...`, đổi màu khi hover —
-  `.post-card__excerpt` cắt tối đa 3 dòng bằng `-webkit-line-clamp`), và `.post-card__footer`
-  (`.post-card__author` + `.post-card__link` "Đọc tiếp" cùng trỏ tới trang chi tiết, icon mũi
-  tên dịch phải khi hover).
+- `.post-card` — thẻ bài viết Blog, dùng ở `blog.html`. **Cả thẻ là 1 liên kết**
+  (`<a class="post-card" href="blog-chi-tiet.html?slug=...">`, không phải `<article>`) — bấm
+  bất kỳ đâu trong thẻ (ảnh, tiêu đề, mô tả...) đều mở bài viết, không chỉ riêng chữ "Đọc
+  tiếp" (bài học rút ra sau khi người dùng phản hồi "chỉ click Đọc tiếp mới chuyển trang" —
+  ban đầu chỉ tiêu đề + "Đọc tiếp" là `<a>` lồng bên trong, đã bỏ để tránh link lồng link).
+  Gồm `.post-card__media` (ảnh bìa `object-fit: cover` + `.post-card__category` là
+  `.badge--solid` đè góc trên trái), `.post-card__body` (`.post-card__meta` ngày+thời gian
+  đọc, `.post-card__title` cắt tối đa 2 dòng bằng `-webkit-line-clamp`, `.post-card__excerpt`
+  cắt tối đa 3 dòng cùng kỹ thuật), và `.post-card__footer` (`.post-card__author` +
+  `.post-card__link` "Đọc tiếp" giờ chỉ là `<span>` trang trí — đổi màu/dịch icon phải theo
+  `:hover` của CẢ thẻ `a.post-card`, không phải hover riêng span này).
 - Form: `.field` (bọc label + input + lỗi), `.label`, `.input`, `.textarea`, `.select`
   (dùng chung style, trạng thái `:disabled` và `[aria-invalid="true"]`), `.field__error`,
   `.checkbox`/`.checkbox__input`/`.checkbox__label`, `.radio`/`.radio__input`/`.radio__label`.
