@@ -33,20 +33,20 @@
     "author": "Trần Thị B",
     "excerpt": "Trí tuệ nhân tạo (AI) giúp nhà nông dự báo rủi ro thiên tai và tối ưu hóa lượng phân bón, nước tưới cần thiết.",
     "cover": "images/blog/post-2.jpg",
-    "tags": ["Kỹ thuật", "AI", "Agrichain"],
+    "tags": ["Kỹ thuật", "Agrichain", "NongNghiepSo"],
     "body": [
-      { "type": "paragraph", "text": "Trí tuệ nhân tạo (AI) đang dần trở thành trợ thủ đắc lực cho người nông dân hiện đại. Bằng cách phân tích dữ liệu thời tiết, đất đai và lịch sử mùa vụ, AI có thể đưa ra những khuyến nghị canh tác chính xác đến từng thửa ruộng." },
-      { "type": "heading", "text": "AI hỗ trợ nhà nông như thế nào?" },
-      { "type": "paragraph", "text": "Thay vì canh tác theo kinh nghiệm truyền thống, nông hộ giờ đây có thể dựa vào các mô hình dự báo để đưa ra quyết định kịp thời, giảm thiểu rủi ro và lãng phí tài nguyên." },
+      { "type": "paragraph", "text": "Trí tuệ nhân tạo (AI) không còn là khái niệm xa vời với ngành nông nghiệp. Tại Agrichain, chúng tôi sử dụng AI để giúp nhà nông quản lý farm một cách thông minh và hiệu quả hơn." },
+      { "type": "heading", "text": "AI làm được gì cho nhà nông?" },
+      { "type": "paragraph", "text": "Hệ thống AI của chúng tôi phân tích dữ liệu từ các cảm biến, hình ảnh vệ tinh và dự báo thời tiết để đưa ra các khuyến nghị chính xác:" },
       {
         "type": "list",
         "items": [
-          { "strong": "Dự báo thời tiết:", "text": "Cảnh báo sớm nguy cơ hạn hán, ngập úng hoặc sương muối để nông hộ chủ động ứng phó." },
-          { "strong": "Tối ưu phân bón:", "text": "Tính toán lượng phân bón, nước tưới phù hợp với từng giai đoạn sinh trưởng của cây trồng." },
-          { "strong": "Phát hiện sâu bệnh:", "text": "Phân tích hình ảnh để nhận diện sớm dấu hiệu sâu bệnh, hạn chế lây lan trên diện rộng." }
+          { "strong": "Cảnh báo sâu bệnh:", "text": "Nhận diện sớm các dấu hiệu bệnh hại qua hình ảnh lá cây." },
+          { "strong": "Tối ưu hóa tài nguyên:", "text": "Tính toán chính xác lượng nước và phân bón cần thiết, giúp tiết kiệm chi phí đến 30%." },
+          { "strong": "Dự báo năng suất:", "text": "Giúp nhà nông chủ động trong việc tìm kiếm đầu ra và lập kế hoạch thu hoạch." }
         ]
       },
-      { "type": "paragraph", "text": "Với AgriChain, dữ liệu AI được tích hợp trực tiếp vào nhật ký mùa vụ, giúp nông hộ theo dõi và điều chỉnh kế hoạch canh tác ngay trên ứng dụng." }
+      { "type": "paragraph", "text": "Việc kết hợp AI vào sản xuất không chỉ giúp tăng thu nhập cho nhà nông mà còn góp phần bảo vệ môi trường thông qua việc sử dụng hóa chất nông nghiệp một cách có trách nhiệm." }
     ]
   },
   {
