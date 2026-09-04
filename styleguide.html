@@ -428,7 +428,7 @@
   <section class="demo-section">
     <div class="container">
       <h2 class="demo-section__title">Nhãn (Badge)</h2>
-      <p class="demo-section__desc">5 biến thể theo trạng thái: success, warning, info, danger, neutral.</p>
+      <p class="demo-section__desc">5 biến thể theo trạng thái: success, warning, info, danger, neutral; kèm biến thể nền đặc <code>--solid</code> dùng khi đặt đè lên ảnh.</p>
 
       <div class="btn-row">
         <span class="badge badge--success">Hữu cơ</span>
@@ -436,6 +436,7 @@
         <span class="badge badge--warning">Chờ duyệt</span>
         <span class="badge badge--danger">Hết hạn</span>
         <span class="badge badge--neutral">Nháp</span>
+        <span class="badge badge--solid">Công nghệ</span>
       </div>
     </div>
   </section>
@@ -687,6 +688,8 @@
         <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-barcode"></use></svg><span>barcode</span></div>
         <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-workflow"></use></svg><span>workflow</span></div>
         <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-log-out"></use></svg><span>log-out</span></div>
+        <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-clock"></use></svg><span>clock</span></div>
+        <div class="icon-demo"><svg class="icon"><use href="icons/sprite.svg#icon-arrow-right"></use></svg><span>arrow-right</span></div>
       </div>
     </div>
   </section>
@@ -801,6 +804,50 @@
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Post card -->
+  <section class="demo-section">
+    <div class="container">
+      <h2 class="demo-section__title">Thẻ bài viết (Post card)</h2>
+      <p class="demo-section__desc">Dùng ở trang Blog (blog.html) cho danh sách bài viết.</p>
+
+      <div class="grid grid--3">
+        <article class="post-card">
+          <div class="post-card__media">
+            <img class="post-card__cover" src="images/blog/post-1.jpg" alt="" loading="lazy" />
+            <span class="badge badge--solid post-card__category">Công nghệ</span>
+          </div>
+          <div class="post-card__body">
+            <div class="post-card__meta">
+              <span class="post-card__meta-item">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-calendar"></use></svg>
+                <time datetime="2026-03-20">2026-03-20</time>
+              </span>
+              <span class="post-card__meta-item">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-clock"></use></svg>
+                <span>5 phút</span>
+              </span>
+            </div>
+            <h3 class="post-card__title">Blockchain trong Truy xuất nguồn gốc Nông nghiệp</h3>
+            <p class="post-card__excerpt">
+              Khám phá cách công nghệ Blockchain đang thay đổi cách chúng ta theo dõi
+              hành trình của nông sản từ nông trại đến bàn ăn.
+            </p>
+          </div>
+          <div class="post-card__footer">
+            <span class="post-card__author">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-user"></use></svg>
+              <span>Nguyễn Văn A</span>
+            </span>
+            <a class="post-card__link" href="#">
+              Đọc tiếp
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-arrow-right"></use></svg>
+            </a>
+          </div>
+        </article>
       </div>
     </div>
   </section>

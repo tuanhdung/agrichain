@@ -89,6 +89,10 @@ js/
                            # bên dưới)
 icons/
   sprite.svg              # SVG sprite dùng chung, tham chiếu bằng <use href="icons/sprite.svg#icon-...">
+images/
+  blog/                   # Ảnh bìa bài viết Blog (post-1.jpg, post-2.jpg, post-3.jpg, hero.jpg...) —
+                          # hiện chỉ có .gitkeep giữ chỗ thư mục, CHƯA có ảnh thật, nền
+                          # --color-bg-subtle của .post-card__media giữ chỗ tạm (xem blog.html)
 index.html                # Trang chủ thật của AgriChain
 styleguide.html           # Trang demo design system (living style guide) — không phải trang thật
 dang-nhap.html            # Đăng nhập (giả lập, xem cảnh báo trong js/auth.js và js/store.js)
@@ -144,6 +148,11 @@ truy-xuat.html            # Trang truy xuất nguồn gốc CÔNG KHAI (không c
                           # "Truy xuất nguồn gốc" trên thẻ lô hàng (nong-trai-chi-tiet.js). Dùng lại
                           # .site-header như index.html/styleguide.html vì đây là trang công khai,
                           # không phải khu vực quản trị.
+blog.html                 # Trang Blog CÔNG KHAI (không cần đăng nhập, không dùng app-shell) — dùng
+                          # lại .site-header/.site-footer như index.html (mục "Blog" ở menu gắn
+                          # .site-header__link--active). Danh sách bài viết hiện hard-code tĩnh
+                          # (component .post-card, xem mục riêng bên dưới), chưa có trang chi tiết
+                          # 1 bài viết lẫn backend — mở từ link "Blog" ở header/footer mọi trang.
 ```
 
 Khi thêm trang mới: tạo file `.html` ở gốc (hoặc thư mục con theo tính năng),
@@ -333,11 +342,24 @@ kiểm tra (đã ghi rõ trong comment đầu mỗi file). Vài điểm cần nh
   sau khi trang đã tự cuộn). Section nào có `padding-block` lớn ở đầu (như `.features`)
   vẫn phải đặt id trên khối nội dung nằm ngay sau phần padding đó (VD `.features__intro`),
   không đặt trên chính section — vì JS đo vị trí bằng `getBoundingClientRect()` của đúng
-  phần tử mang id, nên id đặt sai chỗ vẫn cuộn lệch.
-- `.badge` — biến thể: `--success`, `--warning`, `--info`, `--neutral`. Dùng cho nhãn
-  ngắn kiểu "Hữu cơ", "Đã xác thực".
+  phần tử mang id, nên id đặt sai chỗ vẫn cuộn lệch. `.site-header__link--active` đánh dấu
+  mục menu ứng với trang đang xem (chỉ đổi màu chữ + đậm, không gạch chân) — dùng ở
+  `blog.html` cho mục "Blog", trang chủ không gắn vì bản thân nó không phải 1 mục menu.
+- `.site-footer` — footer site-wide: 3 cột (logo+mô tả, liên kết nhanh, liên hệ) + dòng
+  bản quyền dưới cùng. Chuyển từ `<style>` riêng của `index.html` sang `components.css`
+  từ khi `blog.html` cần dùng lại y hệt — không còn là CSS riêng 1 trang.
+- `.badge` — biến thể: `--success`, `--warning`, `--info`, `--neutral`, `--danger`,
+  `--solid` (nền đặc, dùng khi đặt đè lên ảnh — VD nhãn danh mục trên ảnh bìa bài viết
+  Blog, các biến thể subtle còn lại quá mờ để đọc được trên ảnh). Dùng cho nhãn ngắn
+  kiểu "Hữu cơ", "Đã xác thực".
 - `.icon` — bọc `<svg>` tham chiếu `icons/sprite.svg`; cỡ mặc định, `--sm`, `--lg`.
   Icon dùng `stroke="currentColor"` nên đổi màu qua CSS `color`.
+- `.post-card` — thẻ bài viết Blog, dùng ở `blog.html`. Gồm `.post-card__media` (ảnh bìa
+  `object-fit: cover` + `.post-card__category` là `.badge--solid` đè góc trên trái),
+  `.post-card__body` (`.post-card__meta` ngày+thời gian đọc, `.post-card__title` cắt tối
+  đa 2 dòng, `.post-card__excerpt` cắt tối đa 3 dòng bằng `-webkit-line-clamp`), và
+  `.post-card__footer` (`.post-card__author` + `.post-card__link` "Đọc tiếp", icon mũi tên
+  dịch phải khi hover).
 - Form: `.field` (bọc label + input + lỗi), `.label`, `.input`, `.textarea`, `.select`
   (dùng chung style, trạng thái `:disabled` và `[aria-invalid="true"]`), `.field__error`,
   `.checkbox`/`.checkbox__input`/`.checkbox__label`, `.radio`/`.radio__input`/`.radio__label`.
@@ -367,7 +389,12 @@ kiểm tra (đã ghi rõ trong comment đầu mỗi file). Vài điểm cần nh
 
 Trang chủ (`index.html`) hiện có Hero, Tính Năng, Quy Trình, Lợi Ích, CTA, Liên Hệ, Footer.
 Form Liên Hệ mới validate + hiện thông báo phía client, chưa gửi đi đâu thật. Chưa có:
-section E-commerce/Blog (mục tiêu của anchor cùng tên trong menu header), tích hợp AI thật.
+section E-commerce (mục tiêu của anchor `#ecommerce` trong menu header), tích hợp AI thật.
+
+Trang Blog (`blog.html`) đã có ở mức cơ bản: hero + danh sách 3 bài viết tĩnh (hard-code,
+component `.post-card`). Chưa có: trang chi tiết 1 bài viết (link "Đọc tiếp" tạm để `href="#"`),
+phân trang/tải thêm, tìm kiếm/lọc theo danh mục, backend quản lý nội dung thật, ảnh bìa thật
+(thư mục `images/blog/` mới chỉ có `.gitkeep`).
 
 Trang truy xuất nguồn gốc (`truy-xuat.html`) đã có ở mức cơ bản: xem 1 lô hàng qua mã QR
 (hoặc `?ma=...` trực tiếp), thấy trạng thái xác thực blockchain + thông tin nông trại/mùa
