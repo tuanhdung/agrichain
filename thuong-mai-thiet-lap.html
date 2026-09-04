@@ -183,7 +183,6 @@
 
     <div class="app-sidebar__footer">
       <p style="margin-bottom: var(--space-2);" data-session-name></p>
-      <a href="index.html">← Về trang giới thiệu</a>
       <button type="button" class="app-sidebar__logout" data-logout>Đăng xuất</button>
     </div>
   </aside>
@@ -215,7 +214,26 @@
       Blockchain
     </a>
 
-    <span class="app-topbar__user" data-session-initials aria-hidden="true">TC</span>
+    <div class="user-menu">
+      <button type="button" class="user-menu__toggle" aria-haspopup="true" aria-expanded="false" aria-label="Menu tài khoản">
+        <span class="app-topbar__user" data-session-initials aria-hidden="true">TC</span>
+      </button>
+      <div class="user-menu__panel" hidden>
+        <p class="user-menu__greeting">Xin chào, <strong data-session-name></strong></p>
+        <a class="user-menu__item" href="ho-so.html">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-user"></use></svg>
+          Hồ sơ
+        </a>
+        <a class="user-menu__item" href="index.html">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-corner-up-left"></use></svg>
+          Về trang giới thiệu
+        </a>
+        <button type="button" class="user-menu__item user-menu__item--danger" data-logout>
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-log-out"></use></svg>
+          Đăng xuất
+        </button>
+      </div>
+    </div>
   </header>
 
   <!-- Nội dung -->
@@ -383,8 +401,8 @@
   </div>
 
   <script src="js/chain.js?v=1" defer></script>
-  <script src="js/store.js?v=11" defer></script>
-  <script src="js/app-shell.js?v=8" defer></script>
+  <script src="js/store.js?v=12" defer></script>
+  <script src="js/app-shell.js?v=9" defer></script>
   <script src="js/location-select.js?v=1" defer></script>
   <script src="js/thuong-mai-thiet-lap.js?v=1" defer></script>
 </body>

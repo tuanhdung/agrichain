@@ -255,6 +255,66 @@
   font-weight: 700;
 }
 
+/* --- Menu tài khoản (bấm vào avatar ở topbar) -----------------------------
+   .app-topbar__user (vòng tròn chữ tắt) bọc trong 1 nút thật
+   (.user-menu__toggle) để bấm được — JS setupUserMenu() trong app-shell.js
+   bật/tắt [hidden] trên .user-menu__panel. */
+.user-menu {
+  position: relative;
+}
+.user-menu__toggle {
+  display: inline-flex;
+  border-radius: var(--radius-full);
+}
+.user-menu__panel {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: var(--z-sticky);
+  width: 260px;
+  padding: var(--space-2);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+}
+.user-menu__greeting {
+  padding: var(--space-3);
+  margin-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+.user-menu__greeting strong {
+  color: var(--color-text);
+}
+.user-menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-align: left;
+  transition: background-color var(--transition-base);
+}
+.user-menu__item:hover {
+  background: var(--color-bg-subtle);
+}
+.user-menu__item .icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+.user-menu__item--danger {
+  color: var(--color-danger);
+}
+.user-menu__item--danger .icon {
+  color: var(--color-danger);
+}
+
 /* --- Vùng nội dung -------------------------------------------------------- */
 .app-main {
   padding: var(--space-6) var(--space-5) var(--space-12);

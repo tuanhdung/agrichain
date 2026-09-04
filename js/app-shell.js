@@ -156,6 +156,44 @@
     if (desktopQuery.matches) toggle.setAttribute('aria-expanded', String(!collapsed));
   }
 
+  /* --- Menu tài khoản (bấm avatar ở topbar) ---------------------------------
+     Mở/đóng .user-menu__panel — đóng lại khi bấm ra ngoài menu, Esc, hoặc
+     bấm chính nút mở. Trang Hồ sơ/Đăng xuất nằm trong menu này, không phải
+     mục sidebar (xem ho-so.html). */
+  function setupUserMenu() {
+    var menu = document.querySelector('.user-menu');
+    var toggle = document.querySelector('.user-menu__toggle');
+    var panel = document.querySelector('.user-menu__panel');
+    if (!menu || !toggle || !panel) return;
+
+    function close() {
+      panel.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+
+    function open() {
+      panel.hidden = false;
+      toggle.setAttribute('aria-expanded', 'true');
+    }
+
+    toggle.addEventListener('click', function (event) {
+      event.stopPropagation();
+      if (panel.hidden) open();
+      else close();
+    });
+
+    document.addEventListener('click', function (event) {
+      if (!panel.hidden && !menu.contains(event.target)) close();
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !panel.hidden) {
+        close();
+        toggle.focus();
+      }
+    });
+  }
+
   /* --- Thu gọn/xổ ra từng nhóm menu trong sidebar ---------------------------
      Mặc định mọi nhóm đều mở; bấm vào tiêu đề nhóm để ẩn/hiện .app-nav__list
      bên dưới nó. Trạng thái từng nhóm (khoá theo id .app-nav__list, VD
@@ -288,6 +326,7 @@
     if (!session) return; // đang chuyển hướng, khỏi dựng gì thêm
     fillSession(session);
     setupSidebar();
+    setupUserMenu();
     setupNavSections();
     setupTabs();
     setupZeroDefaultInputs();

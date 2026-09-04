@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Máy tính tiền (POS) — AgriChain</title>
+  <title>Hồ sơ — AgriChain</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,68 +18,66 @@
   <link rel="stylesheet" href="css/app-shell.css" />
 
   <style>
-    /* CSS chỉ dùng riêng cho trang Máy tính tiền Thương mại điện tử, không
-       phải component tái sử dụng nên để tại đây theo quy ước dự án. */
+    /* CSS chỉ dùng riêng cho trang Hồ sơ, không phải component tái sử dụng
+       nên để tại đây theo quy ước dự án. */
 
-    /* --- Bố cục 2 cột: giỏ hàng bên trái, tổng đơn hàng bên phải ------------ */
-    .pos-layout {
+    .profile-layout {
       display: grid;
       grid-template-columns: 1fr;
       gap: var(--space-6);
       align-items: start;
     }
-    @media (min-width: 960px) {
-      .pos-layout {
-        grid-template-columns: 2fr 1fr;
-      }
-      .pos-layout__summary {
-        position: sticky;
-        top: var(--space-6);
+    @media (min-width: 768px) {
+      .profile-layout {
+        grid-template-columns: 320px 1fr;
       }
     }
 
-    .pos-cart__qty {
-      width: 72px;
+    .profile-card {
+      text-align: center;
     }
-
-    /* --- Khối "Tổng đơn hàng" bên phải --------------------------------------- */
-    .pos-summary__row {
+    .profile-card__avatar {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
+      justify-content: center;
       margin-bottom: var(--space-4);
     }
-    .pos-summary__row--total {
-      margin-top: var(--space-5);
-      margin-bottom: var(--space-5);
-      font-size: var(--text-lg);
-      font-weight: 700;
+    .profile-card__avatar .avatar {
+      width: var(--space-24);
+      height: var(--space-24);
+      font-size: var(--text-2xl);
     }
-    .pos-summary__row--total .pos-summary__value {
-      color: var(--color-primary);
+    .profile-card__name {
+      font-size: var(--text-xl);
     }
-    .pos-summary__value {
-      font-weight: 700;
+    .profile-card__email {
+      margin-bottom: var(--space-3);
+      color: var(--color-text-muted);
     }
-
-    .pos-change {
-      padding: var(--space-3) var(--space-4);
-      margin-bottom: var(--space-5);
-      background: var(--color-info-subtle);
-      border-radius: var(--radius-md);
+    .profile-card__divider {
+      margin: var(--space-5) 0;
+      border: none;
+      border-top: 1px solid var(--color-border);
+    }
+    .profile-card__row {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: var(--space-3);
+      margin-top: var(--space-3);
+      text-align: left;
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
     }
-    .pos-change__value {
-      font-weight: 700;
-      color: var(--color-info);
+    .profile-card__row:first-of-type {
+      margin-top: 0;
+    }
+    .profile-card__row .icon {
+      flex-shrink: 0;
+      color: var(--color-text-muted);
     }
   </style>
 </head>
 <body class="app-shell">
 
-  <!-- Lớp phủ khi mở sidebar trên mobile -->
   <div class="app-scrim"></div>
 
   <!-- Sidebar -->
@@ -161,7 +159,7 @@
               </a>
             </li>
             <li>
-              <a class="app-nav__link" href="thuong-mai-may-tinh-tien.html" aria-current="page">
+              <a class="app-nav__link" href="thuong-mai-may-tinh-tien.html">
                 <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-credit-card"></use></svg>
                 Máy tính tiền (POS)
               </a>
@@ -264,98 +262,130 @@
     <div class="app-content">
 
       <nav class="breadcrumb" aria-label="Đường dẫn">
-        <a class="breadcrumb__link" href="thuong-mai-tong-quan.html">
-          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shopping-cart"></use></svg>
-          Thương mại điện tử
-        </a>
-        <span class="breadcrumb__sep" aria-hidden="true">/</span>
-        <span class="breadcrumb__current" aria-current="page">Máy tính tiền (POS)</span>
+        <span class="breadcrumb__current" aria-current="page">Hồ sơ</span>
       </nav>
 
-      <div class="page-header">
-        <div class="page-header__icon">
-          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-credit-card"></use></svg>
-        </div>
-        <div class="page-header__text">
-          <h1 class="page-header__title">Máy tính tiền</h1>
-          <p class="page-header__meta">Bán hàng trực tiếp tại quầy bằng barcode.</p>
-        </div>
-      </div>
+      <div class="profile-layout">
 
-      <div class="pos-layout">
+        <!-- Thông tin tóm tắt -->
+        <div class="card profile-card">
+          <div class="profile-card__avatar">
+            <span class="avatar" data-profile-initials></span>
+          </div>
+          <h1 class="profile-card__name" data-profile-name></h1>
+          <p class="profile-card__email" data-profile-email></p>
+          <span class="badge badge--info" data-profile-role></span>
 
-        <!-- Cột trái: quét sản phẩm + giỏ hàng -->
-        <div>
-          <div class="barcode-search__box" style="margin-bottom: var(--space-6);">
-            <svg class="icon"><use href="icons/sprite.svg#icon-barcode"></use></svg>
-            <input
-              type="text"
-              id="pos-barcode-input"
-              class="barcode-search__input"
-              placeholder="Quét sản phẩm..."
-              autocomplete="off"
-            />
-            <button type="button" class="barcode-search__submit" id="pos-search-btn" aria-label="Tìm kiếm">
-              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-search"></use></svg>
+          <hr class="profile-card__divider" />
+
+          <div class="profile-card__row">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-mail"></use></svg>
+            <span data-profile-contact-email></span>
+          </div>
+          <div class="profile-card__row" data-profile-phone-row hidden>
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-phone"></use></svg>
+            <span data-profile-contact-phone></span>
+          </div>
+          <div class="profile-card__row" data-profile-dob-row hidden>
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-calendar"></use></svg>
+            <span data-profile-contact-dob></span>
+          </div>
+        </div>
+
+        <!-- Chỉnh sửa -->
+        <div class="card">
+          <div class="tabs" role="tablist">
+            <button type="button" class="tabs__tab is-active" role="tab" aria-selected="true" data-tab-target="profile-tab-info">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-user"></use></svg>
+              Thông tin cá nhân
+            </button>
+            <button type="button" class="tabs__tab" role="tab" aria-selected="false" data-tab-target="profile-tab-security">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+              Bảo mật
             </button>
           </div>
 
-          <div class="table-panel">
-            <div class="table-wrap">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th scope="col">Sản phẩm</th>
-                    <th scope="col">Đơn giá</th>
-                    <th scope="col">Số lượng</th>
-                    <th scope="col">Thành tiền</th>
-                  </tr>
-                </thead>
-                <tbody data-cart-body></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- Cột phải: tổng đơn hàng + thanh toán -->
-        <div class="card pos-layout__summary">
-          <h2 style="margin-bottom: var(--space-5);">Tổng đơn hàng</h2>
-
-          <div class="pos-summary__row">
-            <span>Tạm tính</span>
-            <span class="pos-summary__value" data-subtotal>0 đ</span>
-          </div>
-
-          <div class="field" style="margin-bottom: var(--space-5);">
-            <label class="label" for="pos-payment-method">Phương thức thanh toán</label>
-            <select class="select" id="pos-payment-method"></select>
-          </div>
-
-          <div data-cash-fields hidden>
-            <div class="field" style="margin-bottom: var(--space-5);">
-              <label class="label" for="pos-cash-given">Tiền khách đưa</label>
-              <input class="input" type="number" min="0" step="1000" id="pos-cash-given" />
-            </div>
-            <div class="pos-change">
-              <span>Tiền thừa</span>
-              <span class="pos-change__value" data-change>0 đ</span>
-            </div>
+          <div class="tabs__panel" id="profile-tab-info" data-tab-panel role="tabpanel">
+            <form id="profile-info-form" novalidate>
+              <div class="form-grid" style="margin-bottom: var(--space-5);">
+                <div class="field">
+                  <label class="label" for="profile-full-name">Họ và tên</label>
+                  <input class="input" type="text" id="profile-full-name" name="fullName" required />
+                </div>
+                <div class="field">
+                  <label class="label" for="profile-phone">Số điện thoại</label>
+                  <input class="input" type="tel" id="profile-phone" name="phone" />
+                </div>
+                <div class="field">
+                  <label class="label" for="profile-dob">Ngày sinh</label>
+                  <input class="input" type="date" id="profile-dob" name="dob" />
+                </div>
+                <div class="field">
+                  <label class="label" for="profile-gender">Giới tính</label>
+                  <select class="select" id="profile-gender" name="gender"></select>
+                </div>
+                <div class="field form-grid__full">
+                  <label class="label" for="profile-bio">Giới thiệu</label>
+                  <textarea class="textarea" id="profile-bio" name="bio"></textarea>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn btn--primary">Xác nhận</button>
+              </div>
+            </form>
           </div>
 
-          <div class="field" style="margin-bottom: var(--space-5);">
-            <label class="label" for="pos-note">Ghi chú đơn hàng</label>
-            <textarea class="textarea" id="pos-note" placeholder="Ghi chú đơn hàng"></textarea>
-          </div>
+          <div class="tabs__panel" id="profile-tab-security" data-tab-panel role="tabpanel" hidden>
+            <form id="profile-security-form" novalidate>
+              <div class="form-grid" style="margin-bottom: var(--space-5);">
+                <div class="field">
+                  <label class="label" for="profile-new-password">Mật khẩu mới</label>
+                  <div class="password-field">
+                    <input class="input" type="password" id="profile-new-password" name="password"
+                      autocomplete="new-password" required />
+                    <button type="button" class="password-toggle" data-password-toggle="profile-new-password"
+                      aria-label="Hiện mật khẩu">
+                      <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-eye"></use></svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="label" for="profile-confirm-password">Xác nhận mật khẩu mới</label>
+                  <div class="password-field">
+                    <input class="input" type="password" id="profile-confirm-password" name="confirmPassword"
+                      autocomplete="new-password" required />
+                    <button type="button" class="password-toggle" data-password-toggle="profile-confirm-password"
+                      aria-label="Hiện mật khẩu">
+                      <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-eye"></use></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
 
-          <div class="pos-summary__row pos-summary__row--total">
-            <span>Tổng tiền</span>
-            <span class="pos-summary__value" data-total>0 đ</span>
-          </div>
+              <ul class="password-rules" role="list" data-password-rules="profile-new-password" aria-live="polite" style="margin-bottom: var(--space-5);">
+                <li class="password-rule" data-rule="length">
+                  <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-check-circle"></use></svg>
+                  Ít nhất 8 ký tự
+                </li>
+                <li class="password-rule" data-rule="upper">
+                  <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-check-circle"></use></svg>
+                  1 chữ hoa
+                </li>
+                <li class="password-rule" data-rule="digit">
+                  <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-check-circle"></use></svg>
+                  1 chữ số
+                </li>
+                <li class="password-rule" data-rule="special">
+                  <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-check-circle"></use></svg>
+                  1 ký tự đặc biệt
+                </li>
+              </ul>
 
-          <button type="button" class="btn btn--primary btn--lg" style="width: 100%;" data-checkout>
-            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-credit-card"></use></svg>
-            Thanh toán
-          </button>
+              <div style="display: flex; justify-content: flex-end;">
+                <button type="submit" class="btn btn--primary">Đổi mật khẩu</button>
+              </div>
+            </form>
+          </div>
         </div>
 
       </div>
@@ -372,6 +402,7 @@
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=12" defer></script>
   <script src="js/app-shell.js?v=9" defer></script>
-  <script src="js/thuong-mai-may-tinh-tien.js?v=1" defer></script>
+  <script src="js/password-field.js?v=1" defer></script>
+  <script src="js/ho-so.js?v=1" defer></script>
 </body>
 </html>

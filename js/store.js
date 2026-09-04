@@ -151,6 +151,26 @@
     }
   }
 
+  // Cập nhật vài field của phiên đang đăng nhập (VD sau khi trang Hồ sơ lưu
+  // họ tên/SĐT...) mà không bắt đăng nhập lại — ghi thẳng lại đúng chỗ
+  // (localStorage/sessionStorage) đang giữ phiên hiện tại, dựa vào việc
+  // localStorage có key phiên hay không để suy ra "remember" ban đầu là gì.
+  function updateSession(changes) {
+    var session = getSession();
+    if (!session) return null;
+    Object.keys(changes).forEach(function (key) {
+      session[key] = changes[key];
+    });
+    var remember = false;
+    try {
+      remember = !!global.localStorage.getItem(SESSION_KEY);
+    } catch (err) {
+      remember = false;
+    }
+    setSession(session, remember);
+    return session;
+  }
+
   /* --- Mật khẩu ------------------------------------------------------------
      Băm kèm salt ngẫu nhiên để mật khẩu không nằm dạng chữ thô trong
      localStorage. Nói cho rõ: băm ở phía trình duyệt KHÔNG phải bảo mật —
@@ -207,6 +227,17 @@
         throw new Error('Email hoặc mật khẩu không đúng.');
       }
       return user;
+    });
+  }
+
+  // Đổi mật khẩu của 1 tài khoản trong "users" (collection đăng nhập thật —
+  // KHÁC "orgUsers" trong tai-khoan.html, nơi tuyệt đối không lưu mật khẩu
+  // dưới bất kỳ hình thức nào, xem CLAUDE.md). Sinh salt mới + băm lại, cùng
+  // cơ chế với registerUser().
+  function changePassword(userId, newPassword) {
+    var salt = randomSalt();
+    return hashPassword(newPassword, salt).then(function (hash) {
+      return update('users', userId, { salt: salt, passwordHash: hash });
     });
   }
 
@@ -308,7 +339,9 @@
     nextBatchCode: nextBatchCode,
     getSession: getSession,
     setSession: setSession,
+    updateSession: updateSession,
     clearSession: clearSession,
+    changePassword: changePassword,
     findUserByEmail: findUserByEmail,
     registerUser: registerUser,
     login: login,

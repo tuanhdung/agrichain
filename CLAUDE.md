@@ -58,6 +58,9 @@ js/
                            # nong-trai-chi-tiet.html, nút sửa/xoá ở đây chỉ điều hướng qua đó)
   tai-khoan.js            # Logic riêng cho tai-khoan.html (danh sách người dùng trong Đơn vị + modal
                           # thêm người dùng + modal phân quyền theo phân hệ)
+  ho-so.js                # Logic riêng cho ho-so.html (xem/sửa hồ sơ CHÍNH tài khoản đang đăng nhập
+                          # — collection "users", KHÁC "orgUsers" của tai-khoan.js — + đổi mật khẩu.
+                          # Mở từ menu tài khoản ở topbar, không phải mục sidebar)
   truy-xuat.js            # Logic riêng cho truy-xuat.html (trang truy xuất công khai — KHÔNG nạp
                           # js/app-shell.js, trang này không cần đăng nhập)
   thuong-mai-tong-quan.js  # Logic riêng cho thuong-mai-tong-quan.html (khởi tạo/chỉnh sửa hồ sơ
@@ -106,6 +109,9 @@ lo-hang.html              # Trang quản trị: danh sách tất cả lô hàng 
 tai-khoan.html            # Trang quản trị: danh sách người dùng trong Đơn vị + phân quyền theo phân hệ
                           # (dùng chung khung app-shell) — mục "Quản lý Tài khoản" trong nhóm sidebar
                           # "Quản lý Đơn vị"
+ho-so.html                # Trang quản trị: hồ sơ CHÍNH tài khoản đang đăng nhập + đổi mật khẩu (dùng
+                          # chung khung app-shell) — mở từ menu tài khoản ở topbar (bấm avatar), KHÔNG
+                          # phải mục sidebar (xem mục "Menu tài khoản" bên dưới)
 goi-phan-mem.html         # Trang tạm "Đang phát triển" — mục "Gói Phần mềm" trong nhóm sidebar
                           # "Quản lý Đơn vị", chưa có nghiệp vụ thật
 lich-su-mua-goi.html      # Trang tạm "Đang phát triển" — mục "Lịch sử mua Gói" trong nhóm sidebar
@@ -159,7 +165,7 @@ nội bộ tự sinh trong `store.js`, dạng `m8x2k1-a9f3`, không nên lộ ra
 tự xử lý trường hợp không tìm thấy bản ghi (`.empty-state` + nút quay lại danh sách),
 không được để trắng trang.
 
-## Khung quản trị (app-shell) — sidebar
+## Khung quản trị (app-shell) — sidebar & menu tài khoản
 
 Nút hamburger ở topbar (`.app-topbar__toggle`) làm **2 việc khác nhau tuỳ độ rộng màn hình**,
 xử lý trong `setupSidebar()` (`js/app-shell.js`):
@@ -178,6 +184,25 @@ trang, rất khó chịu khi dùng thật. `readUiState()`/`writeUiState()` tron
 bọc `try/catch` giống `store.js`: mất tính năng nhớ trạng thái nếu `localStorage` không dùng
 được (chế độ ẩn danh...), nhưng không chặn sidebar hoạt động. `setupNavSections()` chỉ áp dụng
 trạng thái đã lưu khi giá trị là `false` rõ ràng (mặc định vẫn luôn là mở nếu chưa từng bấm).
+
+**Menu tài khoản** (bấm avatar ở góc phải topbar) mở `.user-menu__panel` — component chung
+trong `css/app-shell.css`, xử lý bằng `setupUserMenu()` (`js/app-shell.js`, đóng lại khi bấm ra
+ngoài/Esc/bấm lại avatar). Gồm 3 mục: **Hồ sơ** (mở `ho-so.html` — xem/sửa thông tin cá nhân +
+đổi mật khẩu của CHÍNH tài khoản đang đăng nhập, khác `tai-khoan.html` vốn quản lý người dùng
+KHÁC trong Đơn vị), **Về trang giới thiệu** (trước đây là link `← Về trang giới thiệu` nằm ở
+chân sidebar — đã chuyển vào đây, chân sidebar giờ chỉ còn tên + nút Đăng xuất, gọn hơn), và
+**Đăng xuất** (dùng lại đúng `data-logout` như nút ở chân sidebar — `setupLogout()` tự bắt cả
+2 nút cùng lúc, không cần thêm code riêng).
+
+`ho-so.html` thêm 4 field tuỳ chọn mới vào bản ghi `users` (collection đăng nhập thật, KHÔNG
+phải `orgUsers`): `phone`, `dob`, `gender`, `bio` — lưu qua `store.update('users', session.id,
+...)` VÀ `store.updateSession(...)` cùng lúc để phiên đăng nhập hiện tại thấy thay đổi ngay,
+không cần đăng nhập lại (`updateSession()` tự suy ra đang lưu ở `localStorage` hay
+`sessionStorage` dựa vào cái nào đang giữ session, xem `js/store.js`). Tab "Bảo mật" đổi mật
+khẩu thật qua `store.changePassword(userId, mậtKhẩuMới)` — sinh salt mới + băm lại đúng cơ chế
+`registerUser()`, hợp lệ vì đây là `users` (có xác thực, dù giả lập) — KHÁC quy tắc "không lưu
+mật khẩu dưới bất kỳ hình thức nào" chỉ áp dụng riêng cho `orgUsers` (xem mục "Đăng nhập/Đăng
+ký" bên dưới).
 
 ## Đăng nhập / Đăng ký (giả lập)
 
