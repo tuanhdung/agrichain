@@ -23,16 +23,16 @@ css/
                           # .password-field/.password-rules đã chuyển sang components.css (dùng chung
                           # với tai-khoan.html), auth.css giờ chỉ còn layout 2 cột thật sự riêng
   app-shell.css          # Layout riêng cho khung quản trị (sidebar + topbar): nong-trai.html, vat-tu.html,
-                          # nong-trai-chi-tiet.html, lo-hang.html, tai-khoan.html, goi-phan-mem.html,
-                          # lich-su-mua-goi.html, và 7 trang thuong-mai-*.html
+                          # nong-trai-chi-tiet.html, mau-quy-trinh.html, lo-hang.html, tai-khoan.html,
+                          # goi-phan-mem.html, lich-su-mua-goi.html, và 7 trang thuong-mai-*.html
 js/
   header.js              # Xử lý tương tác cho .site-header (toggle menu mobile, cuộn anchor)
   contact-form.js        # Validate + hiện thông báo thành công cho form ở section Liên Hệ
   chain.js               # Sổ cái băm nối chuỗi (hash chain) bằng Web Crypto API — chạy trong trình duyệt
   store.js               # Lớp lưu trữ qua localStorage (users, farms, supplies, batches, events, ledger,
                           # orgUsers, shops, products, orders, shippingAddresses, inventoryImports,
-                          # phiên đăng nhập) — mọi trang đọc/ghi dữ liệu qua đây, không gọi thẳng
-                          # localStorage
+                          # workflowTemplates, phiên đăng nhập) — mọi trang đọc/ghi dữ liệu qua đây,
+                          # không gọi thẳng localStorage
   password-field.js      # Nút hiện/ẩn mật khẩu (data-password-toggle) + danh sách điều kiện mật khẩu
                           # (data-password-rules="<id ô mật khẩu>") dùng chung — tách từ js/auth.js để
                           # js/tai-khoan.js dùng lại được, không chép lại 2 hàm này.
@@ -49,6 +49,9 @@ js/
   nong-trai-chi-tiet.js   # Logic riêng cho nong-trai-chi-tiet.html (trang xem chi tiết 1 nông trại,
                           # gồm cả chứng nhận/mùa vụ/nhật ký/lô hàng con của nó)
   vat-tu.js               # Logic riêng cho vat-tu.html
+  mau-quy-trinh.js         # Logic riêng cho mau-quy-trinh.html (danh sách + thêm/sửa/xoá mẫu quy
+                           # trình mùa vụ — collection "workflowTemplates", KHÔNG khoá ownerId, theo
+                           # đúng quy ước "Hoạt động sản xuất" như farms/supplies/batches)
   lo-hang.js               # Logic riêng cho lo-hang.html (danh sách TẤT CẢ lô hàng, lọc theo nông trại/
                            # mùa vụ, QR + xác thực blockchain tại chỗ — thêm/sửa/xoá vẫn ở
                            # nong-trai-chi-tiet.html, nút sửa/xoá ở đây chỉ điều hướng qua đó)
@@ -93,6 +96,9 @@ nong-trai-chi-tiet.html   # Trang chi tiết 1 nông trại, mở từ thẻ nô
                           # đúng modal mùa vụ và chuyển sẵn sang tab "Lô hàng" — dùng bởi nút sửa/xoá ở
                           # lo-hang.html.
 vat-tu.html               # Trang quản trị: vật tư (dùng chung khung app-shell)
+mau-quy-trinh.html        # Trang quản trị: mẫu quy trình mùa vụ (dùng chung khung app-shell) — mục
+                          # "Mẫu quy trình" trong nhóm sidebar "Hoạt động sản xuất", thêm/sửa/xoá mẫu
+                          # gồm nhiều bước sắp xếp được (xem js/mau-quy-trinh.js)
 lo-hang.html              # Trang quản trị: danh sách tất cả lô hàng (dùng chung khung app-shell) —
                           # CHỈ xem/lọc/QR/xác thực blockchain, không có form thêm/sửa lô hàng riêng
                           # (xem js/lo-hang.js)
@@ -319,6 +325,31 @@ Trang truy xuất nguồn gốc (`truy-xuat.html`) đã có ở mức cơ bản:
 (hoặc `?ma=...` trực tiếp), thấy trạng thái xác thực blockchain + thông tin nông trại/mùa
 vụ liên quan. Chưa có: liệt kê nhiều lô hàng, tìm kiếm theo mã tự nhập tay trên trang, xác
 thực lại (verify) hash ngay tại trang này thay vì chỉ đọc `batch.hash` đã lưu sẵn.
+
+## Mẫu quy trình mùa vụ (`mau-quy-trinh.html`)
+
+Collection `workflowTemplates` (`store.js`) — **KHÔNG khoá theo `ownerId`** như nhóm "Thương
+mại điện tử": trang này thuộc "Hoạt động sản xuất", theo đúng quy ước sẵn có của
+`farms`/`supplies`/`batches` (danh sách chung cho Đơn vị đang đăng nhập, không có khái niệm
+nhiều chủ sở hữu trong 1 phiên — xem `js/vat-tu.js` để đối chiếu).
+
+Mỗi mẫu quy trình gồm nhiều "bước thực hiện" (`steps[]`), mỗi bước có: tên, loại hoạt động kỹ
+thuật (`activityType`, dùng lại đúng 9 giá trị/icon của `ACTIVITY_TYPES` trong
+`js/nong-trai-chi-tiet.js` — Gieo trồng/Gieo hạt, Bón phân, Tưới nước, Phòng trừ sâu bệnh, Làm
+cỏ, Cắt tỉa, Thu hoạch, Kiểm tra/Giám sát, Hoạt động khác), hướng dẫn thực hiện, và 3 cờ
+boolean (`requireQr`, `requireSupply` kèm `supplyId` tuỳ chọn trỏ tới `store.list('supplies')`,
+`requireImage`). Modal build từng thẻ bước bằng `stepCard()` (giống cách `variantCard()` dựng
+biến thể sản phẩm ở `js/thuong-mai-san-pham.js`) — nhưng KHÔNG dùng mảng JS giữ trạng thái
+sống: dữ liệu bước đọc/ghi thẳng qua DOM bằng các class đánh dấu (`.step-name`, `.step-type`...)
+lúc `collectSteps()` chạy ở submit, y hệt cách `collectVariants()` hoạt động.
+
+Nút lên/xuống mỗi bước **di chuyển thẳng DOM node** (`insertBefore`) thay vì re-render từ mảng —
+đơn giản hơn và tận dụng luôn việc DOM đã là nguồn dữ liệu (xem lý do ở trên). Số thứ tự hiển
+thị (`1`, `2`, `3`...) được tính lại từ vị trí DOM thật qua `renumberSteps()` sau MỌI thao tác
+đổi số lượng/thứ tự bước (thêm, xoá, di chuyển) — biến đếm `stepCount` chỉ dùng nội bộ lúc khởi
+tạo 1 thẻ mới, không dùng để hiển thị số, nên không bao giờ bị lệch dù người dùng thêm/xoá xen
+kẽ nhiều lần. Xoá bước cuối cùng còn lại sẽ tự thêm ngay 1 bước trống thay thế — modal không
+bao giờ để danh sách bước rỗng hoàn toàn.
 
 ## Thương mại điện tử — hồ sơ cửa hàng (`thuong-mai-tong-quan.html`)
 

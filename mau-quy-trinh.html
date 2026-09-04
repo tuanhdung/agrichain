@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Máy tính tiền (POS) — AgriChain</title>
+  <title>Mẫu quy trình — AgriChain</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,68 +18,107 @@
   <link rel="stylesheet" href="css/app-shell.css" />
 
   <style>
-    /* CSS chỉ dùng riêng cho trang Máy tính tiền Thương mại điện tử, không
-       phải component tái sử dụng nên để tại đây theo quy ước dự án. */
+    /* CSS chỉ dùng riêng cho trang Mẫu quy trình, không phải component tái
+       sử dụng nên để tại đây theo quy ước dự án. */
 
-    /* --- Bố cục 2 cột: giỏ hàng bên trái, tổng đơn hàng bên phải ------------ */
-    .pos-layout {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: var(--space-6);
-      align-items: start;
+    /* --- 1 bước trong "Các bước thực hiện": cột trái (số thứ tự + nút sắp
+       xếp) + thẻ nội dung bên phải ------------------------------------------ */
+    .workflow-step {
+      display: flex;
+      gap: var(--space-4);
+      margin-bottom: var(--space-5);
     }
-    @media (min-width: 960px) {
-      .pos-layout {
-        grid-template-columns: 2fr 1fr;
-      }
-      .pos-layout__summary {
-        position: sticky;
-        top: var(--space-6);
-      }
+    .workflow-step:last-child {
+      margin-bottom: 0;
     }
 
-    .pos-cart__qty {
-      width: 72px;
+    .workflow-step__side {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+      flex-shrink: 0;
+      padding-top: var(--space-2);
     }
-
-    /* --- Khối "Tổng đơn hàng" bên phải --------------------------------------- */
-    .pos-summary__row {
+    .workflow-step__number {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
+      width: var(--space-8);
+      height: var(--space-8);
+      border-radius: var(--radius-full);
+      background: var(--color-primary);
+      color: var(--color-text-inverse);
+      font-weight: 700;
+    }
+    .workflow-step__reorder {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
+    .workflow-step__chevron-up {
+      transform: rotate(180deg);
+    }
+
+    .workflow-step__body {
+      flex: 1;
+      min-width: 0;
+      padding: var(--space-4);
+      background: var(--color-bg-subtle);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+    }
+    .workflow-step__top {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+    }
+    .workflow-step__top .form-grid {
+      flex: 1;
+    }
+    .workflow-step__remove {
+      flex-shrink: 0;
+      margin-top: var(--space-8);
+    }
+    .workflow-step__instruction-row {
+      display: flex;
+      align-items: flex-end;
+      gap: var(--space-4);
+      margin-top: var(--space-4);
+    }
+    .workflow-step__instruction-row .field {
+      flex: 1;
+    }
+    .workflow-step__qr {
+      flex-shrink: 0;
+      white-space: nowrap;
+      padding-bottom: var(--space-3);
+    }
+    .workflow-step__flags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-6);
+      margin-top: var(--space-4);
+    }
+    .workflow-step__supply-field {
+      margin-top: var(--space-4);
+    }
+
+    /* --- Tiêu đề "Các bước thực hiện" + nút thêm bước ----------------------- */
+    .steps-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
       margin-bottom: var(--space-4);
     }
-    .pos-summary__row--total {
-      margin-top: var(--space-5);
-      margin-bottom: var(--space-5);
-      font-size: var(--text-lg);
+    .steps-header__title {
+      font-size: var(--text-base);
       font-weight: 700;
-    }
-    .pos-summary__row--total .pos-summary__value {
-      color: var(--color-primary);
-    }
-    .pos-summary__value {
-      font-weight: 700;
-    }
-
-    .pos-change {
-      padding: var(--space-3) var(--space-4);
-      margin-bottom: var(--space-5);
-      background: var(--color-info-subtle);
-      border-radius: var(--radius-md);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .pos-change__value {
-      font-weight: 700;
-      color: var(--color-info);
     }
   </style>
 </head>
 <body class="app-shell">
 
-  <!-- Lớp phủ khi mở sidebar trên mobile -->
   <div class="app-scrim"></div>
 
   <!-- Sidebar -->
@@ -105,12 +144,12 @@
             </li>
             <li>
               <a class="app-nav__link" href="vat-tu.html">
-                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-tractor"></use></svg>
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-box"></use></svg>
                 Vật tư
               </a>
             </li>
             <li>
-              <a class="app-nav__link" href="mau-quy-trinh.html">
+              <a class="app-nav__link" href="mau-quy-trinh.html" aria-current="page">
                 <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-workflow"></use></svg>
                 Mẫu quy trình
               </a>
@@ -161,7 +200,7 @@
               </a>
             </li>
             <li>
-              <a class="app-nav__link" href="thuong-mai-may-tinh-tien.html" aria-current="page">
+              <a class="app-nav__link" href="thuong-mai-may-tinh-tien.html">
                 <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-credit-card"></use></svg>
                 Máy tính tiền (POS)
               </a>
@@ -246,104 +285,105 @@
     <div class="app-content">
 
       <nav class="breadcrumb" aria-label="Đường dẫn">
-        <a class="breadcrumb__link" href="thuong-mai-tong-quan.html">
-          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shopping-cart"></use></svg>
-          Thương mại điện tử
+        <a class="breadcrumb__link" href="nong-trai.html">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-chart-bar"></use></svg>
+          Vận hành
         </a>
         <span class="breadcrumb__sep" aria-hidden="true">/</span>
-        <span class="breadcrumb__current" aria-current="page">Máy tính tiền (POS)</span>
+        <span class="breadcrumb__current" aria-current="page">Mẫu quy trình</span>
       </nav>
 
       <div class="page-header">
         <div class="page-header__icon">
-          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-credit-card"></use></svg>
+          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-workflow"></use></svg>
         </div>
         <div class="page-header__text">
-          <h1 class="page-header__title">Máy tính tiền</h1>
-          <p class="page-header__meta">Bán hàng trực tiếp tại quầy bằng barcode.</p>
+          <h1 class="page-header__title">Mẫu Quy Trình Mùa Vụ (Enterprise)</h1>
+          <p class="page-header__meta">
+            Tự thiết kế quy trình sản xuất chuẩn hoá để áp dụng tự động cho các mùa vụ gieo trồng.
+            Tổng số: <strong data-template-count>0</strong> mẫu.
+          </p>
         </div>
+        <button type="button" class="btn btn--primary btn--lg" data-open-template-form>
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
+          Tạo quy trình mới
+        </button>
       </div>
 
-      <div class="pos-layout">
+      <!-- Danh sách -->
+      <div class="grid grid--3" data-template-list hidden></div>
 
-        <!-- Cột trái: quét sản phẩm + giỏ hàng -->
-        <div>
-          <div class="barcode-search__box" style="margin-bottom: var(--space-6);">
-            <svg class="icon"><use href="icons/sprite.svg#icon-barcode"></use></svg>
-            <input
-              type="text"
-              id="pos-barcode-input"
-              class="barcode-search__input"
-              placeholder="Quét sản phẩm..."
-              autocomplete="off"
-            />
-            <button type="button" class="barcode-search__submit" id="pos-search-btn" aria-label="Tìm kiếm">
-              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-search"></use></svg>
-            </button>
-          </div>
-
-          <div class="table-panel">
-            <div class="table-wrap">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th scope="col">Sản phẩm</th>
-                    <th scope="col">Đơn giá</th>
-                    <th scope="col">Số lượng</th>
-                    <th scope="col">Thành tiền</th>
-                  </tr>
-                </thead>
-                <tbody data-cart-body></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- Cột phải: tổng đơn hàng + thanh toán -->
-        <div class="card pos-layout__summary">
-          <h2 style="margin-bottom: var(--space-5);">Tổng đơn hàng</h2>
-
-          <div class="pos-summary__row">
-            <span>Tạm tính</span>
-            <span class="pos-summary__value" data-subtotal>0 đ</span>
-          </div>
-
-          <div class="field" style="margin-bottom: var(--space-5);">
-            <label class="label" for="pos-payment-method">Phương thức thanh toán</label>
-            <select class="select" id="pos-payment-method"></select>
-          </div>
-
-          <div data-cash-fields hidden>
-            <div class="field" style="margin-bottom: var(--space-5);">
-              <label class="label" for="pos-cash-given">Tiền khách đưa</label>
-              <input class="input" type="number" min="0" step="1000" id="pos-cash-given" />
-            </div>
-            <div class="pos-change">
-              <span>Tiền thừa</span>
-              <span class="pos-change__value" data-change>0 đ</span>
-            </div>
-          </div>
-
-          <div class="field" style="margin-bottom: var(--space-5);">
-            <label class="label" for="pos-note">Ghi chú đơn hàng</label>
-            <textarea class="textarea" id="pos-note" placeholder="Ghi chú đơn hàng"></textarea>
-          </div>
-
-          <div class="pos-summary__row pos-summary__row--total">
-            <span>Tổng tiền</span>
-            <span class="pos-summary__value" data-total>0 đ</span>
-          </div>
-
-          <button type="button" class="btn btn--primary btn--lg" style="width: 100%;" data-checkout>
-            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-credit-card"></use></svg>
-            Thanh toán
-          </button>
-        </div>
-
+      <!-- Trạng thái rỗng -->
+      <div class="empty-state" data-template-empty>
+        <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-workflow"></use></svg>
+        <p class="empty-state__title">Chưa có Mẫu Quy Trình nào</p>
+        <p class="empty-state__desc">
+          Tạo mẫu quy trình chuẩn gồm các bước bón phân, tưới tiêu, bón lót, thu hoạch... để
+          nông dân thực hiện theo trên App.
+        </p>
+        <button type="button" class="btn btn--primary" data-open-template-form>
+          Tạo ngay quy trình đầu tiên
+        </button>
       </div>
 
     </div>
   </main>
+
+  <!-- Modal: Thêm/sửa mẫu quy trình -->
+  <dialog class="modal" id="template-modal" aria-labelledby="template-modal-title">
+    <form class="modal__form" id="template-form" novalidate>
+      <div class="modal__header">
+        <svg class="icon"><use href="icons/sprite.svg#icon-workflow"></use></svg>
+        <h2 class="modal__title" id="template-modal-title">Thiết Kế Mẫu Quy Trình Mới</h2>
+        <button type="button" class="modal__close" data-close-template-form aria-label="Đóng">&times;</button>
+      </div>
+
+      <div class="modal__body">
+
+        <div class="form-grid" style="margin-bottom: var(--space-6);">
+          <div class="field">
+            <label class="label" for="template-name">Tên quy trình mẫu</label>
+            <input class="input" type="text" id="template-name" name="name" required />
+          </div>
+          <div class="field">
+            <label class="label" for="template-description">Mô tả ngắn</label>
+            <input class="input" type="text" id="template-description" name="description" />
+          </div>
+        </div>
+
+        <div class="steps-header">
+          <span class="steps-header__title">Các bước thực hiện</span>
+          <button type="button" class="btn btn--outline btn--sm" data-add-step>
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
+            Thêm bước mới
+          </button>
+        </div>
+
+        <div data-steps-list></div>
+
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--secondary" data-close-template-form>Huỷ</button>
+        <button type="submit" class="btn btn--primary" data-template-submit-label>Lưu quy trình</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Xác nhận xoá -->
+  <dialog class="modal modal--sm" id="confirm-dialog" aria-labelledby="confirm-dialog-title">
+    <div class="modal__header">
+      <svg class="icon"><use href="icons/sprite.svg#icon-trash"></use></svg>
+      <h2 class="modal__title" id="confirm-dialog-title">Xác nhận</h2>
+    </div>
+    <div class="modal__body">
+      <p data-confirm-message></p>
+    </div>
+    <div class="modal__footer">
+      <button type="button" class="btn btn--secondary" data-confirm-cancel>Huỷ</button>
+      <button type="button" class="btn btn--danger" data-confirm-ok>Xoá</button>
+    </div>
+  </dialog>
 
   <!-- Toast -->
   <div class="toast" role="status" aria-live="polite">
@@ -354,6 +394,6 @@
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=11" defer></script>
   <script src="js/app-shell.js?v=6" defer></script>
-  <script src="js/thuong-mai-may-tinh-tien.js?v=1" defer></script>
+  <script src="js/mau-quy-trinh.js?v=1" defer></script>
 </body>
 </html>
