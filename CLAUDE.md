@@ -38,8 +38,9 @@ js/
                           # js/tai-khoan.js dùng lại được, không chép lại 2 hàm này.
   auth.js                # Xử lý form đăng nhập/đăng ký (dang-nhap.html, dang-ky.html), dựa vào store.js
                           # và js/password-field.js
-  app-shell.js            # Tương tác khung quản trị (sidebar mobile, thu gọn/xổ nhóm menu, tab dùng chung,
-                           # hộp thoại xác nhận AgriChain.confirm...)
+  app-shell.js            # Tương tác khung quản trị (nút hamburger: trượt overlay dưới 960px, thu gọn
+                           # hẳn sidebar từ 960px — xem mục "Sidebar" bên dưới; thu gọn/xổ nhóm menu,
+                           # tab dùng chung, hộp thoại xác nhận AgriChain.confirm...)
   map-layers.js           # 3 lớp nền bản đồ Leaflet dùng chung (vệ tinh/địa hình/mặc định) —
                            # AgriChain.addMapBaseLayers(map), dùng ở cả nong-trai.js lẫn nong-trai-chi-tiet.js
   location-select.js      # Cơ chế "2 select phụ thuộc nhau" dùng chung — AgriChain.setupCascadingSelect(),
@@ -157,6 +158,22 @@ Dùng `ma` (trường `code` người dùng tự đặt, hiển thị được) 
 nội bộ tự sinh trong `store.js`, dạng `m8x2k1-a9f3`, không nên lộ ra URL). Trang phải
 tự xử lý trường hợp không tìm thấy bản ghi (`.empty-state` + nút quay lại danh sách),
 không được để trắng trang.
+
+## Khung quản trị (app-shell) — sidebar
+
+Nút hamburger ở topbar (`.app-topbar__toggle`) làm **2 việc khác nhau tuỳ độ rộng màn hình**,
+xử lý trong `setupSidebar()` (`js/app-shell.js`):
+- Dưới 960px: trượt sidebar ra **đè lên** nội dung (overlay), kèm lớp phủ `.app-scrim` — bấm ra
+  ngoài lớp phủ hoặc Esc để đóng lại. Đây là hành vi gốc.
+- Từ 960px: **thu gọn hẳn** sidebar cố định (không phải overlay) — bật `.is-sidebar-collapsed`
+  trên `.app-shell` (thẻ `<body>`), CSS tương ứng đẩy `.app-topbar`/`.app-main` về
+  `margin-left: 0` để nội dung lấp đầy chỗ trống (`css/app-shell.css`, trong khối
+  `@media (min-width: 960px)`).
+
+Không lưu lại trạng thái thu gọn qua các lần tải trang (luôn mở lại từ đầu khi chuyển trang),
+cùng quy ước với việc thu gọn/xổ từng nhóm menu (`setupNavSections()`) — dự án không có
+templating nên mỗi trang tự chứa markup sidebar riêng, giữ đơn giản thay vì đồng bộ trạng thái
+qua localStorage.
 
 ## Đăng nhập / Đăng ký (giả lập)
 

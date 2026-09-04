@@ -55,44 +55,72 @@
     });
   }
 
-  /* --- Sidebar (dưới 960px) ------------------------------------------------ */
+  /* --- Sidebar --------------------------------------------------------------
+     Dưới 960px: nút hamburger trượt sidebar ra đè lên nội dung (overlay +
+     lớp phủ .app-scrim, đóng lại bằng cách bấm ra ngoài/Esc).
+     Từ 960px: CÙNG nút đó lại thu gọn hẳn sidebar (đẩy nội dung lấp đầy chỗ
+     trống, không phải overlay nên không cần lớp phủ) — bật/tắt class
+     .is-sidebar-collapsed trên .app-shell, xem css/app-shell.css. Không lưu
+     lại trạng thái thu gọn qua các lần tải trang (luôn mở lại từ đầu khi
+     chuyển trang), cùng quy ước với setupNavSections() bên dưới. */
   function setupSidebar() {
+    var shell = document.querySelector('.app-shell');
     var sidebar = document.querySelector('.app-sidebar');
     var toggle = document.querySelector('.app-topbar__toggle');
     var scrim = document.querySelector('.app-scrim');
-    if (!sidebar || !toggle || !scrim) return;
+    if (!shell || !sidebar || !toggle || !scrim) return;
 
-    function open() {
+    var desktopQuery = global.matchMedia('(min-width: 960px)');
+
+    function openMobile() {
       sidebar.classList.add('is-open');
       scrim.classList.add('is-visible');
       toggle.setAttribute('aria-expanded', 'true');
     }
 
-    function close() {
+    function closeMobile() {
       sidebar.classList.remove('is-open');
       scrim.classList.remove('is-visible');
       toggle.setAttribute('aria-expanded', 'false');
     }
 
+    function toggleDesktop() {
+      var collapsed = shell.classList.toggle('is-sidebar-collapsed');
+      toggle.setAttribute('aria-expanded', String(!collapsed));
+    }
+
     toggle.addEventListener('click', function () {
-      if (sidebar.classList.contains('is-open')) close();
-      else open();
+      if (desktopQuery.matches) {
+        toggleDesktop();
+        return;
+      }
+      if (sidebar.classList.contains('is-open')) closeMobile();
+      else openMobile();
     });
 
-    scrim.addEventListener('click', close);
+    scrim.addEventListener('click', closeMobile);
 
     document.addEventListener('keydown', function (event) {
       if (event.key === 'Escape' && sidebar.classList.contains('is-open')) {
-        close();
+        closeMobile();
         toggle.focus();
       }
     });
 
     // Kéo cửa sổ rộng ra thì sidebar thành cố định — dọn luôn trạng thái mở
-    // để lớp phủ không kẹt lại che mất nội dung.
-    global.matchMedia('(min-width: 960px)').addEventListener('change', function (event) {
-      if (event.matches) close();
+    // (overlay mobile) để lớp phủ không kẹt lại che mất nội dung. Thu nhỏ
+    // lại thì dọn trạng thái thu gọn (desktop) để sidebar không biến mất
+    // luôn trên màn hình hẹp.
+    desktopQuery.addEventListener('change', function (event) {
+      if (event.matches) closeMobile();
+      else shell.classList.remove('is-sidebar-collapsed');
     });
+
+    // Trạng thái mặc định lúc tải trang là "mở" ở cả 2 chế độ (overlay đóng
+    // trên mobile nhưng sidebar cố định vẫn hiện; không thu gọn trên
+    // desktop) — markup tĩnh ghi sẵn aria-expanded="false" (đúng cho mobile,
+    // khớp với sidebar đang ẩn), nên phải tự sửa lại đúng cho desktop ở đây.
+    if (desktopQuery.matches) toggle.setAttribute('aria-expanded', 'true');
   }
 
   /* --- Thu gọn/xổ ra từng nhóm menu trong sidebar ---------------------------

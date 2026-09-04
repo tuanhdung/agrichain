@@ -956,13 +956,17 @@
   border: 1px solid var(--color-border);
 }
 
-/* --- Từ 960px: sidebar cố định, nội dung thụt vào ------------------------- */
+/* --- Từ 960px: sidebar cố định, nội dung thụt vào -------------------------
+   Nút hamburger vẫn hiển thị (khác dưới 960px chỉ ẩn/hiện dạng trượt che
+   nội dung): ở đây nó thu gọn hẳn sidebar, đẩy nội dung ra lấp đầy chỗ
+   trống — xem .app-shell.is-sidebar-collapsed bên dưới và setupSidebar()
+   trong app-shell.js (không lưu lại trạng thái qua các lần tải trang,
+   cùng quy ước với setupNavSections()). */
 @media (min-width: 960px) {
   .app-sidebar {
     transform: translateX(0);
   }
 
-  .app-topbar__toggle,
   .app-scrim,
   .app-scrim.is-visible {
     display: none;
@@ -971,10 +975,20 @@
   .app-topbar,
   .app-main {
     margin-left: var(--sidebar-width);
+    transition: margin-left var(--transition-base);
   }
 
   .app-main {
     padding-inline: var(--space-8);
+  }
+
+  .app-shell.is-sidebar-collapsed .app-sidebar {
+    transform: translateX(-100%);
+  }
+
+  .app-shell.is-sidebar-collapsed .app-topbar,
+  .app-shell.is-sidebar-collapsed .app-main {
+    margin-left: 0;
   }
 }
 
