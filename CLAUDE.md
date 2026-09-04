@@ -170,10 +170,14 @@ xử lý trong `setupSidebar()` (`js/app-shell.js`):
   `margin-left: 0` để nội dung lấp đầy chỗ trống (`css/app-shell.css`, trong khối
   `@media (min-width: 960px)`).
 
-Không lưu lại trạng thái thu gọn qua các lần tải trang (luôn mở lại từ đầu khi chuyển trang),
-cùng quy ước với việc thu gọn/xổ từng nhóm menu (`setupNavSections()`) — dự án không có
-templating nên mỗi trang tự chứa markup sidebar riêng, giữ đơn giản thay vì đồng bộ trạng thái
-qua localStorage.
+**Trạng thái sidebar được nhớ qua `localStorage`** (`agrichain:sidebarCollapsed` — có thu gọn
+hay không; `agrichain:sidebarSections` — object `{id nhóm: đang mở hay đóng}`) — bắt buộc phải
+làm vậy vì dự án không có router/SPA: mỗi lần bấm 1 mục menu là tải lại một trang tĩnh khác
+hoàn toàn, nên nếu không lưu, sidebar sẽ tự "giật" về mặc định (mở hết) sau MỖI lần chuyển
+trang, rất khó chịu khi dùng thật. `readUiState()`/`writeUiState()` trong `js/app-shell.js`
+bọc `try/catch` giống `store.js`: mất tính năng nhớ trạng thái nếu `localStorage` không dùng
+được (chế độ ẩn danh...), nhưng không chặn sidebar hoạt động. `setupNavSections()` chỉ áp dụng
+trạng thái đã lưu khi giá trị là `false` rõ ràng (mặc định vẫn luôn là mở nếu chưa từng bấm).
 
 ## Đăng nhập / Đăng ký (giả lập)
 

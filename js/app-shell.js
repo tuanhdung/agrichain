@@ -55,14 +55,45 @@
     });
   }
 
+  /* --- Nhớ trạng thái sidebar qua localStorage -------------------------------
+     Dự án không có router/SPA — mỗi lần bấm 1 mục menu là tải lại trang tĩnh
+     khác hoàn toàn, nên trạng thái JS (class, aria-expanded...) không tự
+     nhiên còn nguyên. Lưu 2 mẩu trạng thái nhỏ vào localStorage để sidebar
+     KHÔNG bị "giật" về mặc định mỗi lần chuyển trang:
+       - agrichain:sidebarCollapsed — có thu gọn sidebar (desktop) hay không.
+       - agrichain:sidebarSections  — object {id nhóm: đang mở hay đóng}.
+     Bọc try/catch giống store.js: localStorage có thể không dùng được (chế
+     độ ẩn danh, hết dung lượng...), lúc đó chỉ mất tính năng nhớ trạng thái
+     chứ không chặn sidebar hoạt động bình thường. */
+  function readUiState(key, fallback) {
+    try {
+      var text = global.localStorage.getItem(key);
+      return text === null ? fallback : JSON.parse(text);
+    } catch (err) {
+      return fallback;
+    }
+  }
+
+  function writeUiState(key, value) {
+    try {
+      global.localStorage.setItem(key, JSON.stringify(value));
+    } catch (err) {
+      // Bỏ qua — xem ghi chú ở trên.
+    }
+  }
+
+  var SIDEBAR_COLLAPSED_KEY = 'agrichain:sidebarCollapsed';
+  var SIDEBAR_SECTIONS_KEY = 'agrichain:sidebarSections';
+
   /* --- Sidebar --------------------------------------------------------------
      Dưới 960px: nút hamburger trượt sidebar ra đè lên nội dung (overlay +
      lớp phủ .app-scrim, đóng lại bằng cách bấm ra ngoài/Esc).
      Từ 960px: CÙNG nút đó lại thu gọn hẳn sidebar (đẩy nội dung lấp đầy chỗ
      trống, không phải overlay nên không cần lớp phủ) — bật/tắt class
-     .is-sidebar-collapsed trên .app-shell, xem css/app-shell.css. Không lưu
-     lại trạng thái thu gọn qua các lần tải trang (luôn mở lại từ đầu khi
-     chuyển trang), cùng quy ước với setupNavSections() bên dưới. */
+     .is-sidebar-collapsed trên .app-shell, xem css/app-shell.css. Trạng thái
+     thu gọn (chỉ có ý nghĩa ở desktop) được nhớ qua localStorage nên không bị
+     reset khi bấm sang trang khác — xem ghi chú readUiState()/writeUiState()
+     ở trên. */
   function setupSidebar() {
     var shell = document.querySelector('.app-shell');
     var sidebar = document.querySelector('.app-sidebar');
@@ -87,6 +118,7 @@
     function toggleDesktop() {
       var collapsed = shell.classList.toggle('is-sidebar-collapsed');
       toggle.setAttribute('aria-expanded', String(!collapsed));
+      writeUiState(SIDEBAR_COLLAPSED_KEY, collapsed);
     }
 
     toggle.addEventListener('click', function () {
@@ -108,35 +140,49 @@
     });
 
     // Kéo cửa sổ rộng ra thì sidebar thành cố định — dọn luôn trạng thái mở
-    // (overlay mobile) để lớp phủ không kẹt lại che mất nội dung. Thu nhỏ
-    // lại thì dọn trạng thái thu gọn (desktop) để sidebar không biến mất
-    // luôn trên màn hình hẹp.
+    // (overlay mobile) để lớp phủ không kẹt lại che mất nội dung. Không cần
+    // xử lý gì khi thu hẹp lại: .is-sidebar-collapsed chỉ có tác dụng trong
+    // @media (min-width: 960px), giữ nguyên class lúc ở màn hình hẹp không
+    // ảnh hưởng gì và giữ đúng trạng thái đã lưu khi kéo rộng ra lại.
     desktopQuery.addEventListener('change', function (event) {
       if (event.matches) closeMobile();
-      else shell.classList.remove('is-sidebar-collapsed');
     });
 
-    // Trạng thái mặc định lúc tải trang là "mở" ở cả 2 chế độ (overlay đóng
-    // trên mobile nhưng sidebar cố định vẫn hiện; không thu gọn trên
-    // desktop) — markup tĩnh ghi sẵn aria-expanded="false" (đúng cho mobile,
-    // khớp với sidebar đang ẩn), nên phải tự sửa lại đúng cho desktop ở đây.
-    if (desktopQuery.matches) toggle.setAttribute('aria-expanded', 'true');
+    // Khôi phục trạng thái thu gọn đã lưu (nếu có) trước khi tính aria-
+    // expanded, để nút hamburger phản ánh đúng ngay từ lần vẽ đầu tiên.
+    var collapsed = !!readUiState(SIDEBAR_COLLAPSED_KEY, false);
+    if (collapsed) shell.classList.add('is-sidebar-collapsed');
+
+    if (desktopQuery.matches) toggle.setAttribute('aria-expanded', String(!collapsed));
   }
 
   /* --- Thu gọn/xổ ra từng nhóm menu trong sidebar ---------------------------
-     Mặc định mọi nhóm đều mở (giữ nguyên hành vi cũ); bấm vào tiêu đề nhóm để
-     ẩn/hiện .app-nav__list bên dưới nó. Không lưu lại trạng thái qua các lần
-     tải trang — mỗi trang admin tự chứa sidebar riêng (không templating) nên
-     giữ đơn giản, luôn mở lại từ đầu khi chuyển trang. */
+     Mặc định mọi nhóm đều mở; bấm vào tiêu đề nhóm để ẩn/hiện .app-nav__list
+     bên dưới nó. Trạng thái từng nhóm (khoá theo id .app-nav__list, VD
+     "nav-thuong-mai") được nhớ qua localStorage — xem ghi chú readUiState()/
+     writeUiState() ở trên — nên không bị mở lại hết mỗi khi chuyển trang. */
   function setupNavSections() {
+    var sections = readUiState(SIDEBAR_SECTIONS_KEY, {});
+
     document.querySelectorAll('.app-nav__section-toggle').forEach(function (toggle) {
-      var list = document.getElementById(toggle.getAttribute('aria-controls'));
+      var id = toggle.getAttribute('aria-controls');
+      var list = document.getElementById(id);
       if (!list) return;
+
+      // Chỉ áp dụng khi đã lưu rõ ràng là "đóng" — mặc định (chưa lưu gì)
+      // vẫn là mở, khớp hành vi gốc.
+      if (sections[id] === false) {
+        toggle.setAttribute('aria-expanded', 'false');
+        list.hidden = true;
+      }
 
       toggle.addEventListener('click', function () {
         var expanded = toggle.getAttribute('aria-expanded') === 'true';
         toggle.setAttribute('aria-expanded', String(!expanded));
         list.hidden = expanded;
+
+        sections[id] = !expanded; // lưu trạng thái MỚI (sau khi bấm), không phải trạng thái cũ
+        writeUiState(SIDEBAR_SECTIONS_KEY, sections);
       });
     });
   }
