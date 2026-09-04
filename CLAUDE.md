@@ -189,10 +189,12 @@ trạng thái đã lưu khi giá trị là `false` rõ ràng (mặc định vẫ
 trong `css/app-shell.css`, xử lý bằng `setupUserMenu()` (`js/app-shell.js`, đóng lại khi bấm ra
 ngoài/Esc/bấm lại avatar). Gồm 3 mục: **Hồ sơ** (mở `ho-so.html` — xem/sửa thông tin cá nhân +
 đổi mật khẩu của CHÍNH tài khoản đang đăng nhập, khác `tai-khoan.html` vốn quản lý người dùng
-KHÁC trong Đơn vị), **Về trang giới thiệu** (trước đây là link `← Về trang giới thiệu` nằm ở
-chân sidebar — đã chuyển vào đây, chân sidebar giờ chỉ còn tên + nút Đăng xuất, gọn hơn), và
-**Đăng xuất** (dùng lại đúng `data-logout` như nút ở chân sidebar — `setupLogout()` tự bắt cả
-2 nút cùng lúc, không cần thêm code riêng).
+KHÁC trong Đơn vị), **Về trang giới thiệu**, và **Đăng xuất**. `.app-sidebar` **không còn khối
+chân trang riêng nữa** (`.app-sidebar__footer`/`.app-sidebar__logout` đã xoá hẳn khỏi mọi
+trang lẫn `css/app-shell.css` — tên người dùng + link "Về trang giới thiệu" + nút "Đăng xuất"
+từng nằm ở đó giờ đều chuyển hết vào menu tài khoản này) — `.app-sidebar__scroll` (danh sách
+menu) nhờ vậy chiếm trọn chiều cao còn lại của sidebar (`flex: 1`), không phải chừa chỗ cho
+chân trang nữa.
 
 `ho-so.html` thêm 4 field tuỳ chọn mới vào bản ghi `users` (collection đăng nhập thật, KHÔNG
 phải `orgUsers`): `phone`, `dob`, `gender`, `bio` — lưu qua `store.update('users', session.id,
