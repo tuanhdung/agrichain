@@ -15,12 +15,15 @@ data/
   provinces.json         # 34 tỉnh/thành sau sáp nhập 2025 — {id, name}, xem mục "Dữ liệu hành
                           # chính" bên dưới để biết nguồn và cách làm mới
   wards/{provinceCode}.json  # Phường/xã của từng tỉnh, 1 file/tỉnh — {id, name, provinceId}
-  blog-posts.json        # 3 bài viết Blog tĩnh (hard-code, chưa có backend quản lý nội dung) —
-                          # {slug, category, date, readTime, title, author, excerpt, cover, tags[],
-                          # body[]}. body[] là mảng khối nội dung {type: 'paragraph'|'heading'|'list', ...}
-                          # để render tuần tự. Nạp qua fetch() bởi CẢ blog.html (danh sách) lẫn
-                          # blog-chi-tiet.html (chi tiết, lọc theo slug) — 1 nguồn dữ liệu duy nhất,
-                          # tránh lệch nội dung giữa 2 trang, cùng cơ chế fetch() như provinces.json.
+  blog-posts.json        # 3 bài viết Blog — nội dung chép lại đúng bài thật trên agrichain.com.vn/blog
+                          # (không phải tự bịa), chưa có backend quản lý. {slug, category, date,
+                          # readTime, title, author, excerpt, cover, tags[], body[]}. body[] là mảng
+                          # khối nội dung {type: 'paragraph'|'heading'|'list', ...} để render tuần tự —
+                          # khối 'list' có thêm cờ tuỳ chọn `ordered: true` để render <ol> (danh sách
+                          # đánh số, VD 3 trụ cột ESG) thay vì <ul> (danh sách gạch đầu dòng, mặc
+                          # định). Nạp qua fetch() bởi CẢ blog.html (danh sách) lẫn blog-chi-tiet.html
+                          # (chi tiết, lọc theo slug) — 1 nguồn dữ liệu duy nhất, tránh lệch nội dung
+                          # giữa 2 trang, cùng cơ chế fetch() như provinces.json.
 css/
   tokens.css             # Biến CSS gốc: màu, khoảng cách, cỡ chữ, bo góc, đổ bóng
   base.css               # Reset + typography mặc định

@@ -58,20 +58,21 @@
     "author": "Lê Văn C",
     "excerpt": "ESG đang trở thành tiêu chuẩn vàng cho nông sản xuất khẩu. Hãy cùng tìm hiểu cách AgriChain hỗ trợ doanh nghiệp đạt chuẩn quốc tế.",
     "cover": "images/blog/post-3.jpg",
-    "tags": ["ESG", "Agrichain", "PhatTrienBenVung"],
+    "tags": ["ESG", "Agrichain", "NongNghiepSo"],
     "body": [
-      { "type": "paragraph", "text": "ESG (Environmental, Social, Governance) không còn là khái niệm xa lạ trong nông nghiệp hiện đại. Các thị trường xuất khẩu lớn như EU, Mỹ, Nhật Bản ngày càng siết chặt yêu cầu về nguồn gốc và tính bền vững của nông sản nhập khẩu." },
-      { "type": "heading", "text": "Ba trụ cột của ESG trong nông nghiệp" },
-      { "type": "paragraph", "text": "Một chuỗi cung ứng nông sản đạt chuẩn ESG cần đáp ứng đồng thời các yếu tố về môi trường, xã hội và quản trị minh bạch — đây chính là nền tảng để xây dựng niềm tin với đối tác quốc tế." },
+      { "type": "paragraph", "text": "ESG (Môi trường - Xã hội - Quản trị) đang trở thành yêu cầu bắt buộc đối với các sản phẩm nông sản khi bước chân vào các thị trường khó tính như EU, Mỹ, Nhật Bản." },
+      { "type": "heading", "text": "Agrichain và hành trình ESG" },
+      { "type": "paragraph", "text": "Chúng tôi tập trung vào 3 trụ cột chính:" },
       {
         "type": "list",
+        "ordered": true,
         "items": [
-          { "strong": "Môi trường:", "text": "Giảm phát thải, sử dụng tài nguyên nước và đất hợp lý, hạn chế hóa chất nông nghiệp." },
-          { "strong": "Xã hội:", "text": "Đảm bảo điều kiện lao động công bằng và sinh kế bền vững cho nông hộ." },
-          { "strong": "Quản trị:", "text": "Dữ liệu chuỗi cung ứng minh bạch, có thể kiểm chứng độc lập bởi bên thứ ba." }
+          { "strong": "Môi trường (E):", "text": "Khuyến khích canh tác hữu cơ, giảm phát thải carbon và bảo vệ đa dạng sinh học." },
+          { "strong": "Xã hội (S):", "text": "Đảm bảo quyền lợi cho nông hộ, tạo ra chuỗi giá trị công bằng và minh bạch." },
+          { "strong": "Quản trị (G):", "text": "Hệ thống báo cáo minh bạch dựa trên Blockchain giúp doanh nghiệp chứng minh sự tuân thủ." }
         ]
       },
-      { "type": "paragraph", "text": "AgriChain giúp doanh nghiệp số hoá toàn bộ hồ sơ ESG ngay từ khâu canh tác, sẵn sàng đáp ứng các bộ tiêu chuẩn truy xuất nguồn gốc khắt khe nhất của thị trường xuất khẩu." }
+      { "type": "paragraph", "text": "Với Agrichain, nông nghiệp bền vững không chỉ là mục tiêu mà còn là kim chỉ nam cho mọi hoạt động phát triển sản phẩm của chúng tôi." }
     ]
   }
 ]

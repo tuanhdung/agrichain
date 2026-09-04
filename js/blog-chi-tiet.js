@@ -41,7 +41,7 @@
       if (block.type === 'heading') {
         bodyNode.appendChild(el('h2', null, block.text));
       } else if (block.type === 'list') {
-        var list = el('ul');
+        var list = el(block.ordered ? 'ol' : 'ul');
         block.items.forEach(function (item) {
           var li = el('li');
           if (item.strong) li.appendChild(el('strong', null, item.strong + ' '));
