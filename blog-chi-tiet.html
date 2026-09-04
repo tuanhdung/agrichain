@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bài viết — AgriChain Blog</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
+
+  <style>
+    /* CSS chỉ dùng riêng cho trang chi tiết bài viết Blog, không phải
+       component tái sử dụng. Trang này công khai, không nạp app-shell.css
+       nên .share-btn (nút tròn viền, gần giống .icon-btn của khung quản trị)
+       và .empty-card (trạng thái "không tìm thấy") phải tự định nghĩa lại ở
+       đây — đúng cách truy-xuat.html đã làm, .empty-state thật nằm ở
+       app-shell.css (chỉ khung quản trị mới nạp). */
+    .post-detail-page {
+      padding-block: var(--space-10) var(--space-16);
+      min-height: calc(100vh - var(--header-height));
+    }
+
+    .empty-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-3);
+      max-width: 480px;
+      margin-inline: auto;
+      padding: var(--space-16) var(--space-6);
+      text-align: center;
+    }
+    .empty-card .icon {
+      color: var(--color-text-muted);
+    }
+    .empty-card__title {
+      font-size: var(--text-lg);
+      font-weight: 700;
+    }
+    .empty-card__desc {
+      max-width: 420px;
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-2);
+    }
+
+    .post-detail {
+      max-width: 760px;
+      margin-inline: auto;
+    }
+
+    .post-detail__breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+      font-size: var(--text-sm);
+    }
+
+    .post-detail__back {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--color-text-muted);
+      transition: color var(--transition-base);
+    }
+    .post-detail__back:hover {
+      color: var(--color-primary);
+    }
+
+    .post-detail__breadcrumb-sep {
+      color: var(--color-border);
+    }
+
+    .post-detail__breadcrumb-category {
+      color: var(--color-text-muted);
+    }
+
+    .post-detail__title {
+      margin-bottom: var(--space-6);
+    }
+
+    .post-detail__meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      padding-bottom: var(--space-6);
+      margin-bottom: var(--space-8);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .post-detail__author {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .post-detail__author-name {
+      font-weight: 700;
+    }
+
+    .post-detail__author-meta {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+
+    .post-detail__share {
+      display: flex;
+      gap: var(--space-2);
+    }
+
+    .share-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--space-10);
+      height: var(--space-10);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-full);
+      color: var(--color-text-muted);
+      transition: border-color var(--transition-base), color var(--transition-base);
+    }
+    .share-btn:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    .post-detail__cover {
+      aspect-ratio: 21 / 9;
+      margin-bottom: var(--space-8);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--color-bg-subtle);
+    }
+    .post-detail__cover img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .post-detail__body {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-5);
+      margin-bottom: var(--space-10);
+    }
+    .post-detail__body p {
+      line-height: var(--leading-relaxed);
+    }
+    .post-detail__body h2 {
+      margin-top: var(--space-4);
+    }
+    .post-detail__body ul {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      padding-left: var(--space-6);
+    }
+    .post-detail__body li {
+      line-height: var(--leading-relaxed);
+    }
+
+    .post-detail__tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      padding-bottom: var(--space-8);
+      margin-bottom: var(--space-8);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .post-detail__footer-actions {
+      display: flex;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a href="index.html" class="site-header__logo" aria-label="AgriChain — Trang chủ">
+        <span class="site-header__logo-mark" aria-hidden="true">A</span>
+        <span class="site-header__logo-text">AgriChain</span>
+      </a>
+
+      <button
+        type="button"
+        class="site-header__toggle"
+        aria-controls="site-header-panel"
+        aria-expanded="false"
+        aria-label="Mở menu"
+      >
+        <span class="site-header__toggle-bar"></span>
+        <span class="site-header__toggle-bar"></span>
+        <span class="site-header__toggle-bar"></span>
+      </button>
+
+      <div class="site-header__panel" id="site-header-panel">
+        <nav class="site-header__nav" aria-label="Menu chính">
+          <ul class="site-header__menu" role="list">
+            <li class="site-header__menu-item">
+              <a class="site-header__link" href="index.html#tinh-nang">Tính Năng</a>
+            </li>
+            <li class="site-header__menu-item">
+              <a class="site-header__link" href="index.html#quy-trinh">Quy Trình</a>
+            </li>
+            <li class="site-header__menu-item">
+              <a class="site-header__link" href="index.html#loi-ich">Lợi Ích</a>
+            </li>
+            <li class="site-header__menu-item">
+              <a class="site-header__link" href="index.html#ecommerce">E-commerce</a>
+            </li>
+            <li class="site-header__menu-item">
+              <a class="site-header__link site-header__link--active" href="blog.html" aria-current="page">Blog</a>
+            </li>
+            <li class="site-header__menu-item">
+              <a class="site-header__link" href="index.html#lien-he">Liên Hệ</a>
+            </li>
+          </ul>
+        </nav>
+
+        <div class="site-header__actions">
+          <a class="btn btn--outline btn--sm" href="dang-nhap.html">Đăng Nhập</a>
+          <a class="btn btn--primary btn--sm" href="dang-ky.html">Bắt Đầu Ngay</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="post-detail-page">
+      <div class="container">
+
+        <!-- Không tìm thấy bài viết theo slug trên URL -->
+        <div class="empty-card" data-not-found hidden>
+          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-file-text"></use></svg>
+          <p class="empty-card__title">Không tìm thấy bài viết</p>
+          <p class="empty-card__desc">Bài viết này có thể đã bị gỡ, hoặc đường dẫn không đúng.</p>
+          <a class="btn btn--primary" href="blog.html">Về trang Blog</a>
+        </div>
+
+        <!-- Nội dung bài viết -->
+        <article class="post-detail" data-post-detail hidden>
+          <div class="post-detail__breadcrumb">
+            <a class="post-detail__back" href="blog.html">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-corner-up-left"></use></svg>
+              Quay lại Blog
+            </a>
+            <span class="post-detail__breadcrumb-sep">|</span>
+            <span class="post-detail__breadcrumb-category" data-post-category></span>
+          </div>
+
+          <h1 class="post-detail__title" data-post-title></h1>
+
+          <div class="post-detail__meta">
+            <div class="post-detail__author">
+              <span class="avatar" data-post-author-initials></span>
+              <div>
+                <p class="post-detail__author-name" data-post-author></p>
+                <p class="post-detail__author-meta">
+                  <span data-post-date></span> · <span data-post-read-time></span>
+                </p>
+              </div>
+            </div>
+            <div class="post-detail__share">
+              <a class="share-btn" data-share-facebook target="_blank" rel="noopener" aria-label="Chia sẻ lên Facebook">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-facebook"></use></svg>
+              </a>
+              <a class="share-btn" data-share-twitter target="_blank" rel="noopener" aria-label="Chia sẻ lên Twitter">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-twitter"></use></svg>
+              </a>
+              <button type="button" class="share-btn" data-copy-link aria-label="Sao chép liên kết">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-link"></use></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="post-detail__cover">
+            <img data-post-cover alt="" />
+          </div>
+
+          <div class="post-detail__body" data-post-body></div>
+
+          <div class="post-detail__tags" data-post-tags></div>
+
+          <div class="post-detail__footer-actions">
+            <a class="btn btn--outline" href="blog.html">Tất cả bài viết</a>
+          </div>
+        </article>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="grid grid--3 site-footer__grid">
+        <div class="site-footer__col">
+          <a href="index.html" class="site-footer__logo">
+            <span class="site-footer__logo-mark" aria-hidden="true">A</span>
+            <span>AgriChain</span>
+          </a>
+          <p class="site-footer__desc">
+            Nền tảng truy xuất nguồn gốc nông sản bằng blockchain kết hợp AI,
+            kết nối minh bạch từ nông trại đến bàn ăn.
+          </p>
+        </div>
+
+        <div class="site-footer__col">
+          <h3 class="site-footer__heading">Liên Kết Nhanh</h3>
+          <ul class="site-footer__links" role="list">
+            <li><a href="index.html#tinh-nang">Tính Năng</a></li>
+            <li><a href="index.html#quy-trinh">Quy Trình</a></li>
+            <li><a href="index.html#loi-ich">Lợi Ích</a></li>
+            <li><a href="index.html#ecommerce">E-commerce</a></li>
+            <li><a href="blog.html">Blog</a></li>
+            <li><a href="index.html#lien-he">Liên Hệ</a></li>
+          </ul>
+        </div>
+
+        <div class="site-footer__col">
+          <h3 class="site-footer__heading">Liên Hệ</h3>
+          <ul class="site-footer__links" role="list">
+            <li>Khu đô thị The Manor Central Park, Phường Định Công, Hà Nội</li>
+            <li><a href="tel:+84929145555">+84 929 145 555</a></li>
+            <li><a href="mailto:info@agrichain.vn">info@agrichain.vn</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="site-footer__bottom">
+        <p class="site-footer__copyright">© 2026 Exabyte. Đã đăng ký bản quyền.</p>
+        <div class="site-footer__legal">
+          <a href="#chinh-sach-bao-mat">Chính sách bảo mật</a>
+          <a href="#dieu-khoan-dich-vu">Điều khoản dịch vụ</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/header.js?v=3" defer></script>
+  <script src="js/blog-chi-tiet.js?v=1" defer></script>
+</body>
+</html>

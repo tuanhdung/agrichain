@@ -1,0 +1,77 @@
+[
+  {
+    "slug": "blockchain-trong-truy-xuat-nguon-goc-nong-nghiep",
+    "category": "Công nghệ",
+    "date": "2026-03-20",
+    "readTime": "5 phút",
+    "title": "Blockchain trong Truy xuất nguồn gốc Nông nghiệp",
+    "author": "Nguyễn Văn A",
+    "excerpt": "Khám phá cách công nghệ Blockchain đang thay đổi cách chúng ta theo dõi hành trình của nông sản từ nông trại đến bàn ăn.",
+    "cover": "images/blog/post-1.jpg",
+    "tags": ["Công nghệ", "Agrichain", "NongNghiepSo"],
+    "body": [
+      { "type": "paragraph", "text": "Công nghệ blockchain đang tạo ra một cuộc cách mạng trong lĩnh vực nông nghiệp, đặc biệt là trong việc truy xuất nguồn gốc sản phẩm. Với tính chất phi tập trung và bất biến, blockchain cho phép ghi lại mọi bước trong chuỗi cung ứng một cách minh bạch và an toàn." },
+      { "type": "heading", "text": "Tại sao Blockchain lại quan trọng?" },
+      { "type": "paragraph", "text": "Trong hệ thống truyền thống, dữ liệu thường bị phân tán và dễ bị thay đổi. Blockchain giải quyết vấn đề này bằng cách tạo ra một \"sổ cái\" chung mà tất cả các bên liên quan đều có thể truy cập nhưng không ai có thể tự ý sửa đổi." },
+      {
+        "type": "list",
+        "items": [
+          { "strong": "Minh bạch:", "text": "Người tiêu dùng có thể quét mã QR để biết chính xác nông sản được trồng ở đâu, bởi ai và sử dụng loại phân bón nào." },
+          { "strong": "Bảo mật:", "text": "Dữ liệu được mã hóa và lưu trữ trên nhiều nút mạng, ngăn chặn các hành vi gian lận thông tin." },
+          { "strong": "Hiệu quả:", "text": "Giảm thiểu các thủ tục giấy tờ rườm rà và giúp việc thu hồi sản phẩm lỗi trở nên nhanh chóng hơn." }
+        ]
+      },
+      { "type": "paragraph", "text": "Agrichain tự hào là đơn vị tiên phong tích hợp công nghệ này vào nền tảng của mình, giúp nâng cao giá trị nông sản Việt trên thị trường quốc tế." }
+    ]
+  },
+  {
+    "slug": "ung-dung-ai-de-toi-uu-nang-suat-cay-trong",
+    "category": "Kỹ thuật",
+    "date": "2026-03-18",
+    "readTime": "4 phút",
+    "title": "Ứng dụng AI để tối ưu năng suất cây trồng",
+    "author": "Trần Thị B",
+    "excerpt": "Trí tuệ nhân tạo (AI) giúp nhà nông dự báo rủi ro thiên tai và tối ưu hóa lượng phân bón, nước tưới cần thiết.",
+    "cover": "images/blog/post-2.jpg",
+    "tags": ["Kỹ thuật", "AI", "Agrichain"],
+    "body": [
+      { "type": "paragraph", "text": "Trí tuệ nhân tạo (AI) đang dần trở thành trợ thủ đắc lực cho người nông dân hiện đại. Bằng cách phân tích dữ liệu thời tiết, đất đai và lịch sử mùa vụ, AI có thể đưa ra những khuyến nghị canh tác chính xác đến từng thửa ruộng." },
+      { "type": "heading", "text": "AI hỗ trợ nhà nông như thế nào?" },
+      { "type": "paragraph", "text": "Thay vì canh tác theo kinh nghiệm truyền thống, nông hộ giờ đây có thể dựa vào các mô hình dự báo để đưa ra quyết định kịp thời, giảm thiểu rủi ro và lãng phí tài nguyên." },
+      {
+        "type": "list",
+        "items": [
+          { "strong": "Dự báo thời tiết:", "text": "Cảnh báo sớm nguy cơ hạn hán, ngập úng hoặc sương muối để nông hộ chủ động ứng phó." },
+          { "strong": "Tối ưu phân bón:", "text": "Tính toán lượng phân bón, nước tưới phù hợp với từng giai đoạn sinh trưởng của cây trồng." },
+          { "strong": "Phát hiện sâu bệnh:", "text": "Phân tích hình ảnh để nhận diện sớm dấu hiệu sâu bệnh, hạn chế lây lan trên diện rộng." }
+        ]
+      },
+      { "type": "paragraph", "text": "Với AgriChain, dữ liệu AI được tích hợp trực tiếp vào nhật ký mùa vụ, giúp nông hộ theo dõi và điều chỉnh kế hoạch canh tác ngay trên ứng dụng." }
+    ]
+  },
+  {
+    "slug": "tuong-lai-cua-nong-nghiep-ben-vung-esg",
+    "category": "ESG",
+    "date": "2026-03-15",
+    "readTime": "6 phút",
+    "title": "Tương lai của Nông nghiệp bền vững (ESG)",
+    "author": "Lê Văn C",
+    "excerpt": "ESG đang trở thành tiêu chuẩn vàng cho nông sản xuất khẩu. Hãy cùng tìm hiểu cách AgriChain hỗ trợ doanh nghiệp đạt chuẩn quốc tế.",
+    "cover": "images/blog/post-3.jpg",
+    "tags": ["ESG", "Agrichain", "PhatTrienBenVung"],
+    "body": [
+      { "type": "paragraph", "text": "ESG (Environmental, Social, Governance) không còn là khái niệm xa lạ trong nông nghiệp hiện đại. Các thị trường xuất khẩu lớn như EU, Mỹ, Nhật Bản ngày càng siết chặt yêu cầu về nguồn gốc và tính bền vững của nông sản nhập khẩu." },
+      { "type": "heading", "text": "Ba trụ cột của ESG trong nông nghiệp" },
+      { "type": "paragraph", "text": "Một chuỗi cung ứng nông sản đạt chuẩn ESG cần đáp ứng đồng thời các yếu tố về môi trường, xã hội và quản trị minh bạch — đây chính là nền tảng để xây dựng niềm tin với đối tác quốc tế." },
+      {
+        "type": "list",
+        "items": [
+          { "strong": "Môi trường:", "text": "Giảm phát thải, sử dụng tài nguyên nước và đất hợp lý, hạn chế hóa chất nông nghiệp." },
+          { "strong": "Xã hội:", "text": "Đảm bảo điều kiện lao động công bằng và sinh kế bền vững cho nông hộ." },
+          { "strong": "Quản trị:", "text": "Dữ liệu chuỗi cung ứng minh bạch, có thể kiểm chứng độc lập bởi bên thứ ba." }
+        ]
+      },
+      { "type": "paragraph", "text": "AgriChain giúp doanh nghiệp số hoá toàn bộ hồ sơ ESG ngay từ khâu canh tác, sẵn sàng đáp ứng các bộ tiêu chuẩn truy xuất nguồn gốc khắt khe nhất của thị trường xuất khẩu." }
+    ]
+  }
+]

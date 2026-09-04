@@ -15,6 +15,12 @@ data/
   provinces.json         # 34 tỉnh/thành sau sáp nhập 2025 — {id, name}, xem mục "Dữ liệu hành
                           # chính" bên dưới để biết nguồn và cách làm mới
   wards/{provinceCode}.json  # Phường/xã của từng tỉnh, 1 file/tỉnh — {id, name, provinceId}
+  blog-posts.json        # 3 bài viết Blog tĩnh (hard-code, chưa có backend quản lý nội dung) —
+                          # {slug, category, date, readTime, title, author, excerpt, cover, tags[],
+                          # body[]}. body[] là mảng khối nội dung {type: 'paragraph'|'heading'|'list', ...}
+                          # để render tuần tự. Nạp qua fetch() bởi CẢ blog.html (danh sách) lẫn
+                          # blog-chi-tiet.html (chi tiết, lọc theo slug) — 1 nguồn dữ liệu duy nhất,
+                          # tránh lệch nội dung giữa 2 trang, cùng cơ chế fetch() như provinces.json.
 css/
   tokens.css             # Biến CSS gốc: màu, khoảng cách, cỡ chữ, bo góc, đổ bóng
   base.css               # Reset + typography mặc định
@@ -63,6 +69,11 @@ js/
                           # Mở từ menu tài khoản ở topbar, không phải mục sidebar)
   truy-xuat.js            # Logic riêng cho truy-xuat.html (trang truy xuất công khai — KHÔNG nạp
                           # js/app-shell.js, trang này không cần đăng nhập)
+  blog.js                 # Logic riêng cho blog.html (fetch() data/blog-posts.json rồi dựng từng
+                          # .post-card vào lưới — trang công khai, không nạp app-shell.js)
+  blog-chi-tiet.js        # Logic riêng cho blog-chi-tiet.html (đọc ?slug= trên URL, fetch() CÙNG
+                          # data/blog-posts.json với blog.js để tìm đúng bài rồi dựng nội dung —
+                          # xem mục "Blog" bên dưới)
   thuong-mai-tong-quan.js  # Logic riêng cho thuong-mai-tong-quan.html (khởi tạo/chỉnh sửa hồ sơ
                            # cửa hàng Ecommerce — collection "shops", 1 bản ghi/Đơn vị, khoá bằng
                            # ownerId = session.id hiện tại)
@@ -150,9 +161,20 @@ truy-xuat.html            # Trang truy xuất nguồn gốc CÔNG KHAI (không c
                           # không phải khu vực quản trị.
 blog.html                 # Trang Blog CÔNG KHAI (không cần đăng nhập, không dùng app-shell) — dùng
                           # lại .site-header/.site-footer như index.html (mục "Blog" ở menu gắn
-                          # .site-header__link--active). Danh sách bài viết hiện hard-code tĩnh
-                          # (component .post-card, xem mục riêng bên dưới), chưa có trang chi tiết
-                          # 1 bài viết lẫn backend — mở từ link "Blog" ở header/footer mọi trang.
+                          # .site-header__link--active). Danh sách bài viết nạp qua fetch()
+                          # data/blog-posts.json rồi dựng bằng js/blog.js (component .post-card,
+                          # xem mục riêng bên dưới) — mở từ link "Blog" ở header/footer mọi trang.
+blog-chi-tiet.html        # Trang chi tiết 1 bài viết Blog CÔNG KHAI, mở từ tiêu đề/"Đọc tiếp" của
+                          # 1 .post-card ở blog.html — đọc slug qua query string ?slug=... (xem quy
+                          # ước "trang chi tiết dùng query string" ở trên; dùng `slug` thay vì `ma`
+                          # vì bài viết không có trường "mã" nghiệp vụ). fetch() CÙNG
+                          # data/blog-posts.json với blog.js (js/blog-chi-tiet.js), không tìm thấy
+                          # thì hiện `.empty-card` tự định nghĩa riêng trong trang (không phải
+                          # `.empty-state` — component đó ở app-shell.css, trang công khai không
+                          # nạp, giống cách truy-xuat.html đã làm) + nút quay lại blog.html. Nút chia
+                          # sẻ Facebook/Twitter (link share thật, mở tab mới) và "sao chép liên kết"
+                          # (`navigator.clipboard`, đổi tạm icon thành icon-check-circle 1.5s làm
+                          # phản hồi — trang không nạp app-shell.js nên không có AgriChain.toast()).
 ```
 
 Khi thêm trang mới: tạo file `.html` ở gốc (hoặc thư mục con theo tính năng),
@@ -357,9 +379,10 @@ kiểm tra (đã ghi rõ trong comment đầu mỗi file). Vài điểm cần nh
 - `.post-card` — thẻ bài viết Blog, dùng ở `blog.html`. Gồm `.post-card__media` (ảnh bìa
   `object-fit: cover` + `.post-card__category` là `.badge--solid` đè góc trên trái),
   `.post-card__body` (`.post-card__meta` ngày+thời gian đọc, `.post-card__title` cắt tối
-  đa 2 dòng, `.post-card__excerpt` cắt tối đa 3 dòng bằng `-webkit-line-clamp`), và
-  `.post-card__footer` (`.post-card__author` + `.post-card__link` "Đọc tiếp", icon mũi tên
-  dịch phải khi hover).
+  đa 2 dòng — chữ bọc trong `<a>` trỏ tới `blog-chi-tiet.html?slug=...`, đổi màu khi hover —
+  `.post-card__excerpt` cắt tối đa 3 dòng bằng `-webkit-line-clamp`), và `.post-card__footer`
+  (`.post-card__author` + `.post-card__link` "Đọc tiếp" cùng trỏ tới trang chi tiết, icon mũi
+  tên dịch phải khi hover).
 - Form: `.field` (bọc label + input + lỗi), `.label`, `.input`, `.textarea`, `.select`
   (dùng chung style, trạng thái `:disabled` và `[aria-invalid="true"]`), `.field__error`,
   `.checkbox`/`.checkbox__input`/`.checkbox__label`, `.radio`/`.radio__input`/`.radio__label`.
@@ -391,10 +414,11 @@ Trang chủ (`index.html`) hiện có Hero, Tính Năng, Quy Trình, Lợi Ích,
 Form Liên Hệ mới validate + hiện thông báo phía client, chưa gửi đi đâu thật. Chưa có:
 section E-commerce (mục tiêu của anchor `#ecommerce` trong menu header), tích hợp AI thật.
 
-Trang Blog (`blog.html`) đã có ở mức cơ bản: hero + danh sách 3 bài viết tĩnh (hard-code,
-component `.post-card`). Chưa có: trang chi tiết 1 bài viết (link "Đọc tiếp" tạm để `href="#"`),
-phân trang/tải thêm, tìm kiếm/lọc theo danh mục, backend quản lý nội dung thật, ảnh bìa thật
-(thư mục `images/blog/` mới chỉ có `.gitkeep`).
+Trang Blog (`blog.html` + `blog-chi-tiet.html`) đã có ở mức cơ bản: hero + danh sách 3 bài viết
++ trang chi tiết đọc nội dung đầy đủ (đoạn văn/tiêu đề phụ/danh sách), cả 2 trang cùng đọc từ
+`data/blog-posts.json`. Chưa có: phân trang/tải thêm, tìm kiếm/lọc theo danh mục, bình luận,
+backend quản lý nội dung thật (thêm/sửa/xoá bài viết), ảnh bìa thật (thư mục `images/blog/`
+mới chỉ có `.gitkeep`).
 
 Trang truy xuất nguồn gốc (`truy-xuat.html`) đã có ở mức cơ bản: xem 1 lô hàng qua mã QR
 (hoặc `?ma=...` trực tiếp), thấy trạng thái xác thực blockchain + thông tin nông trại/mùa

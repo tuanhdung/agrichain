@@ -132,109 +132,7 @@
     <!-- Danh sách bài viết -->
     <section class="blog-list">
       <div class="container">
-        <div class="grid grid--3">
-          <article class="post-card">
-            <div class="post-card__media">
-              <img class="post-card__cover" src="images/blog/post-1.jpg" alt="" loading="lazy" />
-              <span class="badge badge--solid post-card__category">Công nghệ</span>
-            </div>
-            <div class="post-card__body">
-              <div class="post-card__meta">
-                <span class="post-card__meta-item">
-                  <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-calendar"></use></svg>
-                  <time datetime="2026-03-20">2026-03-20</time>
-                </span>
-                <span class="post-card__meta-item">
-                  <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-clock"></use></svg>
-                  <span>5 phút</span>
-                </span>
-              </div>
-              <h3 class="post-card__title">Blockchain trong Truy xuất nguồn gốc Nông nghiệp</h3>
-              <p class="post-card__excerpt">
-                Khám phá cách công nghệ Blockchain đang thay đổi cách chúng ta theo dõi
-                hành trình của nông sản từ nông trại đến bàn ăn.
-              </p>
-            </div>
-            <div class="post-card__footer">
-              <span class="post-card__author">
-                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-user"></use></svg>
-                <span>Nguyễn Văn A</span>
-              </span>
-              <a class="post-card__link" href="#">
-                Đọc tiếp
-                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-arrow-right"></use></svg>
-              </a>
-            </div>
-          </article>
-
-          <article class="post-card">
-            <div class="post-card__media">
-              <img class="post-card__cover" src="images/blog/post-2.jpg" alt="" loading="lazy" />
-              <span class="badge badge--solid post-card__category">Kỹ thuật</span>
-            </div>
-            <div class="post-card__body">
-              <div class="post-card__meta">
-                <span class="post-card__meta-item">
-                  <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-calendar"></use></svg>
-                  <time datetime="2026-03-18">2026-03-18</time>
-                </span>
-                <span class="post-card__meta-item">
-                  <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-clock"></use></svg>
-                  <span>4 phút</span>
-                </span>
-              </div>
-              <h3 class="post-card__title">Ứng dụng AI để tối ưu năng suất cây trồng</h3>
-              <p class="post-card__excerpt">
-                Trí tuệ nhân tạo (AI) giúp nhà nông dự báo rủi ro thiên tai và tối ưu hóa
-                lượng phân bón, nước tưới cần thiết.
-              </p>
-            </div>
-            <div class="post-card__footer">
-              <span class="post-card__author">
-                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-user"></use></svg>
-                <span>Trần Thị B</span>
-              </span>
-              <a class="post-card__link" href="#">
-                Đọc tiếp
-                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-arrow-right"></use></svg>
-              </a>
-            </div>
-          </article>
-
-          <article class="post-card">
-            <div class="post-card__media">
-              <img class="post-card__cover" src="images/blog/post-3.jpg" alt="" loading="lazy" />
-              <span class="badge badge--solid post-card__category">ESG</span>
-            </div>
-            <div class="post-card__body">
-              <div class="post-card__meta">
-                <span class="post-card__meta-item">
-                  <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-calendar"></use></svg>
-                  <time datetime="2026-03-15">2026-03-15</time>
-                </span>
-                <span class="post-card__meta-item">
-                  <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-clock"></use></svg>
-                  <span>6 phút</span>
-                </span>
-              </div>
-              <h3 class="post-card__title">Tương lai của Nông nghiệp bền vững (ESG)</h3>
-              <p class="post-card__excerpt">
-                ESG đang trở thành tiêu chuẩn vàng cho nông sản xuất khẩu. Hãy cùng tìm
-                hiểu cách AgriChain hỗ trợ doanh nghiệp đạt chuẩn quốc tế.
-              </p>
-            </div>
-            <div class="post-card__footer">
-              <span class="post-card__author">
-                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-user"></use></svg>
-                <span>Lê Văn C</span>
-              </span>
-              <a class="post-card__link" href="#">
-                Đọc tiếp
-                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-arrow-right"></use></svg>
-              </a>
-            </div>
-          </article>
-        </div>
+        <div class="grid grid--3" data-post-grid></div>
       </div>
     </section>
   </main>
@@ -287,5 +185,6 @@
   </footer>
 
   <script src="js/header.js?v=3" defer></script>
+  <script src="js/blog.js?v=1" defer></script>
 </body>
 </html>
