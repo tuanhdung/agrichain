@@ -12,6 +12,7 @@
   'use strict';
 
   var store = global.AgriChain.store;
+  var api = global.AgriChain.api;
   var passwordProblems = global.AgriChain.passwordProblems;
 
   /* --- Tiện ích chung ------------------------------------------------------ */
@@ -84,20 +85,26 @@
     // Chỉ chấp nhận đường dẫn nội bộ dạng "ten-trang.html". Không cho URL tuyệt
     // đối hay "//..." — tránh biến tham số này thành chỗ chuyển hướng ra ngoài.
     if (target && /^[\w.-]+\.html(\?.*)?$/.test(target)) return target;
-    return 'nong-trai.html';
+    return 'index.html';
   }
 
-  /* --- Đăng nhập ------------------------------------------------------------ */
+  /* --- Đăng nhập (đã chuyển sang backend thật qua js/api.js) ----------------
+     Giữ nguyên "remember" trên giao diện dù API hiện chưa dùng tới (token
+     luôn lưu localStorage — xem ghi chú nợ kỹ thuật ở js/api.js) — bỏ tuỳ
+     chọn này đi sẽ là một thay đổi UX không cần thiết ở giai đoạn này. */
 
   function setupLogin() {
     var form = document.getElementById('login-form');
     if (!form) return;
 
-    // Đã đăng nhập rồi thì vào thẳng, khỏi bắt đăng nhập lại.
-    if (store.getSession()) {
+    // Đã đăng nhập rồi (còn access token) thì vào thẳng, khỏi bắt đăng nhập lại.
+    if (api.isLoggedIn()) {
       global.location.replace(redirectTarget());
       return;
     }
+
+    var submitButton = form.querySelector('button[type="submit"]');
+    var submitLabel = submitButton.textContent;
 
     form.addEventListener('submit', function (event) {
       event.preventDefault();
@@ -106,7 +113,6 @@
 
       var email = document.getElementById('login-email');
       var password = document.getElementById('login-password');
-      var remember = form.querySelector('input[name="remember"]').checked;
 
       var problems = [];
       if (!isEmail(email.value.trim())) {
@@ -122,16 +128,14 @@
         return;
       }
 
-      store.login(email.value.trim(), password.value).then(function (user) {
-        store.setSession({
-          id: user.id,
-          type: user.type,
-          fullName: user.fullName,
-          orgName: user.orgName,
-          email: user.email
-        }, remember);
+      submitButton.disabled = true;
+      submitButton.textContent = 'Đang đăng nhập...';
+
+      api.auth.login(email.value.trim(), password.value).then(function () {
         global.location.href = redirectTarget();
       }).catch(function (error) {
+        submitButton.disabled = false;
+        submitButton.textContent = submitLabel;
         showAlert(error.message);
         password.value = '';
         password.focus();

@@ -513,6 +513,45 @@
     </div>
   </section>
 
+  <!-- Spinner / Async state / Pagination -->
+  <section class="demo-section">
+    <div class="container">
+      <h2 class="demo-section__title">Đang tải / Lỗi / Phân trang</h2>
+      <p class="demo-section__desc">
+        Dùng ở các trang đã chuyển sang gọi backend thật (xem mục "Kết nối backend" trong
+        CLAUDE.md) — <code>.async-state</code> khác <code>.empty-state</code>: đây là trạng
+        thái đang chờ dữ liệu hoặc gọi API thất bại, không phải "đã tải xong nhưng rỗng".
+      </p>
+
+      <p style="margin-bottom: var(--space-3); color: var(--color-text-muted); font-size: var(--text-sm);">Spinner</p>
+      <div class="btn-row" style="align-items: center; margin-bottom: var(--space-8);">
+        <span class="spinner"></span>
+        <span class="spinner spinner--lg"></span>
+      </div>
+
+      <p style="margin-bottom: var(--space-3); color: var(--color-text-muted); font-size: var(--text-sm);">Async state — đang tải / lỗi</p>
+      <div class="grid grid--2" style="margin-bottom: var(--space-8);">
+        <div class="async-state">
+          <span class="spinner spinner--lg"></span>
+          <p class="async-state__title">Đang tải dữ liệu...</p>
+        </div>
+        <div class="async-state async-state--error">
+          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-x-circle"></use></svg>
+          <p class="async-state__title">Không tải được dữ liệu</p>
+          <p class="async-state__desc">Không kết nối được máy chủ. Kiểm tra backend đã chạy chưa.</p>
+          <button type="button" class="btn btn--outline btn--sm">Thử lại</button>
+        </div>
+      </div>
+
+      <p style="margin-bottom: var(--space-3); color: var(--color-text-muted); font-size: var(--text-sm);">Pagination</p>
+      <div class="pagination">
+        <button type="button" class="btn btn--outline btn--sm">‹ Trước</button>
+        <span class="pagination__info">Trang 2 / 5</span>
+        <button type="button" class="btn btn--outline btn--sm">Sau ›</button>
+      </div>
+    </div>
+  </section>
+
   <!-- Form -->
   <section class="demo-section">
     <div class="container">

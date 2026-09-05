@@ -1084,3 +1084,69 @@ a.post-card {
 .post-card:hover .post-card__link .icon {
   transform: translateX(4px);
 }
+
+/* --- Spinner ---------------------------------------------------------------
+   Vòng xoay CSS thuần, dùng cho trạng thái "đang tải" khi gọi API (xem
+   .async-state bên dưới) — không phụ thuộc thư viện ngoài. */
+.spinner {
+  display: inline-block;
+  width: var(--space-6);
+  height: var(--space-6);
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-full);
+  animation: spin 0.6s linear infinite;
+}
+.spinner--lg {
+  width: var(--space-10);
+  height: var(--space-10);
+  border-width: 4px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* --- Async state -------------------------------------------------------
+   Trạng thái "đang tải"/"lỗi" khi 1 khối dữ liệu nạp qua gọi API (khác
+   .empty-state — đó là "đã tải xong, danh sách rỗng"; đây là trạng thái
+   TRƯỚC/THAY vì có dữ liệu). Dùng ở các trang đã chuyển sang backend thật
+   (xem mục "Kết nối backend" trong CLAUDE.md), thay cho vòng lặp render
+   trực tiếp từ store.js vốn luôn có sẵn dữ liệu ngay lập tức. */
+.async-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-16) var(--space-6);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+.async-state--error {
+  color: var(--color-danger);
+}
+.async-state__title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-text);
+}
+.async-state__desc {
+  max-width: 420px;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* --- Phân trang --------------------------------------------------------
+   Dùng cho danh sách nạp qua API có { items, total, page, page_size } —
+   store.js không phân trang (luôn trả hết mảng) nên component này chỉ xuất
+   hiện ở các trang đã chuyển sang backend thật. */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+.pagination__info {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}

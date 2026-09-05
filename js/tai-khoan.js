@@ -1,24 +1,35 @@
 /* ==========================================================================
    AgriChain — Trang Quản lý Tài khoản (tai-khoan.html)
-   Danh sách người dùng trong Đơn vị + modal thêm người dùng + modal phân
-   quyền theo từng phân hệ. Dữ liệu lưu qua AgriChain.store (collection
-   "orgUsers", mock localStorage — xem ghi chú bảo mật ở handleUserSubmit()).
-   Nạp SAU js/store.js, js/app-shell.js và js/password-field.js (nút hiện/ẩn
-   + điều kiện mật khẩu dùng chung).
+   ĐÃ CHUYỂN SANG BACKEND THẬT (js/api.js) — không còn đọc/ghi qua
+   AgriChain.store/collection "orgUsers" nữa. Danh sách người dùng phân
+   trang + tìm kiếm qua GET /users; phân quyền theo VAI TRÒ (GET /roles,
+   GET /permissions, PATCH /roles/{id}) — xem mục "Kết nối backend" và mục
+   riêng về trang này trong CLAUDE.md, đặc biệt phần ghi chú "giả định cần
+   xác nhận lại với /docs backend thật" (khuôn dữ liệu permission/role chưa
+   được đặc tả chi tiết khi viết file này).
+   Nạp SAU js/api-config.js, js/api.js, js/app-shell.js và js/password-field.js.
    ========================================================================== */
 
 (function (global) {
   'use strict';
 
-  var store = global.AgriChain.store;
+  var api = global.AgriChain.api;
 
-  var MODULES = [
-    { key: 'farms',          label: 'Nông trại',   icon: 'icon-seedling' },
-    { key: 'certifications', label: 'Chứng nhận',  icon: 'icon-qr-code' },
-    { key: 'seasons',        label: 'Mùa vụ',      icon: 'icon-calendar' },
-    { key: 'supplies',       label: 'Vật tư',      icon: 'icon-box' },
-    { key: 'logs',           label: 'Nhật ký',     icon: 'icon-file-text' }
-  ];
+  var PAGE_SIZE = 10;
+  var SEARCH_DEBOUNCE_MS = 300;
+
+  // Thứ tự nhóm quyền hiển thị — trùng tên 5 phân hệ đã có trước khi chuyển
+  // sang backend. GIẢ ĐỊNH group_name backend trả về khớp đúng các chuỗi
+  // này (cần xác nhận lại với /docs) — nhóm nào backend trả về mà không có
+  // trong mảng này vẫn được hiển thị, chỉ xếp xuống cuối theo alphabet.
+  var GROUP_ORDER = ['Nông trại', 'Chứng nhận', 'Mùa vụ', 'Vật tư', 'Nhật ký'];
+  var GROUP_ICONS = {
+    'Nông trại': 'icon-seedling',
+    'Chứng nhận': 'icon-qr-code',
+    'Mùa vụ': 'icon-calendar',
+    'Vật tư': 'icon-box',
+    'Nhật ký': 'icon-file-text'
+  };
 
   var ACTIONS = [
     { key: 'view',   label: 'Xem' },
@@ -27,14 +38,21 @@
     { key: 'delete', label: 'Xoá' }
   ];
 
-  function defaultPermissions() {
-    var permissions = {};
-    MODULES.forEach(function (module) {
-      var actions = {};
-      ACTIONS.forEach(function (action) { actions[action.key] = false; });
-      permissions[module.key] = actions;
-    });
-    return permissions;
+  // GIẢ ĐỊNH: mã quyền (permission.code) có dạng "<nhóm>.<hành động>", hành
+  // động là hậu tố sau dấu "." cuối cùng — chấp nhận vài cách viết REST phổ
+  // biến khác (create/update/read/remove) phòng khi backend không dùng
+  // đúng 4 từ add/edit/view/delete đang có sẵn trên giao diện. Cần xác nhận
+  // lại với /docs backend thật.
+  var ACTION_ALIASES = {
+    view: 'view', read: 'view',
+    add: 'add', create: 'add',
+    edit: 'edit', update: 'edit',
+    delete: 'delete', remove: 'delete'
+  };
+
+  function actionFromCode(code) {
+    var suffix = String(code || '').split('.').pop().toLowerCase();
+    return ACTION_ALIASES[suffix] || null;
   }
 
   function el(tag, className, text) {
@@ -57,39 +75,85 @@
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   }
 
-  /* --- Danh sách người dùng -------------------------------------------------- */
+  function debounce(fn, wait) {
+    var timer = null;
+    return function () {
+      var args = arguments;
+      global.clearTimeout(timer);
+      timer = global.setTimeout(function () { fn.apply(null, args); }, wait);
+    };
+  }
 
+  // Ẩn nút nào người dùng hiện tại không có quyền — đánh dấu sẵn bằng
+  // data-requires-permission="<mã quyền>" trên nút trong HTML.
+  function applyPermissionGates() {
+    document.querySelectorAll('[data-requires-permission]').forEach(function (node) {
+      var code = node.getAttribute('data-requires-permission');
+      if (!api.hasPermission(code)) node.hidden = true;
+    });
+  }
+
+  /* ======================================================================
+     Danh sách người dùng
+     ====================================================================== */
+
+  var searchInput = document.querySelector('[data-user-search]');
+  var loadingNode = document.querySelector('[data-user-loading]');
+  var errorNode = document.querySelector('[data-user-error]');
+  var errorMessageNode = document.querySelector('[data-user-error-message]');
   var tablePanel = document.querySelector('[data-user-table-panel]');
   var tableBody = document.querySelector('[data-user-table-body]');
   var emptyNode = document.querySelector('[data-user-empty]');
+  var emptyTitleNode = document.querySelector('[data-user-empty-title]');
+  var emptyDescNode = document.querySelector('[data-user-empty-desc]');
+  var paginationNode = document.querySelector('[data-user-pagination]');
+  var pageInfoNode = document.querySelector('[data-user-page-info]');
+  var prevPageBtn = document.querySelector('[data-user-prev-page]');
+  var nextPageBtn = document.querySelector('[data-user-next-page]');
+
+  var listState = { page: 1, q: '', total: 0 };
+
+  function setListView(view) {
+    loadingNode.hidden = view !== 'loading';
+    errorNode.hidden = view !== 'error';
+    tablePanel.hidden = view !== 'data';
+    emptyNode.hidden = view !== 'empty';
+    paginationNode.hidden = view !== 'data';
+  }
 
   function userRow(user) {
     var tr = el('tr');
 
     var avatarCell = el('td');
-    avatarCell.appendChild(el('span', 'avatar avatar--sm', global.AgriChain.initials(user.fullName)));
+    avatarCell.appendChild(el('span', 'avatar avatar--sm', global.AgriChain.initials(user.full_name)));
     tr.appendChild(avatarCell);
 
     tr.appendChild(el('td', null, user.email));
-    tr.appendChild(el('td', 'table__name', user.fullName));
+    var nameCell = el('td', 'table__name', user.full_name);
+    if (user.is_active === false) {
+      nameCell.appendChild(el('span', 'badge badge--neutral', 'Đã vô hiệu hoá'));
+    }
+    tr.appendChild(nameCell);
 
     var actionsCell = el('td');
     var wrap = el('div', 'table__actions');
 
     var permButton = el('button', 'icon-btn icon-btn--info');
     permButton.type = 'button';
-    permButton.setAttribute('aria-label', 'Phân quyền cho ' + user.fullName);
+    permButton.setAttribute('aria-label', 'Phân quyền cho ' + user.full_name);
     permButton.setAttribute('data-tooltip', 'Phân quyền');
+    if (!api.hasPermission('roles.update')) permButton.hidden = true;
     permButton.appendChild(svgIcon('icon-shield-check'));
     permButton.addEventListener('click', function () { openPermissionModal(user); });
     wrap.appendChild(permButton);
 
     var delButton = el('button', 'icon-btn icon-btn--danger');
     delButton.type = 'button';
-    delButton.setAttribute('aria-label', 'Xoá ' + user.fullName);
-    delButton.setAttribute('data-tooltip', 'Xoá');
+    delButton.setAttribute('aria-label', 'Vô hiệu hoá ' + user.full_name);
+    delButton.setAttribute('data-tooltip', 'Vô hiệu hoá');
+    if (!api.hasPermission('users.delete')) delButton.hidden = true;
     delButton.appendChild(svgIcon('icon-trash'));
-    delButton.addEventListener('click', function () { deleteUser(user); });
+    delButton.addEventListener('click', function () { deactivateUser(user); });
     wrap.appendChild(delButton);
 
     actionsCell.appendChild(wrap);
@@ -98,31 +162,67 @@
     return tr;
   }
 
-  function render() {
-    var users = store.list('orgUsers');
+  function renderUsers(data) {
+    var users = data.items || [];
+    listState.total = data.total || 0;
 
     tableBody.textContent = '';
+
     if (!users.length) {
-      tablePanel.hidden = true;
-      emptyNode.hidden = false;
+      if (listState.q) {
+        emptyTitleNode.textContent = 'Không tìm thấy người dùng nào';
+        emptyDescNode.textContent = 'Thử lại với từ khoá khác.';
+      } else {
+        emptyTitleNode.textContent = 'Chưa có người dùng nào';
+        emptyDescNode.textContent = 'Thêm người dùng để cấp quyền truy cập vào từng phân hệ của Đơn vị bạn.';
+      }
+      setListView('empty');
       return;
     }
 
-    emptyNode.hidden = true;
-    tablePanel.hidden = false;
     users.forEach(function (user) {
       tableBody.appendChild(userRow(user));
     });
+    setListView('data');
+
+    var totalPages = Math.max(1, Math.ceil(listState.total / PAGE_SIZE));
+    pageInfoNode.textContent = 'Trang ' + listState.page + ' / ' + totalPages;
+    prevPageBtn.disabled = listState.page <= 1;
+    nextPageBtn.disabled = listState.page >= totalPages;
   }
 
-  function deleteUser(user) {
+  function loadUsers() {
+    setListView('loading');
+    api.users.list({
+      q: listState.q || undefined,
+      page: listState.page,
+      page_size: PAGE_SIZE
+    }).then(function (data) {
+      renderUsers(data);
+    }).catch(function (err) {
+      errorMessageNode.textContent = err.message;
+      setListView('error');
+    });
+  }
+
+  var handleSearchInput = debounce(function () {
+    listState.q = searchInput.value.trim();
+    listState.page = 1;
+    loadUsers();
+  }, SEARCH_DEBOUNCE_MS);
+
+  function deactivateUser(user) {
     global.AgriChain.confirm(
-      'Xoá người dùng "' + user.fullName + '" (' + user.email + ')? Hành động này không thể hoàn tác.'
+      'Vô hiệu hoá người dùng "' + user.full_name + '" (' + user.email + ')? ' +
+      'Người này sẽ không đăng nhập được nữa, nhưng dữ liệu vẫn được giữ lại.'
     ).then(function (confirmed) {
       if (!confirmed) return;
-      store.remove('orgUsers', user.id);
-      render();
-      global.AgriChain.toast('Đã xoá người dùng.');
+      api.users.deactivate(user.id).then(function () {
+        loadUsers();
+        global.AgriChain.toast('Đã vô hiệu hoá người dùng.');
+      }).catch(function (err) {
+        global.AgriChain.toast(err.message);
+      });
     });
   }
 
@@ -130,6 +230,8 @@
 
   var userModal = document.getElementById('user-modal');
   var userForm = document.getElementById('user-form');
+  var userSubmitButton = userForm.querySelector('button[type="submit"]');
+  var userSubmitLabel = userSubmitButton.textContent;
 
   function openUserModal() {
     userForm.reset();
@@ -156,7 +258,20 @@
     host.appendChild(error);
   }
 
-  function validateUser() {
+  // Ánh xạ tên field backend trả về trong lỗi (details.field, snake_case)
+  // sang đúng input trên form — GIẢ ĐỊNH tên field khớp key gửi lên
+  // (email/full_name/password), cần xác nhận lại với /docs backend thật.
+  function fieldNodeFor(fieldName) {
+    var map = {
+      email: 'user-email',
+      full_name: 'user-full-name',
+      password: 'user-password'
+    };
+    var id = map[fieldName];
+    return id ? document.getElementById(id) : null;
+  }
+
+  function validateUserClientSide() {
     clearErrors(userForm);
     var problems = [];
 
@@ -167,21 +282,11 @@
     if (!isEmail(email.value.trim())) {
       showError(email, 'Nhập email hợp lệ.');
       problems.push(email);
-    } else {
-      var duplicate = store.list('orgUsers').some(function (user) {
-        return user.email.toLowerCase() === email.value.trim().toLowerCase();
-      });
-      if (duplicate) {
-        showError(email, 'Email này đã có trong danh sách người dùng.');
-        problems.push(email);
-      }
     }
-
     if (!fullName.value.trim()) {
       showError(fullName, 'Nhập họ tên.');
       problems.push(fullName);
     }
-
     var missing = global.AgriChain.passwordProblems(password.value);
     if (missing.length) {
       showError(password, 'Mật khẩu còn thiếu: ' + missing.join(', ') + '.');
@@ -197,60 +302,128 @@
 
   function handleUserSubmit(event) {
     event.preventDefault();
-    if (!validateUser()) return;
+    if (!validateUserClientSide()) return;
 
     var data = new FormData(userForm);
-
-    // BẢO MẬT: đây là trang demo tĩnh, không có backend thật đứng sau. Mật
-    // khẩu CHỈ dùng để validate định dạng phía trình duyệt (đã xong ở
-    // validateUser() qua passwordProblems()) rồi bỏ luôn — KHÔNG lưu xuống
-    // localStorage dù ở dạng gì (kể cả "giả vờ" hash bằng chain.js, vì đó
-    // vẫn có thể đảo ngược/so khớp được, không phải hashing mật khẩu đúng
-    // nghĩa). Xác thực đăng nhập thật cho những người dùng này chờ backend
-    // thật đảm nhiệm sau này.
-    store.insert('orgUsers', {
+    var payload = {
       email: String(data.get('email')).trim(),
-      fullName: String(data.get('fullName')).trim(),
-      permissions: defaultPermissions()
-    });
+      full_name: String(data.get('fullName')).trim(),
+      password: String(data.get('password'))
+    };
 
-    closeUserModal();
-    render();
-    global.AgriChain.toast('Đã thêm người dùng.');
+    userSubmitButton.disabled = true;
+    userSubmitButton.textContent = 'Đang lưu...';
+
+    api.users.create(payload).then(function () {
+      closeUserModal();
+      listState.page = 1;
+      loadUsers();
+      global.AgriChain.toast('Đã thêm người dùng.');
+    }).catch(function (err) {
+      if (err.details && err.details.field) {
+        var field = fieldNodeFor(err.details.field);
+        if (field) {
+          showError(field, err.message);
+          field.focus();
+        } else {
+          global.AgriChain.toast(err.message);
+        }
+      } else {
+        global.AgriChain.toast(err.message);
+      }
+    }).then(function () {
+      userSubmitButton.disabled = false;
+      userSubmitButton.textContent = userSubmitLabel;
+    });
   }
 
-  /* --- Modal: Phân quyền ------------------------------------------------------ */
+  /* ======================================================================
+     Modal: Phân quyền (theo VAI TRÒ của người dùng — xem ghi chú đầu file)
+     ====================================================================== */
 
   var permissionModal = document.getElementById('permission-modal');
-  var permissionTableBody = document.querySelector('[data-permission-table-body]');
   var permissionAvatar = document.querySelector('[data-permission-avatar]');
   var permissionName = document.querySelector('[data-permission-name]');
   var permissionEmail = document.querySelector('[data-permission-email]');
+  var permissionRoleNotice = document.querySelector('[data-permission-role-notice]');
+  var permissionRoleName = document.querySelector('[data-permission-role-name]');
+  var permissionLoading = document.querySelector('[data-permission-loading]');
+  var permissionError = document.querySelector('[data-permission-error]');
+  var permissionErrorMessage = document.querySelector('[data-permission-error-message]');
+  var permissionTableWrap = document.querySelector('[data-permission-table-wrap]');
+  var permissionTableBody = document.querySelector('[data-permission-table-body]');
+  var savePermissionBtn = document.querySelector('[data-save-permission]');
 
-  var editingPermissionUserId = null;
+  var currentPermissionUser = null;
+  var currentRole = null;
+  // id của MỌI quyền đã render thành checkbox trong bảng — id quyền của vai
+  // trò hiện tại mà KHÔNG nằm trong tập này sẽ được giữ nguyên khi lưu (xem
+  // handlePermissionSave()), tránh vô tình xoá mất quyền nằm ngoài 5 phân
+  // hệ x 4 hành động đang hiển thị trên giao diện.
+  var managedPermissionIds = null;
 
-  function permissionRow(module) {
+  function setPermissionView(view) {
+    permissionLoading.hidden = view !== 'loading';
+    permissionError.hidden = view !== 'error';
+    permissionTableWrap.hidden = view !== 'data';
+    savePermissionBtn.hidden = view !== 'data' || !api.hasPermission('roles.update');
+  }
+
+  function groupPermissions(permissionList) {
+    var byGroup = {};
+    permissionList.forEach(function (perm) {
+      var group = perm.group_name || 'Khác';
+      if (!byGroup[group]) byGroup[group] = [];
+      byGroup[group].push(perm);
+    });
+
+    var names = Object.keys(byGroup);
+    var known = names.filter(function (name) { return GROUP_ORDER.indexOf(name) !== -1; })
+      .sort(function (a, b) { return GROUP_ORDER.indexOf(a) - GROUP_ORDER.indexOf(b); });
+    var unknown = names.filter(function (name) { return GROUP_ORDER.indexOf(name) === -1; }).sort();
+
+    return known.concat(unknown).map(function (name) {
+      return { name: name, icon: GROUP_ICONS[name] || 'icon-shield-check', permissions: byGroup[name] };
+    });
+  }
+
+  function permissionRow(group, grantedIds) {
     var tr = el('tr');
 
     var moduleCell = el('td');
     var moduleWrap = el('div', 'permission-table__module');
-    moduleWrap.appendChild(svgIcon(module.icon));
-    moduleWrap.appendChild(el('span', null, module.label));
+    moduleWrap.appendChild(svgIcon(group.icon));
+    moduleWrap.appendChild(el('span', null, group.name));
     moduleCell.appendChild(moduleWrap);
     tr.appendChild(moduleCell);
 
     ACTIONS.forEach(function (action) {
       var cell = el('td');
+      var permission = group.permissions.filter(function (p) {
+        return actionFromCode(p.code) === action.key;
+      })[0];
+
       var checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
       checkbox.className = 'checkbox__input';
-      checkbox.setAttribute('data-module', module.key);
+      checkbox.setAttribute('data-group', group.name);
       checkbox.setAttribute('data-action', action.key);
       checkbox.setAttribute('aria-label',
-        'Quyền ' + action.label.toLowerCase() + ' phân hệ ' + module.label);
-      checkbox.addEventListener('change', function () {
-        syncViewPermission(module.key, action.key, checkbox.checked);
-      });
+        'Quyền ' + action.label.toLowerCase() + ' phân hệ ' + group.name);
+
+      if (permission) {
+        checkbox.dataset.permissionId = permission.id;
+        managedPermissionIds[permission.id] = true;
+        checkbox.checked = grantedIds.indexOf(permission.id) !== -1;
+        checkbox.addEventListener('change', function () {
+          syncViewPermission(group.name, action.key, checkbox.checked);
+        });
+      } else {
+        // Không có quyền tương ứng cho ô này — vô hiệu hoá thay vì cho bấm
+        // vào một checkbox không có gì để lưu.
+        checkbox.disabled = true;
+      }
+
       cell.appendChild(checkbox);
       tr.appendChild(cell);
     });
@@ -258,74 +431,126 @@
     return tr;
   }
 
-  function permissionCheckbox(moduleKey, actionKey) {
+  function permissionCheckbox(groupName, actionKey) {
     return permissionTableBody.querySelector(
-      'input[data-module="' + moduleKey + '"][data-action="' + actionKey + '"]');
+      'input[data-group="' + groupName + '"][data-action="' + actionKey + '"]');
   }
 
-  // Thêm/Sửa/Xoá không có nghĩa nếu không xem được, nên 2 chiều đều khoá
-  // theo Xem: tick Thêm/Sửa/Xoá thì tự tick luôn Xem; bỏ Xem thì Thêm/Sửa/
-  // Xoá cũng tự bỏ theo — khỏi bao giờ có tổ hợp "sửa được nhưng không xem
-  // được" vô lý.
-  function syncViewPermission(moduleKey, actionKey, checked) {
+  // Cùng quy tắc trước khi chuyển API: Thêm/Sửa/Xoá không có nghĩa nếu
+  // không xem được, nên 2 chiều đều khoá theo Xem.
+  function syncViewPermission(groupName, actionKey, checked) {
     if (actionKey === 'view') {
       if (checked) return;
       ['add', 'edit', 'delete'].forEach(function (otherKey) {
-        var other = permissionCheckbox(moduleKey, otherKey);
-        if (other) other.checked = false;
+        var other = permissionCheckbox(groupName, otherKey);
+        if (other && !other.disabled) other.checked = false;
       });
     } else if (checked) {
-      var view = permissionCheckbox(moduleKey, 'view');
-      if (view) view.checked = true;
+      var view = permissionCheckbox(groupName, 'view');
+      if (view && !view.disabled) view.checked = true;
     }
   }
 
+  function loadPermissionMatrix(user) {
+    setPermissionView('loading');
+    managedPermissionIds = {};
+
+    Promise.all([api.permissions.list(), api.roles.list()]).then(function (results) {
+      var permissionList = results[0].items || results[0];
+      var roleList = results[1].items || results[1];
+
+      currentRole = roleList.filter(function (role) { return role.id === user.role_id; })[0] || null;
+
+      if (!currentRole) {
+        permissionErrorMessage.textContent = 'Người dùng này chưa được gán vai trò, hoặc vai trò không còn tồn tại.';
+        setPermissionView('error');
+        return;
+      }
+
+      permissionRoleName.textContent = currentRole.name;
+      var grantedIds = (currentRole.permissions || []).map(function (p) {
+        return typeof p === 'string' ? p : p.id;
+      });
+
+      permissionTableBody.textContent = '';
+      groupPermissions(permissionList).forEach(function (group) {
+        permissionTableBody.appendChild(permissionRow(group, grantedIds));
+      });
+
+      setPermissionView('data');
+    }).catch(function (err) {
+      permissionErrorMessage.textContent = err.message;
+      setPermissionView('error');
+    });
+  }
+
   function openPermissionModal(user) {
-    editingPermissionUserId = user.id;
+    currentPermissionUser = user;
+    currentRole = null;
 
-    permissionAvatar.textContent = global.AgriChain.initials(user.fullName);
-    permissionName.textContent = user.fullName;
+    permissionAvatar.textContent = global.AgriChain.initials(user.full_name);
+    permissionName.textContent = user.full_name;
     permissionEmail.textContent = user.email;
-
-    permissionTableBody.textContent = '';
-    MODULES.forEach(function (module) {
-      permissionTableBody.appendChild(permissionRow(module));
-    });
-
-    var permissions = user.permissions || defaultPermissions();
-    permissionTableBody.querySelectorAll('input[type="checkbox"]').forEach(function (checkbox) {
-      var moduleKey = checkbox.getAttribute('data-module');
-      var actionKey = checkbox.getAttribute('data-action');
-      checkbox.checked = Boolean(permissions[moduleKey] && permissions[moduleKey][actionKey]);
-    });
+    permissionRoleName.textContent = '—';
 
     permissionModal.showModal();
+    loadPermissionMatrix(user);
   }
 
   function closePermissionModal() {
     permissionModal.close();
-    editingPermissionUserId = null;
+    currentPermissionUser = null;
+    currentRole = null;
+    managedPermissionIds = null;
   }
 
   function handlePermissionSave() {
-    if (!editingPermissionUserId) return;
+    if (!currentRole) return;
 
-    var permissions = defaultPermissions();
-    permissionTableBody.querySelectorAll('input[type="checkbox"]').forEach(function (checkbox) {
-      var moduleKey = checkbox.getAttribute('data-module');
-      var actionKey = checkbox.getAttribute('data-action');
-      if (permissions[moduleKey]) permissions[moduleKey][actionKey] = checkbox.checked;
+    var checkedIds = [];
+    permissionTableBody.querySelectorAll('input[type="checkbox"]:not(:disabled)').forEach(function (checkbox) {
+      if (checkbox.checked) checkedIds.push(checkbox.dataset.permissionId);
     });
 
-    store.update('orgUsers', editingPermissionUserId, { permissions: permissions });
-    closePermissionModal();
-    global.AgriChain.toast('Đã lưu phân quyền.');
+    // Giữ nguyên các quyền của vai trò này nằm NGOÀI 5 phân hệ x 4 hành
+    // động đang hiển thị (nhóm lạ/hành động lạ) — không được vô tình xoá
+    // mất khi lưu, xem ghi chú ở khai báo managedPermissionIds phía trên.
+    var keptIds = (currentRole.permissions || [])
+      .map(function (p) { return typeof p === 'string' ? p : p.id; })
+      .filter(function (id) { return !managedPermissionIds[id]; });
+
+    var finalIds = keptIds.concat(checkedIds);
+
+    savePermissionBtn.disabled = true;
+    api.roles.update(currentRole.id, { permission_ids: finalIds }).then(function () {
+      closePermissionModal();
+      global.AgriChain.toast('Đã lưu phân quyền.');
+    }).catch(function (err) {
+      global.AgriChain.toast(err.message);
+    }).then(function () {
+      savePermissionBtn.disabled = false;
+    });
   }
 
   /* --- Khởi động -------------------------------------------------------------- */
 
   document.addEventListener('DOMContentLoaded', function () {
-    render();
+    applyPermissionGates();
+    loadUsers();
+
+    searchInput.addEventListener('input', handleSearchInput);
+
+    prevPageBtn.addEventListener('click', function () {
+      if (listState.page <= 1) return;
+      listState.page -= 1;
+      loadUsers();
+    });
+    nextPageBtn.addEventListener('click', function () {
+      listState.page += 1;
+      loadUsers();
+    });
+
+    document.querySelector('[data-user-retry]').addEventListener('click', loadUsers);
 
     document.querySelectorAll('[data-open-user-form]').forEach(function (button) {
       button.addEventListener('click', openUserModal);
@@ -338,6 +563,9 @@
     document.querySelectorAll('[data-close-permission]').forEach(function (button) {
       button.addEventListener('click', closePermissionModal);
     });
-    document.querySelector('[data-save-permission]').addEventListener('click', handlePermissionSave);
+    document.querySelector('[data-permission-retry]').addEventListener('click', function () {
+      if (currentPermissionUser) loadPermissionMatrix(currentPermissionUser);
+    });
+    savePermissionBtn.addEventListener('click', handlePermissionSave);
   });
 })(window);

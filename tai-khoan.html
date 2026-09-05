@@ -285,10 +285,29 @@
           <h1 class="page-header__title">Quản lý Người dùng</h1>
           <p class="page-header__meta">Quản lý người dùng trong Đơn vị của bạn.</p>
         </div>
-        <button type="button" class="btn btn--primary btn--lg" data-open-user-form>
+        <button type="button" class="btn btn--primary btn--lg" data-open-user-form data-requires-permission="users.create">
           <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
           Thêm người dùng
         </button>
+      </div>
+
+      <div class="search-field" style="max-width: 360px; margin-bottom: var(--space-5);">
+        <svg class="icon search-field__icon"><use href="icons/sprite.svg#icon-search"></use></svg>
+        <input class="input" type="search" placeholder="Tìm theo tên hoặc email..." data-user-search />
+      </div>
+
+      <!-- Đang tải -->
+      <div class="async-state" data-user-loading hidden>
+        <span class="spinner spinner--lg"></span>
+        <p class="async-state__title">Đang tải danh sách người dùng...</p>
+      </div>
+
+      <!-- Gọi API lỗi -->
+      <div class="async-state async-state--error" data-user-error hidden>
+        <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-x-circle"></use></svg>
+        <p class="async-state__title">Không tải được danh sách người dùng</p>
+        <p class="async-state__desc" data-user-error-message></p>
+        <button type="button" class="btn btn--outline btn--sm" data-user-retry>Thử lại</button>
       </div>
 
       <!-- Bảng -->
@@ -311,14 +330,21 @@
         </div>
       </div>
 
+      <!-- Phân trang -->
+      <div class="pagination" data-user-pagination hidden>
+        <button type="button" class="btn btn--outline btn--sm" data-user-prev-page>‹ Trước</button>
+        <span class="pagination__info" data-user-page-info></span>
+        <button type="button" class="btn btn--outline btn--sm" data-user-next-page>Sau ›</button>
+      </div>
+
       <!-- Trạng thái rỗng -->
-      <div class="empty-state" data-user-empty>
+      <div class="empty-state" data-user-empty hidden>
         <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-user"></use></svg>
-        <p class="empty-state__title">Chưa có người dùng nào</p>
-        <p class="empty-state__desc">
+        <p class="empty-state__title" data-user-empty-title>Chưa có người dùng nào</p>
+        <p class="empty-state__desc" data-user-empty-desc>
           Thêm người dùng để cấp quyền truy cập vào từng phân hệ của Đơn vị bạn.
         </p>
-        <button type="button" class="btn btn--primary" data-open-user-form>Thêm người dùng</button>
+        <button type="button" class="btn btn--primary" data-open-user-form data-requires-permission="users.create">Thêm người dùng</button>
       </div>
 
     </div>
@@ -376,9 +402,9 @@
         </ul>
 
         <p class="field__hint">
-          Đây là trang demo tĩnh — mật khẩu chỉ dùng để kiểm tra định dạng phía trình
-          duyệt, KHÔNG được lưu lại (kể cả dưới dạng mã hoá). Xác thực thật sẽ do backend
-          đảm nhiệm sau này.
+          Mật khẩu này được gửi thẳng tới máy chủ để tạo tài khoản đăng nhập thật cho
+          người dùng — khác với các trang chưa chuyển sang backend, ở đây không còn là
+          dữ liệu demo.
         </p>
       </div>
 
@@ -406,7 +432,26 @@
     </div>
 
     <div class="modal__body">
-      <div class="table-wrap">
+      <div class="notice notice--info" data-permission-role-notice style="margin-bottom: var(--space-4);">
+        <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+        <span>Vai trò: <strong data-permission-role-name>—</strong> — thay đổi bên dưới áp dụng cho
+          MỌI người dùng đang có cùng vai trò này, không chỉ riêng người này.</span>
+      </div>
+
+      <!-- Đang tải quyền/vai trò -->
+      <div class="async-state" data-permission-loading hidden>
+        <span class="spinner spinner--lg"></span>
+        <p class="async-state__title">Đang tải danh sách quyền...</p>
+      </div>
+
+      <!-- Gọi API lỗi -->
+      <div class="async-state async-state--error" data-permission-error hidden>
+        <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-x-circle"></use></svg>
+        <p class="async-state__title" data-permission-error-message>Không tải được danh sách quyền</p>
+        <button type="button" class="btn btn--outline btn--sm" data-permission-retry>Thử lại</button>
+      </div>
+
+      <div class="table-wrap" data-permission-table-wrap hidden>
         <table class="table permission-table">
           <thead>
             <tr>
@@ -436,7 +481,7 @@
 
     <div class="modal__footer">
       <button type="button" class="btn btn--secondary" data-close-permission>Huỷ</button>
-      <button type="button" class="btn btn--primary" data-save-permission>Lưu</button>
+      <button type="button" class="btn btn--primary" data-save-permission data-requires-permission="roles.update">Lưu</button>
     </div>
   </dialog>
 

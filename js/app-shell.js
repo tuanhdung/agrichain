@@ -8,6 +8,7 @@
   'use strict';
 
   var store = global.AgriChain && global.AgriChain.store;
+  var api = global.AgriChain && global.AgriChain.api;
 
   /* --- Chữ viết tắt cho avatar: "tổ chức tess" -> "TT" --------------------- */
   function initials(text) {
@@ -20,8 +21,24 @@
 
   /* --- Phiên đăng nhập -----------------------------------------------------
      Chưa đăng nhập thì đá về trang đăng nhập, kèm ?redirect= để quay lại đúng
-     trang đang muốn vào sau khi đăng nhập xong. */
+     trang đang muốn vào sau khi đăng nhập xong.
+
+     Ưu tiên phiên API (js/api.js) nếu có — trang đã chuyển sang backend thật
+     (hiện chỉ tai-khoan.html) đăng nhập qua đó, không còn ghi phiên vào
+     store.js nữa. Trang nào chưa chuyển vẫn rơi xuống nhánh store.js như cũ.
+     Đây là cầu nối tạm thời cho tới khi mọi trang cùng chuyển sang API — xem
+     mục "Kết nối backend" trong CLAUDE.md. */
   function requireSession() {
+    var apiUser = api && api.isLoggedIn() && api.getUser();
+    if (apiUser) {
+      return {
+        fullName: apiUser.full_name || apiUser.fullName || apiUser.email,
+        orgName: apiUser.org_name || apiUser.orgName || '',
+        email: apiUser.email,
+        type: 'org'
+      };
+    }
+
     var session = store && store.getSession();
     if (session) return session;
 
@@ -49,6 +66,12 @@
   function setupLogout() {
     document.querySelectorAll('[data-logout]').forEach(function (button) {
       button.addEventListener('click', function () {
+        if (api && api.isLoggedIn()) {
+          api.auth.logout().then(function () {
+            global.location.href = 'dang-nhap.html';
+          });
+          return;
+        }
         store.clearSession();
         global.location.href = 'dang-nhap.html';
       });
