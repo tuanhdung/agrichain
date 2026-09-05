@@ -715,9 +715,9 @@
   }
 
   /* --- Xem chi tiết mùa vụ ---------------------------------------------------
-     Modal riêng, có 4 tab: "Thông tin" hiện dữ liệu thật, 3 tab còn lại
-     (Timeline mùa vụ/Lô hàng/Quy trình mùa vụ) chỉ khung + trạng thái rỗng —
-     chưa có dữ liệu nguồn (sự kiện, lô hàng, quy trình canh tác) để hiển thị. */
+     Modal riêng, có 4 tab: "Thông tin", "Timeline mùa vụ" (nhật ký),
+     "Lô hàng" và "Quy trình mùa vụ" (checklist áp dụng từ workflowTemplates
+     — xem mục "Quy trình mùa vụ" phía dưới) đều hiện dữ liệu thật. */
   var seasonViewModal = document.getElementById('season-view-modal');
 
   // Mùa vụ đang mở ở modal xem chi tiết — nhật ký (seasonLogs) gắn theo
@@ -770,6 +770,7 @@
 
     renderSeasonLogs();
     renderBatches();
+    renderSeasonProcess();
     seasonViewModal.showModal();
   }
 
@@ -1146,6 +1147,10 @@
   function closeSeasonLogModal() {
     seasonLogModal.close();
     editingLogId = null;
+    // Nhật ký có thể đã được mở để hoàn tất 1 bước quy trình (xem
+    // startStepCompletion()) — huỷ modal thì cũng huỷ luôn ý định đó, khỏi
+    // lỡ hoàn thành nhầm bước ở lần thêm nhật ký kế tiếp (không liên quan).
+    completingStepId = null;
   }
 
   function validateSeasonLog() {
@@ -1187,16 +1192,26 @@
       images: logImages.slice()
     };
 
+    // Chụp lại TRƯỚC khi đóng modal (closeSeasonLogModal() xoá biến này) —
+    // chỉ hoàn thành bước quy trình khi đây là nhật ký MỚI, không áp dụng
+    // lúc sửa nhật ký có sẵn.
+    var stepToComplete = !editingLogId ? completingStepId : null;
+    var savedLog;
+
     if (editingLogId) {
       store.update('seasonLogs', editingLogId, record);
       global.AgriChain.toast('Đã lưu thay đổi.');
     } else {
-      store.insert('seasonLogs', record);
+      savedLog = store.insert('seasonLogs', record);
       global.AgriChain.toast('Đã thêm nhật ký.');
     }
 
-    closeSeasonLogModal();
+    closeSeasonLogModal(); // đóng trước khi completeWorkflowStep() có thể mở tiếp modal lô hàng
     renderSeasonLogs();
+
+    if (stepToComplete) {
+      completeWorkflowStep(stepToComplete, savedLog.id);
+    }
   }
 
   function deleteSeasonLog(log) {
@@ -1467,6 +1482,10 @@
   function closeBatchModal() {
     batchModal.close();
     editingBatchId = null;
+    // Modal có thể đã được mở tự động để hoàn tất 1 bước quy trình yêu cầu
+    // QR (xem completeWorkflowStep()) — huỷ modal thì cũng huỷ luôn việc
+    // gắn lô hàng sắp tạo vào bước đó.
+    pendingQrStepId = null;
   }
 
   function validateBatch() {
@@ -1540,16 +1559,28 @@
       note: String(data.get('note') || '').trim()
     };
 
+    // Chụp lại TRƯỚC khi đóng modal (closeBatchModal() xoá biến này) — lô
+    // hàng vừa tạo có thể cần gắn ngay vào 1 bước quy trình yêu cầu QR (xem
+    // completeWorkflowStep()), chỉ áp dụng khi TẠO MỚI, không áp dụng lúc
+    // sửa lô hàng có sẵn.
+    var stepForQr = !editingBatchId ? pendingQrStepId : null;
+    var savedBatch;
+
     if (editingBatchId) {
       store.update('batches', editingBatchId, record);
       global.AgriChain.toast('Đã lưu thay đổi.');
     } else {
-      store.insert('batches', record);
+      savedBatch = store.insert('batches', record);
       global.AgriChain.toast('Đã thêm lô hàng.');
     }
 
     closeBatchModal();
     renderBatches();
+
+    if (stepForQr) {
+      linkBatchToStep(stepForQr, savedBatch.id);
+      openQrModal(savedBatch);
+    }
   }
 
   function deleteBatch(batch) {
@@ -1561,6 +1592,467 @@
       renderBatches();
       global.AgriChain.toast('Đã xoá lô hàng.');
     });
+  }
+
+  /* ======================================================================
+     Quy trình mùa vụ (tab "Quy trình mùa vụ" trong modal xem chi tiết mùa vụ)
+     ======================================================================
+     Áp dụng 1 Mẫu Quy Trình (workflowTemplates, xem js/mau-quy-trinh.js) cho
+     1 mùa vụ cụ thể — KHÔNG tham chiếu ngược tới mẫu gốc mà CHỤP (snapshot)
+     nguyên bản steps[] vào season.workflowSteps tại thời điểm áp dụng, mỗi
+     bước được gắn thêm id riêng + trạng thái thực hiện (status/completedAt/
+     logId/batchId). Nhờ vậy mẫu gốc có bị sửa/xoá sau đó cũng không ảnh
+     hưởng tới checklist đã áp dụng cho mùa vụ này, và "Tuỳ biến bước quy
+     trình" có thể sửa thoải mái riêng cho mùa vụ mà không đụng tới mẫu.
+
+     season.workflowSteps === null/undefined → CHƯA áp dụng quy trình nào.
+     season.workflowSteps === [] hoặc có phần tử → ĐÃ áp dụng (kể cả rỗng,
+     trường hợp "Tạo quy trình rỗng" rồi chưa kịp thêm bước nào). */
+
+  var processEmptyNode = document.querySelector('[data-process-empty]');
+  var processDetailNode = document.querySelector('[data-process-detail]');
+  var processTemplateSelect = document.querySelector('[data-process-template-select]');
+  var processApplyBtn = document.querySelector('[data-process-apply-btn]');
+  var processTemplateNameNode = document.querySelector('[data-process-template-name]');
+  var processStepsNode = document.querySelector('[data-process-steps]');
+
+  // Nhật ký/lô hàng đang được mở để HOÀN TẤT 1 bước quy trình cụ thể (khác
+  // null khi người dùng bấm "Ghi nhật ký & hoàn thành") — dùng ở
+  // handleSeasonLogSubmit()/handleBatchSubmit() (mục "Nhật ký mùa vụ"/
+  // "Lô hàng" phía trên) để biết có cần đánh dấu hoàn thành bước không.
+  var completingStepId = null;
+  var pendingQrStepId = null;
+
+  function cloneTemplateSteps(template) {
+    return (template.steps || []).map(function (step) {
+      return {
+        id: store.newId(),
+        name: step.name || '',
+        activityType: step.activityType || ACTIVITY_TYPES[0].key,
+        instruction: step.instruction || '',
+        requireQr: !!step.requireQr,
+        requireSupply: !!step.requireSupply,
+        supplyId: step.supplyId || '',
+        requireImage: !!step.requireImage,
+        status: 'pending',
+        completedAt: null,
+        logId: null,
+        batchId: null
+      };
+    });
+  }
+
+  function fillProcessTemplateSelect() {
+    processTemplateSelect.textContent = '';
+    var placeholder = el('option', null, 'Chọn mẫu quy trình áp dụng');
+    placeholder.value = '';
+    processTemplateSelect.appendChild(placeholder);
+
+    store.list('workflowTemplates').forEach(function (template) {
+      var option = el('option', null, template.name);
+      option.value = template.id;
+      processTemplateSelect.appendChild(option);
+    });
+  }
+
+  function applyWorkflowTemplate(templateId) {
+    var template = store.find('workflowTemplates', templateId);
+    if (!template || !currentViewedSeason) return;
+
+    var changes = {
+      workflowTemplateId: template.id,
+      workflowTemplateName: template.name,
+      workflowSteps: cloneTemplateSteps(template)
+    };
+    store.update('seasons', currentViewedSeason.id, changes);
+    currentViewedSeason = store.find('seasons', currentViewedSeason.id);
+    renderSeasonProcess();
+    global.AgriChain.toast('Đã áp dụng mẫu quy trình.');
+  }
+
+  function createEmptyWorkflow() {
+    if (!currentViewedSeason) return;
+    var changes = {
+      workflowTemplateId: null,
+      workflowTemplateName: 'Quy trình tự tạo',
+      workflowSteps: []
+    };
+    store.update('seasons', currentViewedSeason.id, changes);
+    currentViewedSeason = store.find('seasons', currentViewedSeason.id);
+    renderSeasonProcess();
+    openProcessStepModal(); // danh sách đang rỗng — mở luôn để tự thêm bước
+  }
+
+  // Bước "tới lượt" duy nhất trong checklist: bước CHƯA hoàn thành ĐẦU
+  // TIÊN theo đúng thứ tự mảng — mọi bước chưa hoàn thành phía sau nó đều
+  // phải "chờ đến lượt", chỉ bước này mới hiện nút "Ghi nhật ký & hoàn thành".
+  function currentActionableStepId(steps) {
+    for (var i = 0; i < steps.length; i++) {
+      if (steps[i].status !== 'completed') return steps[i].id;
+    }
+    return null;
+  }
+
+  function processStepViewCard(step, index, isCurrent) {
+    var item = el('div', 'workflow-checklist__item');
+
+    var rail = el('div', 'workflow-checklist__rail');
+    rail.appendChild(el('span', 'workflow-checklist__dot' +
+      (step.status === 'completed' ? ' workflow-checklist__dot--done' : '')));
+    rail.appendChild(el('div', 'workflow-checklist__line'));
+    item.appendChild(rail);
+
+    var card = el('div', 'workflow-checklist__card');
+
+    var head = el('div', 'workflow-checklist__head');
+    head.appendChild(el('strong', 'workflow-checklist__step-title', 'Bước ' + (index + 1) + ': ' + step.name));
+    if (step.requireQr) head.appendChild(el('span', 'badge badge--success', 'Yêu cầu sinh QR'));
+    head.appendChild(el('span', 'badge ' + (step.status === 'completed' ? 'badge--success' : 'badge--warning'),
+      step.status === 'completed' ? 'Hoàn thành' : 'Đang chờ'));
+    card.appendChild(head);
+
+    var activity = statusOf(ACTIVITY_TYPES, step.activityType);
+    var activityRow = el('div', 'workflow-checklist__activity workflow-checklist__activity--' + activity.color);
+    activityRow.appendChild(svgIcon(activity.icon));
+    activityRow.appendChild(el('span', null, activity.label));
+    card.appendChild(activityRow);
+
+    if (step.instruction) {
+      card.appendChild(el('p', 'workflow-checklist__instruction', step.instruction));
+    }
+
+    if (step.status === 'completed') {
+      var doneNote = el('div', 'workflow-checklist__done-note');
+      doneNote.appendChild(svgIcon('icon-check-circle'));
+      doneNote.appendChild(el('span', null, 'Đã ghi nhật ký & hoàn thành'));
+      card.appendChild(doneNote);
+    } else if (isCurrent) {
+      var completeBtn = el('button', 'btn btn--primary btn--sm');
+      completeBtn.type = 'button';
+      completeBtn.appendChild(svgIcon('icon-check-circle'));
+      completeBtn.appendChild(document.createTextNode(' Ghi nhật ký & hoàn thành'));
+      completeBtn.addEventListener('click', function () { startStepCompletion(step); });
+      card.appendChild(completeBtn);
+    } else {
+      var waiting = el('div', 'workflow-checklist__waiting');
+      waiting.appendChild(svgIcon('icon-clock'));
+      waiting.appendChild(el('span', null, 'Chờ đến lượt thực hiện'));
+      card.appendChild(waiting);
+    }
+
+    item.appendChild(card);
+    return item;
+  }
+
+  function renderProcessSteps() {
+    var steps = currentViewedSeason.workflowSteps || [];
+    processStepsNode.textContent = '';
+
+    if (!steps.length) {
+      processStepsNode.appendChild(el('p', 'workflow-checklist__empty',
+        'Quy trình này chưa có bước nào — bấm "Tuỳ biến bước quy trình" để thêm.'));
+      return;
+    }
+
+    var currentId = currentActionableStepId(steps);
+    steps.forEach(function (step, index) {
+      processStepsNode.appendChild(processStepViewCard(step, index, step.id === currentId));
+    });
+  }
+
+  function renderSeasonProcess() {
+    if (!currentViewedSeason) return;
+
+    if (!currentViewedSeason.workflowSteps) {
+      processEmptyNode.hidden = false;
+      processDetailNode.hidden = true;
+      fillProcessTemplateSelect();
+      processApplyBtn.disabled = true;
+      return;
+    }
+
+    processEmptyNode.hidden = true;
+    processDetailNode.hidden = false;
+    processTemplateNameNode.textContent = currentViewedSeason.workflowTemplateName || 'Quy trình tự tạo';
+    renderProcessSteps();
+  }
+
+  /* --- Hoàn tất 1 bước: mở modal nhật ký (điền sẵn loại hoạt động), rồi
+     nếu bước yêu cầu QR thì mở tiếp modal tạo lô hàng sau khi ghi xong --- */
+
+  function startStepCompletion(step) {
+    completingStepId = step.id;
+    openSeasonLogModal();
+    activityTypeSelect.value = step.activityType || ACTIVITY_TYPES[0].key;
+    document.getElementById('log-description').value = step.instruction || '';
+  }
+
+  function completeWorkflowStep(stepId, logId) {
+    if (!currentViewedSeason) return;
+    var steps = (currentViewedSeason.workflowSteps || []).slice();
+    var step = null;
+    for (var i = 0; i < steps.length; i++) {
+      if (steps[i].id === stepId) { step = steps[i]; break; }
+    }
+    if (!step) return;
+
+    step.status = 'completed';
+    step.completedAt = new Date().toISOString();
+    step.logId = logId;
+
+    store.update('seasons', currentViewedSeason.id, { workflowSteps: steps });
+    currentViewedSeason = store.find('seasons', currentViewedSeason.id);
+    renderSeasonProcess();
+    global.AgriChain.toast('Đã hoàn thành bước "' + step.name + '".');
+
+    if (step.requireQr) {
+      pendingQrStepId = step.id;
+      openBatchModal();
+    }
+  }
+
+  function linkBatchToStep(stepId, batchId) {
+    if (!currentViewedSeason) return;
+    var steps = (currentViewedSeason.workflowSteps || []).slice();
+    for (var i = 0; i < steps.length; i++) {
+      if (steps[i].id === stepId) { steps[i].batchId = batchId; break; }
+    }
+    store.update('seasons', currentViewedSeason.id, { workflowSteps: steps });
+    currentViewedSeason = store.find('seasons', currentViewedSeason.id);
+    renderSeasonProcess();
+  }
+
+  /* --- Modal "Tuỳ biến bước quy trình": cùng cơ chế "DOM là nguồn dữ liệu"
+     của mau-quy-trinh.js (collectSteps()/moveStep()/renumberSteps()) — chỉ
+     khác là mỗi thẻ bước còn giữ thêm id/status/completedAt/logId/batchId
+     qua dataset để KHÔNG mất tiến độ đã hoàn thành khi người dùng chỉ sửa
+     tên/hướng dẫn của MỘT bước khác trong cùng danh sách. */
+
+  var processStepModal = document.getElementById('process-step-modal');
+  var processStepForm = document.getElementById('process-step-form');
+  var processStepsListNode = document.querySelector('[data-process-steps-list]');
+  var processStepCount = 0;
+
+  function renumberProcessSteps() {
+    Array.prototype.forEach.call(processStepsListNode.children, function (card, index) {
+      card.querySelector('[data-step-number]').textContent = String(index + 1);
+    });
+  }
+
+  function moveProcessStep(card, direction) {
+    var sibling = direction === 'up' ? card.previousElementSibling : card.nextElementSibling;
+    if (!sibling) return;
+    if (direction === 'up') {
+      processStepsListNode.insertBefore(card, sibling);
+    } else {
+      processStepsListNode.insertBefore(sibling, card);
+    }
+    renumberProcessSteps();
+  }
+
+  function processStepEditorCard(data) {
+    processStepCount++;
+    var card = el('div', 'workflow-step');
+    card.dataset.stepCard = '';
+    // Giữ nguyên trạng thái thực hiện của bước (nếu có) qua dataset —
+    // collectProcessSteps() đọc lại đúng các giá trị này lúc lưu, không
+    // phải input người dùng chỉnh sửa được trong modal này.
+    card.dataset.stepId = data.id || store.newId();
+    card.dataset.stepStatus = data.status || 'pending';
+    card.dataset.stepCompletedAt = data.completedAt || '';
+    card.dataset.stepLogId = data.logId || '';
+    card.dataset.stepBatchId = data.batchId || '';
+
+    var side = el('div', 'workflow-step__side');
+    var numberNode = el('span', 'workflow-step__number', String(processStepCount));
+    numberNode.setAttribute('data-step-number', '');
+    side.appendChild(numberNode);
+
+    var reorder = el('div', 'workflow-step__reorder');
+    var upButton = el('button', 'icon-btn');
+    upButton.type = 'button';
+    upButton.setAttribute('aria-label', 'Di chuyển bước lên trên');
+    upButton.appendChild(svgIcon('icon-chevron-down', 'icon icon--sm workflow-step__chevron-up'));
+    upButton.addEventListener('click', function () { moveProcessStep(card, 'up'); });
+    var downButton = el('button', 'icon-btn');
+    downButton.type = 'button';
+    downButton.setAttribute('aria-label', 'Di chuyển bước xuống dưới');
+    downButton.appendChild(svgIcon('icon-chevron-down'));
+    downButton.addEventListener('click', function () { moveProcessStep(card, 'down'); });
+    reorder.appendChild(upButton);
+    reorder.appendChild(downButton);
+    side.appendChild(reorder);
+    card.appendChild(side);
+
+    var body = el('div', 'workflow-step__body');
+
+    var topRow = el('div', 'workflow-step__top');
+    var grid1 = el('div', 'form-grid');
+
+    var nameField = el('div', 'field');
+    nameField.appendChild(el('label', 'label', 'Tên bước'));
+    var nameInput = el('input', 'input step-name');
+    nameInput.type = 'text';
+    if (data.name) nameInput.value = data.name;
+    nameField.appendChild(nameInput);
+    grid1.appendChild(nameField);
+
+    var typeField = el('div', 'field');
+    typeField.appendChild(el('label', 'label', 'Loại hoạt động'));
+    var typeSelect = el('select', 'select step-type');
+    ACTIVITY_TYPES.forEach(function (type) {
+      var option = el('option', null, type.label);
+      option.value = type.key;
+      if (type.key === (data.activityType || ACTIVITY_TYPES[0].key)) option.selected = true;
+      typeSelect.appendChild(option);
+    });
+    typeField.appendChild(typeSelect);
+    grid1.appendChild(typeField);
+
+    topRow.appendChild(grid1);
+
+    var removeButton = el('button', 'icon-btn icon-btn--danger workflow-step__remove');
+    removeButton.type = 'button';
+    removeButton.setAttribute('aria-label', 'Xoá bước');
+    removeButton.appendChild(svgIcon('icon-x'));
+    removeButton.addEventListener('click', function () {
+      card.remove();
+      renumberProcessSteps();
+      if (!processStepsListNode.children.length) addProcessStep();
+    });
+    topRow.appendChild(removeButton);
+    body.appendChild(topRow);
+
+    var instructionRow = el('div', 'workflow-step__instruction-row');
+    var instructionField = el('div', 'field');
+    instructionField.appendChild(el('label', 'label', 'Hướng dẫn thực hiện'));
+    var instructionInput = el('input', 'input step-instruction');
+    instructionInput.type = 'text';
+    if (data.instruction) instructionInput.value = data.instruction;
+    instructionField.appendChild(instructionInput);
+    instructionRow.appendChild(instructionField);
+
+    var qrLabel = el('label', 'checkbox workflow-step__qr');
+    var qrInput = el('input', 'checkbox__input step-require-qr');
+    qrInput.type = 'checkbox';
+    qrInput.checked = !!data.requireQr;
+    qrLabel.appendChild(qrInput);
+    qrLabel.appendChild(el('span', 'checkbox__label', 'Yêu cầu tạo QR truy xuất'));
+    instructionRow.appendChild(qrLabel);
+    body.appendChild(instructionRow);
+
+    var flagsRow = el('div', 'workflow-step__flags');
+
+    var supplyLabel = el('label', 'checkbox');
+    var supplyInput = el('input', 'checkbox__input step-require-supply');
+    supplyInput.type = 'checkbox';
+    supplyInput.checked = !!data.requireSupply;
+    supplyLabel.appendChild(supplyInput);
+    supplyLabel.appendChild(el('span', 'checkbox__label', 'Yêu cầu dùng vật tư'));
+    flagsRow.appendChild(supplyLabel);
+
+    var imageLabel = el('label', 'checkbox');
+    var imageInput = el('input', 'checkbox__input step-require-image');
+    imageInput.type = 'checkbox';
+    imageInput.checked = !!data.requireImage;
+    imageLabel.appendChild(imageInput);
+    imageLabel.appendChild(el('span', 'checkbox__label', 'Bắt buộc hình ảnh'));
+    flagsRow.appendChild(imageLabel);
+
+    body.appendChild(flagsRow);
+
+    var supplyField = el('div', 'field workflow-step__supply-field');
+    supplyField.hidden = !data.requireSupply;
+    supplyField.appendChild(el('label', 'label', 'Chỉ định vật tư cụ thể (Tuỳ chọn)'));
+    var supplySelect = el('select', 'select step-supply-id');
+    var emptyOption = el('option', null, '— Không chỉ định —');
+    emptyOption.value = '';
+    supplySelect.appendChild(emptyOption);
+    store.list('supplies').forEach(function (supply) {
+      var option = el('option', null, supply.code + ' — ' + supply.name);
+      option.value = supply.id;
+      if (supply.id === data.supplyId) option.selected = true;
+      supplySelect.appendChild(option);
+    });
+    supplyField.appendChild(supplySelect);
+    body.appendChild(supplyField);
+
+    supplyInput.addEventListener('change', function () {
+      supplyField.hidden = !supplyInput.checked;
+    });
+
+    card.appendChild(body);
+    return card;
+  }
+
+  function addProcessStep(data) {
+    processStepsListNode.appendChild(processStepEditorCard(data || {}));
+    renumberProcessSteps();
+  }
+
+  function resetProcessSteps() {
+    processStepCount = 0;
+    processStepsListNode.textContent = '';
+    var steps = (currentViewedSeason && currentViewedSeason.workflowSteps) || [];
+    if (steps.length) {
+      steps.forEach(function (step) { addProcessStep(step); });
+    } else {
+      addProcessStep();
+    }
+  }
+
+  function collectProcessSteps() {
+    return Array.prototype.map.call(processStepsListNode.querySelectorAll('[data-step-card]'), function (card) {
+      var requireSupply = card.querySelector('.step-require-supply').checked;
+      return {
+        id: card.dataset.stepId,
+        name: card.querySelector('.step-name').value.trim(),
+        activityType: card.querySelector('.step-type').value,
+        instruction: card.querySelector('.step-instruction').value.trim(),
+        requireQr: card.querySelector('.step-require-qr').checked,
+        requireSupply: requireSupply,
+        supplyId: requireSupply ? card.querySelector('.step-supply-id').value : '',
+        requireImage: card.querySelector('.step-require-image').checked,
+        status: card.dataset.stepStatus || 'pending',
+        completedAt: card.dataset.stepCompletedAt || null,
+        logId: card.dataset.stepLogId || null,
+        batchId: card.dataset.stepBatchId || null
+      };
+    });
+  }
+
+  function openProcessStepModal() {
+    processStepForm.reset();
+    resetProcessSteps();
+    processStepModal.showModal();
+  }
+
+  function closeProcessStepModal() {
+    processStepModal.close();
+  }
+
+  function validateProcessSteps() {
+    var problems = [];
+    processStepsListNode.querySelectorAll('.step-name').forEach(function (input) {
+      if (!input.value.trim()) problems.push(input);
+    });
+    if (problems.length) {
+      problems[0].focus();
+      global.AgriChain.toast('Nhập đầy đủ tên cho từng bước.');
+      return false;
+    }
+    return true;
+  }
+
+  function handleProcessStepsSubmit(event) {
+    event.preventDefault();
+    if (!validateProcessSteps() || !currentViewedSeason) return;
+
+    store.update('seasons', currentViewedSeason.id, { workflowSteps: collectProcessSteps() });
+    currentViewedSeason = store.find('seasons', currentViewedSeason.id);
+    closeProcessStepModal();
+    renderSeasonProcess();
+    global.AgriChain.toast('Đã lưu quy trình.');
   }
 
   /* --- Khởi động ----------------------------------------------------------- */
@@ -1647,5 +2139,25 @@
     document.querySelectorAll('[data-close-qr]').forEach(function (button) {
       button.addEventListener('click', closeQrModal);
     });
+
+    processTemplateSelect.addEventListener('change', function () {
+      processApplyBtn.disabled = !processTemplateSelect.value;
+    });
+    processApplyBtn.addEventListener('click', function () {
+      applyWorkflowTemplate(processTemplateSelect.value);
+    });
+    document.querySelector('[data-process-create-empty]').addEventListener('click', function () {
+      createEmptyWorkflow();
+    });
+    document.querySelector('[data-process-customize-btn]').addEventListener('click', function () {
+      openProcessStepModal();
+    });
+    document.querySelectorAll('[data-close-process-step-form]').forEach(function (button) {
+      button.addEventListener('click', closeProcessStepModal);
+    });
+    document.querySelector('[data-process-add-step]').addEventListener('click', function () {
+      addProcessStep();
+    });
+    processStepForm.addEventListener('submit', handleProcessStepsSubmit);
   });
 })(window);

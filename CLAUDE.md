@@ -57,7 +57,8 @@ js/
                            # (Nông trại -> Mùa vụ). Chỉ định nghĩa cơ chế, không biết gì về dữ liệu cụ thể.
   nong-trai.js            # Logic riêng cho nong-trai.html (danh sách + thêm/sửa/xoá nông trại)
   nong-trai-chi-tiet.js   # Logic riêng cho nong-trai-chi-tiet.html (trang xem chi tiết 1 nông trại,
-                          # gồm cả chứng nhận/mùa vụ/nhật ký/lô hàng con của nó)
+                          # gồm cả chứng nhận/mùa vụ/nhật ký/lô hàng con của nó, và checklist "Quy
+                          # trình mùa vụ" áp dụng từ workflowTemplates — xem mục riêng bên dưới)
   vat-tu.js               # Logic riêng cho vat-tu.html
   mau-quy-trinh.js         # Logic riêng cho mau-quy-trinh.html (danh sách + thêm/sửa/xoá mẫu quy
                            # trình mùa vụ — collection "workflowTemplates", KHÔNG khoá ownerId, theo
@@ -456,6 +457,52 @@ thị (`1`, `2`, `3`...) được tính lại từ vị trí DOM thật qua `ren
 tạo 1 thẻ mới, không dùng để hiển thị số, nên không bao giờ bị lệch dù người dùng thêm/xoá xen
 kẽ nhiều lần. Xoá bước cuối cùng còn lại sẽ tự thêm ngay 1 bước trống thay thế — modal không
 bao giờ để danh sách bước rỗng hoàn toàn.
+
+## Quy trình mùa vụ — áp dụng cho 1 mùa vụ cụ thể (tab "Quy trình mùa vụ")
+
+Tab "Quy trình mùa vụ" trong modal xem chi tiết mùa vụ (`nong-trai-chi-tiet.html`, cạnh
+"Timeline mùa vụ"/"Lô hàng") cho phép áp dụng 1 Mẫu Quy Trình (`workflowTemplates`, xem mục
+trên) vào ĐÚNG mùa vụ đang xem, biến nó thành 1 checklist các bước phải thực hiện tuần tự.
+Đây là khái niệm KHÁC với `mau-quy-trinh.html`: mẫu là bản thiết kế dùng lại nhiều lần, còn
+đây là 1 lần áp dụng cụ thể, có tiến độ thực hiện riêng cho từng mùa vụ.
+
+**Không tham chiếu ngược tới mẫu gốc — CHỤP (snapshot) `steps[]` vào 2 field mới trên bản ghi
+`seasons`**: `workflowTemplateId`/`workflowTemplateName` (tên mẫu tại thời điểm áp dụng, hiện
+ở tiêu đề "Checklist Quy Trình: ...") và `workflowSteps` — mảng bước, mỗi bước là 1 bản sao
+đầy đủ field của bước mẫu (`name`, `activityType`, `instruction`, `requireQr`, `requireSupply`,
+`supplyId`, `requireImage`) cộng thêm state riêng: `id` (sinh bằng `store.newId()`), `status`
+(`'pending'`/`'completed'`), `completedAt`, `logId` (trỏ tới `seasonLogs` khi hoàn thành),
+`batchId` (trỏ tới `batches` nếu bước yêu cầu QR). Nhờ chụp bản sao, sửa/xoá mẫu gốc sau đó
+không ảnh hưởng tới checklist đã áp dụng. **`workflowSteps` dùng `null`/`undefined` để phân
+biệt "chưa áp dụng quy trình nào" với mảng rỗng `[]`** (trường hợp "Tạo quy trình rỗng" — tự
+thiết lập nhanh, chưa kịp thêm bước nào) — `renderSeasonProcess()` dựa vào đúng phân biệt này
+để quyết định hiện khối chọn mẫu hay hiện checklist.
+
+**Bước "tới lượt" duy nhất** là bước `status !== 'completed'` ĐẦU TIÊN theo thứ tự mảng
+(`currentActionableStepId()`) — chỉ bước này hiện nút "Ghi nhật ký & hoàn thành", các bước
+chưa hoàn thành phía sau hiện "Chờ đến lượt thực hiện" thay vì nút bấm được. Bấm nút này
+(`startStepCompletion()`) mở THẲNG modal "Thêm nhật ký mùa vụ" đã có sẵn ở tab Timeline
+(`openSeasonLogModal()`), điền sẵn loại hoạt động + hướng dẫn của bước — tái dùng nguyên vẹn
+form/validate/lưu nhật ký, không tạo form riêng. `handleSeasonLogSubmit()` sau khi lưu xong
+(chỉ khi THÊM MỚI, không áp dụng lúc sửa nhật ký cũ) gọi `completeWorkflowStep()` để đánh dấu
+đúng bước đó hoàn thành + gắn `logId`. Nếu bước có `requireQr: true`, `completeWorkflowStep()`
+mở tiếp modal "Thêm lô hàng mới" đã có sẵn ở tab Lô hàng (`openBatchModal()`) — sau khi lưu lô
+hàng, `handleBatchSubmit()` gắn `batchId` vào đúng bước (`linkBatchToStep()`) rồi tự mở luôn
+modal QR (`openQrModal()`) cho lô hàng vừa tạo, không cần bấm thêm. Cả 2 modal (`season-log-
+modal`/`batch-modal`) đều có thể bị đóng bằng Huỷ giữa chừng — `closeSeasonLogModal()`/
+`closeBatchModal()` luôn xoá biến theo dõi (`completingStepId`/`pendingQrStepId`) để tránh
+hoàn thành nhầm bước ở lần thêm nhật ký/lô hàng kế tiếp không liên quan.
+
+"Tuỳ biến bước quy trình" mở modal riêng (`process-step-modal`) thao tác trên
+`currentViewedSeason.workflowSteps`, dùng lại **y hệt** cơ chế "DOM là nguồn dữ liệu" của mẫu
+quy trình gốc (`collectSteps()`/`moveStep()`/`renumberSteps()` ở `mau-quy-trinh.js`, chép lại
+CSS `.workflow-step`/`.steps-header` nguyên vẹn vào `nong-trai-chi-tiet.html` theo đúng quy
+ước "mỗi trang tự chứa CSS/JS riêng") — khác biệt duy nhất: mỗi thẻ bước còn giữ
+`id`/`status`/`completedAt`/`logId`/`batchId` qua `dataset` (không phải input người dùng sửa
+được) để **KHÔNG mất tiến độ đã hoàn thành** khi người dùng chỉ sửa tên/hướng dẫn của 1 bước
+khác trong cùng danh sách — `collectProcessSteps()` đọc lại các giá trị này lúc lưu thay vì
+reset về mặc định. "Tạo quy trình rỗng" (`createEmptyWorkflow()`) đặt `workflowSteps: []` rồi
+mở LUÔN modal này để tự thêm bước đầu tiên, vì checklist đang trống không có gì để hiển thị.
 
 ## Thương mại điện tử — hồ sơ cửa hàng (`thuong-mai-tong-quan.html`)
 

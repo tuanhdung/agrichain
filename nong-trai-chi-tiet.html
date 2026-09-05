@@ -84,6 +84,226 @@
       font-size: var(--text-lg);
     }
 
+    /* Tab "Quy trình mùa vụ" — trạng thái CHƯA áp dụng mẫu: chọn mẫu quy
+       trình có sẵn hoặc tự tạo quy trình rỗng. */
+    .process-apply {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--space-3);
+      margin-top: var(--space-2);
+    }
+    .process-apply .select {
+      width: auto;
+      min-width: 280px;
+    }
+    .process-apply__hint {
+      margin-top: var(--space-4);
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+    .link-button {
+      color: var(--color-primary);
+      font-weight: 600;
+      text-decoration: underline;
+    }
+
+    /* Tab "Quy trình mùa vụ" — trạng thái ĐÃ áp dụng: tiêu đề + nút tuỳ
+       biến, rồi danh sách bước dạng timeline dọc (chấm + đường nối). */
+    .process-detail__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      margin-bottom: var(--space-6);
+      flex-wrap: wrap;
+    }
+    .process-detail__title {
+      font-size: var(--text-lg);
+    }
+
+    .workflow-checklist__item {
+      display: flex;
+      gap: var(--space-4);
+    }
+    .workflow-checklist__rail {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .workflow-checklist__dot {
+      width: var(--space-4);
+      height: var(--space-4);
+      margin-top: var(--space-2);
+      border-radius: var(--radius-full);
+      background: var(--neutral-800);
+      flex-shrink: 0;
+    }
+    .workflow-checklist__dot--done {
+      background: var(--color-success);
+    }
+    .workflow-checklist__line {
+      flex: 1;
+      width: 2px;
+      min-height: var(--space-6);
+      background: var(--color-border);
+      margin-block: var(--space-2);
+    }
+    .workflow-checklist__item:last-child .workflow-checklist__line {
+      display: none;
+    }
+    .workflow-checklist__card {
+      flex: 1;
+      min-width: 0;
+      margin-bottom: var(--space-5);
+      padding: var(--space-5);
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+    }
+    .workflow-checklist__head {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin-bottom: var(--space-3);
+    }
+    .workflow-checklist__step-title {
+      font-weight: 700;
+    }
+    .workflow-checklist__activity {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-bottom: var(--space-2);
+      font-size: var(--text-sm);
+      font-weight: 600;
+    }
+    .workflow-checklist__activity--success { color: var(--color-success); }
+    .workflow-checklist__activity--info { color: var(--color-info); }
+    .workflow-checklist__activity--warning { color: var(--color-warning); }
+    .workflow-checklist__activity--danger { color: var(--color-danger); }
+    .workflow-checklist__activity--neutral { color: var(--color-text-muted); }
+    .workflow-checklist__instruction {
+      margin-bottom: var(--space-4);
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+    .workflow-checklist__waiting {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+    .workflow-checklist__done-note {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-sm);
+      color: var(--color-success);
+    }
+    .workflow-checklist__empty {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+
+    /* Modal "Tuỳ biến bước quy trình" — chép lại y hệt các lớp .workflow-step
+       và .steps-header của mau-quy-trinh.html (thiết kế mẫu quy trình GỐC).
+       Cố tình không dùng chung: bước ở đây thao tác trên bản sao steps của
+       1 mùa vụ cụ thể (currentViewedSeason.workflowSteps), không phải mẫu
+       dùng lại nhiều nơi — đúng quy ước "mỗi trang tự chứa CSS/JS riêng". */
+    .workflow-step {
+      display: flex;
+      gap: var(--space-4);
+      margin-bottom: var(--space-5);
+    }
+    .workflow-step:last-child {
+      margin-bottom: 0;
+    }
+    .workflow-step__side {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+      flex-shrink: 0;
+      padding-top: var(--space-2);
+    }
+    .workflow-step__number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--space-8);
+      height: var(--space-8);
+      border-radius: var(--radius-full);
+      background: var(--color-primary);
+      color: var(--color-text-inverse);
+      font-weight: 700;
+    }
+    .workflow-step__reorder {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
+    .workflow-step__chevron-up {
+      transform: rotate(180deg);
+    }
+    .workflow-step__body {
+      flex: 1;
+      min-width: 0;
+      padding: var(--space-4);
+      background: var(--color-bg-subtle);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+    }
+    .workflow-step__top {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+    }
+    .workflow-step__top .form-grid {
+      flex: 1;
+    }
+    .workflow-step__remove {
+      flex-shrink: 0;
+      margin-top: var(--space-8);
+    }
+    .workflow-step__instruction-row {
+      display: flex;
+      align-items: flex-end;
+      gap: var(--space-4);
+      margin-top: var(--space-4);
+    }
+    .workflow-step__instruction-row .field {
+      flex: 1;
+    }
+    .workflow-step__qr {
+      flex-shrink: 0;
+      white-space: nowrap;
+      padding-bottom: var(--space-3);
+    }
+    .workflow-step__flags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-6);
+      margin-top: var(--space-4);
+    }
+    .workflow-step__supply-field {
+      margin-top: var(--space-4);
+    }
+    .steps-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+    }
+    .steps-header__title {
+      font-size: var(--text-base);
+      font-weight: 700;
+    }
+
     /* Modal thêm/sửa nhật ký mùa vụ: danh sách vật tư sử dụng (từng dòng
        thêm/xoá được) và lưới ảnh minh hoạ đã chọn. */
     .log-materials__head,
@@ -889,10 +1109,38 @@
       </div>
 
       <div class="tabs__panel" id="season-view-tab-process" data-tab-panel role="tabpanel" hidden>
-        <div class="empty-state">
-          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-tractor"></use></svg>
-          <p class="empty-state__title">Chưa có quy trình canh tác</p>
-          <p class="empty-state__desc">Các bước quy trình canh tác của mùa vụ này sẽ hiển thị tại đây.</p>
+        <!-- Chưa áp dụng mẫu quy trình nào cho mùa vụ này -->
+        <div class="empty-state" data-process-empty>
+          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-workflow"></use></svg>
+          <p class="empty-state__title">Chưa Áp Dụng Quy Trình Cho Mùa Vụ</p>
+          <p class="empty-state__desc">
+            Mùa vụ này hiện tại đang sử dụng chế độ ghi nhật ký tự do. Bạn có thể chọn một
+            trong các Mẫu Quy Trình đã thiết kế sẵn dưới đây để bắt đầu kiểm soát sản xuất.
+          </p>
+          <div class="process-apply">
+            <select class="select" data-process-template-select>
+              <option value="">Chọn mẫu quy trình áp dụng</option>
+            </select>
+            <button type="button" class="btn btn--primary" data-process-apply-btn disabled>Áp dụng</button>
+          </div>
+          <p class="process-apply__hint">
+            Hoặc bạn có thể tự thiết lập nhanh quy trình bằng cách bấm
+            <button type="button" class="link-button" data-process-create-empty>Tạo quy trình rỗng</button>
+            để tự thêm từng bước.
+          </p>
+        </div>
+
+        <!-- Đã áp dụng — hiện checklist các bước, theo thứ tự thực hiện -->
+        <div data-process-detail hidden>
+          <div class="process-detail__header">
+            <h2 class="process-detail__title">Checklist Quy Trình: <span data-process-template-name></span></h2>
+            <button type="button" class="btn btn--outline btn--sm" data-process-customize-btn>
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-pencil"></use></svg>
+              Tuỳ biến bước quy trình
+            </button>
+          </div>
+
+          <div data-process-steps></div>
         </div>
       </div>
     </div>
@@ -1094,6 +1342,36 @@
     </div>
   </dialog>
 
+  <!-- Modal: Tuỳ biến bước quy trình của mùa vụ đang xem (tab "Quy trình
+       mùa vụ") — thao tác trên currentViewedSeason.workflowSteps, KHÔNG
+       đụng tới mẫu quy trình gốc ở mau-quy-trinh.html. -->
+  <dialog class="modal" id="process-step-modal" aria-labelledby="process-step-modal-title">
+    <form class="modal__form" id="process-step-form" novalidate>
+      <div class="modal__header">
+        <svg class="icon"><use href="icons/sprite.svg#icon-workflow"></use></svg>
+        <h2 class="modal__title" id="process-step-modal-title">Tuỳ biến bước quy trình</h2>
+        <button type="button" class="modal__close" data-close-process-step-form aria-label="Đóng">&times;</button>
+      </div>
+
+      <div class="modal__body">
+        <div class="steps-header">
+          <span class="steps-header__title">Các bước thực hiện</span>
+          <button type="button" class="btn btn--outline btn--sm" data-process-add-step>
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
+            Thêm bước mới
+          </button>
+        </div>
+
+        <div data-process-steps-list></div>
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--secondary" data-close-process-step-form>Huỷ</button>
+        <button type="submit" class="btn btn--primary">Lưu quy trình</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- Xác nhận xoá (dùng chung, gọi qua AgriChain.confirm) -->
   <dialog class="modal modal--sm" id="confirm-dialog" aria-labelledby="confirm-dialog-title">
     <div class="modal__header">
@@ -1123,6 +1401,6 @@
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=12" defer></script>
   <script src="js/app-shell.js?v=9" defer></script>
-  <script src="js/nong-trai-chi-tiet.js?v=13" defer></script>
+  <script src="js/nong-trai-chi-tiet.js?v=14" defer></script>
 </body>
 </html>
