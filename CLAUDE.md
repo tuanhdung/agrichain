@@ -78,6 +78,10 @@ js/
   blog-chi-tiet.js        # Logic riêng cho blog-chi-tiet.html (đọc ?slug= trên URL, fetch() CÙNG
                           # data/blog-posts.json với blog.js để tìm đúng bài rồi dựng nội dung —
                           # xem mục "Blog" bên dưới)
+  ecommerce.js             # Logic riêng cho ecommerce.html (trang sàn mua sắm công khai) — đọc
+                          # THẲNG store.list('shops')/store.list('products') qua AgriChain.store
+                          # (không fetch() như blog, vì đây là dữ liệu localStorage thật của
+                          # store.js, không phải file tĩnh) — xem mục riêng bên dưới
   thuong-mai-tong-quan.js  # Logic riêng cho thuong-mai-tong-quan.html (khởi tạo/chỉnh sửa hồ sơ
                            # cửa hàng Ecommerce — collection "shops", 1 bản ghi/Đơn vị, khoá bằng
                            # ownerId = session.id hiện tại)
@@ -179,6 +183,12 @@ blog-chi-tiet.html        # Trang chi tiết 1 bài viết Blog CÔNG KHAI, mở
                           # sẻ Facebook/Twitter (link share thật, mở tab mới) và "sao chép liên kết"
                           # (`navigator.clipboard`, đổi tạm icon thành icon-check-circle 1.5s làm
                           # phản hồi — trang không nạp app-shell.js nên không có AgriChain.toast()).
+ecommerce.html            # Trang sàn mua sắm nông sản CÔNG KHAI (không cần đăng nhập) — mở từ
+                          # link "E-commerce" ở header/footer mọi trang. KHÔNG dùng lại
+                          # .site-header/.site-footer (xem mục riêng bên dưới để biết lý do) —
+                          # có header/footer dạng storefront riêng (tìm kiếm, giỏ hàng, tài khoản
+                          # khách hàng thay vì menu marketing). Đọc thật `shops`/`products` qua
+                          # js/ecommerce.js, không hard-code dữ liệu mẫu.
 ```
 
 Khi thêm trang mới: tạo file `.html` ở gốc (hoặc thư mục con theo tính năng),
@@ -187,7 +197,11 @@ và chèn lại `.site-header` (copy nguyên khối từ `index.html` hoặc `st
 kèm `<script src="js/header.js" defer>` trước `</body>`) — dự án không có templating
 nên mỗi trang tự chứa markup header riêng. Riêng `dang-nhap.html`/`dang-ky.html` và
 `nong-trai.html`/`vat-tu.html` KHÔNG dùng `.site-header` (layout riêng: auth 2 cột,
-app-shell có sidebar) — đừng chèn header vào các trang này. **`index.html` phải luôn
+app-shell có sidebar) — đừng chèn header vào các trang này. `ecommerce.html` cũng KHÔNG
+dùng `.site-header`/`.site-footer` dù là trang công khai — đây là 1 sàn mua sắm (storefront),
+vai trò khác hẳn trang giới thiệu doanh nghiệp, nên có header/footer riêng (`.shop-header`/
+`.shop-footer`, xem mục riêng bên dưới) với tìm kiếm/giỏ hàng/tài khoản khách hàng thay vì
+menu marketing. **`index.html` phải luôn
 nằm ở gốc dự án** (không đưa vào thư mục con) — host tĩnh cần đúng vị trí này để nhận
 diện làm trang mặc định.
 
@@ -419,14 +433,24 @@ kiểm tra (đã ghi rõ trong comment đầu mỗi file). Vài điểm cần nh
 ## Việc chưa làm (ngoài phạm vi giai đoạn này)
 
 Trang chủ (`index.html`) hiện có Hero, Tính Năng, Quy Trình, Lợi Ích, CTA, Liên Hệ, Footer.
-Form Liên Hệ mới validate + hiện thông báo phía client, chưa gửi đi đâu thật. Chưa có:
-section E-commerce (mục tiêu của anchor `#ecommerce` trong menu header), tích hợp AI thật.
+Form Liên Hệ mới validate + hiện thông báo phía client, chưa gửi đi đâu thật. Menu header/
+footer mục "E-commerce" trỏ sang `ecommerce.html` (xem mục riêng bên dưới). Chưa có: tích
+hợp AI thật.
 
 Trang Blog (`blog.html` + `blog-chi-tiet.html`) đã có ở mức cơ bản: hero + danh sách 3 bài viết
 + trang chi tiết đọc nội dung đầy đủ (đoạn văn/tiêu đề phụ/danh sách), cả 2 trang cùng đọc từ
 `data/blog-posts.json`. Chưa có: phân trang/tải thêm, tìm kiếm/lọc theo danh mục, bình luận,
 backend quản lý nội dung thật (thêm/sửa/xoá bài viết), ảnh bìa thật (thư mục `images/blog/`
 mới chỉ có `.gitkeep`).
+
+Trang E-commerce công khai (`ecommerce.html`) đã có ở mức cơ bản: hero + dải tính năng + danh
+mục nông sản + cửa hàng nổi bật + lưới sản phẩm nổi bật, đọc THẲNG collection `shops`/
+`products` thật từ khu quản trị (không hard-code) — xem mục riêng bên dưới. Chưa có: trang chi
+tiết 1 cửa hàng, trang chi tiết 1 sản phẩm, giỏ hàng/thanh toán thật (nút giỏ hàng/"Ghé thăm
+cửa hàng"/"Xem chi tiết" tạm để `href="#"`), trang danh sách "Cửa hàng"/"Nhà nông" riêng
+(menu header tạm để `href="#"`), hệ thống đánh giá sao thật (hiện luôn hiện tĩnh "5 (0)"),
+chương trình khuyến mãi thật (tab "Khuyến mãi" luôn rỗng vì chưa có trường giảm giá trên
+`products`), ảnh sản phẩm/cửa hàng thật nếu Đơn vị chưa từng tự tải lên qua khu quản trị.
 
 Trang truy xuất nguồn gốc (`truy-xuat.html`) đã có ở mức cơ bản: xem 1 lô hàng qua mã QR
 (hoặc `?ma=...` trực tiếp), thấy trạng thái xác thực blockchain + thông tin nông trại/mùa
@@ -637,6 +661,46 @@ với `js/thuong-mai-tong-quan.js` (đúng quy ước "mỗi trang tự chứa J
 nhau) — 2 field "Giờ mở cửa"/"Ngày làm việc" có giá trị mặc định gợi ý (`'08:00 - 18:00'`,
 `'Thứ 2 - Thứ 7'`) khi CHƯA có cửa hàng, khớp giao diện tham khảo (2 field này hiện chữ đen
 chứ không phải placeholder xám như các field khác).
+
+## E-commerce công khai (`ecommerce.html`)
+
+Sàn mua sắm nông sản CÔNG KHAI (không cần đăng nhập, mở từ link "E-commerce" ở header/footer
+mọi trang) — khác hẳn nhóm "Thương mại điện tử" ở khung quản trị (`thuong-mai-*.html`, dành
+cho Đơn vị bán hàng quản lý shop của MÌNH): đây là mặt trước công khai cho khách hàng duyệt
+**tất cả** cửa hàng/sản phẩm của **mọi** Đơn vị cùng lúc. Vì vậy trang **KHÔNG lọc theo
+`ownerId`** như các trang quản trị — `store.list('shops')`/`store.list('products')` trả về
+sao thì hiển thị hết vậy (đúng vai trò 1 sàn thương mại điện tử thật).
+
+**Có header/footer riêng dạng storefront** (`.shop-header`/`.shop-footer`, định nghĩa ngay
+trong `<style>` của chính trang) — KHÔNG dùng lại `.site-header`/`.site-footer` như
+`index.html`/`blog.html`, vì đây không phải trang giới thiệu doanh nghiệp: header có ô tìm
+kiếm, icon giỏ hàng, avatar tài khoản khách hàng (trỏ `dang-nhap.html`) thay vì menu Tính
+Năng/Quy Trình/Liên Hệ. Vì header không phải `.site-header`, trang không nạp `js/header.js` —
+menu không cần thu gọn qua JS vì đơn giản chỉ ẩn bớt (tìm kiếm ẩn dưới 768px, menu ẩn dưới
+960px) bằng CSS thuần, không có hamburger.
+
+**Dữ liệu thật, không hard-code**: `js/ecommerce.js` đọc thẳng `AgriChain.store` (KHÔNG
+`fetch()` như `blog.js`, vì đây là dữ liệu `localStorage` thật của `store.js`, không phải file
+tĩnh) — cùng nguyên tắc "trang công khai đọc thẳng dữ liệu thật" như `truy-xuat.html`.
+- **Danh Mục Nông Sản**: mảng `CATEGORIES` chép lại Y HỆT `js/thuong-mai-san-pham.js`
+  (`['Cà Phê Nhân', 'Hồ Tiêu', 'Gạo', 'Đồ uống', 'Gia vị']`) — bấm 1 danh mục sẽ lọc lưới sản
+  phẩm bên dưới theo đúng `product.category`, không phải link tới trang riêng (chưa có).
+- **Cửa Hàng Nổi Bật**: 3 bản ghi `shops` đầu tiên, đếm số sản phẩm thật của từng shop bằng
+  `products.filter(p => p.ownerId === shop.ownerId && p.status === 'published').length`. Chưa
+  có hệ thống đánh giá nên số sao luôn tĩnh "0.0" — không bịa số ngẫu nhiên.
+- **Nông Sản Nổi Bật**: chỉ hiện sản phẩm `status === 'published'` (bỏ qua bản nháp `'draft'`
+  đang sửa dở ở khu quản trị). 3 tab lọc: "Tất cả" (mặc định), "Mới thu hoạch" (sắp xếp theo
+  `createdAt` giảm dần — không có trường ngày thu hoạch thật trên `products` nên dùng ngày tạo
+  làm proxy hợp lý nhất), "Khuyến mãi" (LUÔN rỗng — `products` chưa có trường giảm giá nào,
+  hiện trạng thái rỗng trung thực thay vì bịa dữ liệu khuyến mãi giả). Giá hiển thị là giá thấp
+  nhất trong `variants[]` (`minPrice()`, chép lại từ `js/thuong-mai-san-pham.js`). Badge "Truy
+  xuất BC" chỉ hiện khi sản phẩm có ít nhất 1 biến thể đã gắn `batchId` thật.
+- Ô tìm kiếm lọc lưới sản phẩm theo tên/danh mục (client-side, không phải trang kết quả tìm
+  kiếm riêng) — gõ Enter hoặc bấm icon kính lúp đều chạy, rồi tự cuộn xuống đúng lưới sản phẩm.
+
+Link "Ghé thăm cửa hàng"/"Xem chi tiết" sản phẩm/mục "Cửa hàng"/"Nhà nông" ở menu đều tạm để
+`href="#"` — chưa có trang chi tiết 1 cửa hàng, trang chi tiết 1 sản phẩm, hay trang danh sách
+riêng cho các mục này (xem "Việc chưa làm" phía trên).
 
 ## Dữ liệu hành chính (tỉnh/thành, phường/xã)
 
