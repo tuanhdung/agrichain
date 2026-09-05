@@ -345,7 +345,6 @@
   var permissionAvatar = document.querySelector('[data-permission-avatar]');
   var permissionName = document.querySelector('[data-permission-name]');
   var permissionEmail = document.querySelector('[data-permission-email]');
-  var permissionRoleNotice = document.querySelector('[data-permission-role-notice]');
   var permissionRoleName = document.querySelector('[data-permission-role-name]');
   var permissionLoading = document.querySelector('[data-permission-loading]');
   var permissionError = document.querySelector('[data-permission-error]');
@@ -412,7 +411,12 @@
         'Quyền ' + action.label.toLowerCase() + ' phân hệ ' + group.name);
 
       if (permission) {
-        checkbox.dataset.permissionId = permission.id;
+        // KHÔNG dùng checkbox.dataset (thuộc tính HTML luôn ép về chuỗi) —
+        // permission.id có thể là số nguyên bên phía backend, ép về chuỗi ở
+        // đây rồi gửi lẫn với các id giữ nguyên kiểu số khác (keptIds) khi
+        // lưu có thể khiến backend từ chối vì lẫn lộn kiểu dữ liệu. Gán
+        // thẳng thuộc tính JS để giữ nguyên kiểu gốc.
+        checkbox.permissionId = permission.id;
         managedPermissionIds[permission.id] = true;
         checkbox.checked = grantedIds.indexOf(permission.id) !== -1;
         checkbox.addEventListener('change', function () {
@@ -509,7 +513,7 @@
 
     var checkedIds = [];
     permissionTableBody.querySelectorAll('input[type="checkbox"]:not(:disabled)').forEach(function (checkbox) {
-      if (checkbox.checked) checkedIds.push(checkbox.dataset.permissionId);
+      if (checkbox.checked) checkedIds.push(checkbox.permissionId);
     });
 
     // Giữ nguyên các quyền của vai trò này nằm NGOÀI 5 phân hệ x 4 hành

@@ -35,6 +35,11 @@ css/
                           # nong-trai-chi-tiet.html, mau-quy-trinh.html, lo-hang.html, tai-khoan.html,
                           # goi-phan-mem.html, lich-su-mua-goi.html, và 7 trang thuong-mai-*.html
 js/
+  api-config.js          # window.AgriChain.API_BASE_URL — nạp TRƯỚC api.js, ở MỌI trang (kể cả
+                          # trang chưa dùng API). Sửa domain backend khi deploy chỉ sửa file này.
+  api.js                 # Lớp gọi backend thật (FastAPI) — token/refresh/lỗi/hàm nghiệp vụ
+                          # (api.auth.*/api.users.*/api.roles.*/api.permissions.*). Nạp SAU
+                          # api-config.js, KHÔNG defer, ở MỌI trang — xem mục "Kết nối backend"
   header.js              # Xử lý tương tác cho .site-header (toggle menu mobile, cuộn anchor)
   contact-form.js        # Validate + hiện thông báo thành công cho form ở section Liên Hệ
   chain.js               # Sổ cái băm nối chuỗi (hash chain) bằng Web Crypto API — chạy trong trình duyệt
@@ -66,11 +71,13 @@ js/
   lo-hang.js               # Logic riêng cho lo-hang.html (danh sách TẤT CẢ lô hàng, lọc theo nông trại/
                            # mùa vụ, QR + xác thực blockchain tại chỗ — thêm/sửa/xoá vẫn ở
                            # nong-trai-chi-tiet.html, nút sửa/xoá ở đây chỉ điều hướng qua đó)
-  tai-khoan.js            # Logic riêng cho tai-khoan.html (danh sách người dùng trong Đơn vị + modal
-                          # thêm người dùng + modal phân quyền theo phân hệ)
+  tai-khoan.js            # Logic riêng cho tai-khoan.html — ĐÃ CHUYỂN SANG BACKEND THẬT qua
+                          # js/api.js (GET/POST/PATCH/DELETE /users, /roles, /permissions),
+                          # không còn dùng store.js/collection "orgUsers" nữa — xem mục
+                          # "Kết nối backend" bên dưới.
   ho-so.js                # Logic riêng cho ho-so.html (xem/sửa hồ sơ CHÍNH tài khoản đang đăng nhập
-                          # — collection "users", KHÁC "orgUsers" của tai-khoan.js — + đổi mật khẩu.
-                          # Mở từ menu tài khoản ở topbar, không phải mục sidebar)
+                          # — collection "users" của store.js, vẫn giả lập, chưa chuyển sang API —
+                          # + đổi mật khẩu. Mở từ menu tài khoản ở topbar, không phải mục sidebar)
   truy-xuat.js            # Logic riêng cho truy-xuat.html (trang truy xuất công khai — KHÔNG nạp
                           # js/app-shell.js, trang này không cần đăng nhập)
   blog.js                 # Logic riêng cho blog.html (fetch() data/blog-posts.json rồi dựng từng
@@ -129,9 +136,10 @@ mau-quy-trinh.html        # Trang quản trị: mẫu quy trình mùa vụ (dùn
 lo-hang.html              # Trang quản trị: danh sách tất cả lô hàng (dùng chung khung app-shell) —
                           # CHỈ xem/lọc/QR/xác thực blockchain, không có form thêm/sửa lô hàng riêng
                           # (xem js/lo-hang.js)
-tai-khoan.html            # Trang quản trị: danh sách người dùng trong Đơn vị + phân quyền theo phân hệ
-                          # (dùng chung khung app-shell) — mục "Quản lý Tài khoản" trong nhóm sidebar
-                          # "Quản lý Đơn vị"
+tai-khoan.html            # Trang quản trị: danh sách người dùng trong Đơn vị + phân quyền theo VAI
+                          # TRÒ (dùng chung khung app-shell) — mục "Quản lý Tài khoản" trong nhóm
+                          # sidebar "Quản lý Đơn vị". Trang ĐẦU TIÊN trong dự án chuyển hẳn sang
+                          # backend thật (không còn store.js) — xem mục "Kết nối backend" bên dưới.
 ho-so.html                # Trang quản trị: hồ sơ CHÍNH tài khoản đang đăng nhập + đổi mật khẩu (dùng
                           # chung khung app-shell) — mở từ menu tài khoản ở topbar (bấm avatar), KHÔNG
                           # phải mục sidebar (xem mục "Menu tài khoản" bên dưới)
@@ -255,11 +263,13 @@ khẩu thật qua `store.changePassword(userId, mậtKhẩuMới)` — sinh salt
 mật khẩu dưới bất kỳ hình thức nào" chỉ áp dụng riêng cho `orgUsers` (xem mục "Đăng nhập/Đăng
 ký" bên dưới).
 
-## Đăng nhập / Đăng ký (giả lập)
+## Đăng nhập / Đăng ký
 
-`js/auth.js` + `js/store.js` + `js/chain.js` mô phỏng một backend hoàn toàn trong
-`localStorage` của trình duyệt — **không phải xác thực thật**, không có máy chủ nào
-kiểm tra (đã ghi rõ trong comment đầu mỗi file). Vài điểm cần nhớ khi đụng vào:
+**Đăng nhập (`dang-nhap.html`) đã chuyển sang backend thật** qua `js/api.js` — xem mục
+"Kết nối backend" ngay bên dưới. **Đăng ký (`dang-ky.html`) vẫn còn là giả lập** như
+trước: `js/auth.js` + `js/store.js` + `js/chain.js` mô phỏng một backend hoàn toàn trong
+`localStorage` của trình duyệt cho luồng này — không có máy chủ nào kiểm tra (đã ghi rõ
+trong comment đầu mỗi file). Vài điểm cần nhớ khi đụng vào:
 - `js/chain.js` dùng `crypto.subtle` (Web Crypto API) — chỉ chạy được trong "secure
   context" (`https://` hoặc `http://localhost`/`127.0.0.1`). Mở file trực tiếp bằng
   `file://` (double-click) sẽ lỗi ngay khi băm mật khẩu.
@@ -270,12 +280,117 @@ kiểm tra (đã ghi rõ trong comment đầu mỗi file). Vài điểm cần nh
 - Nút hiện/ẩn mật khẩu và danh sách điều kiện mật khẩu tách riêng thành
   `js/password-field.js` (dùng chung giữa `dang-ky.html` và modal "Thêm người dùng" ở
   `tai-khoan.html`) — sửa logic mật khẩu thì sửa ở đó, không sửa trong `js/auth.js`.
-- **Người dùng trong "Quản lý Tài khoản" (`orgUsers`, tách khỏi `users` — collection
-  gốc dùng cho đăng nhập/đăng ký) KHÔNG lưu mật khẩu dưới bất kỳ hình thức nào**, kể cả
-  "giả vờ" băm bằng `chain.js` (đó là hash một-chiều cho sổ cái, không phải hashing mật
-  khẩu đúng nghĩa — dùng sai mục đích sẽ tạo cảm giác an toàn giả). Mật khẩu nhập vào chỉ
-  để validate định dạng phía trình duyệt rồi bỏ, chờ backend thật đảm nhiệm xác thực sau
-  này (xem comment ở `handleUserSubmit()` trong `js/tai-khoan.js`).
+- **Collection `orgUsers` (store.js) giờ MỒ CÔI, không còn trang nào dùng tới** — trước
+  đây `tai-khoan.html` quản lý người dùng Đơn vị qua đây (cố tình không lưu mật khẩu, chỉ
+  validate định dạng rồi bỏ), nhưng trang đó đã chuyển hẳn sang `/users` của backend thật
+  (xem mục "Kết nối backend"). Chưa xoá `orgUsers` khỏi `COLLECTIONS` trong `store.js` vì
+  đây là thay đổi ngoài phạm vi lần chuyển đổi này — để lại cho một đợt dọn dẹp sau.
+
+## Kết nối backend
+
+Dự án bắt đầu chuyển dần từ `store.js` (localStorage giả lập) sang backend thật (FastAPI,
+repo riêng `agrichain-api`, mặc định chạy ở `http://127.0.0.1:8000`, tài liệu Swagger tại
+`/docs`). Hai lớp cùng tồn tại song song trong giai đoạn chuyển tiếp — **không phải mọi
+trang đều dùng backend thật ngay**:
+
+- **Đã chuyển sang API**: `dang-nhap.html` (chỉ đăng nhập), `tai-khoan.html` (toàn bộ).
+- **Vẫn dùng `store.js`**: mọi trang còn lại, kể cả `dang-ky.html` (đăng ký) và `ho-so.html`.
+
+### `js/api-config.js`
+
+Chỉ khai báo `AgriChain.API_BASE_URL`. Tách riêng khỏi `js/api.js` để khi deploy chỉ cần
+sửa đúng 1 dòng (đổi domain), không đụng tới logic gọi API. Nạp ở **mọi trang HTML**, kể
+cả trang chưa dùng API — để lần chuyển tiếp theo không phải thêm lại thẻ `<script>` vào
+từng file.
+
+### `js/api.js`
+
+Nạp SAU `api-config.js`, ở mọi trang, **không `defer`** (một số trang cần gọi
+`AgriChain.api.requireAuth()` ngay trong `<head>` để chặn hiển thị trước khi kịp chuyển
+hướng — script `defer` chạy quá trễ cho việc đó).
+
+- **Lưu phiên**: `localStorage` — `agrichain.access_token`, `agrichain.refresh_token`,
+  `agrichain.user` (JSON, gồm cả mảng quyền trả về từ `/auth/me`).
+- **`AgriChain.api.isLoggedIn()`** — có access token hay không.
+  **`AgriChain.api.hasPermission(code)`** — dò trong mảng quyền đã lưu của user, dùng để
+  ẩn/hiện nút trên giao diện (đánh dấu bằng `data-requires-permission="<mã quyền>"` trên
+  phần tử, xem cách dùng ở `tai-khoan.html`/`js/tai-khoan.js`).
+- **`AgriChain.api.requireAuth()`** — gọi ở đầu `<head>` bằng script thường (không defer)
+  cho các trang cần đăng nhập; chưa có token thì chuyển hướng ngay sang
+  `dang-nhap.html?redirect=<trang hiện tại>`.
+- **Lỗi**: mọi lỗi ném ra là `AgriChain.api.ApiError` — luôn có `.status` (mã HTTP, `0` =
+  lỗi mạng), `.code` (`VALIDATION_ERROR`/`UNAUTHORIZED`/`FORBIDDEN`/`NOT_FOUND`/`CONFLICT`/
+  `INTERNAL_ERROR`/`NETWORK_ERROR`), `.message` (tiếng Việt, hiển thị thẳng được),
+  `.details` (VD `{ field: 'email' }`, dùng để gắn lỗi đúng ô trên form). Response không
+  đúng khuôn `{ error: {...} }` (lỗi 500 trần, HTML báo lỗi của proxy...) → tự dùng thông
+  báo mặc định theo mã HTTP thay vì hiện chuỗi rác. **`NETWORK_ERROR`** (fetch ném lỗi,
+  backend chưa chạy) tách riêng khỏi lỗi 500 — đây là ca gặp thường xuyên nhất lúc phát
+  triển (quên bật `agrichain-api`).
+- **Tự làm mới token khi gặp 401**: giữ 1 `refreshPromise` dùng chung ở phạm vi module —
+  nhiều request cùng 401 thì tất cả chờ chung 1 lần gọi `/auth/refresh`, không gọi song
+  song (backend xoay vòng refresh token, gọi song song sẽ khiến token bị thu hồi và đăng
+  xuất oan). Refresh xong thì request gốc tự chạy lại **đúng 1 lần** (`retry: false`) rồi
+  thôi — không lặp vô hạn nếu vẫn tiếp tục 401. Refresh thất bại → xoá phiên + chuyển
+  hướng `dang-nhap.html?redirect=...`. `/auth/login` và `/auth/refresh` luôn gọi với
+  `auth: false, retry: false`.
+- **`api.auth.login()`** gọi `/auth/login` xong gọi LUÔN `/auth/me` để lấy bản user đầy đủ
+  nhất kèm mảng quyền (đề phòng response `/auth/login` không kèm sẵn quyền), rồi mới lưu
+  vào `agrichain.user`.
+- Các hàm nghiệp vụ (`api.users.*`, `api.roles.*`, `api.permissions.*`) chỉ bọc mỏng
+  quanh `request()`, không tự suy luận gì thêm — validate/điều hướng dữ liệu là việc của
+  từng trang, đúng quy ước "store.js/api.js chỉ generic" đã áp dụng cho `store.js`.
+
+### Cầu nối tạm với `js/app-shell.js`
+
+`requireSession()`/`setupLogout()` (dùng chung cho mọi trang có khung app-shell — sidebar/
+topbar) đã sửa để **ưu tiên phiên API nếu có**, rơi xuống `store.js` nếu không — nếu không
+làm vậy thì `tai-khoan.html` (đăng nhập qua API, không còn ghi phiên vào `store.js`) sẽ bị
+chính `requireSession()` cũ đá ngược về `dang-nhap.html` ngay sau khi đăng nhập thành công
+(vì `store.getSession()` luôn rỗng). Đây là cầu nối TẠM cho tới khi mọi trang cùng chuyển
+sang API — gỡ nhánh `store` đi khi đó.
+
+### Trang `tai-khoan.html` — phân quyền theo VAI TRÒ, không còn theo từng người dùng
+
+Khác hẳn model cũ (`orgUsers`, mỗi người dùng có ma trận quyền RIÊNG lưu ngay trên bản ghi
+của họ): backend dùng RBAC — quyền gắn vào **vai trò** (`role`), người dùng chỉ giữ
+`role_id`. Bấm icon "Phân quyền" ở 1 người dùng thực chất mở ra **quyền của vai trò người
+đó đang giữ** — lưu lại sẽ ảnh hưởng tới MỌI người dùng khác cùng vai trò, không chỉ riêng
+người vừa bấm. Modal có ghi chú rõ điều này ngay trong giao diện
+(`[data-permission-role-notice]`) để tránh gây bất ngờ cho người quản trị.
+
+**⚠️ Các giả định sau CẦN xác nhận lại với `/docs` của backend thật** — tài liệu API đưa ra
+lúc viết phần này chỉ liệt kê endpoint, chưa có khuôn dữ liệu chi tiết cho `role`/
+`permission`:
+- `permission.code` có dạng `"<nhóm>.<hành động>"`, hành động là hậu tố sau dấu `.` cuối
+  cùng — `js/tai-khoan.js` chấp nhận cả `view/add/edit/delete` (đang dùng trên giao diện)
+  lẫn `read/create/update/remove` (từ vựng REST phổ biến khác) qua bảng `ACTION_ALIASES`.
+- `permission.group_name` khớp đúng 5 chuỗi đang dùng làm nhãn phân hệ trên giao diện
+  (`'Nông trại'`, `'Chứng nhận'`, `'Mùa vụ'`, `'Vật tư'`, `'Nhật ký'`, mảng `GROUP_ORDER`
+  trong `js/tai-khoan.js`) — nhóm nào backend trả về mà không khớp mảng này vẫn hiển thị
+  (không bị bỏ rơi), chỉ xếp xuống cuối theo alphabet.
+- `role.permissions` là mảng object `{ id, code, group_name, ... }` (hoặc mảng id thô —
+  code đã viết phòng cả 2 trường hợp qua kiểm tra `typeof`).
+- `PATCH /roles/{id}` nhận field `permission_ids` (mảng id quyền) để THAY THẾ TOÀN BỘ tập
+  quyền của vai trò đó — `handlePermissionSave()` vì vậy phải tự GHÉP LẠI id các quyền
+  nằm ngoài lưới 5×4 đang hiển thị (nhóm lạ/hành động lạ) với id các quyền vừa tick trong
+  lưới, tránh vô tình xoá mất quyền không hiển thị trên giao diện này khi lưu — xem biến
+  `managedPermissionIds` trong `js/tai-khoan.js`.
+- Field lỗi validate (`details.field`) trả về đúng tên field đã gửi lên
+  (`email`/`full_name`/`password`) để gắn lỗi vào đúng ô trên form "Thêm người dùng" —
+  xem `fieldNodeFor()`.
+
+Nếu backend thật trả về khác các giả định trên, sửa lại đúng chỗ tương ứng trong
+`js/tai-khoan.js` (các hằng số `GROUP_ORDER`/`ACTION_ALIASES` và hàm `actionFromCode()`/
+`groupPermissions()`/`handlePermissionSave()`) — không cần sửa `js/api.js` vì lớp đó chỉ
+truyền dữ liệu thô, không diễn giải khuôn dạng.
+
+### Nợ kỹ thuật đã biết
+
+**Lưu access/refresh token trong `localStorage` không an toàn trước tấn công XSS** (bất kỳ
+đoạn JS nào chạy được trên trang, kể cả từ thư viện ngoài bị lỗi, cũng đọc được token). Đây
+là đánh đổi CHỦ ĐỘNG cho giai đoạn phát triển (đơn giản, không cần cấu hình CORS/cookie
+phức tạp) — **bắt buộc phải chuyển sang cookie `httpOnly` + `Secure` + `SameSite`
+(backend set cookie, frontend không đụng tới token nữa) trước khi lên production.**
 
 ## Quy ước CSS
 

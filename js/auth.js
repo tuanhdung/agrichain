@@ -1,11 +1,15 @@
 /* ==========================================================================
    AgriChain — Đăng nhập / Đăng ký
    Một file dùng cho cả hai trang; tự nhận biết theo id của form có mặt.
-   Nạp SAU js/chain.js, js/store.js và js/password-field.js (nút hiện/ẩn +
-   điều kiện mật khẩu dùng chung, xem file đó).
+   Nạp SAU js/chain.js, js/store.js, js/api-config.js, js/api.js và
+   js/password-field.js (nút hiện/ẩn + điều kiện mật khẩu dùng chung, xem
+   file đó).
 
-   NHẮC LẠI: đây không phải xác thực thật. Toàn bộ tài khoản nằm trong
-   localStorage của chính trình duyệt này. Không dùng cho dữ liệu thật.
+   Đăng nhập (setupLogin) ĐÃ CHUYỂN sang backend thật qua js/api.js — xem
+   mục "Kết nối backend" trong CLAUDE.md. Đăng ký (setupRegister) VẪN CÒN
+   giả lập: toàn bộ tài khoản đăng ký qua đây nằm trong localStorage của
+   chính trình duyệt này, không có máy chủ nào kiểm tra — không dùng cho
+   dữ liệu thật cho tới khi luồng đăng ký cũng được chuyển sang API.
    ========================================================================== */
 
 (function (global) {
