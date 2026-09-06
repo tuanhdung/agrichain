@@ -90,15 +90,13 @@
   }
 
   // Kiểm tra quyền trong mảng quyền đã lưu của user (từ /auth/me) — dùng để
-  // ẩn/hiện nút trên giao diện. Chấp nhận cả 2 dạng phần tử mảng quyền
-  // (chuỗi mã quyền, hoặc object { code, ... }) vì tài liệu API chưa nêu rõ
-  // backend trả về dạng nào — cần đối chiếu lại với /docs khi có.
+  // ẩn/hiện nút trên giao diện. Đã xác nhận qua /openapi.json + dữ liệu thật
+  // của GET /permissions, /roles: mảng quyền luôn là chuỗi mã quyền
+  // ("farms.view"...), không phải object — không cần đoán 2 dạng nữa.
   function hasPermission(code) {
     var user = getUser();
     if (!user || !user.permissions) return false;
-    return user.permissions.some(function (item) {
-      return (typeof item === 'string' ? item : item.code) === code;
-    });
+    return user.permissions.indexOf(code) !== -1;
   }
 
   /* --- Lỗi API --------------------------------------------------------------
@@ -289,8 +287,14 @@
     });
   }
 
+  // GET /auth/me trả về { user: UserOut, permissions: string[] } (xác nhận qua
+  // /openapi.json thật, khuôn "MeResponse") — KHÔNG phải bản user phẳng. Phải
+  // gắn permissions vào user trước khi lưu, nếu không mọi field của user
+  // (full_name, email, role_id...) sẽ đọc ra undefined ở mọi nơi dùng getUser().
   function me() {
-    return request('GET', '/auth/me').then(function (user) {
+    return request('GET', '/auth/me').then(function (data) {
+      var user = data.user;
+      user.permissions = data.permissions || [];
       saveUser(user);
       return user;
     });

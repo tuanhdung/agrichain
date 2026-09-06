@@ -623,6 +623,8 @@
 
     // Ranh giới không phải input nên không đưa vào `problems` (không
     // .focus() được) — kiểm riêng, ưu tiên các lỗi field ở trên trước.
+    // `polygon` BẮT BUỘC — tối thiểu 3 điểm mới được lưu (khớp constraint
+    // NOT NULL trong migration 003 của backend, không có ngoại lệ).
     var boundaryValid = points.length >= 3;
     boundaryError.hidden = boundaryValid;
 
@@ -653,7 +655,7 @@
       startDate: String(data.get('startDate') || ''),
       area: Number(data.get('area')) || 0,
       description: String(data.get('description') || '').trim(),
-      polygon: points.slice() // sao chép để lần mở modal sau không sửa vào bản đã lưu
+      polygon: points.slice() // sao chép để lần mở modal sau không sửa vào bản đã lưu — bắt buộc >=3 điểm, đã validate ở trên
     };
 
     if (editingFarmId) {

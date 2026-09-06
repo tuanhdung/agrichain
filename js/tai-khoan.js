@@ -3,10 +3,15 @@
    ĐÃ CHUYỂN SANG BACKEND THẬT (js/api.js) — không còn đọc/ghi qua
    AgriChain.store/collection "orgUsers" nữa. Danh sách người dùng phân
    trang + tìm kiếm qua GET /users; phân quyền theo VAI TRÒ (GET /roles,
-   GET /permissions, PATCH /roles/{id}) — xem mục "Kết nối backend" và mục
-   riêng về trang này trong CLAUDE.md, đặc biệt phần ghi chú "giả định cần
-   xác nhận lại với /docs backend thật" (khuôn dữ liệu permission/role chưa
-   được đặc tả chi tiết khi viết file này).
+   GET /permissions, PATCH /roles/{id}). Khuôn dữ liệu permission/role đã
+   được XÁC NHẬN THẬT qua /openapi.json + dữ liệu thật của backend (không
+   còn là giả định) — xem mục riêng về trang này trong CLAUDE.md.
+
+   28 mã quyền thật, dạng "<nhóm số nhiều>.<hành động>" (4 hành động
+   add/edit/view/delete x 7 nhóm nghiệp vụ: certifications, farms, logs,
+   roles, seasons, supplies, users) — permission KHÔNG có id số, chỉ có
+   `code` (chuỗi) — role.permissions và PATCH /roles/{id} đều làm việc
+   trực tiếp trên mảng chuỗi mã quyền này, không phải mảng id.
    Nạp SAU js/api-config.js, js/api.js, js/app-shell.js và js/password-field.js.
    ========================================================================== */
 
@@ -18,17 +23,32 @@
   var PAGE_SIZE = 10;
   var SEARCH_DEBOUNCE_MS = 300;
 
-  // Thứ tự nhóm quyền hiển thị — trùng tên 5 phân hệ đã có trước khi chuyển
-  // sang backend. GIẢ ĐỊNH group_name backend trả về khớp đúng các chuỗi
-  // này (cần xác nhận lại với /docs) — nhóm nào backend trả về mà không có
-  // trong mảng này vẫn được hiển thị, chỉ xếp xuống cuối theo alphabet.
-  var GROUP_ORDER = ['Nông trại', 'Chứng nhận', 'Mùa vụ', 'Vật tư', 'Nhật ký'];
-  var GROUP_ICONS = {
-    'Nông trại': 'icon-seedling',
-    'Chứng nhận': 'icon-qr-code',
-    'Mùa vụ': 'icon-calendar',
-    'Vật tư': 'icon-box',
-    'Nhật ký': 'icon-file-text'
+  // Ma trận phân quyền hiển thị theo TIỀN TỐ của mã quyền (phần trước dấu
+  // "." đầu tiên: "farms.view" -> "farms"), KHÔNG dùng thẳng group_name mà
+  // GET /permissions trả về — backend gộp chung roles.* và users.* vào 1
+  // group_name duy nhất ("Quản lý đơn vị", đã xác nhận qua dữ liệu thật),
+  // nếu hiển thị theo group_name thì 1 ô (nhóm x hành động) sẽ có 2 mã quyền
+  // (VD "roles.view" và "users.view" cùng rơi vào ô "Xem" của "Quản lý đơn
+  // vị"), phá vỡ giả định "1 checkbox = 1 mã quyền" của bảng ma trận. Tách
+  // theo tiền tố mã quyền cho ra đúng 7 hàng, mỗi hàng 1 mã quyền/hành động.
+  var PREFIX_ORDER = ['farms', 'certifications', 'seasons', 'supplies', 'logs', 'roles', 'users'];
+  var PREFIX_LABELS = {
+    farms: 'Nông trại',
+    certifications: 'Chứng nhận',
+    seasons: 'Mùa vụ',
+    supplies: 'Vật tư',
+    logs: 'Nhật ký',
+    roles: 'Vai trò',
+    users: 'Người dùng'
+  };
+  var PREFIX_ICONS = {
+    farms: 'icon-seedling',
+    certifications: 'icon-qr-code',
+    seasons: 'icon-calendar',
+    supplies: 'icon-box',
+    logs: 'icon-file-text',
+    roles: 'icon-shield-check',
+    users: 'icon-user'
   };
 
   var ACTIONS = [
@@ -38,21 +58,19 @@
     { key: 'delete', label: 'Xoá' }
   ];
 
-  // GIẢ ĐỊNH: mã quyền (permission.code) có dạng "<nhóm>.<hành động>", hành
-  // động là hậu tố sau dấu "." cuối cùng — chấp nhận vài cách viết REST phổ
-  // biến khác (create/update/read/remove) phòng khi backend không dùng
-  // đúng 4 từ add/edit/view/delete đang có sẵn trên giao diện. Cần xác nhận
-  // lại với /docs backend thật.
-  var ACTION_ALIASES = {
-    view: 'view', read: 'view',
-    add: 'add', create: 'add',
-    edit: 'edit', update: 'edit',
-    delete: 'delete', remove: 'delete'
-  };
+  function permissionPrefix(code) {
+    var text = String(code || '');
+    var dot = text.indexOf('.');
+    return dot === -1 ? text : text.slice(0, dot);
+  }
 
+  // Đã xác nhận qua dữ liệu thật: hậu tố mã quyền luôn đúng 1 trong 4 từ
+  // add/edit/view/delete (khớp thẳng key của ACTIONS, không cần bảng alias
+  // suy đoán như trước).
   function actionFromCode(code) {
-    var suffix = String(code || '').split('.').pop().toLowerCase();
-    return ACTION_ALIASES[suffix] || null;
+    var text = String(code || '');
+    var dot = text.indexOf('.');
+    return dot === -1 ? null : text.slice(dot + 1);
   }
 
   function el(tag, className, text) {
@@ -135,14 +153,34 @@
     }
     tr.appendChild(nameCell);
 
+    tr.appendChild(el('td', 'table__muted', user.role_name || '—'));
+
     var actionsCell = el('td');
     var wrap = el('div', 'table__actions');
+
+    var editButton = el('button', 'icon-btn');
+    editButton.type = 'button';
+    editButton.setAttribute('aria-label', 'Sửa ' + user.full_name);
+    editButton.setAttribute('data-tooltip', 'Sửa');
+    if (!api.hasPermission('users.edit')) editButton.hidden = true;
+    editButton.appendChild(svgIcon('icon-pencil'));
+    editButton.addEventListener('click', function () { openEditUserModal(user); });
+    wrap.appendChild(editButton);
+
+    var resetButton = el('button', 'icon-btn');
+    resetButton.type = 'button';
+    resetButton.setAttribute('aria-label', 'Đặt lại mật khẩu cho ' + user.full_name);
+    resetButton.setAttribute('data-tooltip', 'Đặt lại mật khẩu');
+    if (!api.hasPermission('users.edit')) resetButton.hidden = true;
+    resetButton.appendChild(svgIcon('icon-key'));
+    resetButton.addEventListener('click', function () { openResetPasswordModal(user); });
+    wrap.appendChild(resetButton);
 
     var permButton = el('button', 'icon-btn icon-btn--info');
     permButton.type = 'button';
     permButton.setAttribute('aria-label', 'Phân quyền cho ' + user.full_name);
     permButton.setAttribute('data-tooltip', 'Phân quyền');
-    if (!api.hasPermission('roles.update')) permButton.hidden = true;
+    if (!api.hasPermission('roles.view')) permButton.hidden = true;
     permButton.appendChild(svgIcon('icon-shield-check'));
     permButton.addEventListener('click', function () { openPermissionModal(user); });
     wrap.appendChild(permButton);
@@ -226,22 +264,40 @@
     });
   }
 
-  /* --- Modal: Thêm người dùng ------------------------------------------------ */
+  /* --- Chọn vai trò (dùng chung giữa modal Thêm và Sửa người dùng) --------- */
 
-  var userModal = document.getElementById('user-modal');
-  var userForm = document.getElementById('user-form');
-  var userSubmitButton = userForm.querySelector('button[type="submit"]');
-  var userSubmitLabel = userSubmitButton.textContent;
+  // Danh sách vai trò rất nhỏ (không phân trang) nên tải mới mỗi lần mở modal
+  // thay vì cache — tránh hiện vai trò đã lỗi thời nếu ai đó vừa đổi tên vai
+  // trò qua modal Phân quyền ở tab khác.
+  function populateRoleSelect(selectEl, selectedRoleId, includeBlank) {
+    selectEl.disabled = true;
+    selectEl.textContent = '';
+    selectEl.appendChild(el('option', null, 'Đang tải vai trò...'));
 
-  function openUserModal() {
-    userForm.reset();
-    clearErrors(userForm);
-    userModal.showModal();
-    document.getElementById('user-email').focus();
-  }
-
-  function closeUserModal() {
-    userModal.close();
+    return api.roles.list().then(function (roleList) {
+      selectEl.textContent = '';
+      if (includeBlank) {
+        // Thêm modal: không tự chọn sẵn vai trò nào — buộc người tạo chọn rõ
+        // ràng, tránh lỡ tay gán nhầm vai trò đầu tiên trả về (VD "Quản trị
+        // viên") cho người dùng mới.
+        var blank = el('option', null, '-- Chọn vai trò --');
+        blank.value = '';
+        selectEl.appendChild(blank);
+      }
+      roleList.forEach(function (role) {
+        var option = el('option', null, role.name);
+        option.value = role.id;
+        if (selectedRoleId && String(role.id) === String(selectedRoleId)) {
+          option.selected = true;
+        }
+        selectEl.appendChild(option);
+      });
+      selectEl.disabled = false;
+    }).catch(function (err) {
+      selectEl.textContent = '';
+      selectEl.appendChild(el('option', null, 'Không tải được vai trò'));
+      global.AgriChain.toast(err.message);
+    });
   }
 
   function clearErrors(form) {
@@ -258,14 +314,35 @@
     host.appendChild(error);
   }
 
+  /* --- Modal: Thêm người dùng ------------------------------------------------ */
+
+  var userModal = document.getElementById('user-modal');
+  var userForm = document.getElementById('user-form');
+  var userRoleSelect = document.getElementById('user-role');
+  var userSubmitButton = userForm.querySelector('button[type="submit"]');
+  var userSubmitLabel = userSubmitButton.textContent;
+
+  function openUserModal() {
+    userForm.reset();
+    clearErrors(userForm);
+    populateRoleSelect(userRoleSelect, null, true);
+    userModal.showModal();
+    document.getElementById('user-email').focus();
+  }
+
+  function closeUserModal() {
+    userModal.close();
+  }
+
   // Ánh xạ tên field backend trả về trong lỗi (details.field, snake_case)
-  // sang đúng input trên form — GIẢ ĐỊNH tên field khớp key gửi lên
-  // (email/full_name/password), cần xác nhận lại với /docs backend thật.
+  // sang đúng input trên form "Thêm người dùng" (khớp UserCreate thật).
   function fieldNodeFor(fieldName) {
     var map = {
       email: 'user-email',
       full_name: 'user-full-name',
-      password: 'user-password'
+      password: 'user-password',
+      role_id: 'user-role',
+      phone: 'user-phone'
     };
     var id = map[fieldName];
     return id ? document.getElementById(id) : null;
@@ -287,6 +364,10 @@
       showError(fullName, 'Nhập họ tên.');
       problems.push(fullName);
     }
+    if (!userRoleSelect.value) {
+      showError(userRoleSelect, 'Chọn vai trò.');
+      problems.push(userRoleSelect);
+    }
     var missing = global.AgriChain.passwordProblems(password.value);
     if (missing.length) {
       showError(password, 'Mật khẩu còn thiếu: ' + missing.join(', ') + '.');
@@ -305,11 +386,14 @@
     if (!validateUserClientSide()) return;
 
     var data = new FormData(userForm);
+    var phone = String(data.get('phone') || '').trim();
     var payload = {
       email: String(data.get('email')).trim(),
       full_name: String(data.get('fullName')).trim(),
-      password: String(data.get('password'))
+      password: String(data.get('password')),
+      role_id: Number(data.get('roleId'))
     };
+    if (phone) payload.phone = phone;
 
     userSubmitButton.disabled = true;
     userSubmitButton.textContent = 'Đang lưu...';
@@ -337,6 +421,145 @@
     });
   }
 
+  /* --- Modal: Sửa người dùng ---------------------------------------------
+     UserUpdate KHÔNG có email/password (đổi email chưa hỗ trợ ở giai đoạn
+     này; đổi mật khẩu đi qua modal "Đặt lại mật khẩu" riêng, xem bên dưới)
+     — vì vậy đây là modal RIÊNG, không dùng chung với modal Thêm. ---------- */
+
+  var editUserModal = document.getElementById('edit-user-modal');
+  var editUserForm = document.getElementById('edit-user-form');
+  var editUserRoleSelect = document.getElementById('edit-user-role');
+  var editUserSubmitButton = editUserForm.querySelector('button[type="submit"]');
+  var editUserSubmitLabel = editUserSubmitButton.textContent;
+  var currentEditUserId = null;
+
+  function openEditUserModal(user) {
+    currentEditUserId = user.id;
+    editUserForm.reset();
+    clearErrors(editUserForm);
+    document.getElementById('edit-user-full-name').value = user.full_name;
+    document.getElementById('edit-user-phone').value = user.phone || '';
+    document.getElementById('edit-user-active').checked = user.is_active !== false;
+    populateRoleSelect(editUserRoleSelect, user.role_id);
+    editUserModal.showModal();
+    document.getElementById('edit-user-full-name').focus();
+  }
+
+  function closeEditUserModal() {
+    editUserModal.close();
+    currentEditUserId = null;
+  }
+
+  function editFieldNodeFor(fieldName) {
+    var map = {
+      full_name: 'edit-user-full-name',
+      role_id: 'edit-user-role',
+      phone: 'edit-user-phone'
+    };
+    var id = map[fieldName];
+    return id ? document.getElementById(id) : null;
+  }
+
+  function handleEditUserSubmit(event) {
+    event.preventDefault();
+    clearErrors(editUserForm);
+
+    var fullName = document.getElementById('edit-user-full-name');
+    var problems = [];
+    if (!fullName.value.trim()) {
+      showError(fullName, 'Nhập họ tên.');
+      problems.push(fullName);
+    }
+    if (!editUserRoleSelect.value) {
+      showError(editUserRoleSelect, 'Chọn vai trò.');
+      problems.push(editUserRoleSelect);
+    }
+    if (problems.length) {
+      problems[0].focus();
+      return;
+    }
+
+    var phone = document.getElementById('edit-user-phone').value.trim();
+    var payload = {
+      full_name: fullName.value.trim(),
+      role_id: Number(editUserRoleSelect.value),
+      phone: phone || null,
+      is_active: document.getElementById('edit-user-active').checked
+    };
+
+    editUserSubmitButton.disabled = true;
+    editUserSubmitButton.textContent = 'Đang lưu...';
+
+    api.users.update(currentEditUserId, payload).then(function () {
+      closeEditUserModal();
+      loadUsers();
+      global.AgriChain.toast('Đã cập nhật người dùng.');
+    }).catch(function (err) {
+      if (err.details && err.details.field) {
+        var field = editFieldNodeFor(err.details.field);
+        if (field) {
+          showError(field, err.message);
+          field.focus();
+        } else {
+          global.AgriChain.toast(err.message);
+        }
+      } else {
+        global.AgriChain.toast(err.message);
+      }
+    }).then(function () {
+      editUserSubmitButton.disabled = false;
+      editUserSubmitButton.textContent = editUserSubmitLabel;
+    });
+  }
+
+  /* --- Modal: Đặt lại mật khẩu --------------------------------------------- */
+
+  var resetPasswordModal = document.getElementById('reset-password-modal');
+  var resetPasswordForm = document.getElementById('reset-password-form');
+  var resetPasswordSubmitButton = resetPasswordForm.querySelector('button[type="submit"]');
+  var resetPasswordSubmitLabel = resetPasswordSubmitButton.textContent;
+  var currentResetUser = null;
+
+  function openResetPasswordModal(user) {
+    currentResetUser = user;
+    resetPasswordForm.reset();
+    clearErrors(resetPasswordForm);
+    document.querySelector('[data-reset-password-name]').textContent = user.full_name;
+    resetPasswordModal.showModal();
+    document.getElementById('reset-password-input').focus();
+  }
+
+  function closeResetPasswordModal() {
+    resetPasswordModal.close();
+    currentResetUser = null;
+  }
+
+  function handleResetPasswordSubmit(event) {
+    event.preventDefault();
+    clearErrors(resetPasswordForm);
+
+    var password = document.getElementById('reset-password-input');
+    var missing = global.AgriChain.passwordProblems(password.value);
+    if (missing.length) {
+      showError(password, 'Mật khẩu còn thiếu: ' + missing.join(', ') + '.');
+      password.focus();
+      return;
+    }
+
+    resetPasswordSubmitButton.disabled = true;
+    resetPasswordSubmitButton.textContent = 'Đang lưu...';
+
+    api.users.resetPassword(currentResetUser.id, password.value).then(function () {
+      closeResetPasswordModal();
+      global.AgriChain.toast('Đã đặt lại mật khẩu.');
+    }).catch(function (err) {
+      global.AgriChain.toast(err.message);
+    }).then(function () {
+      resetPasswordSubmitButton.disabled = false;
+      resetPasswordSubmitButton.textContent = resetPasswordSubmitLabel;
+    });
+  }
+
   /* ======================================================================
      Modal: Phân quyền (theo VAI TRÒ của người dùng — xem ghi chú đầu file)
      ====================================================================== */
@@ -355,38 +578,52 @@
 
   var currentPermissionUser = null;
   var currentRole = null;
-  // id của MỌI quyền đã render thành checkbox trong bảng — id quyền của vai
-  // trò hiện tại mà KHÔNG nằm trong tập này sẽ được giữ nguyên khi lưu (xem
-  // handlePermissionSave()), tránh vô tình xoá mất quyền nằm ngoài 5 phân
-  // hệ x 4 hành động đang hiển thị trên giao diện.
-  var managedPermissionIds = null;
+  // Mã quyền (code) của MỌI quyền đã render thành checkbox trong bảng — quyền
+  // của vai trò hiện tại mà KHÔNG nằm trong tập này (nhóm/hành động lạ ngoài
+  // 7 phân hệ x 4 hành động đang hiển thị) sẽ được giữ nguyên khi lưu, xem
+  // handlePermissionSave().
+  var managedCodes = null;
 
   function setPermissionView(view) {
     permissionLoading.hidden = view !== 'loading';
     permissionError.hidden = view !== 'error';
     permissionTableWrap.hidden = view !== 'data';
-    savePermissionBtn.hidden = view !== 'data' || !api.hasPermission('roles.update');
+    savePermissionBtn.hidden = view !== 'data' || !api.hasPermission('roles.edit');
   }
 
-  function groupPermissions(permissionList) {
-    var byGroup = {};
-    permissionList.forEach(function (perm) {
-      var group = perm.group_name || 'Khác';
-      if (!byGroup[group]) byGroup[group] = [];
-      byGroup[group].push(perm);
+  // groupsFromApi: PermissionGroupOut[] — GET /permissions ĐÃ nhóm sẵn theo
+  // group_name, nhưng ta bỏ qua group_name và tự nhóm lại theo TIỀN TỐ mã
+  // quyền (xem ghi chú PREFIX_ORDER ở đầu file) để luôn ra đúng 1 mã quyền
+  // cho mỗi ô (nhóm x hành động).
+  function groupPermissions(groupsFromApi) {
+    var flat = [];
+    (groupsFromApi || []).forEach(function (g) {
+      flat = flat.concat(g.permissions || []);
     });
 
-    var names = Object.keys(byGroup);
-    var known = names.filter(function (name) { return GROUP_ORDER.indexOf(name) !== -1; })
-      .sort(function (a, b) { return GROUP_ORDER.indexOf(a) - GROUP_ORDER.indexOf(b); });
-    var unknown = names.filter(function (name) { return GROUP_ORDER.indexOf(name) === -1; }).sort();
+    var byPrefix = {};
+    flat.forEach(function (perm) {
+      var prefix = permissionPrefix(perm.code);
+      if (!byPrefix[prefix]) byPrefix[prefix] = [];
+      byPrefix[prefix].push(perm);
+    });
 
-    return known.concat(unknown).map(function (name) {
-      return { name: name, icon: GROUP_ICONS[name] || 'icon-shield-check', permissions: byGroup[name] };
+    var prefixes = Object.keys(byPrefix);
+    var known = prefixes.filter(function (p) { return PREFIX_ORDER.indexOf(p) !== -1; })
+      .sort(function (a, b) { return PREFIX_ORDER.indexOf(a) - PREFIX_ORDER.indexOf(b); });
+    var unknown = prefixes.filter(function (p) { return PREFIX_ORDER.indexOf(p) === -1; }).sort();
+
+    return known.concat(unknown).map(function (prefix) {
+      var perms = byPrefix[prefix];
+      return {
+        name: PREFIX_LABELS[prefix] || (perms[0] && perms[0].group_name) || prefix,
+        icon: PREFIX_ICONS[prefix] || 'icon-shield-check',
+        permissions: perms
+      };
     });
   }
 
-  function permissionRow(group, grantedIds) {
+  function permissionRow(group, grantedCodes) {
     var tr = el('tr');
 
     var moduleCell = el('td');
@@ -411,14 +648,12 @@
         'Quyền ' + action.label.toLowerCase() + ' phân hệ ' + group.name);
 
       if (permission) {
-        // KHÔNG dùng checkbox.dataset (thuộc tính HTML luôn ép về chuỗi) —
-        // permission.id có thể là số nguyên bên phía backend, ép về chuỗi ở
-        // đây rồi gửi lẫn với các id giữ nguyên kiểu số khác (keptIds) khi
-        // lưu có thể khiến backend từ chối vì lẫn lộn kiểu dữ liệu. Gán
-        // thẳng thuộc tính JS để giữ nguyên kiểu gốc.
-        checkbox.permissionId = permission.id;
-        managedPermissionIds[permission.id] = true;
-        checkbox.checked = grantedIds.indexOf(permission.id) !== -1;
+        // Mã quyền là chuỗi (VD "farms.view") nên dùng thẳng dataset — không
+        // có nguy cơ ép kiểu sai như khi id là số (đã xác nhận qua dữ liệu
+        // thật: permission không có id số, chỉ có code).
+        checkbox.dataset.code = permission.code;
+        managedCodes[permission.code] = true;
+        checkbox.checked = grantedCodes.indexOf(permission.code) !== -1;
         checkbox.addEventListener('change', function () {
           syncViewPermission(group.name, action.key, checkbox.checked);
         });
@@ -457,11 +692,13 @@
 
   function loadPermissionMatrix(user) {
     setPermissionView('loading');
-    managedPermissionIds = {};
+    managedCodes = {};
 
+    // GET /permissions và GET /roles đều trả về mảng trực tiếp, không phân
+    // trang (đã xác nhận qua dữ liệu thật) — không cần bóc .items.
     Promise.all([api.permissions.list(), api.roles.list()]).then(function (results) {
-      var permissionList = results[0].items || results[0];
-      var roleList = results[1].items || results[1];
+      var groupsFromApi = results[0];
+      var roleList = results[1];
 
       currentRole = roleList.filter(function (role) { return role.id === user.role_id; })[0] || null;
 
@@ -472,13 +709,12 @@
       }
 
       permissionRoleName.textContent = currentRole.name;
-      var grantedIds = (currentRole.permissions || []).map(function (p) {
-        return typeof p === 'string' ? p : p.id;
-      });
+      // role.permissions luôn là mảng chuỗi mã quyền (đã xác nhận thật).
+      var grantedCodes = currentRole.permissions || [];
 
       permissionTableBody.textContent = '';
-      groupPermissions(permissionList).forEach(function (group) {
-        permissionTableBody.appendChild(permissionRow(group, grantedIds));
+      groupPermissions(groupsFromApi).forEach(function (group) {
+        permissionTableBody.appendChild(permissionRow(group, grantedCodes));
       });
 
       setPermissionView('data');
@@ -505,28 +741,30 @@
     permissionModal.close();
     currentPermissionUser = null;
     currentRole = null;
-    managedPermissionIds = null;
+    managedCodes = null;
   }
 
   function handlePermissionSave() {
     if (!currentRole) return;
 
-    var checkedIds = [];
+    var checkedCodes = [];
     permissionTableBody.querySelectorAll('input[type="checkbox"]:not(:disabled)').forEach(function (checkbox) {
-      if (checkbox.checked) checkedIds.push(checkbox.permissionId);
+      if (checkbox.checked) checkedCodes.push(checkbox.dataset.code);
     });
 
-    // Giữ nguyên các quyền của vai trò này nằm NGOÀI 5 phân hệ x 4 hành
+    // Giữ nguyên các quyền của vai trò này nằm NGOÀI 7 phân hệ x 4 hành
     // động đang hiển thị (nhóm lạ/hành động lạ) — không được vô tình xoá
-    // mất khi lưu, xem ghi chú ở khai báo managedPermissionIds phía trên.
-    var keptIds = (currentRole.permissions || [])
-      .map(function (p) { return typeof p === 'string' ? p : p.id; })
-      .filter(function (id) { return !managedPermissionIds[id]; });
+    // mất khi lưu, xem ghi chú ở khai báo managedCodes phía trên.
+    var keptCodes = (currentRole.permissions || [])
+      .filter(function (code) { return !managedCodes[code]; });
 
-    var finalIds = keptIds.concat(checkedIds);
+    var finalCodes = keptCodes.concat(checkedCodes);
 
+    // PATCH /roles/{id} nhận field "permissions" (mảng mã quyền, THAY THẾ
+    // toàn bộ danh sách cũ) — đã xác nhận qua /openapi.json thật, KHÔNG phải
+    // "permission_ids" như suy đoán ban đầu.
     savePermissionBtn.disabled = true;
-    api.roles.update(currentRole.id, { permission_ids: finalIds }).then(function () {
+    api.roles.update(currentRole.id, { permissions: finalCodes }).then(function () {
       closePermissionModal();
       global.AgriChain.toast('Đã lưu phân quyền.');
     }).catch(function (err) {
@@ -539,6 +777,13 @@
   /* --- Khởi động -------------------------------------------------------------- */
 
   document.addEventListener('DOMContentLoaded', function () {
+    // Modal Thêm người dùng và Đặt lại mật khẩu đều có ô mật khẩu dùng
+    // js/password-field.js — phải gọi 2 hàm này thì nút hiện/ẩn và danh sách
+    // điều kiện mật khẩu mới hoạt động (trang này trước đó thiếu, khiến ô
+    // mật khẩu ở modal Thêm người dùng không có tác dụng gì).
+    global.AgriChain.setupPasswordToggles();
+    global.AgriChain.setupPasswordRules();
+
     applyPermissionGates();
     loadUsers();
 
@@ -563,6 +808,16 @@
       button.addEventListener('click', closeUserModal);
     });
     userForm.addEventListener('submit', handleUserSubmit);
+
+    document.querySelectorAll('[data-close-edit-user-form]').forEach(function (button) {
+      button.addEventListener('click', closeEditUserModal);
+    });
+    editUserForm.addEventListener('submit', handleEditUserSubmit);
+
+    document.querySelectorAll('[data-close-reset-password-form]').forEach(function (button) {
+      button.addEventListener('click', closeResetPasswordModal);
+    });
+    resetPasswordForm.addEventListener('submit', handleResetPasswordSubmit);
 
     document.querySelectorAll('[data-close-permission]').forEach(function (button) {
       button.addEventListener('click', closePermissionModal);

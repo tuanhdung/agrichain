@@ -60,6 +60,11 @@ js/
   location-select.js      # Cơ chế "2 select phụ thuộc nhau" dùng chung — AgriChain.setupCascadingSelect(),
                            # dùng ở nong-trai.js (Tỉnh/Thành phố -> Phường/Xã) và lo-hang.js
                            # (Nông trại -> Mùa vụ). Chỉ định nghĩa cơ chế, không biết gì về dữ liệu cụ thể.
+  enums.js                 # Danh mục dùng chung (enum) cho "Hoạt động sản xuất" — hiện chỉ có
+                           # AgriChain.ACTIVITY_TYPES (9 loại hoạt động kỹ thuật), nguồn DUY NHẤT
+                           # dùng ở cả mau-quy-trinh.js lẫn nong-trai-chi-tiet.js (trước đây mỗi
+                           # file tự khai báo lại, lệch nhãn/icon — xem SCHEMA-EXPORT.md). Nạp SAU
+                           # store.js, TRƯỚC 2 file trên.
   nong-trai.js            # Logic riêng cho nong-trai.html (danh sách + thêm/sửa/xoá nông trại)
   nong-trai-chi-tiet.js   # Logic riêng cho nong-trai-chi-tiet.html (trang xem chi tiết 1 nông trại,
                           # gồm cả chứng nhận/mùa vụ/nhật ký/lô hàng con của nó, và checklist "Quy
@@ -349,6 +354,17 @@ chính `requireSession()` cũ đá ngược về `dang-nhap.html` ngay sau khi �
 (vì `store.getSession()` luôn rỗng). Đây là cầu nối TẠM cho tới khi mọi trang cùng chuyển
 sang API — gỡ nhánh `store` đi khi đó.
 
+### Chuyển hướng sau khi đăng nhập (`redirectTarget()` trong `js/auth.js`)
+
+Trang đích mặc định sau khi đăng nhập thành công (hoặc khi mở `dang-nhap.html` lúc đã có
+sẵn phiên) là **`nong-trai.html`** — trang đầu tiên của khu quản trị, KHÔNG phải
+`index.html` (đó là trang giới thiệu công khai, không thuộc app-shell nên không hợp lý làm
+đích đến sau đăng nhập). Nếu URL có tham số `?redirect=`, ưu tiên dùng giá trị đó thay cho
+mặc định — nhưng chỉ chấp nhận khi khớp `/^[A-Za-z][\w.-]*\.html(\?.*)?$/` (bắt đầu bằng
+chữ cái, kết thúc `.html`, không chứa `/`): giá trị dạng `http://`, `https://` hay `//...`
+sẽ không khớp regex này (vì chứa `:`/`/`) nên bị bỏ qua, dùng mặc định thay thế — chặn lỗ
+hổng open redirect qua tham số này.
+
 ### Trang `tai-khoan.html` — phân quyền theo VAI TRÒ, không còn theo từng người dùng
 
 Khác hẳn model cũ (`orgUsers`, mỗi người dùng có ma trận quyền RIÊNG lưu ngay trên bản ghi
@@ -358,31 +374,68 @@ của họ): backend dùng RBAC — quyền gắn vào **vai trò** (`role`), ng
 người vừa bấm. Modal có ghi chú rõ điều này ngay trong giao diện
 (`[data-permission-role-notice]`) để tránh gây bất ngờ cho người quản trị.
 
-**⚠️ Các giả định sau CẦN xác nhận lại với `/docs` của backend thật** — tài liệu API đưa ra
-lúc viết phần này chỉ liệt kê endpoint, chưa có khuôn dữ liệu chi tiết cho `role`/
-`permission`:
-- `permission.code` có dạng `"<nhóm>.<hành động>"`, hành động là hậu tố sau dấu `.` cuối
-  cùng — `js/tai-khoan.js` chấp nhận cả `view/add/edit/delete` (đang dùng trên giao diện)
-  lẫn `read/create/update/remove` (từ vựng REST phổ biến khác) qua bảng `ACTION_ALIASES`.
-- `permission.group_name` khớp đúng 5 chuỗi đang dùng làm nhãn phân hệ trên giao diện
-  (`'Nông trại'`, `'Chứng nhận'`, `'Mùa vụ'`, `'Vật tư'`, `'Nhật ký'`, mảng `GROUP_ORDER`
-  trong `js/tai-khoan.js`) — nhóm nào backend trả về mà không khớp mảng này vẫn hiển thị
-  (không bị bỏ rơi), chỉ xếp xuống cuối theo alphabet.
-- `role.permissions` là mảng object `{ id, code, group_name, ... }` (hoặc mảng id thô —
-  code đã viết phòng cả 2 trường hợp qua kiểm tra `typeof`).
-- `PATCH /roles/{id}` nhận field `permission_ids` (mảng id quyền) để THAY THẾ TOÀN BỘ tập
-  quyền của vai trò đó — `handlePermissionSave()` vì vậy phải tự GHÉP LẠI id các quyền
-  nằm ngoài lưới 5×4 đang hiển thị (nhóm lạ/hành động lạ) với id các quyền vừa tick trong
-  lưới, tránh vô tình xoá mất quyền không hiển thị trên giao diện này khi lưu — xem biến
-  `managedPermissionIds` trong `js/tai-khoan.js`.
-- Field lỗi validate (`details.field`) trả về đúng tên field đã gửi lên
-  (`email`/`full_name`/`password`) để gắn lỗi vào đúng ô trên form "Thêm người dùng" —
-  xem `fieldNodeFor()`.
+Trang có đủ luồng CRUD: **Thêm** (modal `user-modal`, `POST /users`, bắt buộc chọn vai trò
+qua `<select>` nạp từ `GET /roles` — `UserCreate` của backend yêu cầu `role_id`), **Sửa**
+(modal riêng `edit-user-modal`, `PATCH /users/{id}` — sửa họ tên/SĐT/vai trò/trạng thái hoạt
+động, KHÔNG có email/mật khẩu vì `UserUpdate` không nhận 2 field này), **Đặt lại mật khẩu**
+(modal riêng `reset-password-modal`, `POST /users/{id}/reset-password` — quản trị viên đặt
+thẳng mật khẩu mới, không cần biết mật khẩu cũ), **Vô hiệu hoá** (`DELETE /users/{id}`, xoá
+mềm). Cột "Vai trò" trong bảng đọc thẳng `user.role_name` có sẵn trên `UserOut`, không cần
+gọi thêm `GET /roles` chỉ để hiển thị tên vai trò.
 
-Nếu backend thật trả về khác các giả định trên, sửa lại đúng chỗ tương ứng trong
-`js/tai-khoan.js` (các hằng số `GROUP_ORDER`/`ACTION_ALIASES` và hàm `actionFromCode()`/
-`groupPermissions()`/`handlePermissionSave()`) — không cần sửa `js/api.js` vì lớp đó chỉ
-truyền dữ liệu thô, không diễn giải khuôn dạng.
+**Khuôn dữ liệu `role`/`permission` đã được XÁC NHẬN THẬT** (gọi trực tiếp `/openapi.json`
+và dữ liệu thật của `GET /permissions`, `GET /roles` trên backend đang chạy — không còn là
+giả định):
+- **Permission KHÔNG có `id` số** — chỉ có `code` (chuỗi, VD `"farms.view"`), `name`
+  (chuỗi hiển thị, VD `"Xem nông trại"`), `group_name`. Toàn bộ thao tác chọn/lưu quyền
+  trong `js/tai-khoan.js` làm việc trực tiếp trên `code`, không có khái niệm id quyền.
+- Đúng **28 mã quyền**, dạng `"<nhóm số nhiều>.<hành động>"` — 4 hành động
+  `add`/`edit`/`view`/`delete` x 7 nhóm nghiệp vụ `certifications`/`farms`/`logs`/`roles`/
+  `seasons`/`supplies`/`users`. Danh sách đầy đủ:
+  ```
+  certifications.add / certifications.delete / certifications.edit / certifications.view
+  farms.add / farms.delete / farms.edit / farms.view
+  logs.add / logs.delete / logs.edit / logs.view
+  roles.add / roles.delete / roles.edit / roles.view
+  seasons.add / seasons.delete / seasons.edit / seasons.view
+  supplies.add / supplies.delete / supplies.edit / supplies.view
+  users.add / users.delete / users.edit / users.view
+  ```
+  Quy ước đặt tên này áp dụng cho MỌI phân hệ sẽ chuyển sang API sau này — trang mới nào
+  gọi `AgriChain.api.hasPermission(code)` thì dùng đúng mẫu `"<nhóm số nhiều>.<add|edit|
+  view|delete>"` ngay từ đầu, không suy đoán số ít/số nhiều hay từ đồng nghĩa khác.
+- `GET /permissions` trả về **đã nhóm sẵn** theo `group_name`, nhưng `roles.*` và `users.*`
+  bị gộp chung vào 1 group_name duy nhất là `"Quản lý đơn vị"` (8 quyền/nhóm thay vì 4) —
+  nếu ma trận phân quyền hiển thị thẳng theo `group_name` thì 1 ô (nhóm x hành động) sẽ chứa
+  2 mã quyền (`roles.view` và `users.view` cùng rơi vào ô "Xem" của "Quản lý đơn vị"), phá
+  vỡ giả định "1 checkbox = 1 mã quyền". `js/tai-khoan.js` vì vậy **bỏ qua `group_name`**,
+  tự nhóm lại theo TIỀN TỐ mã quyền (phần trước dấu `.` đầu tiên — `PREFIX_ORDER`/
+  `PREFIX_LABELS`/`PREFIX_ICONS`) để luôn ra đúng 7 hàng, mỗi hàng 1 mã quyền/hành động
+  (Nông trại, Chứng nhận, Mùa vụ, Vật tư, Nhật ký, Vai trò, Người dùng).
+- `role.permissions` (cả trong `GET /roles` lẫn body gửi lên `PATCH /roles/{id}`) là **mảng
+  chuỗi mã quyền thuần** (`["farms.view", "farms.add", ...]`), không phải mảng object/id.
+- `PATCH /roles/{id}` nhận field **`permissions`** (không phải `permission_ids` như suy đoán
+  ban đầu) — THAY THẾ TOÀN BỘ danh sách quyền hiện có. `handlePermissionSave()` vẫn phải tự
+  GHÉP LẠI các mã quyền nằm ngoài lưới 7×4 đang hiển thị (nhóm lạ/hành động lạ mà backend
+  thêm sau này) với các mã quyền vừa tick trong lưới trước khi gửi lên, tránh vô tình xoá
+  mất quyền không hiển thị trên giao diện này — xem biến `managedCodes`.
+- `UserCreate` yêu cầu `email`, `password`, `full_name`, `role_id` (bắt buộc), `phone` (tuỳ
+  chọn). `UserUpdate` chỉ nhận `full_name`, `phone`, `role_id`, `is_active` — không có
+  `email`/`password`, nên form Sửa là modal RIÊNG với form Thêm, không dùng chung.
+- Field lỗi validate (`details.field`) trả về đúng tên field đã gửi lên (`email`/
+  `full_name`/`password`/`role_id`/`phone`) để gắn lỗi vào đúng ô trên form — xem
+  `fieldNodeFor()` (modal Thêm) và `editFieldNodeFor()` (modal Sửa).
+- **`GET /auth/me` trả về `{ user, permissions }`** (object bọc ngoài), KHÔNG phải bản user
+  phẳng — lỗi này từng khiến `js/api.js`'s `me()` lưu nhầm cả object bọc làm "user" (mọi
+  field như `full_name`/`email`/`role_id` đọc ra `undefined` ở nơi dùng `getUser()`, kể cả
+  tên hiển thị ở sidebar `app-shell.js`; `hasPermission()` vẫn chạy đúng do trùng tên field
+  `permissions` ở cả 2 tầng — thuần trùng hợp, không phải vì code đúng). Đã sửa: `me()` giờ
+  bóc `data.user`, gắn thêm `data.permissions` vào rồi mới lưu.
+
+Nếu backend thật đổi khuôn dữ liệu ở lần cập nhật sau, sửa lại đúng chỗ tương ứng trong
+`js/tai-khoan.js` (`PREFIX_ORDER`/`PREFIX_LABELS`/`PREFIX_ICONS`, `actionFromCode()`,
+`groupPermissions()`, `handlePermissionSave()`) — không cần sửa `js/api.js` vì lớp đó chỉ
+truyền dữ liệu thô, không diễn giải khuôn dạng permission/role.
 
 ### Nợ kỹ thuật đã biết
 
@@ -609,15 +662,20 @@ trên) vào ĐÚNG mùa vụ đang xem, biến nó thành 1 checklist các bư�
 `seasons`**: `workflowTemplateId`/`workflowTemplateName` (tên mẫu tại thời điểm áp dụng, hiện
 ở tiêu đề "Checklist Quy Trình: ...") và `workflowSteps` — mảng bước, mỗi bước là 1 bản sao
 đầy đủ field của bước mẫu (`name`, `activityType`, `instruction`, `requireQr`, `requireSupply`,
-`supplyId`, `requireImage`) cộng thêm state riêng: `id` (sinh bằng `store.newId()`), `status`
-(`'pending'`/`'completed'`), `completedAt`, `logId` (trỏ tới `seasonLogs` khi hoàn thành),
-`batchId` (trỏ tới `batches` nếu bước yêu cầu QR). Nhờ chụp bản sao, sửa/xoá mẫu gốc sau đó
-không ảnh hưởng tới checklist đã áp dụng. **`workflowSteps` dùng `null`/`undefined` để phân
-biệt "chưa áp dụng quy trình nào" với mảng rỗng `[]`** (trường hợp "Tạo quy trình rỗng" — tự
-thiết lập nhanh, chưa kịp thêm bước nào) — `renderSeasonProcess()` dựa vào đúng phân biệt này
-để quyết định hiện khối chọn mẫu hay hiện checklist.
+`supplyId`, `requireImage`) cộng thêm state riêng: `id` (sinh bằng `store.newId()`), `done`
+(boolean — **đổi tên từ `status` dạng `'pending'`/`'completed'`** để tránh trùng tên với
+`seasons.status`, vốn có 5 giá trị hoàn toàn khác phạm vi, xem `SCHEMA-EXPORT.md`),
+`completedAt`, `logId` (trỏ tới `seasonLogs` khi hoàn thành), `batchId` (trỏ tới `batches`
+nếu bước yêu cầu QR). Nhờ chụp bản sao, sửa/xoá mẫu gốc sau đó không ảnh hưởng tới checklist
+đã áp dụng. **`workflowTemplateId`/`workflowTemplateName`/`workflowSteps` chỉ còn ĐÚNG 2
+trạng thái**: cả 3 đều `null` (chưa áp dụng quy trình nào — `handleSeasonSubmit()` khởi tạo
+tường minh cả 3 về `null` ngay lúc tạo mùa vụ mới, không để `undefined`), hoặc `workflowSteps`
+là mảng (đã áp dụng, kể cả mảng rỗng `[]` cho ca "Tạo quy trình rỗng" — lúc đó
+`workflowTemplateId` vẫn có thể là `null` vì không dựa trên mẫu nào, chỉ `workflowSteps` mới
+là field quyết định trạng thái) — `renderSeasonProcess()` kiểm `workflowSteps` để quyết định
+hiện khối chọn mẫu hay hiện checklist.
 
-**Bước "tới lượt" duy nhất** là bước `status !== 'completed'` ĐẦU TIÊN theo thứ tự mảng
+**Bước "tới lượt" duy nhất** là bước `!done` ĐẦU TIÊN theo thứ tự mảng
 (`currentActionableStepId()`) — chỉ bước này hiện nút "Ghi nhật ký & hoàn thành", các bước
 chưa hoàn thành phía sau hiện "Chờ đến lượt thực hiện" thay vì nút bấm được. Bấm nút này
 (`startStepCompletion()`) mở THẲNG modal "Thêm nhật ký mùa vụ" đã có sẵn ở tab Timeline
@@ -637,8 +695,9 @@ hoàn thành nhầm bước ở lần thêm nhật ký/lô hàng kế tiếp kh�
 quy trình gốc (`collectSteps()`/`moveStep()`/`renumberSteps()` ở `mau-quy-trinh.js`, chép lại
 CSS `.workflow-step`/`.steps-header` nguyên vẹn vào `nong-trai-chi-tiet.html` theo đúng quy
 ước "mỗi trang tự chứa CSS/JS riêng") — khác biệt duy nhất: mỗi thẻ bước còn giữ
-`id`/`status`/`completedAt`/`logId`/`batchId` qua `dataset` (không phải input người dùng sửa
-được) để **KHÔNG mất tiến độ đã hoàn thành** khi người dùng chỉ sửa tên/hướng dẫn của 1 bước
+`id`/`done`/`completedAt`/`logId`/`batchId` qua `dataset` (không phải input người dùng sửa
+được — `done` lưu dưới dạng chuỗi `'true'`/`'false'` vì `dataset` luôn ép kiểu chuỗi, đọc lại
+qua so sánh `=== 'true'`) để **KHÔNG mất tiến độ đã hoàn thành** khi người dùng chỉ sửa tên/hướng dẫn của 1 bước
 khác trong cùng danh sách — `collectProcessSteps()` đọc lại các giá trị này lúc lưu thay vì
 reset về mặc định. "Tạo quy trình rỗng" (`createEmptyWorkflow()`) đặt `workflowSteps: []` rồi
 mở LUÔN modal này để tự thêm bước đầu tiên, vì checklist đang trống không có gì để hiển thị.

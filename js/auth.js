@@ -86,10 +86,14 @@
   function redirectTarget() {
     var params = new URLSearchParams(global.location.search);
     var target = params.get('redirect');
-    // Chỉ chấp nhận đường dẫn nội bộ dạng "ten-trang.html". Không cho URL tuyệt
-    // đối hay "//..." — tránh biến tham số này thành chỗ chuyển hướng ra ngoài.
-    if (target && /^[\w.-]+\.html(\?.*)?$/.test(target)) return target;
-    return 'index.html';
+    // Chỉ chấp nhận đường dẫn nội bộ dạng "ten-trang.html", bắt đầu bằng chữ
+    // cái. Không cho URL tuyệt đối ("http://"/"https://") hay "//..." — tránh
+    // biến tham số này thành chỗ chuyển hướng ra ngoài site (open redirect).
+    if (target && /^[A-Za-z][\w.-]*\.html(\?.*)?$/.test(target)) return target;
+    // Mặc định vào thẳng trang đầu tiên của khu quản trị — index.html chỉ là
+    // trang giới thiệu, không nằm trong app-shell nên không hợp lý làm đích
+    // đến sau khi đăng nhập.
+    return 'nong-trai.html';
   }
 
   /* --- Đăng nhập (đã chuyển sang backend thật qua js/api.js) ----------------

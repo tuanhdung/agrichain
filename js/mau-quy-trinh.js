@@ -5,7 +5,7 @@
    tử": đây là dữ liệu "Hoạt động sản xuất", theo đúng quy ước của farms/
    supplies/batches (danh sách chung của Đơn vị đang đăng nhập, không có
    khái niệm nhiều chủ sở hữu trong 1 phiên).
-   Nạp SAU js/store.js, js/app-shell.js.
+   Nạp SAU js/store.js, js/app-shell.js, js/enums.js (ACTIVITY_TYPES dùng chung).
    ========================================================================== */
 
 (function (global) {
@@ -13,17 +13,10 @@
 
   var store = global.AgriChain.store;
 
-  var ACTIVITY_TYPES = [
-    { key: 'planting', label: 'Gieo trồng / Gieo hạt', icon: 'icon-seed' },
-    { key: 'fertilizing', label: 'Bón phân', icon: 'icon-flask' },
-    { key: 'watering', label: 'Tưới nước', icon: 'icon-droplet' },
-    { key: 'pest_control', label: 'Phòng trừ sâu bệnh', icon: 'icon-bug' },
-    { key: 'weeding', label: 'Làm cỏ', icon: 'icon-grass' },
-    { key: 'pruning', label: 'Cắt tỉa', icon: 'icon-scissors' },
-    { key: 'harvesting', label: 'Thu hoạch', icon: 'icon-tractor' },
-    { key: 'inspection', label: 'Kiểm tra / Giám sát', icon: 'icon-search' },
-    { key: 'other', label: 'Hoạt động khác', icon: 'icon-file-text' }
-  ];
+  // Nguồn duy nhất cho danh mục "loại hoạt động" — js/enums.js, nạp trước
+  // file này (xem thứ tự script trong mau-quy-trinh.html). Trước đây khai
+  // báo riêng ở đây, lệch nhãn/icon với bản ở js/nong-trai-chi-tiet.js.
+  var ACTIVITY_TYPES = global.AgriChain.ACTIVITY_TYPES;
 
   function el(tag, className, text) {
     var node = document.createElement(tag);

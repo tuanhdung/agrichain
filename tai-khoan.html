@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="css/app-shell.css" />
 
   <script src="js/api-config.js?v=1"></script>
-  <script src="js/api.js?v=1"></script>
+  <script src="js/api.js?v=2"></script>
   <script>
     // Trang đầu tiên chuyển hẳn sang backend thật — chặn ngay trong <head>
     // (không defer) để tránh chớp nội dung trước khi chuyển hướng nếu chưa
@@ -294,7 +294,7 @@
           <h1 class="page-header__title">Quản lý Người dùng</h1>
           <p class="page-header__meta">Quản lý người dùng trong Đơn vị của bạn.</p>
         </div>
-        <button type="button" class="btn btn--primary btn--lg" data-open-user-form data-requires-permission="users.create">
+        <button type="button" class="btn btn--primary btn--lg" data-open-user-form data-requires-permission="users.add">
           <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
           Thêm người dùng
         </button>
@@ -331,6 +331,7 @@
                 <th scope="col"><span class="sr-only">Ảnh đại diện</span>#</th>
                 <th scope="col">Email</th>
                 <th scope="col">Họ tên</th>
+                <th scope="col">Vai trò</th>
                 <th scope="col"><span class="sr-only">Hành động</span></th>
               </tr>
             </thead>
@@ -353,7 +354,7 @@
         <p class="empty-state__desc" data-user-empty-desc>
           Thêm người dùng để cấp quyền truy cập vào từng phân hệ của Đơn vị bạn.
         </p>
-        <button type="button" class="btn btn--primary" data-open-user-form data-requires-permission="users.create">Thêm người dùng</button>
+        <button type="button" class="btn btn--primary" data-open-user-form data-requires-permission="users.add">Thêm người dùng</button>
       </div>
 
     </div>
@@ -377,6 +378,18 @@
         <div class="field">
           <label class="label" for="user-full-name">Họ tên</label>
           <input class="input" type="text" id="user-full-name" name="fullName" required />
+        </div>
+
+        <div class="field">
+          <label class="label" for="user-role">Vai trò</label>
+          <select class="select" id="user-role" name="roleId" required>
+            <option value="">Đang tải vai trò...</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="label" for="user-phone">Số điện thoại (tuỳ chọn)</label>
+          <input class="input" type="tel" id="user-phone" name="phone" />
         </div>
 
         <div class="field">
@@ -420,6 +433,100 @@
       <div class="modal__footer">
         <button type="button" class="btn btn--secondary" data-close-user-form>Hủy</button>
         <button type="submit" class="btn btn--primary">Thêm người dùng</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Modal: Sửa người dùng -->
+  <dialog class="modal modal--sm" id="edit-user-modal" aria-labelledby="edit-user-modal-title">
+    <form class="modal__form" id="edit-user-form" novalidate>
+      <div class="modal__header">
+        <svg class="icon"><use href="icons/sprite.svg#icon-pencil"></use></svg>
+        <h2 class="modal__title" id="edit-user-modal-title">Sửa người dùng</h2>
+        <button type="button" class="modal__close" data-close-edit-user-form aria-label="Đóng">&times;</button>
+      </div>
+
+      <div class="modal__body">
+        <div class="field">
+          <label class="label" for="edit-user-full-name">Họ tên</label>
+          <input class="input" type="text" id="edit-user-full-name" name="fullName" required />
+        </div>
+
+        <div class="field">
+          <label class="label" for="edit-user-role">Vai trò</label>
+          <select class="select" id="edit-user-role" name="roleId" required>
+            <option value="">Đang tải vai trò...</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="label" for="edit-user-phone">Số điện thoại (tuỳ chọn)</label>
+          <input class="input" type="tel" id="edit-user-phone" name="phone" />
+        </div>
+
+        <label class="checkbox">
+          <input class="checkbox__input" type="checkbox" id="edit-user-active" name="isActive" checked />
+          <span class="checkbox__label">Tài khoản đang hoạt động</span>
+        </label>
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--secondary" data-close-edit-user-form>Hủy</button>
+        <button type="submit" class="btn btn--primary">Lưu thay đổi</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Modal: Đặt lại mật khẩu -->
+  <dialog class="modal modal--sm" id="reset-password-modal" aria-labelledby="reset-password-modal-title">
+    <form class="modal__form" id="reset-password-form" novalidate>
+      <div class="modal__header">
+        <svg class="icon"><use href="icons/sprite.svg#icon-key"></use></svg>
+        <h2 class="modal__title" id="reset-password-modal-title">Đặt lại mật khẩu</h2>
+        <button type="button" class="modal__close" data-close-reset-password-form aria-label="Đóng">&times;</button>
+      </div>
+
+      <div class="modal__body">
+        <p class="field__hint" style="margin-bottom: var(--space-4);">
+          Đặt mật khẩu mới cho <strong data-reset-password-name></strong> — không cần biết mật khẩu
+          cũ. Mọi phiên đăng nhập trước đó của người này sẽ bị đăng xuất.
+        </p>
+
+        <div class="field">
+          <label class="label" for="reset-password-input">Mật khẩu mới</label>
+          <div class="password-field">
+            <input class="input" type="password" id="reset-password-input" name="password"
+              autocomplete="new-password" required />
+            <button type="button" class="password-toggle" data-password-toggle="reset-password-input"
+              aria-label="Hiện mật khẩu">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-eye"></use></svg>
+            </button>
+          </div>
+        </div>
+
+        <ul class="password-rules" role="list" data-password-rules="reset-password-input" aria-live="polite">
+          <li class="password-rule" data-rule="length">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-check-circle"></use></svg>
+            Ít nhất 8 ký tự
+          </li>
+          <li class="password-rule" data-rule="upper">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-check-circle"></use></svg>
+            1 chữ hoa
+          </li>
+          <li class="password-rule" data-rule="digit">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-check-circle"></use></svg>
+            1 chữ số
+          </li>
+          <li class="password-rule" data-rule="special">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-check-circle"></use></svg>
+            1 ký tự đặc biệt
+          </li>
+        </ul>
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--secondary" data-close-reset-password-form>Hủy</button>
+        <button type="submit" class="btn btn--primary">Đặt lại mật khẩu</button>
       </div>
     </form>
   </dialog>
@@ -490,7 +597,7 @@
 
     <div class="modal__footer">
       <button type="button" class="btn btn--secondary" data-close-permission>Huỷ</button>
-      <button type="button" class="btn btn--primary" data-save-permission data-requires-permission="roles.update">Lưu</button>
+      <button type="button" class="btn btn--primary" data-save-permission data-requires-permission="roles.edit">Lưu</button>
     </div>
   </dialog>
 
@@ -519,6 +626,6 @@
   <script src="js/store.js?v=12" defer></script>
   <script src="js/app-shell.js?v=10" defer></script>
   <script src="js/password-field.js?v=1" defer></script>
-  <script src="js/tai-khoan.js?v=3" defer></script>
+  <script src="js/tai-khoan.js?v=4" defer></script>
 </body>
 </html>

@@ -3,7 +3,7 @@
    Đọc mã nông trại từ query string (?ma=), tìm trong AgriChain.store rồi vẽ
    lại thông tin, cùng 2 danh sách con gắn theo farmId: chứng nhận nông trại
    và lịch sử mùa vụ (thêm/sửa/xoá ngay tại đây). Nạp SAU js/store.js,
-   js/app-shell.js và js/map-layers.js.
+   js/app-shell.js, js/map-layers.js và js/enums.js (ACTIVITY_TYPES dùng chung).
    ========================================================================== */
 
 (function (global) {
@@ -26,19 +26,10 @@
     { key: 'failed',      label: 'Thất bại',       badge: 'badge--danger' }
   ];
 
-  // `color` chọn trong 5 màu ngữ nghĩa sẵn có (success/info/warning/danger/
-  // neutral) — tô icon + viền trái của từng dòng nhật ký (xem .log-item--*).
-  var ACTIVITY_TYPES = [
-    { key: 'planting',     label: 'Đang xuống giống',   icon: 'icon-seed',    color: 'success' },
-    { key: 'fertilizing',  label: 'Bón phân',           icon: 'icon-flask',   color: 'info' },
-    { key: 'watering',     label: 'Tưới nước',          icon: 'icon-droplet', color: 'info' },
-    { key: 'pest_control', label: 'Phòng trừ sâu bệnh', icon: 'icon-bug',     color: 'danger' },
-    { key: 'weeding',      label: 'Làm cỏ',             icon: 'icon-grass',   color: 'warning' },
-    { key: 'pruning',      label: 'Cắt tỉa',            icon: 'icon-scissors', color: 'warning' },
-    { key: 'harvesting',   label: 'Thu hoạch',          icon: 'icon-wheat',   color: 'success' },
-    { key: 'inspection',   label: 'Kiểm tra',           icon: 'icon-eye',     color: 'neutral' },
-    { key: 'other',        label: 'Khác',               icon: 'icon-box',     color: 'neutral' }
-  ];
+  // Nguồn duy nhất cho danh mục "loại hoạt động" — js/enums.js, nạp trước
+  // file này (xem thứ tự script trong nong-trai-chi-tiet.html). Trước đây
+  // khai báo riêng ở đây, lệch nhãn/icon với bản ở js/mau-quy-trinh.js.
+  var ACTIVITY_TYPES = global.AgriChain.ACTIVITY_TYPES;
 
   var BATCH_UNITS = ['kg', 'Tấn', 'Bó/Nài', 'Cái/Trái', 'Bao/Túi', 'Két/Thùng', 'Khác'];
 
@@ -692,9 +683,20 @@
     };
 
     if (editingSeasonId) {
+      // KHÔNG đụng tới workflowTemplateId/Name/Steps ở đây — store.update()
+      // chỉ ghi đè đúng field có trong `record` (merge nông), sửa thông tin
+      // mùa vụ không được làm mất quy trình đã áp dụng (nếu có).
       store.update('seasons', editingSeasonId, record);
       global.AgriChain.toast('Đã lưu thay đổi.');
     } else {
+      // Khởi tạo TƯỜNG MINH cả 3 field quy trình về null ngay từ lúc tạo —
+      // chỉ còn đúng 2 trạng thái phân biệt được: "chưa áp dụng" (cả 3 đều
+      // null) và "đã áp dụng" (workflowSteps là mảng, xem applyWorkflowTemplate()/
+      // createEmptyWorkflow()) — không còn trạng thái "field vắng mặt"
+      // (undefined) lẫn lộn với "null" như trước.
+      record.workflowTemplateId = null;
+      record.workflowTemplateName = null;
+      record.workflowSteps = null;
       store.insert('seasons', record);
       global.AgriChain.toast('Đã thêm mùa vụ.');
     }
@@ -1634,7 +1636,10 @@
         requireSupply: !!step.requireSupply,
         supplyId: step.supplyId || '',
         requireImage: !!step.requireImage,
-        status: 'pending',
+        // Đổi tên từ `status` ('pending'/'completed') thành `done` (boolean)
+        // — tránh trùng tên "status" với seasons.status (5 giá trị khác hẳn
+        // phạm vi giá trị), dễ gây nhầm khi đọc/ghi nhầm field.
+        done: false,
         completedAt: null,
         logId: null,
         batchId: null
@@ -1688,7 +1693,7 @@
   // phải "chờ đến lượt", chỉ bước này mới hiện nút "Ghi nhật ký & hoàn thành".
   function currentActionableStepId(steps) {
     for (var i = 0; i < steps.length; i++) {
-      if (steps[i].status !== 'completed') return steps[i].id;
+      if (!steps[i].done) return steps[i].id;
     }
     return null;
   }
@@ -1698,7 +1703,7 @@
 
     var rail = el('div', 'workflow-checklist__rail');
     rail.appendChild(el('span', 'workflow-checklist__dot' +
-      (step.status === 'completed' ? ' workflow-checklist__dot--done' : '')));
+      (step.done ? ' workflow-checklist__dot--done' : '')));
     rail.appendChild(el('div', 'workflow-checklist__line'));
     item.appendChild(rail);
 
@@ -1707,8 +1712,8 @@
     var head = el('div', 'workflow-checklist__head');
     head.appendChild(el('strong', 'workflow-checklist__step-title', 'Bước ' + (index + 1) + ': ' + step.name));
     if (step.requireQr) head.appendChild(el('span', 'badge badge--success', 'Yêu cầu sinh QR'));
-    head.appendChild(el('span', 'badge ' + (step.status === 'completed' ? 'badge--success' : 'badge--warning'),
-      step.status === 'completed' ? 'Hoàn thành' : 'Đang chờ'));
+    head.appendChild(el('span', 'badge ' + (step.done ? 'badge--success' : 'badge--warning'),
+      step.done ? 'Hoàn thành' : 'Đang chờ'));
     card.appendChild(head);
 
     var activity = statusOf(ACTIVITY_TYPES, step.activityType);
@@ -1721,7 +1726,7 @@
       card.appendChild(el('p', 'workflow-checklist__instruction', step.instruction));
     }
 
-    if (step.status === 'completed') {
+    if (step.done) {
       var doneNote = el('div', 'workflow-checklist__done-note');
       doneNote.appendChild(svgIcon('icon-check-circle'));
       doneNote.appendChild(el('span', null, 'Đã ghi nhật ký & hoàn thành'));
@@ -1796,7 +1801,7 @@
     }
     if (!step) return;
 
-    step.status = 'completed';
+    step.done = true;
     step.completedAt = new Date().toISOString();
     step.logId = logId;
 
@@ -1858,7 +1863,10 @@
     // collectProcessSteps() đọc lại đúng các giá trị này lúc lưu, không
     // phải input người dùng chỉnh sửa được trong modal này.
     card.dataset.stepId = data.id || store.newId();
-    card.dataset.stepStatus = data.status || 'pending';
+    // dataset luôn ép giá trị về chuỗi — ghi tường minh 'true'/'false' thay
+    // vì gán thẳng boolean (sẽ tự thành chuỗi "true"/"false" nhưng đọc lại
+    // qua so sánh === 'true' cho rõ ý, tránh hiểu nhầm là boolean thật).
+    card.dataset.stepDone = data.done ? 'true' : 'false';
     card.dataset.stepCompletedAt = data.completedAt || '';
     card.dataset.stepLogId = data.logId || '';
     card.dataset.stepBatchId = data.batchId || '';
@@ -2013,7 +2021,7 @@
         requireSupply: requireSupply,
         supplyId: requireSupply ? card.querySelector('.step-supply-id').value : '',
         requireImage: card.querySelector('.step-require-image').checked,
-        status: card.dataset.stepStatus || 'pending',
+        done: card.dataset.stepDone === 'true',
         completedAt: card.dataset.stepCompletedAt || null,
         logId: card.dataset.stepLogId || null,
         batchId: card.dataset.stepBatchId || null
