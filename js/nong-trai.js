@@ -1,13 +1,20 @@
 /* ==========================================================================
    AgriChain — Trang Nông trại
-   Đọc/ghi qua AgriChain.store. Nạp SAU js/store.js, js/app-shell.js và
-   js/map-layers.js.
+   ĐÃ CHUYỂN SANG BACKEND THẬT qua js/api.js (GET/POST/PATCH/DELETE /farms) —
+   không còn đọc/ghi qua AgriChain.store/collection "farms" nữa. Payload gửi
+   lên đổi tên field sang snake_case khớp cột backend (startDate ->
+   start_date, nationalPuc -> national_puc, internationalPuc ->
+   international_puc); response trả về giữ nguyên snake_case, đọc thẳng.
+   Xem mục "Kết nối backend" trong CLAUDE.md.
+   Nạp SAU js/api-config.js, js/api.js, js/app-shell.js và js/map-layers.js.
    ========================================================================== */
 
 (function (global) {
   'use strict';
 
-  var store = global.AgriChain.store;
+  var api = global.AgriChain.api;
+  var PAGE_SIZE = 12;
+  var SEARCH_DEBOUNCE_MS = 300;
 
   /* --- 34 tỉnh/thành sau sáp nhập đơn vị hành chính 2025 -------------------
      Chỉ còn 2 cấp: Tỉnh/Thành phố -> Phường/Xã (không còn cấp Quận/Huyện).
@@ -41,9 +48,30 @@
   var form = document.getElementById('farm-form');
   var listNode = document.querySelector('[data-farm-list]');
   var emptyNode = document.querySelector('[data-farm-empty]');
+  var emptyTitleNode = document.querySelector('[data-farm-empty-title]');
+  var emptyDescNode = document.querySelector('[data-farm-empty-desc]');
   var countNode = document.querySelector('[data-farm-count]');
+  var searchInput = document.querySelector('[data-farm-search]');
+  var loadingNode = document.querySelector('[data-farm-loading]');
+  var errorNode = document.querySelector('[data-farm-error]');
+  var errorMessageNode = document.querySelector('[data-farm-error-message]');
+  var paginationNode = document.querySelector('[data-farm-pagination]');
+  var pageInfoNode = document.querySelector('[data-farm-page-info]');
+  var prevPageBtn = document.querySelector('[data-farm-prev-page]');
+  var nextPageBtn = document.querySelector('[data-farm-next-page]');
   var provinceSelect = document.getElementById('farm-province');
   var wardSelect = document.getElementById('farm-ward');
+
+  var listState = { page: 1, q: '', total: 0 };
+
+  function debounce(fn, wait) {
+    var timer = null;
+    return function () {
+      var args = arguments;
+      global.clearTimeout(timer);
+      timer = global.setTimeout(function () { fn.apply(null, args); }, wait);
+    };
+  }
 
   /* --- Tiện ích ------------------------------------------------------------ */
 
@@ -109,10 +137,10 @@
     var place = [farm.ward, farm.province].filter(Boolean).join(', ');
     rows.appendChild(iconRow('icon-map-pin', farm.address || place, farm.address ? place : ''));
     rows.appendChild(iconRow('icon-chart-bar', 'Diện tích: ' + formatArea(farm.area)));
-    rows.appendChild(iconRow('icon-seedling', 'Ngày bắt đầu: ' + formatDate(farm.startDate)));
+    rows.appendChild(iconRow('icon-seedling', 'Ngày bắt đầu: ' + formatDate(farm.start_date)));
 
-    if (farm.nationalPuc) {
-      rows.appendChild(iconRow('icon-qr-code', 'Mã vùng trồng: ' + farm.nationalPuc));
+    if (farm.national_puc) {
+      rows.appendChild(iconRow('icon-qr-code', 'Mã vùng trồng: ' + farm.national_puc));
     }
 
     if (farm.polygon && farm.polygon.length >= 3) {
@@ -138,6 +166,7 @@
     editButton.type = 'button';
     editButton.setAttribute('aria-label', 'Chỉnh sửa ' + farm.name);
     editButton.setAttribute('data-tooltip', 'Chỉnh sửa');
+    if (!api.hasPermission('farms.edit')) editButton.hidden = true;
     editButton.appendChild(svgIcon('icon-pencil'));
     editButton.addEventListener('click', function (event) {
       event.preventDefault();
@@ -150,6 +179,7 @@
     deleteButton.type = 'button';
     deleteButton.setAttribute('aria-label', 'Xoá ' + farm.name);
     deleteButton.setAttribute('data-tooltip', 'Xoá');
+    if (!api.hasPermission('farms.delete')) deleteButton.hidden = true;
     deleteButton.appendChild(svgIcon('icon-trash'));
     deleteButton.addEventListener('click', function (event) {
       event.preventDefault();
@@ -164,37 +194,85 @@
   }
 
   /* --- Xoá nông trại --------------------------------------------------------
-     Luôn hỏi lại qua AgriChain.confirm() trước khi xoá thật — hành động không
-     hoàn tác được vì store.remove() xoá thẳng khỏi localStorage. */
+     Luôn hỏi lại qua AgriChain.confirm() trước khi xoá thật — hành động
+     không hoàn tác được. Backend xoá MỀM nhưng CHẶN (409) nếu nông trại còn
+     mùa vụ chưa xoá — phải hiện đúng lỗi đó, không được báo xoá thành công
+     giả như hồi còn dùng store.js (bug đã sửa ở backend, quan trọng nhất
+     của lần nối API này). */
   function handleDelete(farm) {
     global.AgriChain.confirm(
       'Xoá nông trại "' + farm.name + '"? Hành động này không thể hoàn tác.'
     ).then(function (confirmed) {
       if (!confirmed) return;
-      store.remove('farms', farm.id);
-      render();
-      global.AgriChain.toast('Đã xoá nông trại.');
+      api.farms.remove(farm.id).then(function () {
+        loadFarms();
+        global.AgriChain.toast('Đã xoá nông trại.');
+      }).catch(function (err) {
+        // 409: nông trại còn mùa vụ chưa xoá — message tiếng Việt đã có sẵn
+        // từ backend, hiển thị thẳng, KHÔNG coi là đã xoá thành công.
+        global.AgriChain.toast(err.message);
+      });
     });
   }
 
-  function render() {
-    var farms = store.list('farms');
+  function setListView(view) {
+    loadingNode.hidden = view !== 'loading';
+    errorNode.hidden = view !== 'error';
+    listNode.hidden = view !== 'data';
+    emptyNode.hidden = view !== 'empty';
+    paginationNode.hidden = view !== 'data';
+  }
 
-    countNode.textContent = farms.length;
+  function renderFarms(data) {
+    var farms = data.items || [];
+    listState.total = data.total || 0;
+    countNode.textContent = listState.total;
 
     listNode.textContent = '';
+
     if (!farms.length) {
-      listNode.hidden = true;
-      emptyNode.hidden = false;
+      if (listState.q) {
+        emptyTitleNode.textContent = 'Không tìm thấy nông trại nào';
+        emptyDescNode.textContent = 'Thử lại với từ khoá khác.';
+      } else {
+        emptyTitleNode.textContent = 'Chưa có nông trại nào';
+        emptyDescNode.textContent = 'Nông trại là điểm bắt đầu của mọi lô hàng. Tạo nông trại đầu tiên ' +
+          'để bắt đầu ghi nhận mùa vụ và truy xuất nguồn gốc.';
+      }
+      setListView('empty');
       return;
     }
 
-    emptyNode.hidden = true;
-    listNode.hidden = false;
     farms.forEach(function (farm) {
       listNode.appendChild(farmCard(farm));
     });
+    setListView('data');
+
+    var totalPages = Math.max(1, Math.ceil(listState.total / PAGE_SIZE));
+    pageInfoNode.textContent = 'Trang ' + listState.page + ' / ' + totalPages;
+    prevPageBtn.disabled = listState.page <= 1;
+    nextPageBtn.disabled = listState.page >= totalPages;
   }
+
+  function loadFarms() {
+    setListView('loading');
+    api.farms.list({
+      q: listState.q || undefined,
+      page: listState.page,
+      page_size: PAGE_SIZE
+    }).then(function (data) {
+      renderFarms(data);
+    }).catch(function (err) {
+      errorMessageNode.textContent = err.message;
+      setListView('error');
+    });
+  }
+
+  var handleSearchInput = debounce(function () {
+    listState.q = searchInput.value.trim();
+    listState.page = 1;
+    loadFarms();
+  }, SEARCH_DEBOUNCE_MS);
 
   /* ======================================================================
      Ranh giới thửa đất (Leaflet)
@@ -478,7 +556,7 @@
   });
 
   // null = đang thêm mới, có id = đang sửa nông trại đó (dùng ở handleSubmit
-  // để quyết định gọi store.insert hay store.update).
+  // để quyết định gọi api.farms.create() hay api.farms.update()).
   var editingFarmId = null;
   var modalTitle = document.getElementById('farm-modal-title');
   var submitButton = form.querySelector('button[type="submit"]');
@@ -498,19 +576,22 @@
 
       document.getElementById('farm-code').value = farm.code;
       document.getElementById('farm-name').value = farm.name;
-      document.getElementById('farm-puc-national').value = farm.nationalPuc || '';
-      document.getElementById('farm-puc-international').value = farm.internationalPuc || '';
+      document.getElementById('farm-puc-national').value = farm.national_puc || '';
+      document.getElementById('farm-puc-international').value = farm.international_puc || '';
       provinceSelect.value = farm.province || '';
       wardCascade.refresh(farm.ward); // tải phường/xã đúng tỉnh, chọn sẵn phường/xã đã lưu
       document.getElementById('farm-address').value = farm.address || '';
-      document.getElementById('farm-start-date').value = farm.startDate || '';
+      document.getElementById('farm-start-date').value = farm.start_date || '';
       document.getElementById('farm-area').value = farm.area != null ? farm.area : 0;
       document.getElementById('farm-description').value = farm.description || '';
     } else {
       modalTitle.textContent = 'Thêm nông trại mới';
       submitButton.textContent = 'Lưu nông trại';
-      // Gợi ý mã tiếp theo nhưng vẫn cho sửa — bản gốc để người dùng tự đặt mã.
-      document.getElementById('farm-code').value = store.nextFarmCode();
+      // Gợi ý mã tiếp theo dựa trên tổng số đã tải (listState.total) — chỉ
+      // là gợi ý, backend tự kiểm tra trùng mã thật khi lưu (xem
+      // validateUserClientSide()-style xử lý lỗi ở handleSubmit()).
+      var seq = String(listState.total + 1);
+      document.getElementById('farm-code').value = 'NV' + (seq.length < 2 ? '0' + seq : seq);
       document.getElementById('farm-area').value = '0';
       wardCascade.refresh(); // reset phường/xã về trạng thái "chưa chọn tỉnh"
     }
@@ -579,18 +660,12 @@
     if (!code.value.trim()) {
       showError(code, 'Nhập mã nông trại.');
       problems.push(code);
-    } else {
-      // Khi đang sửa, bỏ qua chính nông trại đang sửa — không thì giữ
-      // nguyên mã cũ cũng bị báo trùng với chính nó.
-      var duplicate = store.list('farms').some(function (farm) {
-        return farm.id !== editingFarmId &&
-          farm.code.toLowerCase() === code.value.trim().toLowerCase();
-      });
-      if (duplicate) {
-        showError(code, 'Mã này đã dùng cho nông trại khác.');
-        problems.push(code);
-      }
     }
+    // Không kiểm tra trùng mã phía client nữa — trang chỉ tải 1 trang dữ
+    // liệu tại một thời điểm (phân trang), không đủ để biết TOÀN BỘ mã đã
+    // dùng. Backend tự kiểm tra trùng "code" toàn hệ thống và trả lỗi
+    // VALIDATION_ERROR kèm details.field="code" — xem fieldNodeFor() trong
+    // handleSubmit().
 
     if (!name.value.trim()) {
       showError(name, 'Nhập tên nông trại.');
@@ -639,42 +714,103 @@
     return true;
   }
 
+  // Ánh xạ tên field backend trả về trong lỗi (details.field, snake_case)
+  // sang đúng input trên form — khớp FarmCreate/FarmUpdate thật.
+  function fieldNodeFor(fieldName) {
+    var map = {
+      code: 'farm-code',
+      name: 'farm-name',
+      national_puc: 'farm-puc-national',
+      international_puc: 'farm-puc-international',
+      province: 'farm-province',
+      ward: 'farm-ward',
+      address: 'farm-address',
+      start_date: 'farm-start-date',
+      area: 'farm-area',
+      description: 'farm-description'
+    };
+    var id = map[fieldName];
+    return id ? document.getElementById(id) : null;
+  }
+
   function handleSubmit(event) {
     event.preventDefault();
     if (!validate()) return;
 
     var data = new FormData(form);
+    // snake_case khớp cột backend thật (FarmCreate/FarmUpdate) — response
+    // trả về cũng snake_case, đọc thẳng không qua lớp chuyển đổi nào khác.
     var payload = {
       code: String(data.get('code')).trim(),
       name: String(data.get('name')).trim(),
-      nationalPuc: String(data.get('nationalPuc') || '').trim(),
-      internationalPuc: String(data.get('internationalPuc') || '').trim(),
+      national_puc: String(data.get('nationalPuc') || '').trim() || null,
+      international_puc: String(data.get('internationalPuc') || '').trim() || null,
       province: String(data.get('province') || ''),
       ward: String(data.get('ward') || '').trim(),
       address: String(data.get('address') || '').trim(),
-      startDate: String(data.get('startDate') || ''),
+      start_date: String(data.get('startDate') || ''),
       area: Number(data.get('area')) || 0,
       description: String(data.get('description') || '').trim(),
       polygon: points.slice() // sao chép để lần mở modal sau không sửa vào bản đã lưu — bắt buộc >=3 điểm, đã validate ở trên
     };
 
-    if (editingFarmId) {
-      store.update('farms', editingFarmId, payload);
-    } else {
-      store.insert('farms', payload);
-    }
+    submitButton.disabled = true;
+    submitButton.textContent = 'Đang lưu...';
 
-    closeModal();
-    render();
-    global.AgriChain.toast(editingFarmId ? 'Đã cập nhật nông trại.' : 'Đã lưu nông trại.');
+    var request = editingFarmId
+      ? api.farms.update(editingFarmId, payload)
+      : api.farms.create(payload);
+
+    request.then(function () {
+      closeModal();
+      loadFarms();
+      global.AgriChain.toast(editingFarmId ? 'Đã cập nhật nông trại.' : 'Đã lưu nông trại.');
+    }).catch(function (err) {
+      if (err.details && err.details.field) {
+        var field = fieldNodeFor(err.details.field);
+        if (field) {
+          showError(field, err.message);
+          field.focus();
+        } else {
+          global.AgriChain.toast(err.message);
+        }
+      } else {
+        global.AgriChain.toast(err.message);
+      }
+    }).then(function () {
+      submitButton.disabled = false;
+      submitButton.textContent = editingFarmId ? 'Lưu thay đổi' : 'Lưu nông trại';
+    });
+  }
+
+  // Ẩn nút nào người dùng hiện tại không có quyền — đánh dấu sẵn bằng
+  // data-requires-permission="<mã quyền>" trên nút trong HTML.
+  function applyPermissionGates() {
+    document.querySelectorAll('[data-requires-permission]').forEach(function (node) {
+      var code = node.getAttribute('data-requires-permission');
+      if (!api.hasPermission(code)) node.hidden = true;
+    });
   }
 
   /* --- Khởi động ----------------------------------------------------------- */
 
   document.addEventListener('DOMContentLoaded', function () {
+    applyPermissionGates();
     fillProvinces();
     setupShapeControls();
-    render();
+    loadFarms();
+
+    searchInput.addEventListener('input', handleSearchInput);
+    prevPageBtn.addEventListener('click', function () {
+      if (listState.page <= 1) return;
+      listState.page -= 1;
+      loadFarms();
+    });
+    nextPageBtn.addEventListener('click', function () {
+      listState.page += 1;
+      loadFarms();
+    });
+    document.querySelector('[data-farm-retry]').addEventListener('click', loadFarms);
 
     // Gọi openModal() không tham số — không truyền thẳng openModal làm
     // handler, vì addEventListener sẽ đưa đối tượng Event vào làm tham số

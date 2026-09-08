@@ -146,7 +146,13 @@
     }
   </style>
   <script src="js/api-config.js?v=1"></script>
-  <script src="js/api.js?v=2"></script>
+  <script src="js/api.js?v=4"></script>
+  <script>
+    // Trang mặc định sau đăng nhập, đã chuyển sang backend thật — chặn
+    // ngay trong <head> (không defer) để tránh chớp nội dung trước khi
+    // chuyển hướng nếu chưa đăng nhập qua API.
+    AgriChain.api.requireAuth();
+  </script>
 </head>
 <body class="app-shell">
 
@@ -348,24 +354,50 @@
             Tổng số: <strong data-farm-count>0</strong> nông trại
           </p>
         </div>
-        <button type="button" class="btn btn--primary btn--lg" data-open-farm-form>
+        <button type="button" class="btn btn--primary btn--lg" data-open-farm-form data-requires-permission="farms.add">
           <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-seedling"></use></svg>
           Thêm nông trại
         </button>
       </div>
 
+      <div class="search-field" style="max-width: 360px; margin-bottom: var(--space-5);">
+        <svg class="icon search-field__icon"><use href="icons/sprite.svg#icon-search"></use></svg>
+        <input class="input" type="search" placeholder="Tìm theo mã hoặc tên nông trại..." data-farm-search />
+      </div>
+
+      <!-- Đang tải -->
+      <div class="async-state" data-farm-loading hidden>
+        <span class="spinner spinner--lg"></span>
+        <p class="async-state__title">Đang tải danh sách nông trại...</p>
+      </div>
+
+      <!-- Gọi API lỗi -->
+      <div class="async-state async-state--error" data-farm-error hidden>
+        <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-x-circle"></use></svg>
+        <p class="async-state__title">Không tải được danh sách nông trại</p>
+        <p class="async-state__desc" data-farm-error-message></p>
+        <button type="button" class="btn btn--outline btn--sm" data-farm-retry>Thử lại</button>
+      </div>
+
       <!-- Danh sách -->
       <div class="grid grid--3" data-farm-list hidden></div>
 
+      <!-- Phân trang -->
+      <div class="pagination" data-farm-pagination hidden>
+        <button type="button" class="btn btn--outline btn--sm" data-farm-prev-page>‹ Trước</button>
+        <span class="pagination__info" data-farm-page-info></span>
+        <button type="button" class="btn btn--outline btn--sm" data-farm-next-page>Sau ›</button>
+      </div>
+
       <!-- Trạng thái rỗng -->
-      <div class="empty-state" data-farm-empty>
+      <div class="empty-state" data-farm-empty hidden>
         <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-seedling"></use></svg>
-        <p class="empty-state__title">Chưa có nông trại nào</p>
-        <p class="empty-state__desc">
+        <p class="empty-state__title" data-farm-empty-title>Chưa có nông trại nào</p>
+        <p class="empty-state__desc" data-farm-empty-desc>
           Nông trại là điểm bắt đầu của mọi lô hàng. Tạo nông trại đầu tiên
           để bắt đầu ghi nhận mùa vụ và truy xuất nguồn gốc.
         </p>
-        <button type="button" class="btn btn--primary" data-open-farm-form>
+        <button type="button" class="btn btn--primary" data-open-farm-form data-requires-permission="farms.add">
           Thêm nông trại
         </button>
       </div>
@@ -558,6 +590,6 @@
   <script src="js/store.js?v=12" defer></script>
   <script src="js/app-shell.js?v=10" defer></script>
   <script src="js/location-select.js?v=1" defer></script>
-  <script src="js/nong-trai.js?v=16" defer></script>
+  <script src="js/nong-trai.js?v=17" defer></script>
 </body>
 </html>

@@ -17,7 +17,12 @@
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/app-shell.css" />
   <script src="js/api-config.js?v=1"></script>
-  <script src="js/api.js?v=2"></script>
+  <script src="js/api.js?v=4"></script>
+  <script>
+    // Đã chuyển sang backend thật — chặn ngay trong <head> (không defer)
+    // để tránh chớp nội dung trước khi chuyển hướng nếu chưa đăng nhập.
+    AgriChain.api.requireAuth();
+  </script>
 </head>
 <body class="app-shell">
 
@@ -216,14 +221,34 @@
           <h1 class="page-header__title">Vật tư</h1>
           <p class="page-header__meta">Quản lý danh sách vật tư nông nghiệp của bạn.</p>
         </div>
-        <button type="button" class="btn btn--primary btn--lg" data-open-form>
+        <button type="button" class="btn btn--primary btn--lg" data-open-form data-requires-permission="supplies.add">
           <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
           Thêm vật tư
         </button>
       </div>
 
-      <!-- Thống kê theo loại -->
+      <!-- Thống kê theo loại — tính trên trang dữ liệu ĐANG TẢI (page_size lớn),
+           không phải toàn bộ hệ thống nếu vượt quá page_size. -->
       <div class="stat-grid" data-stats></div>
+
+      <div class="search-field" style="max-width: 360px; margin-bottom: var(--space-5);">
+        <svg class="icon search-field__icon"><use href="icons/sprite.svg#icon-search"></use></svg>
+        <input class="input" type="search" placeholder="Tìm theo mã hoặc tên vật tư..." data-supply-search />
+      </div>
+
+      <!-- Đang tải -->
+      <div class="async-state" data-supply-loading hidden>
+        <span class="spinner spinner--lg"></span>
+        <p class="async-state__title">Đang tải danh sách vật tư...</p>
+      </div>
+
+      <!-- Gọi API lỗi -->
+      <div class="async-state async-state--error" data-supply-error hidden>
+        <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-x-circle"></use></svg>
+        <p class="async-state__title">Không tải được danh sách vật tư</p>
+        <p class="async-state__desc" data-supply-error-message></p>
+        <button type="button" class="btn btn--outline btn--sm" data-supply-retry>Thử lại</button>
+      </div>
 
       <!-- Bảng -->
       <div class="table-panel" data-table-panel hidden>
@@ -249,15 +274,22 @@
         </div>
       </div>
 
+      <!-- Phân trang -->
+      <div class="pagination" data-supply-pagination hidden>
+        <button type="button" class="btn btn--outline btn--sm" data-supply-prev-page>‹ Trước</button>
+        <span class="pagination__info" data-supply-page-info></span>
+        <button type="button" class="btn btn--outline btn--sm" data-supply-next-page>Sau ›</button>
+      </div>
+
       <!-- Trạng thái rỗng -->
-      <div class="empty-state" data-empty>
+      <div class="empty-state" data-empty hidden>
         <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-box"></use></svg>
-        <p class="empty-state__title">Chưa có vật tư nào</p>
-        <p class="empty-state__desc">
+        <p class="empty-state__title" data-supply-empty-title>Chưa có vật tư nào</p>
+        <p class="empty-state__desc" data-supply-empty-desc>
           Vật tư là những gì được dùng trong từng giai đoạn canh tác. Khai báo ở đây
           để sau này chọn nhanh khi ghi nhận sự kiện cho lô hàng.
         </p>
-        <button type="button" class="btn btn--primary" data-open-form>Thêm vật tư</button>
+        <button type="button" class="btn btn--primary" data-open-form data-requires-permission="supplies.add">Thêm vật tư</button>
       </div>
 
     </div>
@@ -362,6 +394,6 @@
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=12" defer></script>
   <script src="js/app-shell.js?v=10" defer></script>
-  <script src="js/vat-tu.js?v=3" defer></script>
+  <script src="js/vat-tu.js?v=4" defer></script>
 </body>
 </html>

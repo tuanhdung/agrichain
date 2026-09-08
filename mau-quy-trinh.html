@@ -117,7 +117,13 @@
     }
   </style>
   <script src="js/api-config.js?v=1"></script>
-  <script src="js/api.js?v=2"></script>
+  <script src="js/api.js?v=4"></script>
+  <script>
+    // Vật tư trong trang này đã chuyển sang backend thật — chặn ngay trong
+    // <head> (không defer) để tránh chớp nội dung trước khi chuyển hướng
+    // nếu chưa đăng nhập.
+    AgriChain.api.requireAuth();
+  </script>
 </head>
 <body class="app-shell">
 
@@ -410,6 +416,6 @@
   <script src="js/store.js?v=12" defer></script>
   <script src="js/app-shell.js?v=10" defer></script>
   <script src="js/enums.js?v=1" defer></script>
-  <script src="js/mau-quy-trinh.js?v=2" defer></script>
+  <script src="js/mau-quy-trinh.js?v=3" defer></script>
 </body>
 </html>

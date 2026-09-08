@@ -5,13 +5,46 @@
    xem + lọc + truy xuất QR + xác thực blockchain — thêm/sửa/xoá lô hàng vẫn
    làm ở tab "Lô hàng" trong modal xem chi tiết mùa vụ
    (nong-trai-chi-tiet.html), nút sửa/xoá ở đây chỉ điều hướng về đúng chỗ
-   đó. Nạp SAU js/store.js, js/app-shell.js và js/location-select.js.
+   đó. `batches` VẪN ở store.js (giai đoạn 3, không đổi trong lần vá này).
+
+   farms/seasons ĐÃ CHUYỂN SANG API (nong-trai.js/nong-trai-chi-tiet.js
+   không còn ghi vào store.js nữa) — mọi chỗ tra cứu tên nông trại/mùa vụ
+   cho batch hoặc điền bộ lọc đều phải qua api.farms.get()/api.seasons.get(), xem
+   getFarmCached()/getSeasonCached() bên dưới. VÁ PHẠM VI HẸP: chỉ đổi phần
+   tra cứu farms/seasons, không đụng luồng batches/QR/xác thực blockchain.
+
+   Nạp SAU js/api-config.js, js/api.js, js/store.js, js/app-shell.js và
+   js/location-select.js.
    ========================================================================== */
 
 (function (global) {
   'use strict';
 
+  var api = global.AgriChain.api;
   var store = global.AgriChain.store;
+
+  // Cache theo id — nhiều lô hàng thường trỏ tới CÙNG 1 nông trại/mùa vụ,
+  // tránh gọi lại api.farms.get()/api.seasons.get() nhiều lần cho cùng 1 id
+  // trong cùng 1 lượt render(). Lỗi (VD đã bị xoá) trả về null thay vì làm
+  // hỏng cả danh sách — batchCard() đã có sẵn nhánh xử lý "farm/season null"
+  // (lô hàng mồ côi).
+  var farmCache = {};
+  function getFarmCached(id) {
+    if (!id) return Promise.resolve(null);
+    if (!farmCache[id]) {
+      farmCache[id] = api.farms.get(id).catch(function () { return null; });
+    }
+    return farmCache[id];
+  }
+
+  var seasonCache = {};
+  function getSeasonCached(id) {
+    if (!id) return Promise.resolve(null);
+    if (!seasonCache[id]) {
+      seasonCache[id] = api.seasons.get(id).catch(function () { return null; });
+    }
+    return seasonCache[id];
+  }
 
   var BATCH_STATUSES = [
     { key: 'planning',   label: 'Đang lập kế hoạch', badge: 'badge--neutral' },
@@ -66,26 +99,32 @@
   var batchCountNode = document.querySelector('[data-batch-count]');
 
   function fillFarmFilter() {
-    store.list('farms').forEach(function (farm) {
-      var option = el('option', null, farm.code + ' — ' + farm.name);
-      option.value = farm.id;
-      farmFilterSelect.appendChild(option);
+    api.farms.list({ page_size: 100 }).then(function (data) {
+      (data.items || []).forEach(function (farm) {
+        var option = el('option', null, farm.code + ' — ' + farm.name);
+        option.value = farm.id;
+        farmFilterSelect.appendChild(option);
+      });
+    }).catch(function (err) {
+      global.AgriChain.toast('Không tải được danh sách nông trại: ' + err.message);
     });
   }
 
   /* --- Bộ lọc liên động: chọn Nông trại thì Mùa vụ chỉ còn mùa vụ của đúng
      nông trại đó. Rỗng ("Tất cả") cũng phải tải được — allowEmptyParent —
      vì "chưa chọn nông trại" ở đây nghĩa là "mọi nông trại", không phải
-     "chưa sẵn sàng" như trường hợp tỉnh/phường. */
+     "chưa sẵn sàng" như trường hợp tỉnh/phường. loadChildren() hỗ trợ trả
+     Promise sẵn (xem js/location-select.js), nên chuyển sang API chỉ cần
+     đổi nguồn dữ liệu, không đụng cơ chế cascading. */
   var seasonCascade = global.AgriChain.setupCascadingSelect({
     parentSelect: farmFilterSelect,
     childSelect: seasonFilterSelect,
     allowEmptyParent: true,
     loadChildren: function () {
       var farmId = farmFilterSelect.value;
-      var seasons = store.list('seasons');
-      if (farmId) seasons = seasons.filter(function (s) { return s.farmId === farmId; });
-      return seasons;
+      return api.seasons.list({ farm_id: farmId || undefined, page_size: 100 }).then(function (data) {
+        return data.items || [];
+      });
     },
     getOptionValue: function (season) { return season.id; },
     getOptionLabel: function (season) { return season.code + ' — ' + season.name; },
@@ -108,15 +147,15 @@
     });
   }
 
-  function editUrl(batch) {
-    var farm = store.find('farms', batch.farmId);
-    var season = store.find('seasons', batch.seasonId);
+  function editUrl(farm, season) {
     if (!farm || !season) return null;
     return 'nong-trai-chi-tiet.html?ma=' + encodeURIComponent(farm.code) +
       '&season=' + encodeURIComponent(season.code) + '#lo-hang';
   }
 
-  function batchCard(batch) {
+  // farm/season: đã resolve sẵn qua getFarmCached()/getSeasonCached() TRƯỚC
+  // khi gọi hàm này (xem render()) — batchCard() không tự gọi API, chỉ vẽ.
+  function batchCard(batch, farm, season) {
     var status = statusOf(BATCH_STATUSES, batch.status);
     var card = el('article', 'card batch-card');
 
@@ -185,7 +224,7 @@
       sealButton.addEventListener('click', function () { sealBatchRecord(batch); });
       actions.appendChild(sealButton);
 
-      var url = editUrl(batch);
+      var url = editUrl(farm, season);
       if (url) {
         var edit = el('a', 'icon-btn batch-card__action--edit');
         edit.href = url;
@@ -231,10 +270,20 @@
       return;
     }
 
-    batchEmptyNode.hidden = true;
-    batchListNode.hidden = false;
-    batches.forEach(function (batch) {
-      batchListNode.appendChild(batchCard(batch));
+    // Resolve TRƯỚC farm/season của từng lô hàng (qua cache, xem
+    // getFarmCached()/getSeasonCached()) rồi mới vẽ 1 lượt — tránh vẽ
+    // xong rồi phải quay lại sửa link sửa/xoá khi promise trả về sau.
+    Promise.all(batches.map(function (batch) {
+      return Promise.all([getFarmCached(batch.farmId), getSeasonCached(batch.seasonId)])
+        .then(function (results) {
+          return { batch: batch, farm: results[0], season: results[1] };
+        });
+    })).then(function (rows) {
+      batchEmptyNode.hidden = true;
+      batchListNode.hidden = false;
+      rows.forEach(function (row) {
+        batchListNode.appendChild(batchCard(row.batch, row.farm, row.season));
+      });
     });
   }
 

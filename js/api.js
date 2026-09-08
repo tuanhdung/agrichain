@@ -355,6 +355,107 @@
     }
   };
 
+  /* --- farms / seasons / logs / supplies / certifications -----------------
+     Khuôn CRUD chuẩn giống users/roles ở trên — chỉ bọc mỏng quanh
+     request(), không tự suy luận gì thêm (validate/đổi tên field sang
+     snake_case là việc của từng trang, xem CLAUDE.md mục "Kết nối backend"). */
+
+  var farms = {
+    list: function (params) {
+      return request('GET', '/farms', { query: params });
+    },
+    // options tuỳ chọn { auth: false } — dùng ở truy-xuat.js (trang công khai,
+    // GET /farms/{id} đã mở public-read) để KHÔNG gắn Authorization header dù
+    // trình duyệt đang có sẵn token (VD admin quét QR bằng máy đã đăng nhập) —
+    // tránh trường hợp token hết hạn kích hoạt refresh/redirect oan trên trang
+    // không cần đăng nhập này.
+    get: function (id, options) {
+      return request('GET', '/farms/' + id, options);
+    },
+    create: function (data) {
+      return request('POST', '/farms', { body: data });
+    },
+    update: function (id, data) {
+      return request('PATCH', '/farms/' + id, { body: data });
+    },
+    remove: function (id) {
+      return request('DELETE', '/farms/' + id);
+    }
+  };
+
+  var seasons = {
+    list: function (params) {
+      return request('GET', '/seasons', { query: params });
+    },
+    // options tuỳ chọn { auth: false } — xem ghi chú tương tự ở farms.get() trên.
+    get: function (id, options) {
+      return request('GET', '/seasons/' + id, options);
+    },
+    create: function (data) {
+      return request('POST', '/seasons', { body: data });
+    },
+    update: function (id, data) {
+      return request('PATCH', '/seasons/' + id, { body: data });
+    },
+    remove: function (id) {
+      return request('DELETE', '/seasons/' + id);
+    }
+  };
+
+  var logs = {
+    list: function (params) {
+      return request('GET', '/logs', { query: params });
+    },
+    get: function (id) {
+      return request('GET', '/logs/' + id);
+    },
+    create: function (data) {
+      return request('POST', '/logs', { body: data });
+    },
+    update: function (id, data) {
+      return request('PATCH', '/logs/' + id, { body: data });
+    },
+    remove: function (id) {
+      return request('DELETE', '/logs/' + id);
+    }
+  };
+
+  var supplies = {
+    list: function (params) {
+      return request('GET', '/supplies', { query: params });
+    },
+    get: function (id) {
+      return request('GET', '/supplies/' + id);
+    },
+    create: function (data) {
+      return request('POST', '/supplies', { body: data });
+    },
+    update: function (id, data) {
+      return request('PATCH', '/supplies/' + id, { body: data });
+    },
+    remove: function (id) {
+      return request('DELETE', '/supplies/' + id);
+    }
+  };
+
+  var certifications = {
+    list: function (params) {
+      return request('GET', '/certifications', { query: params });
+    },
+    get: function (id) {
+      return request('GET', '/certifications/' + id);
+    },
+    create: function (data) {
+      return request('POST', '/certifications', { body: data });
+    },
+    update: function (id, data) {
+      return request('PATCH', '/certifications/' + id, { body: data });
+    },
+    remove: function (id) {
+      return request('DELETE', '/certifications/' + id);
+    }
+  };
+
   /* --- Bảo vệ trang cần đăng nhập --------------------------------------------
      Gọi ở đầu <head> bằng script THƯỜNG (không defer) để chuyển hướng trước
      khi nội dung trang kịp vẽ ra. */
@@ -382,6 +483,11 @@
     },
     users: users,
     roles: roles,
-    permissions: permissions
+    permissions: permissions,
+    farms: farms,
+    seasons: seasons,
+    logs: logs,
+    supplies: supplies,
+    certifications: certifications
   };
 })(window);

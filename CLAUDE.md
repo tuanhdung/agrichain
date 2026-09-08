@@ -38,7 +38,8 @@ js/
   api-config.js          # window.AgriChain.API_BASE_URL — nạp TRƯỚC api.js, ở MỌI trang (kể cả
                           # trang chưa dùng API). Sửa domain backend khi deploy chỉ sửa file này.
   api.js                 # Lớp gọi backend thật (FastAPI) — token/refresh/lỗi/hàm nghiệp vụ
-                          # (api.auth.*/api.users.*/api.roles.*/api.permissions.*). Nạp SAU
+                          # (api.auth.*/api.users.*/api.roles.*/api.permissions.*/api.farms.*/
+                          # api.seasons.*/api.logs.*/api.supplies.*/api.certifications.*). Nạp SAU
                           # api-config.js, KHÔNG defer, ở MỌI trang — xem mục "Kết nối backend"
   header.js              # Xử lý tương tác cho .site-header (toggle menu mobile, cuộn anchor)
   contact-form.js        # Validate + hiện thông báo thành công cho form ở section Liên Hệ
@@ -65,14 +66,21 @@ js/
                            # dùng ở cả mau-quy-trinh.js lẫn nong-trai-chi-tiet.js (trước đây mỗi
                            # file tự khai báo lại, lệch nhãn/icon — xem SCHEMA-EXPORT.md). Nạp SAU
                            # store.js, TRƯỚC 2 file trên.
-  nong-trai.js            # Logic riêng cho nong-trai.html (danh sách + thêm/sửa/xoá nông trại)
+  nong-trai.js            # Logic riêng cho nong-trai.html (danh sách + thêm/sửa/xoá nông trại) —
+                          # ĐÃ CHUYỂN SANG BACKEND THẬT qua api.farms.* — xem mục "Kết nối backend"
   nong-trai-chi-tiet.js   # Logic riêng cho nong-trai-chi-tiet.html (trang xem chi tiết 1 nông trại,
                           # gồm cả chứng nhận/mùa vụ/nhật ký/lô hàng con của nó, và checklist "Quy
-                          # trình mùa vụ" áp dụng từ workflowTemplates — xem mục riêng bên dưới)
-  vat-tu.js               # Logic riêng cho vat-tu.html
+                          # trình mùa vụ" áp dụng từ workflowTemplates — xem mục riêng bên dưới).
+                          # farms/seasons/logs/certifications ĐÃ CHUYỂN SANG API; riêng
+                          # workflowTemplates và batches VẪN dùng store.js (giai đoạn 3) — xem mục
+                          # "Kết nối backend"
+  vat-tu.js               # Logic riêng cho vat-tu.html — ĐÃ CHUYỂN SANG BACKEND THẬT qua
+                          # api.supplies.*
   mau-quy-trinh.js         # Logic riêng cho mau-quy-trinh.html (danh sách + thêm/sửa/xoá mẫu quy
                            # trình mùa vụ — collection "workflowTemplates", KHÔNG khoá ownerId, theo
-                           # đúng quy ước "Hoạt động sản xuất" như farms/supplies/batches)
+                           # đúng quy ước "Hoạt động sản xuất" như farms/supplies/batches — VẪN
+                           # dùng store.js, giai đoạn 3; riêng dropdown chọn vật tư trong bước mẫu
+                           # đã đổi sang api.supplies.list())
   lo-hang.js               # Logic riêng cho lo-hang.html (danh sách TẤT CẢ lô hàng, lọc theo nông trại/
                            # mùa vụ, QR + xác thực blockchain tại chỗ — thêm/sửa/xoá vẫn ở
                            # nong-trai-chi-tiet.html, nút sửa/xoá ở đây chỉ điều hướng qua đó)
@@ -298,8 +306,22 @@ repo riêng `agrichain-api`, mặc định chạy ở `http://127.0.0.1:8000`, t
 `/docs`). Hai lớp cùng tồn tại song song trong giai đoạn chuyển tiếp — **không phải mọi
 trang đều dùng backend thật ngay**:
 
-- **Đã chuyển sang API**: `dang-nhap.html` (chỉ đăng nhập), `tai-khoan.html` (toàn bộ).
-- **Vẫn dùng `store.js`**: mọi trang còn lại, kể cả `dang-ky.html` (đăng ký) và `ho-so.html`.
+- **Đã chuyển sang API**: `dang-nhap.html` (chỉ đăng nhập), `tai-khoan.html` (toàn bộ),
+  `nong-trai.html` (farms), `vat-tu.html` (supplies), `nong-trai-chi-tiet.html` (farms +
+  seasons + logs + certifications — riêng workflowTemplates và batches trên chính trang
+  này VẪN dùng `store.js`, xem mục riêng bên dưới), `mau-quy-trinh.html` (chỉ dropdown chọn
+  vật tư trong bước mẫu — bản thân mẫu quy trình vẫn ở `store.js`).
+- **Vẫn dùng `store.js`**: mọi trang còn lại (kể cả `dang-ky.html`/`ho-so.html`), cộng thêm
+  2 collection trên `nong-trai-chi-tiet.html`/`js/lo-hang.js`/`js/truy-xuat.js`:
+  `workflowTemplates` (mẫu quy trình) và `batches` (lô hàng) — cả 2 chưa có ở backend, chờ
+  giai đoạn 3.
+- **`truy-xuat.html`/`js/truy-xuat.js`** (trang truy xuất công khai, quét mã QR, không đăng
+  nhập): tra cứu farm/season của lô hàng qua `api.farms.get()`/`api.seasons.get()` — backend
+  đã mở riêng 2 route này thành **public-read** (`GET /farms/{id}`, `GET /seasons/{id}`
+  không cần Bearer token) đúng cho trang công khai này, xem `getFarmSafe()`/`getSeasonSafe()`
+  trong `js/truy-xuat.js`. Danh sách chứng nhận trên trang này vẫn đọc `store.js` — không
+  phải vì `certifications` chưa có ở backend (đã có, xem `nong-trai-chi-tiet.html`), mà vì
+  endpoint đó vẫn yêu cầu đăng nhập và trang công khai này không có phiên nào để gửi kèm.
 
 ### `js/api-config.js`
 
@@ -436,6 +458,60 @@ Nếu backend thật đổi khuôn dữ liệu ở lần cập nhật sau, sửa
 `js/tai-khoan.js` (`PREFIX_ORDER`/`PREFIX_LABELS`/`PREFIX_ICONS`, `actionFromCode()`,
 `groupPermissions()`, `handlePermissionSave()`) — không cần sửa `js/api.js` vì lớp đó chỉ
 truyền dữ liệu thô, không diễn giải khuôn dạng permission/role.
+
+### Trang "Hoạt động sản xuất" — farms/seasons/logs/certifications/supplies
+
+5 domain giai đoạn 2 (`farms`, `seasons`, `logs`, `certifications`, `supplies`) theo đúng
+khuôn CRUD chuẩn (`GET` phân trang + tìm kiếm/lọc, `POST`, `GET /{id}`, `PATCH`, `DELETE` —
+xoá mềm). `js/api.js` bọc thêm `api.farms.*`/`api.seasons.*`/`api.logs.*`/
+`api.supplies.*`/`api.certifications.*`, cùng khuôn `list/get/create/update/remove` như
+`api.users.*`/`api.roles.*` đã có.
+
+- **Payload gửi lên đổi tên field sang snake_case khớp cột backend** (`startDate` ->
+  `start_date`, `plannedArea` -> `planned_area`, `nationalPuc` -> `national_puc`...);
+  **response trả về giữ nguyên snake_case, đọc thẳng** — không có lớp chuyển đổi 2 chiều
+  nào trong `js/api.js`, việc đổi tên nằm ở đúng trang gọi API (`js/nong-trai.js`,
+  `js/nong-trai-chi-tiet.js`, `js/vat-tu.js`).
+- **`farms.polygon` là NOT NULL, tối thiểu 3 điểm** (`FarmCreate`/`FarmUpdate`: `minItems: 3`)
+  — đã xác nhận qua `/openapi.json` thật, khớp đúng ràng buộc `js/nong-trai.js` đang áp từ
+  trước (không nới lỏng thành tuỳ chọn dù có lúc cân nhắc — xem lịch sử quyết định trong
+  `SCHEMA-EXPORT.md`).
+- **Xoá farm/season bị CHẶN (409) nếu còn dữ liệu con** — farm còn mùa vụ chưa xoá, mùa vụ
+  đã có nhật ký — `js/nong-trai.js`/`js/nong-trai-chi-tiet.js` hiện đúng message tiếng Việt
+  từ backend qua toast, KHÔNG báo "xoá thành công" giả như hồi còn `store.js`.
+- **`GET /farms`/`GET /seasons` không có endpoint "tìm theo `code`"**, chỉ có `q` (tìm kiếm
+  tự do) — `nong-trai-chi-tiet.html?ma=<code>` (và `&season=<code>`) phải tự tải kèm lọc gần
+  đúng rồi so khớp CHÍNH XÁC (không phân biệt hoa/thường) ở client, xem `loadFarmByCode()`/
+  `maybeOpenSeasonFromQuery()`.
+- **`GET /logs`/`GET /certifications` (danh sách) chỉ trả metadata tệp/ảnh** (`LogImageOut`:
+  `name/mime/size`, không có `url`; `CertificationOut`: `file_name/file_mime/file_size`,
+  không có `file_url`) — xem ảnh/tệp thật phải gọi thêm `api.logs.get(id)`/
+  `api.certifications.get(id)` (bản `*DetailOut` mới có nội dung), và CHỈ gọi khi người
+  dùng thật sự bấm xem/sửa, không tải trước cho toàn bộ danh sách.
+- **`LogSupply` có 7 trường, không phải 6** — xác nhận qua Swagger thật trước khi code (yêu
+  cầu của lần nối API này): `supply_id, code, name, unit, quantity, method, purpose`. `code`
+  là BẮT BUỘC, đã cập nhật `SCHEMA-EXPORT.md` và `getMaterialRowsData()` trong
+  `js/nong-trai-chi-tiet.js`.
+- **⚠️ Bug backend đang chờ sửa — `WorkflowStep.status` vs `done`**: dự án đã đổi tên field
+  tiến độ của 1 bước quy trình trong `seasons.workflow_steps[]` từ `status`
+  (`'pending'`/`'completed'`) thành `done` (boolean) để tránh trùng tên với `seasons.status`
+  (5 giá trị khác hẳn phạm vi). Backend hiện **VẪN CÒN dùng `status`** ở `WorkflowStep`
+  Pydantic model — gửi `done` lên sẽ bị Pydantic âm thầm bỏ qua, bước sẽ không thực sự được
+  đánh dấu hoàn thành phía server dù giao diện tưởng đã xong. `js/nong-trai-chi-tiet.js` vẫn
+  code đúng theo `done` (quyết định giữ nguyên phía frontend, KHÔNG lùi về `status`) — phần
+  hoàn thành bước quy trình (`completeWorkflowStep()`) vì vậy **chưa kiểm chứng được đầu-cuối
+  cho tới khi backend sửa xong**. Có banner "Thử lại cập nhật trạng thái bước"
+  (`[data-process-retry-notice]`) phòng trường hợp nhật ký tạo được nhưng PATCH mùa vụ lỗi —
+  không để trạng thái nửa vời trong im lặng.
+- **`workflowTemplates` (mẫu quy trình) và `batches` (lô hàng) CHƯA migrate** — giai đoạn 3.
+  Trên `nong-trai-chi-tiet.html`, khi áp dụng 1 mẫu cho mùa vụ, mẫu vẫn đọc từ `store.js`
+  nhưng KẾT QUẢ snapshot (`workflow_template_id`/`_name`/`_steps`) được gửi qua
+  `PATCH /seasons/{id}` của API thật — đây là điểm nối 2 hệ dữ liệu, không phải lớp chuyển
+  đổi thừa (xem `cloneTemplateSteps()`).
+- Dropdown chọn vật tư ở MỌI nơi trên `nong-trai-chi-tiet.html`/`mau-quy-trinh.html` (form
+  nhật ký, form bước quy trình mẫu, form tuỳ biến bước quy trình mùa vụ) đọc qua
+  `api.supplies.list()`, tải 1 lần lúc trang khởi động — không đọc `store.js` nữa, nếu không
+  id vật tư chọn được sẽ không khớp bản ghi thật trong DB.
 
 ### Nợ kỹ thuật đã biết
 

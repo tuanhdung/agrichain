@@ -533,7 +533,12 @@
     }
   </style>
   <script src="js/api-config.js?v=1"></script>
-  <script src="js/api.js?v=2"></script>
+  <script src="js/api.js?v=4"></script>
+  <script>
+    // Đã chuyển sang backend thật — chặn ngay trong <head> (không defer)
+    // để tránh chớp nội dung trước khi chuyển hướng nếu chưa đăng nhập.
+    AgriChain.api.requireAuth();
+  </script>
 </head>
 <body class="app-shell">
 
@@ -727,6 +732,12 @@
         <span class="breadcrumb__current" aria-current="page" data-farm-breadcrumb>…</span>
       </nav>
 
+      <!-- Đang tải -->
+      <div class="async-state" data-farm-loading>
+        <span class="spinner spinner--lg"></span>
+        <p class="async-state__title">Đang tải thông tin nông trại...</p>
+      </div>
+
       <!-- Không tìm thấy nông trại theo mã trên URL -->
       <div class="empty-state" data-not-found hidden>
         <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-seedling"></use></svg>
@@ -811,7 +822,7 @@
               <h2 class="tab-panel-header__title">Danh sách chứng nhận</h2>
               <p class="tab-panel-header__meta">Tổng số: <strong data-cert-count>0</strong> chứng nhận nông trại</p>
             </div>
-            <button type="button" class="btn btn--primary btn--sm" data-open-cert-form>
+            <button type="button" class="btn btn--primary btn--sm" data-open-cert-form data-requires-permission="certifications.add">
               <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
               Thêm mới
             </button>
@@ -834,7 +845,7 @@
               <h2 class="tab-panel-header__title">Lịch sử mùa vụ</h2>
               <p class="tab-panel-header__meta">Tổng số: <strong data-season-count>0</strong> mùa vụ</p>
             </div>
-            <button type="button" class="btn btn--primary btn--sm" data-open-season-form>
+            <button type="button" class="btn btn--primary btn--sm" data-open-season-form data-requires-permission="seasons.add">
               <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
               Thêm mới
             </button>
@@ -966,6 +977,17 @@
             </div>
           </div>
 
+          <div class="field">
+            <label class="label" for="season-expected-yield">Sản lượng dự kiến (tuỳ chọn)</label>
+            <input class="input" type="number" id="season-expected-yield" name="expectedYield" min="0" step="0.01" />
+          </div>
+
+          <div class="field">
+            <label class="label" for="season-yield-unit">Đơn vị sản lượng</label>
+            <input class="input" type="text" id="season-yield-unit" name="yieldUnit" placeholder="VD: tấn, kg" />
+            <p class="field__hint">Bắt buộc nếu có nhập sản lượng dự kiến.</p>
+          </div>
+
           <div class="field form-grid__full">
             <label class="label" for="season-status">Trạng thái</label>
             <select class="select" id="season-status" name="status" required></select>
@@ -1074,7 +1096,7 @@
             <h2 class="tab-panel-header__title">Nhật ký mùa vụ</h2>
             <p class="tab-panel-header__meta">Tổng số: <strong data-log-count>0</strong> nhật ký</p>
           </div>
-          <button type="button" class="btn btn--primary btn--sm" data-open-season-log-form>
+          <button type="button" class="btn btn--primary btn--sm" data-open-season-log-form data-requires-permission="logs.add">
             <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
             Thêm mới
           </button>
@@ -1139,6 +1161,18 @@
             <button type="button" class="btn btn--outline btn--sm" data-process-customize-btn>
               <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-pencil"></use></svg>
               Tuỳ biến bước quy trình
+            </button>
+          </div>
+
+          <!-- Nhật ký đã tạo thành công nhưng cập nhật trạng thái bước (PATCH
+               /seasons) thất bại — KHÔNG được để trạng thái nửa vời trong im
+               lặng, phải cho người dùng thử lại đúng bước cập nhật đó. -->
+          <div class="notice notice--danger" data-process-retry-notice hidden style="margin-bottom: var(--space-4);">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-x-circle"></use></svg>
+            <span>Đã ghi nhật ký nhưng CHƯA cập nhật được trạng thái bước quy trình
+              — <span data-process-retry-message></span></span>
+            <button type="button" class="btn btn--outline btn--sm" data-process-retry-btn>
+              Thử lại cập nhật trạng thái bước
             </button>
           </div>
 
@@ -1404,6 +1438,6 @@
   <script src="js/store.js?v=12" defer></script>
   <script src="js/app-shell.js?v=10" defer></script>
   <script src="js/enums.js?v=1" defer></script>
-  <script src="js/nong-trai-chi-tiet.js?v=15" defer></script>
+  <script src="js/nong-trai-chi-tiet.js?v=16" defer></script>
 </body>
 </html>

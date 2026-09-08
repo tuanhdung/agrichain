@@ -1,14 +1,28 @@
 /* ==========================================================================
    AgriChain — Trang chi tiết 1 nông trại (nong-trai-chi-tiet.html?ma=...)
-   Đọc mã nông trại từ query string (?ma=), tìm trong AgriChain.store rồi vẽ
-   lại thông tin, cùng 2 danh sách con gắn theo farmId: chứng nhận nông trại
-   và lịch sử mùa vụ (thêm/sửa/xoá ngay tại đây). Nạp SAU js/store.js,
-   js/app-shell.js, js/map-layers.js và js/enums.js (ACTIVITY_TYPES dùng chung).
+   Đọc mã nông trại từ query string (?ma=), tìm qua js/api.js rồi vẽ lại
+   thông tin, cùng 2 danh sách con gắn theo farm_id: chứng nhận nông trại và
+   lịch sử mùa vụ (thêm/sửa/xoá ngay tại đây) — farms/seasons/logs/
+   certifications ĐÃ CHUYỂN SANG BACKEND THẬT, KHÔNG còn dùng AgriChain.store
+   nữa cho 4 collection này.
+
+   NGOẠI LỆ — vẫn dùng store.js: mẫu quy trình (workflowTemplates, chưa có
+   ở backend, giai đoạn 3) và lô hàng (batches, cũng giai đoạn 3) — xem mục
+   "Quy trình mùa vụ"/"Lô hàng" bên dưới. Vật tư (supplies) đã chuyển API
+   nên MỌI chỗ chọn vật tư trên trang này (dropdown trong form nhật ký, form
+   tuỳ biến bước quy trình) đọc qua api.supplies.list(), không đọc store.js
+   nữa — nếu không id vật tư chọn được sẽ không khớp bản ghi thật trong DB.
+
+   Nạp SAU js/api-config.js, js/api.js, js/store.js, js/app-shell.js,
+   js/map-layers.js và js/enums.js (ACTIVITY_TYPES dùng chung).
    ========================================================================== */
 
 (function (global) {
   'use strict';
 
+  var api = global.AgriChain.api;
+  // store.js CHỈ còn dùng cho workflowTemplates + batches (giai đoạn 3,
+  // xem ghi chú đầu file) — mọi farms/seasons/logs/certifications đã qua api.*.
   var store = global.AgriChain.store;
 
   var CERT_STATUSES = [
@@ -63,6 +77,7 @@
     return list[0];
   }
 
+  var farmLoadingNode = document.querySelector('[data-farm-loading]');
   var notFoundNode = document.querySelector('[data-not-found]');
   var detailNode = document.querySelector('[data-farm-detail]');
   var breadcrumbNode = document.querySelector('[data-farm-breadcrumb]');
@@ -103,11 +118,20 @@
 
   // input[type=datetime-local] trả về "2026-08-28T15:10" (không giây, không
   // múi giờ) — tách theo "T" rồi tái dùng formatDate() cho phần ngày.
+  // Chấp nhận cả "YYYY-MM-DDTHH:mm" (input datetime-local) lẫn ISO đầy đủ
+  // backend trả về ("...T07:30:00+07:00"/"...Z") — luôn cắt về đúng 16 ký
+  // tự đầu ("YYYY-MM-DDTHH:mm") trước khi tách, bỏ qua giây/múi giờ.
   function formatDateTimeLocal(value) {
     if (!value) return 'Chưa đặt';
-    var parts = value.split('T');
+    var parts = String(value).slice(0, 16).split('T');
     if (parts.length !== 2) return value;
     return formatDate(parts[0]) + ' ' + parts[1];
+  }
+
+  // "2026-02-01T07:30:00+07:00" -> "2026-02-01T07:30" (khớp giá trị input
+  // datetime-local mong đợi).
+  function toDatetimeLocalValue(value) {
+    return value ? String(value).slice(0, 16) : '';
   }
 
   function fillField(selector, value) {
@@ -171,6 +195,7 @@
   }
 
   function showNotFound(code) {
+    farmLoadingNode.hidden = true;
     notFoundNode.hidden = false;
     detailNode.hidden = true;
     breadcrumbNode.textContent = 'Không tìm thấy';
@@ -180,6 +205,7 @@
 
   function showFarm(farm) {
     currentFarm = farm;
+    farmLoadingNode.hidden = true;
     notFoundNode.hidden = true;
     detailNode.hidden = false;
 
@@ -190,14 +216,70 @@
     fillField('[data-view-address]', farm.address);
     fillField('[data-view-ward]', farm.ward);
     fillField('[data-view-province]', farm.province);
-    fillField('[data-view-start-date]', formatDate(farm.startDate));
-    fillField('[data-view-national-puc]', farm.nationalPuc);
-    fillField('[data-view-international-puc]', farm.internationalPuc);
+    fillField('[data-view-start-date]', formatDate(farm.start_date));
+    fillField('[data-view-national-puc]', farm.national_puc);
+    fillField('[data-view-international-puc]', farm.international_puc);
     fillField('[data-view-desc]', farm.description);
 
     showFarmOnMap(farm);
     renderCertifications();
     renderSeasons();
+  }
+
+  // Ẩn nút nào người dùng hiện tại không có quyền — đánh dấu sẵn bằng
+  // data-requires-permission="<mã quyền>" trên nút trong HTML.
+  function applyPermissionGates() {
+    document.querySelectorAll('[data-requires-permission]').forEach(function (node) {
+      var code = node.getAttribute('data-requires-permission');
+      if (!api.hasPermission(code)) node.hidden = true;
+    });
+  }
+
+  // GET /farms không có endpoint "tìm theo code", chỉ có `q` (tìm kiếm tự
+  // do) — tải kèm lọc gần đúng rồi tự so khớp CHÍNH XÁC (không phân biệt
+  // hoa/thường) ở client, giống cách nong-trai.js kiểm tra trùng mã trước
+  // đây (nhưng giờ chỉ để TÌM, không phải để validate).
+  function loadFarmByCode(code) {
+    api.farms.list({ q: code, page_size: 100 }).then(function (data) {
+      var farm = (data.items || []).filter(function (item) {
+        return item.code.toLowerCase() === code.trim().toLowerCase();
+      })[0];
+
+      if (!farm) {
+        showNotFound(code);
+        return;
+      }
+
+      showFarm(farm);
+      maybeOpenSeasonFromQuery(farm);
+    }).catch(function (err) {
+      showNotFound(code);
+      notFoundNode.querySelector('[data-not-found-title]').textContent =
+        'Không tải được thông tin nông trại: ' + err.message;
+    });
+  }
+
+  // Điều hướng thẳng tới đúng mùa vụ + tab "Lô hàng" — dùng khi bấm nút
+  // sửa/xoá ở trang lo-hang.html, ví dụ
+  // nong-trai-chi-tiet.html?ma=NV01&season=MV01-2026#lo-hang.
+  function maybeOpenSeasonFromQuery(farm) {
+    var seasonCode = new URLSearchParams(global.location.search).get('season');
+    if (!seasonCode) return;
+
+    api.seasons.list({ farm_id: farm.id, q: seasonCode, page_size: 100 }).then(function (data) {
+      var targetSeason = (data.items || []).filter(function (item) {
+        return item.code.toLowerCase() === seasonCode.trim().toLowerCase();
+      })[0];
+      if (!targetSeason) return;
+
+      openSeasonViewModal(targetSeason);
+      if (global.location.hash === '#lo-hang') {
+        var batchesTab = seasonViewModal.querySelector('[data-tab-target="season-view-tab-batches"]');
+        if (batchesTab) batchesTab.click();
+      }
+    }).catch(function (err) {
+      global.AgriChain.toast(err.message);
+    });
   }
 
   /* ======================================================================
@@ -228,13 +310,6 @@
     });
   }
 
-  function certsOfFarm() {
-    if (!currentFarm) return [];
-    return store.list('certifications').filter(function (item) {
-      return item.farmId === currentFarm.id;
-    });
-  }
-
   function certCard(cert) {
     var status = statusOf(CERT_STATUSES, cert.status);
     var card = el('article', 'card card--hover');
@@ -247,15 +322,18 @@
     var rows = el('div', 'data-card__rows');
     rows.appendChild(fieldRow('icon-qr-code', 'Mã', cert.code));
     if (cert.issuer) rows.appendChild(fieldRow('icon-factory', 'Cơ quan cấp', cert.issuer));
-    rows.appendChild(fieldRow('icon-calendar', 'Ngày cấp', formatDate(cert.issueDate)));
-    rows.appendChild(fieldRow('icon-calendar', 'Ngày hết hạn', formatDate(cert.expiryDate)));
+    rows.appendChild(fieldRow('icon-calendar', 'Ngày cấp', formatDate(cert.issue_date)));
+    rows.appendChild(fieldRow('icon-calendar', 'Ngày hết hạn', formatDate(cert.expiry_date)));
 
     var fileValue;
-    if (cert.fileDataUrl) {
-      fileValue = el('a', 'badge badge--info', cert.fileName || 'Tệp đính kèm');
-      fileValue.href = cert.fileDataUrl;
-      fileValue.target = '_blank';
-      fileValue.rel = 'noopener';
+    if (cert.file_name) {
+      // Danh sách chỉ có metadata tệp, không có nội dung — bấm mới tải chi
+      // tiết (api.certifications.get()) rồi mở file_url, không tải trước
+      // cho toàn bộ danh sách (tốn băng thông vô ích).
+      var fileButton = el('button', 'badge badge--info', cert.file_name);
+      fileButton.type = 'button';
+      fileButton.addEventListener('click', function () { openCertFile(cert.id); });
+      fileValue = fileButton;
     } else {
       fileValue = '—';
     }
@@ -271,6 +349,7 @@
     edit.type = 'button';
     edit.setAttribute('aria-label', 'Sửa ' + cert.name);
     edit.setAttribute('data-tooltip', 'Chỉnh sửa');
+    if (!api.hasPermission('certifications.edit')) edit.hidden = true;
     edit.appendChild(svgIcon('icon-pencil'));
     edit.addEventListener('click', function () { openCertModal(cert); });
 
@@ -278,6 +357,7 @@
     del.type = 'button';
     del.setAttribute('aria-label', 'Xoá ' + cert.name);
     del.setAttribute('data-tooltip', 'Xoá');
+    if (!api.hasPermission('certifications.delete')) del.hidden = true;
     del.appendChild(svgIcon('icon-trash'));
     del.addEventListener('click', function () { deleteCert(cert); });
 
@@ -288,21 +368,41 @@
     return card;
   }
 
+  // Tải chi tiết (kèm nội dung tệp) rồi mở tab mới — dùng chung cho nút
+  // "Xem tệp" trong thẻ danh sách và (gián tiếp) khi mở modal Sửa.
+  function openCertFile(certId) {
+    api.certifications.get(certId).then(function (detail) {
+      if (!detail.file_url) {
+        global.AgriChain.toast('Chứng nhận này chưa có tệp đính kèm.');
+        return;
+      }
+      global.open(detail.file_url, '_blank', 'noopener');
+    }).catch(function (err) {
+      global.AgriChain.toast(err.message);
+    });
+  }
+
   function renderCertifications() {
-    var certs = certsOfFarm();
-    certCountNode.textContent = certs.length;
-
+    if (!currentFarm) return;
     certListNode.textContent = '';
-    if (!certs.length) {
-      certListNode.hidden = true;
-      certEmptyNode.hidden = false;
-      return;
-    }
+    api.certifications.list({ farm_id: currentFarm.id, page_size: 100 }).then(function (data) {
+      var certs = data.items || [];
+      certCountNode.textContent = data.total || certs.length;
 
-    certEmptyNode.hidden = true;
-    certListNode.hidden = false;
-    certs.forEach(function (cert) {
-      certListNode.appendChild(certCard(cert));
+      certListNode.textContent = '';
+      if (!certs.length) {
+        certListNode.hidden = true;
+        certEmptyNode.hidden = false;
+        return;
+      }
+
+      certEmptyNode.hidden = true;
+      certListNode.hidden = false;
+      certs.forEach(function (cert) {
+        certListNode.appendChild(certCard(cert));
+      });
+    }).catch(function (err) {
+      global.AgriChain.toast(err.message);
     });
   }
 
@@ -313,10 +413,18 @@
     certFileCurrent.hidden = true;
   }
 
+  // existingCertFileUrl: nội dung tệp hiện có (file_url thật, từ
+  // api.certifications.get()) — handleCertSubmit() cần giá trị này để biết
+  // "giữ nguyên tệp cũ" nghĩa là gì khi người dùng không đổi/không gỡ tệp.
+  var existingCertFileUrl = null;
+  var certDetailLoading = false;
+
   function openCertModal(cert) {
     certForm.reset();
     clearErrors(certForm);
     resetCertFileField();
+    existingCertFileUrl = null;
+    certDetailLoading = false;
     editingCertId = cert ? cert.id : null;
 
     if (cert) {
@@ -326,14 +434,26 @@
       document.getElementById('cert-code').value = cert.code || '';
       document.getElementById('cert-issuer').value = cert.issuer || '';
       certStatusSelect.value = cert.status || CERT_STATUSES[0].key;
-      document.getElementById('cert-issue-date').value = cert.issueDate || '';
-      document.getElementById('cert-expiry-date').value = cert.expiryDate || '';
+      document.getElementById('cert-issue-date').value = cert.issue_date || '';
+      document.getElementById('cert-expiry-date').value = cert.expiry_date || '';
       document.getElementById('cert-note').value = cert.note || '';
 
-      if (cert.fileDataUrl) {
-        certFileLink.textContent = cert.fileName || 'Xem tệp';
-        certFileLink.href = cert.fileDataUrl;
-        certFileCurrent.hidden = false;
+      // Danh sách không có nội dung tệp — tải riêng chi tiết để biết tệp
+      // hiện có thật sự tồn tại (file_url), dùng cho cả link "Xem tệp" lẫn
+      // logic "giữ nguyên tệp cũ" khi lưu. certDetailLoading chặn submit
+      // sớm trước khi biết chắc tệp cũ có tồn tại hay không (validateCert()).
+      if (cert.file_name) {
+        certDetailLoading = true;
+        api.certifications.get(cert.id).then(function (detail) {
+          existingCertFileUrl = detail.file_url || null;
+          certFileLink.textContent = detail.file_name || 'Xem tệp';
+          certFileLink.href = detail.file_url || '#';
+          certFileCurrent.hidden = !detail.file_url;
+        }).catch(function (err) {
+          global.AgriChain.toast(err.message);
+        }).then(function () {
+          certDetailLoading = false;
+        });
       }
     } else {
       certModalTitle.textContent = 'Thêm chứng nhận mới';
@@ -387,16 +507,9 @@
     if (!code.value.trim()) {
       showError(code, 'Nhập mã chứng nhận.');
       problems.push(code);
-    } else {
-      var duplicate = certsOfFarm().some(function (item) {
-        return item.id !== editingCertId &&
-          item.code.toLowerCase() === code.value.trim().toLowerCase();
-      });
-      if (duplicate) {
-        showError(code, 'Mã này đã dùng cho chứng nhận khác của nông trại.');
-        problems.push(code);
-      }
     }
+    // Không kiểm tra trùng mã phía client — backend tự kiểm tra trùng
+    // "code" trong phạm vi 1 nông trại, trả lỗi kèm details.field="code".
 
     if (!issuer.value.trim()) {
       showError(issuer, 'Nhập cơ quan cấp.');
@@ -413,10 +526,15 @@
 
     // Lúc sửa, tệp cũ vẫn còn hiệu lực nếu chưa bấm "Gỡ tệp" — không bắt
     // chọn lại tệp mới mỗi lần sửa, chỉ bắt buộc lúc chưa có tệp nào cả.
-    var hasFile = !!certFile || (!certFileRemoved && !certFileCurrent.hidden);
+    var hasFile = !!certFile || (!certFileRemoved && !!existingCertFileUrl);
     if (!hasFile) {
       showError(certFileInput, 'Chọn tệp đính kèm.');
       problems.push(certFileInput);
+    }
+
+    if (certDetailLoading) {
+      global.AgriChain.toast('Đang tải thông tin tệp đính kèm, thử lại sau giây lát.');
+      return false;
     }
 
     if (problems.length) {
@@ -426,36 +544,83 @@
     return true;
   }
 
+  // Ánh xạ tên field backend trả về trong lỗi (details.field) sang đúng
+  // input trên form — khớp CertificationCreate/CertificationUpdate thật.
+  function certFieldNodeFor(fieldName) {
+    var map = {
+      name: 'cert-name',
+      code: 'cert-code',
+      issuer: 'cert-issuer',
+      status: 'cert-status',
+      issue_date: 'cert-issue-date',
+      expiry_date: 'cert-expiry-date',
+      note: 'cert-note',
+      file_url: 'cert-file',
+      file_name: 'cert-file'
+    };
+    var id = map[fieldName];
+    return id ? document.getElementById(id) : null;
+  }
+
   function handleCertSubmit(event) {
     event.preventDefault();
     if (!validateCert()) return;
 
     var data = new FormData(certForm);
-    var existing = editingCertId ? store.find('certifications', editingCertId) : null;
-
     var record = {
-      farmId: currentFarm.id,
       name: String(data.get('name')).trim(),
       code: String(data.get('code')).trim(),
       issuer: String(data.get('issuer') || '').trim(),
       status: String(data.get('status')),
-      issueDate: String(data.get('issueDate') || ''),
-      expiryDate: String(data.get('expiryDate') || ''),
-      note: String(data.get('note') || '').trim(),
-      fileName: certFile ? certFile.name : (certFileRemoved ? '' : (existing ? existing.fileName : '')),
-      fileDataUrl: certFile ? certFile.dataUrl : (certFileRemoved ? '' : (existing ? existing.fileDataUrl : ''))
+      issue_date: String(data.get('issueDate') || ''),
+      expiry_date: String(data.get('expiryDate') || ''),
+      note: String(data.get('note') || '').trim() || null
     };
 
+    if (certFile) {
+      // Chọn tệp mới — thay thế tệp cũ (nếu có).
+      record.file_name = certFile.name;
+      record.file_url = certFile.dataUrl;
+    } else if (certFileRemoved) {
+      // Bấm "Gỡ tệp" — CertificationUpdate: gửi null để gỡ tệp đính kèm.
+      record.file_name = null;
+      record.file_url = null;
+    }
+    // Không đổi/không gỡ: không gửi file_name/file_url — PATCH giữ nguyên
+    // tệp cũ. POST (tạo mới) thì đơn giản là không có tệp nào cả.
+
+    var submitButton = certForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    certSubmitLabel.textContent = 'Đang lưu...';
+
+    var request;
     if (editingCertId) {
-      store.update('certifications', editingCertId, record);
-      global.AgriChain.toast('Đã lưu thay đổi.');
+      request = api.certifications.update(editingCertId, record);
     } else {
-      store.insert('certifications', record);
-      global.AgriChain.toast('Đã thêm chứng nhận.');
+      record.farm_id = currentFarm.id;
+      request = api.certifications.create(record);
     }
 
-    closeCertModal();
-    renderCertifications();
+    request.then(function () {
+      closeCertModal();
+      renderCertifications();
+      global.AgriChain.toast(editingCertId ? 'Đã lưu thay đổi.' : 'Đã thêm chứng nhận.');
+    }).catch(function (err) {
+      if (err.details && err.details.field) {
+        var field = certFieldNodeFor(err.details.field);
+        if (field) {
+          showError(field, err.message);
+          field.focus();
+        } else {
+          global.AgriChain.toast(err.message);
+        }
+      } else {
+        global.AgriChain.toast(err.message);
+      }
+    }).then(function () {
+      submitButton.disabled = false;
+      certSubmitLabel.textContent = editingCertId ? 'Lưu thay đổi' : 'Lưu chứng nhận';
+    });
   }
 
   function deleteCert(cert) {
@@ -463,9 +628,12 @@
       'Xoá chứng nhận "' + cert.name + '"? Hành động này không thể hoàn tác.'
     ).then(function (confirmed) {
       if (!confirmed) return;
-      store.remove('certifications', cert.id);
-      renderCertifications();
-      global.AgriChain.toast('Đã xoá chứng nhận.');
+      api.certifications.remove(cert.id).then(function () {
+        renderCertifications();
+        global.AgriChain.toast('Đã xoá chứng nhận.');
+      }).catch(function (err) {
+        global.AgriChain.toast(err.message);
+      });
     });
   }
 
@@ -483,19 +651,16 @@
   var seasonCountNode = document.querySelector('[data-season-count]');
 
   var editingSeasonId = null;
+  // Tổng số mùa vụ của nông trại đang xem, cập nhật mỗi lần renderSeasons()
+  // tải xong — chỉ dùng để GỢI Ý mã mùa vụ tiếp theo (suggestSeasonCode()),
+  // không dùng để kiểm tra trùng mã (backend tự làm việc đó).
+  var seasonsTotal = 0;
 
   function fillSeasonStatuses() {
     SEASON_STATUSES.forEach(function (status) {
       var option = el('option', null, status.label);
       option.value = status.key;
       seasonStatusSelect.appendChild(option);
-    });
-  }
-
-  function seasonsOfFarm() {
-    if (!currentFarm) return [];
-    return store.list('seasons').filter(function (item) {
-      return item.farmId === currentFarm.id;
     });
   }
 
@@ -510,13 +675,18 @@
 
     var rows = el('div', 'data-card__rows');
     rows.appendChild(fieldRow('icon-qr-code', 'Mã', season.code));
-    rows.appendChild(fieldRow('icon-calendar', 'Ngày bắt đầu', formatDate(season.startDate)));
-    rows.appendChild(fieldRow('icon-calendar', 'Ngày kết thúc', formatDate(season.endDate)));
+    rows.appendChild(fieldRow('icon-calendar', 'Ngày bắt đầu', formatDate(season.start_date)));
+    rows.appendChild(fieldRow('icon-calendar', 'Ngày kết thúc', formatDate(season.end_date)));
 
     var chips = el('div', 'data-card__chip-group');
-    chips.appendChild(el('span', 'badge badge--info', 'Dự kiến: ' + formatArea(season.plannedArea)));
-    chips.appendChild(el('span', 'badge badge--warning', 'Thực tế: ' + formatArea(season.actualArea)));
+    chips.appendChild(el('span', 'badge badge--info', 'Dự kiến: ' + formatArea(season.planned_area)));
+    chips.appendChild(el('span', 'badge badge--warning', 'Thực tế: ' + formatArea(season.actual_area)));
     rows.appendChild(fieldRow('icon-chart-bar', 'Diện tích', chips));
+
+    if (season.expected_yield != null) {
+      rows.appendChild(fieldRow('icon-wheat', 'Sản lượng dự kiến',
+        season.expected_yield + ' ' + (season.yield_unit || '')));
+    }
 
     if (season.note) rows.appendChild(fieldRow('icon-file-text', 'Ghi chú', season.note));
 
@@ -535,6 +705,7 @@
     edit.type = 'button';
     edit.setAttribute('aria-label', 'Sửa ' + season.name);
     edit.setAttribute('data-tooltip', 'Chỉnh sửa');
+    if (!api.hasPermission('seasons.edit')) edit.hidden = true;
     edit.appendChild(svgIcon('icon-pencil'));
     edit.addEventListener('click', function () { openSeasonModal(season); });
 
@@ -542,6 +713,7 @@
     del.type = 'button';
     del.setAttribute('aria-label', 'Xoá ' + season.name);
     del.setAttribute('data-tooltip', 'Xoá');
+    if (!api.hasPermission('seasons.delete')) del.hidden = true;
     del.appendChild(svgIcon('icon-trash'));
     del.addEventListener('click', function () { deleteSeason(season); });
 
@@ -554,27 +726,33 @@
   }
 
   function renderSeasons() {
-    var seasons = seasonsOfFarm();
-    seasonCountNode.textContent = seasons.length;
+    if (!currentFarm) return;
+    api.seasons.list({ farm_id: currentFarm.id, page_size: 100 }).then(function (data) {
+      var seasons = data.items || [];
+      seasonsTotal = data.total || seasons.length;
+      seasonCountNode.textContent = seasonsTotal;
 
-    seasonListNode.textContent = '';
-    if (!seasons.length) {
-      seasonListNode.hidden = true;
-      seasonEmptyNode.hidden = false;
-      return;
-    }
+      seasonListNode.textContent = '';
+      if (!seasons.length) {
+        seasonListNode.hidden = true;
+        seasonEmptyNode.hidden = false;
+        return;
+      }
 
-    seasonEmptyNode.hidden = true;
-    seasonListNode.hidden = false;
-    seasons.forEach(function (season) {
-      seasonListNode.appendChild(seasonCard(season));
+      seasonEmptyNode.hidden = true;
+      seasonListNode.hidden = false;
+      seasons.forEach(function (season) {
+        seasonListNode.appendChild(seasonCard(season));
+      });
+    }).catch(function (err) {
+      global.AgriChain.toast(err.message);
     });
   }
 
   // Gợi ý mã mùa vụ tiếp theo của CHÍNH nông trại đang xem — MV01, MV02...
   // giống cách farm-code gợi ý ở nong-trai.js, chỉ là gợi ý, sửa được.
   function suggestSeasonCode() {
-    var seq = String(seasonsOfFarm().length + 1);
+    var seq = String(seasonsTotal + 1);
     while (seq.length < 2) seq = '0' + seq;
     return 'MV' + seq;
   }
@@ -589,12 +767,15 @@
       seasonSubmitLabel.textContent = 'Lưu thay đổi';
       document.getElementById('season-code').value = season.code || '';
       document.getElementById('season-name').value = season.name || '';
-      document.getElementById('season-start-date').value = season.startDate || '';
-      document.getElementById('season-end-date').value = season.endDate || '';
+      document.getElementById('season-start-date').value = season.start_date || '';
+      document.getElementById('season-end-date').value = season.end_date || '';
       document.getElementById('season-planned-area').value =
-        season.plannedArea != null ? season.plannedArea : '';
+        season.planned_area != null ? season.planned_area : '';
       document.getElementById('season-actual-area').value =
-        season.actualArea != null ? season.actualArea : '';
+        season.actual_area != null ? season.actual_area : '';
+      document.getElementById('season-expected-yield').value =
+        season.expected_yield != null ? season.expected_yield : '';
+      document.getElementById('season-yield-unit').value = season.yield_unit || '';
       seasonStatusSelect.value = season.status || SEASON_STATUSES[0].key;
       document.getElementById('season-note').value = season.note || '';
     } else {
@@ -626,16 +807,9 @@
     if (!code.value.trim()) {
       showError(code, 'Nhập mã mùa vụ.');
       problems.push(code);
-    } else {
-      var duplicate = seasonsOfFarm().some(function (item) {
-        return item.id !== editingSeasonId &&
-          item.code.toLowerCase() === code.value.trim().toLowerCase();
-      });
-      if (duplicate) {
-        showError(code, 'Mã này đã dùng cho mùa vụ khác của nông trại.');
-        problems.push(code);
-      }
     }
+    // Không kiểm tra trùng mã phía client — backend tự kiểm tra trùng
+    // "code" trong phạm vi 1 nông trại, trả lỗi kèm details.field="code".
 
     if (!name.value.trim()) {
       showError(name, 'Nhập tên mùa vụ.');
@@ -658,6 +832,15 @@
       problems.push(actualArea);
     }
 
+    // Sản lượng dự kiến tuỳ chọn, nhưng nếu có thì bắt buộc kèm đơn vị
+    // (khớp yêu cầu backend: "Bắt buộc khi có sản lượng dự kiến").
+    var expectedYield = document.getElementById('season-expected-yield');
+    var yieldUnit = document.getElementById('season-yield-unit');
+    if (expectedYield.value.trim() && !yieldUnit.value.trim()) {
+      showError(yieldUnit, 'Nhập đơn vị sản lượng.');
+      problems.push(yieldUnit);
+    }
+
     if (problems.length) {
       problems[0].focus();
       return false;
@@ -665,44 +848,80 @@
     return true;
   }
 
+  // Ánh xạ tên field backend trả về trong lỗi (details.field) sang đúng
+  // input trên form — khớp SeasonCreate/SeasonUpdate thật.
+  function seasonFieldNodeFor(fieldName) {
+    var map = {
+      code: 'season-code',
+      name: 'season-name',
+      start_date: 'season-start-date',
+      end_date: 'season-end-date',
+      planned_area: 'season-planned-area',
+      actual_area: 'season-actual-area',
+      expected_yield: 'season-expected-yield',
+      yield_unit: 'season-yield-unit',
+      status: 'season-status',
+      note: 'season-note'
+    };
+    var id = map[fieldName];
+    return id ? document.getElementById(id) : null;
+  }
+
   function handleSeasonSubmit(event) {
     event.preventDefault();
     if (!validateSeason()) return;
 
     var data = new FormData(seasonForm);
+    var expectedYieldRaw = String(data.get('expectedYield') || '').trim();
     var record = {
-      farmId: currentFarm.id,
       code: String(data.get('code')).trim(),
       name: String(data.get('name')).trim(),
-      startDate: String(data.get('startDate') || ''),
-      endDate: String(data.get('endDate') || ''),
-      plannedArea: Number(data.get('plannedArea')) || 0,
-      actualArea: Number(data.get('actualArea')) || 0,
+      start_date: String(data.get('startDate') || ''),
+      end_date: String(data.get('endDate') || ''),
+      planned_area: Number(data.get('plannedArea')) || 0,
+      actual_area: Number(data.get('actualArea')) || 0,
+      expected_yield: expectedYieldRaw ? Number(expectedYieldRaw) : null,
+      yield_unit: expectedYieldRaw ? String(data.get('yieldUnit') || '').trim() : null,
       status: String(data.get('status')),
-      note: String(data.get('note') || '').trim()
+      note: String(data.get('note') || '').trim() || null
     };
 
+    var submitButton = seasonForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    seasonSubmitLabel.textContent = 'Đang lưu...';
+
+    // KHÔNG gửi workflow_template_id/name/steps ở đây trong cả 2 trường hợp
+    // — PATCH giữ nguyên quy trình đã áp dụng (nếu có, xem SeasonUpdate:
+    // "trường nào không gửi thì giữ nguyên"); POST (tạo mới) thì backend tự
+    // mặc định cả 3 về null, đúng trạng thái "chưa áp dụng quy trình nào".
+    var request;
     if (editingSeasonId) {
-      // KHÔNG đụng tới workflowTemplateId/Name/Steps ở đây — store.update()
-      // chỉ ghi đè đúng field có trong `record` (merge nông), sửa thông tin
-      // mùa vụ không được làm mất quy trình đã áp dụng (nếu có).
-      store.update('seasons', editingSeasonId, record);
-      global.AgriChain.toast('Đã lưu thay đổi.');
+      request = api.seasons.update(editingSeasonId, record);
     } else {
-      // Khởi tạo TƯỜNG MINH cả 3 field quy trình về null ngay từ lúc tạo —
-      // chỉ còn đúng 2 trạng thái phân biệt được: "chưa áp dụng" (cả 3 đều
-      // null) và "đã áp dụng" (workflowSteps là mảng, xem applyWorkflowTemplate()/
-      // createEmptyWorkflow()) — không còn trạng thái "field vắng mặt"
-      // (undefined) lẫn lộn với "null" như trước.
-      record.workflowTemplateId = null;
-      record.workflowTemplateName = null;
-      record.workflowSteps = null;
-      store.insert('seasons', record);
-      global.AgriChain.toast('Đã thêm mùa vụ.');
+      record.farm_id = currentFarm.id;
+      request = api.seasons.create(record);
     }
 
-    closeSeasonModal();
-    renderSeasons();
+    request.then(function () {
+      closeSeasonModal();
+      renderSeasons();
+      global.AgriChain.toast(editingSeasonId ? 'Đã lưu thay đổi.' : 'Đã thêm mùa vụ.');
+    }).catch(function (err) {
+      if (err.details && err.details.field) {
+        var field = seasonFieldNodeFor(err.details.field);
+        if (field) {
+          showError(field, err.message);
+          field.focus();
+        } else {
+          global.AgriChain.toast(err.message);
+        }
+      } else {
+        global.AgriChain.toast(err.message);
+      }
+    }).then(function () {
+      submitButton.disabled = false;
+      seasonSubmitLabel.textContent = editingSeasonId ? 'Lưu thay đổi' : 'Lưu mùa vụ';
+    });
   }
 
   function deleteSeason(season) {
@@ -710,9 +929,14 @@
       'Xoá mùa vụ "' + season.name + '"? Hành động này không thể hoàn tác.'
     ).then(function (confirmed) {
       if (!confirmed) return;
-      store.remove('seasons', season.id);
-      renderSeasons();
-      global.AgriChain.toast('Đã xoá mùa vụ.');
+      // Backend chặn (409) nếu mùa vụ đã có nhật ký hoạt động — hiện đúng
+      // lỗi đó, không giả vờ đã xoá thành công.
+      api.seasons.remove(season.id).then(function () {
+        renderSeasons();
+        global.AgriChain.toast('Đã xoá mùa vụ.');
+      }).catch(function (err) {
+        global.AgriChain.toast(err.message);
+      });
     });
   }
 
@@ -755,15 +979,15 @@
     headerBadge.className = 'badge ' + status.badge;
     headerBadge.textContent = status.label;
 
-    fillSeasonView('[data-season-view-stat-start]', formatDate(season.startDate));
-    fillSeasonView('[data-season-view-stat-end]', formatDate(season.endDate));
-    fillSeasonView('[data-season-view-stat-planned]', formatArea(season.plannedArea));
-    fillSeasonView('[data-season-view-stat-actual]', formatArea(season.actualArea));
+    fillSeasonView('[data-season-view-stat-start]', formatDate(season.start_date));
+    fillSeasonView('[data-season-view-stat-end]', formatDate(season.end_date));
+    fillSeasonView('[data-season-view-stat-planned]', formatArea(season.planned_area));
+    fillSeasonView('[data-season-view-stat-actual]', formatArea(season.actual_area));
 
-    fillSeasonView('[data-season-view-start]', formatDate(season.startDate));
-    fillSeasonView('[data-season-view-end]', formatDate(season.endDate));
-    fillSeasonView('[data-season-view-planned]', formatArea(season.plannedArea));
-    fillSeasonView('[data-season-view-actual]', formatArea(season.actualArea));
+    fillSeasonView('[data-season-view-start]', formatDate(season.start_date));
+    fillSeasonView('[data-season-view-end]', formatDate(season.end_date));
+    fillSeasonView('[data-season-view-planned]', formatArea(season.planned_area));
+    fillSeasonView('[data-season-view-actual]', formatArea(season.actual_area));
     fillSeasonView('[data-season-view-note]', season.note);
 
     var statusNode = document.querySelector('[data-season-view-status]');
@@ -811,11 +1035,31 @@
     });
   }
 
-  /* --- Vật tư sử dụng: từng dòng thêm/xoá được, chọn từ kho vật tư thật --- */
+  /* --- Vật tư sử dụng: từng dòng thêm/xoá được, chọn từ kho vật tư thật ---
+     Vật tư ĐÃ CHUYỂN SANG API — tải 1 lần lúc trang khởi động (loadSupplyOptions(),
+     xem cuối file) thay vì đọc store.js, nếu không id chọn được sẽ không
+     khớp bản ghi thật trong DB. Không tải lại mỗi lần mở modal — danh sách
+     vật tư hiếm khi đổi trong 1 phiên làm việc. */
+  var availableSupplies = [];
+
+  function loadSupplyOptions() {
+    return api.supplies.list({ page_size: 100 }).then(function (data) {
+      availableSupplies = data.items || [];
+    }).catch(function (err) {
+      global.AgriChain.toast('Không tải được danh sách vật tư: ' + err.message);
+    });
+  }
+
+  function findSupply(id) {
+    for (var i = 0; i < availableSupplies.length; i++) {
+      if (availableSupplies[i].id === id) return availableSupplies[i];
+    }
+    return null;
+  }
 
   function unitOfSupply(supplyId) {
     if (!supplyId) return '';
-    var supply = store.find('supplies', supplyId);
+    var supply = findSupply(supplyId);
     return supply ? supply.unit : '';
   }
 
@@ -824,7 +1068,7 @@
     placeholder.value = '';
     select.appendChild(placeholder);
 
-    store.list('supplies').forEach(function (supply) {
+    availableSupplies.forEach(function (supply) {
       var option = el('option', null, supply.code + ' — ' + supply.name);
       option.value = supply.id;
       select.appendChild(option);
@@ -845,7 +1089,7 @@
     var select = document.createElement('select');
     select.className = 'select';
     fillMaterialSelect(select);
-    if (prefill && prefill.supplyId) select.value = prefill.supplyId;
+    if (prefill && prefill.supply_id) select.value = prefill.supply_id;
 
     var qtyInput = document.createElement('input');
     qtyInput.className = 'input';
@@ -926,16 +1170,21 @@
       var purposeInput = row.querySelector('input[type="text"]');
 
       if (!materialSelect.value) return;
-      var supply = store.find('supplies', materialSelect.value);
+      var supply = findSupply(materialSelect.value);
       if (!supply) return;
 
+      // Khớp khuôn LogSupply thật của backend (7 trường, xác nhận qua
+      // /openapi.json trước khi code — có `code`, khác SCHEMA-EXPORT.md
+      // bản cũ chỉ 6 trường). code/name là BẢN CHỤP tại thời điểm ghi,
+      // không đồng bộ lại nếu vật tư gốc đổi tên/mã sau đó.
       result.push({
-        supplyId: supply.id,
+        supply_id: supply.id,
+        code: supply.code,
         name: supply.name,
         quantity: Number(qtyInput.value) || 0,
         unit: unitSelect.value,
-        method: methodSelect.value,
-        purpose: purposeInput.value.trim()
+        method: methodSelect.value || null,
+        purpose: purposeInput.value.trim() || null
       });
     });
     return result;
@@ -980,11 +1229,43 @@
     renderImages();
   }
 
+  // Backend chặn nếu vượt (LogImageIn: "Tối đa 5 ảnh mỗi bản ghi", "Tối đa
+  // 2MB mỗi ảnh") — kiểm trước ở client cho trải nghiệm tốt hơn, khỏi phải
+  // đợi gọi API mới biết bị từ chối.
+  var MAX_LOG_IMAGES = 5;
+  var MAX_LOG_IMAGE_BYTES = 2 * 1024 * 1024;
+
   function handleImagesInputChange() {
     var files = imagesInput.files;
     if (!files || !files.length) return;
 
+    var accepted = [];
+    var rejectedTooLarge = [];
     Array.prototype.forEach.call(files, function (file) {
+      if (file.size > MAX_LOG_IMAGE_BYTES) {
+        rejectedTooLarge.push(file.name);
+        return;
+      }
+      accepted.push(file);
+    });
+
+    if (rejectedTooLarge.length) {
+      global.AgriChain.toast('Bỏ qua ' + rejectedTooLarge.length + ' ảnh vượt quá 2MB: ' +
+        rejectedTooLarge.join(', '));
+    }
+
+    var remainingSlots = MAX_LOG_IMAGES - logImages.length;
+    if (remainingSlots <= 0) {
+      global.AgriChain.toast('Mỗi nhật ký tối đa ' + MAX_LOG_IMAGES + ' ảnh — xoá bớt ảnh cũ trước khi thêm mới.');
+      imagesInput.value = '';
+      return;
+    }
+    if (accepted.length > remainingSlots) {
+      global.AgriChain.toast('Chỉ thêm được ' + remainingSlots + ' ảnh nữa (tối đa ' + MAX_LOG_IMAGES + ' ảnh/nhật ký).');
+      accepted = accepted.slice(0, remainingSlots);
+    }
+
+    accepted.forEach(function (file) {
       var reader = new FileReader();
       reader.onload = function () {
         logImages.push({ name: file.name, dataUrl: reader.result });
@@ -997,15 +1278,6 @@
   }
 
   /* --- Danh sách + modal thêm/sửa nhật ký ----------------------------------- */
-
-  function seasonLogsOfSeason(seasonId) {
-    return store.list('seasonLogs').filter(function (item) {
-      return item.seasonId === seasonId;
-    }).sort(function (a, b) {
-      // Mới thực hiện gần đây nhất lên đầu
-      return String(b.performedAt).localeCompare(String(a.performedAt));
-    });
-  }
 
   // Một dòng thông tin đơn (icon + text) trong thân thẻ nhật ký.
   function logField(iconName, text) {
@@ -1024,7 +1296,7 @@
   }
 
   function logItem(log) {
-    var activity = statusOf(ACTIVITY_TYPES, log.activityType);
+    var activity = statusOf(ACTIVITY_TYPES, log.activity_type);
     var item = el('div', 'log-item log-item--' + activity.color);
 
     var iconWrap = el('div', 'log-item__icon');
@@ -1035,10 +1307,10 @@
 
     var head = el('div', 'log-item__head');
     head.appendChild(el('span', 'log-item__title', activity.label));
-    head.appendChild(el('span', 'log-item__time', formatDateTimeLocal(log.performedAt)));
+    head.appendChild(el('span', 'log-item__time', formatDateTimeLocal(log.performed_at)));
     body.appendChild(head);
 
-    body.appendChild(logField('icon-user', 'Thực hiện bởi: ' + (log.performedBy || '—')));
+    body.appendChild(logField('icon-user', 'Thực hiện bởi: ' + (log.performed_by || '—')));
     if (log.weather) body.appendChild(logField('icon-sun', 'Điều kiện thời tiết: ' + log.weather));
     if (log.description) body.appendChild(logField('icon-file-text', 'Mô tả: ' + log.description));
 
@@ -1053,16 +1325,33 @@
       body.appendChild(supplies);
     }
 
+    // Danh sách chỉ trả METADATA ảnh (không có nội dung) — hiện nút "Xem
+    // ảnh", chỉ gọi api.logs.get() khi người dùng thật sự bấm xem, không
+    // tải trước cho toàn bộ danh sách (tốn băng thông vô ích).
     if (log.images && log.images.length) {
       body.appendChild(logSectionLabel('icon-image', 'Hình ảnh hiện trường (' + log.images.length + ')'));
-      var images = el('div', 'log-item__images');
-      log.images.forEach(function (image) {
-        var img = document.createElement('img');
-        img.src = image.dataUrl;
-        img.alt = image.name || '';
-        images.appendChild(img);
+      var imagesHost = el('div', 'log-item__images');
+      var viewImagesBtn = el('button', 'btn btn--outline btn--sm', 'Xem ảnh');
+      viewImagesBtn.type = 'button';
+      viewImagesBtn.addEventListener('click', function () {
+        viewImagesBtn.disabled = true;
+        viewImagesBtn.textContent = 'Đang tải...';
+        api.logs.get(log.id).then(function (detail) {
+          imagesHost.textContent = '';
+          (detail.images || []).forEach(function (image) {
+            var img = document.createElement('img');
+            img.src = image.url;
+            img.alt = image.name || '';
+            imagesHost.appendChild(img);
+          });
+        }).catch(function (err) {
+          global.AgriChain.toast(err.message);
+          viewImagesBtn.disabled = false;
+          viewImagesBtn.textContent = 'Xem ảnh';
+        });
       });
-      body.appendChild(images);
+      imagesHost.appendChild(viewImagesBtn);
+      body.appendChild(imagesHost);
     }
 
     var actions = el('div', 'log-item__actions');
@@ -1071,6 +1360,7 @@
     edit.type = 'button';
     edit.setAttribute('aria-label', 'Sửa nhật ký');
     edit.setAttribute('data-tooltip', 'Chỉnh sửa');
+    if (!api.hasPermission('logs.edit')) edit.hidden = true;
     edit.appendChild(svgIcon('icon-pencil'));
     edit.addEventListener('click', function () { openSeasonLogModal(log); });
 
@@ -1078,6 +1368,7 @@
     del.type = 'button';
     del.setAttribute('aria-label', 'Xoá nhật ký');
     del.setAttribute('data-tooltip', 'Xoá');
+    if (!api.hasPermission('logs.delete')) del.hidden = true;
     del.appendChild(svgIcon('icon-trash'));
     del.addEventListener('click', function () { deleteSeasonLog(log); });
 
@@ -1092,20 +1383,28 @@
   function renderSeasonLogs() {
     if (!currentViewedSeason) return;
 
-    var logs = seasonLogsOfSeason(currentViewedSeason.id);
-    logCountNode.textContent = logs.length;
-
     logListNode.textContent = '';
-    if (!logs.length) {
-      logListNode.hidden = true;
-      logEmptyNode.hidden = false;
-      return;
-    }
+    api.logs.list({ season_id: currentViewedSeason.id, page_size: 100 }).then(function (data) {
+      var logs = (data.items || []).sort(function (a, b) {
+        // Mới thực hiện gần đây nhất lên đầu
+        return String(b.performed_at).localeCompare(String(a.performed_at));
+      });
+      logCountNode.textContent = data.total || logs.length;
 
-    logEmptyNode.hidden = true;
-    logListNode.hidden = false;
-    logs.forEach(function (log) {
-      logListNode.appendChild(logItem(log));
+      logListNode.textContent = '';
+      if (!logs.length) {
+        logListNode.hidden = true;
+        logEmptyNode.hidden = false;
+        return;
+      }
+
+      logEmptyNode.hidden = true;
+      logListNode.hidden = false;
+      logs.forEach(function (log) {
+        logListNode.appendChild(logItem(log));
+      });
+    }).catch(function (err) {
+      global.AgriChain.toast(err.message);
     });
   }
 
@@ -1118,15 +1417,15 @@
     if (log) {
       seasonLogModalTitle.textContent = 'Sửa nhật ký mùa vụ';
       seasonLogSubmitLabel.textContent = 'Lưu thay đổi';
-      activityTypeSelect.value = log.activityType || ACTIVITY_TYPES[0].key;
-      document.getElementById('log-performed-at').value = log.performedAt || '';
-      document.getElementById('log-performed-by').value = log.performedBy || '';
+      activityTypeSelect.value = log.activity_type || ACTIVITY_TYPES[0].key;
+      document.getElementById('log-performed-at').value = toDatetimeLocalValue(log.performed_at);
+      document.getElementById('log-performed-by').value = log.performed_by || '';
       document.getElementById('log-weather').value = log.weather || '';
       document.getElementById('log-description').value = log.description || '';
 
       (log.supplies || []).forEach(function (supply) {
         addMaterialRow({
-          supplyId: supply.supplyId,
+          supply_id: supply.supply_id,
           quantity: supply.quantity,
           unit: supply.unit,
           method: supply.method,
@@ -1134,7 +1433,19 @@
         });
       });
 
-      resetImages(log.images);
+      // Danh sách chỉ có metadata ảnh — tải chi tiết để lấy nội dung thật
+      // (url) rồi mới điền vào khung xem trước, khớp cấu trúc {name,dataUrl}
+      // mà resetImages()/renderImages() đang dùng.
+      resetImages();
+      if (log.images && log.images.length) {
+        api.logs.get(log.id).then(function (detail) {
+          resetImages((detail.images || []).map(function (image) {
+            return { name: image.name, dataUrl: image.url };
+          }));
+        }).catch(function (err) {
+          global.AgriChain.toast('Không tải được ảnh của nhật ký: ' + err.message);
+        });
+      }
     } else {
       seasonLogModalTitle.textContent = 'Thêm mới nhật ký mùa vụ';
       seasonLogSubmitLabel.textContent = 'Xác nhận';
@@ -1177,55 +1488,99 @@
     return true;
   }
 
+  // Ánh xạ tên field backend trả về trong lỗi (details.field) sang đúng
+  // input trên form — khớp LogCreate/LogUpdate thật. supplies/images là
+  // mảng composite, không gắn được vào 1 input cụ thể — toast thẳng.
+  function logFieldNodeFor(fieldName) {
+    var map = {
+      activity_type: 'log-activity-type',
+      performed_at: 'log-performed-at',
+      performed_by: 'log-performed-by',
+      weather: 'log-weather',
+      description: 'log-description'
+    };
+    var id = map[fieldName];
+    return id ? document.getElementById(id) : null;
+  }
+
   function handleSeasonLogSubmit(event) {
     event.preventDefault();
     if (!validateSeasonLog() || !currentViewedSeason) return;
 
     var data = new FormData(seasonLogForm);
-    var record = {
-      seasonId: currentViewedSeason.id,
-      farmId: currentFarm.id,
-      activityType: String(data.get('activityType')),
-      performedAt: String(data.get('performedAt') || ''),
-      performedBy: String(data.get('performedBy')).trim(),
-      weather: String(data.get('weather') || '').trim(),
-      description: String(data.get('description') || '').trim(),
-      supplies: getMaterialRowsData(),
-      images: logImages.slice()
-    };
-
     // Chụp lại TRƯỚC khi đóng modal (closeSeasonLogModal() xoá biến này) —
     // chỉ hoàn thành bước quy trình khi đây là nhật ký MỚI, không áp dụng
-    // lúc sửa nhật ký có sẵn.
+    // lúc sửa nhật ký có sẵn. Cũng dùng để gắn step_id ngay lúc tạo log
+    // (LogCreate hỗ trợ thẳng field này).
     var stepToComplete = !editingLogId ? completingStepId : null;
-    var savedLog;
 
+    var record = {
+      step_id: stepToComplete || null,
+      activity_type: String(data.get('activityType')),
+      // Gửi thẳng giá trị datetime-local ("YYYY-MM-DDTHH:mm"), không tự quy
+      // đổi múi giờ — backend hiểu chuỗi không kèm múi giờ là giờ Việt Nam
+      // (+07:00), đúng ý người dùng nhập trên form.
+      performed_at: String(data.get('performedAt') || ''),
+      performed_by: String(data.get('performedBy')).trim(),
+      weather: String(data.get('weather') || '').trim() || null,
+      description: String(data.get('description') || '').trim() || null,
+      supplies: getMaterialRowsData(),
+      images: logImages.map(function (image) {
+        return { name: image.name, url: image.dataUrl };
+      })
+    };
+
+    var submitButton = seasonLogForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    seasonLogSubmitLabel.textContent = 'Đang lưu...';
+
+    var request;
     if (editingLogId) {
-      store.update('seasonLogs', editingLogId, record);
-      global.AgriChain.toast('Đã lưu thay đổi.');
+      request = api.logs.update(editingLogId, record);
     } else {
-      savedLog = store.insert('seasonLogs', record);
-      global.AgriChain.toast('Đã thêm nhật ký.');
+      record.season_id = currentViewedSeason.id;
+      request = api.logs.create(record);
     }
 
-    closeSeasonLogModal(); // đóng trước khi completeWorkflowStep() có thể mở tiếp modal lô hàng
-    renderSeasonLogs();
+    request.then(function (savedLog) {
+      closeSeasonLogModal(); // đóng trước khi completeWorkflowStep() có thể mở tiếp modal lô hàng
+      renderSeasonLogs();
+      global.AgriChain.toast(editingLogId ? 'Đã lưu thay đổi.' : 'Đã thêm nhật ký.');
 
-    if (stepToComplete) {
-      completeWorkflowStep(stepToComplete, savedLog.id);
-    }
+      if (stepToComplete) {
+        completeWorkflowStep(stepToComplete, savedLog.id);
+      }
+    }).catch(function (err) {
+      if (err.details && err.details.field) {
+        var field = logFieldNodeFor(err.details.field);
+        if (field) {
+          showError(field, err.message);
+          field.focus();
+        } else {
+          global.AgriChain.toast(err.message);
+        }
+      } else {
+        global.AgriChain.toast(err.message);
+      }
+    }).then(function () {
+      submitButton.disabled = false;
+      seasonLogSubmitLabel.textContent = editingLogId ? 'Lưu thay đổi' : 'Xác nhận';
+    });
   }
 
   function deleteSeasonLog(log) {
-    var activity = statusOf(ACTIVITY_TYPES, log.activityType);
+    var activity = statusOf(ACTIVITY_TYPES, log.activity_type);
     global.AgriChain.confirm(
-      'Xoá nhật ký "' + activity.label + '" ngày ' + formatDateTimeLocal(log.performedAt) +
+      'Xoá nhật ký "' + activity.label + '" ngày ' + formatDateTimeLocal(log.performed_at) +
       '? Hành động này không thể hoàn tác.'
     ).then(function (confirmed) {
       if (!confirmed) return;
-      store.remove('seasonLogs', log.id);
-      renderSeasonLogs();
-      global.AgriChain.toast('Đã xoá nhật ký.');
+      api.logs.remove(log.id).then(function () {
+        renderSeasonLogs();
+        global.AgriChain.toast('Đã xoá nhật ký.');
+      }).catch(function (err) {
+        global.AgriChain.toast(err.message);
+      });
     });
   }
 
@@ -1599,16 +1954,18 @@
   /* ======================================================================
      Quy trình mùa vụ (tab "Quy trình mùa vụ" trong modal xem chi tiết mùa vụ)
      ======================================================================
-     Áp dụng 1 Mẫu Quy Trình (workflowTemplates, xem js/mau-quy-trinh.js) cho
-     1 mùa vụ cụ thể — KHÔNG tham chiếu ngược tới mẫu gốc mà CHỤP (snapshot)
-     nguyên bản steps[] vào season.workflowSteps tại thời điểm áp dụng, mỗi
-     bước được gắn thêm id riêng + trạng thái thực hiện (status/completedAt/
-     logId/batchId). Nhờ vậy mẫu gốc có bị sửa/xoá sau đó cũng không ảnh
-     hưởng tới checklist đã áp dụng cho mùa vụ này, và "Tuỳ biến bước quy
-     trình" có thể sửa thoải mái riêng cho mùa vụ mà không đụng tới mẫu.
+     Áp dụng 1 Mẫu Quy Trình (workflowTemplates, vẫn ở store.js, xem
+     js/mau-quy-trinh.js — giai đoạn 3 mới có ở backend) cho 1 mùa vụ cụ
+     thể — KHÔNG tham chiếu ngược tới mẫu gốc mà CHỤP (snapshot) nguyên bản
+     steps[] vào season.workflow_steps (đã qua API thật) tại thời điểm áp
+     dụng, mỗi bước được gắn thêm id riêng + trạng thái thực hiện
+     (done/completed_at/log_id/batch_id). Nhờ vậy mẫu gốc có bị sửa/xoá sau
+     đó cũng không ảnh hưởng tới checklist đã áp dụng cho mùa vụ này, và
+     "Tuỳ biến bước quy trình" có thể sửa thoải mái riêng cho mùa vụ mà
+     không đụng tới mẫu.
 
-     season.workflowSteps === null/undefined → CHƯA áp dụng quy trình nào.
-     season.workflowSteps === [] hoặc có phần tử → ĐÃ áp dụng (kể cả rỗng,
+     season.workflow_steps === null → CHƯA áp dụng quy trình nào.
+     season.workflow_steps === [] hoặc có phần tử → ĐÃ áp dụng (kể cả rỗng,
      trường hợp "Tạo quy trình rỗng" rồi chưa kịp thêm bước nào). */
 
   var processEmptyNode = document.querySelector('[data-process-empty]');
@@ -1625,24 +1982,40 @@
   var completingStepId = null;
   var pendingQrStepId = null;
 
+  // Chụp bước từ MẪU (workflowTemplates, vẫn ở store.js — camelCase) sang
+  // bước của MÙA VỤ (seasons.workflow_steps, đã qua API thật — snake_case,
+  // khớp WorkflowStep của backend) — đây CHÍNH LÀ điểm nối 2 hệ khác nhau,
+  // không phải lớp chuyển đổi thừa.
+  //
+  // ⚠️ `done` (boolean) là tên field phía DỰ ÁN đã quyết định dùng (tránh
+  // trùng "status" với seasons.status) — backend hiện VẪN CÒN dùng `status`
+  // ('pending'/'completed') ở WorkflowStep, đây là BUG backend đang chờ sửa
+  // (xem CLAUDE.md). Cho tới khi backend đổi field, gửi `done` lên sẽ bị
+  // Pydantic ÂM THẦM BỎ QUA — bước sẽ không thực sự đánh dấu hoàn thành phía
+  // server dù giao diện tưởng đã xong. Cứ viết đúng theo `done` như kế
+  // hoạch đã chốt, không tự ý đổi lại thành `status`.
   function cloneTemplateSteps(template) {
     return (template.steps || []).map(function (step) {
       return {
-        id: store.newId(),
+        // KHÔNG tự sinh `id` — store.newId() ("m8x2k1-a9f3") không phải
+        // UUID hợp lệ, trong khi WorkflowStep.id backend yêu cầu đúng
+        // format: uuid. Bỏ trống thì backend tự sinh UUID thật (đã xác
+        // nhận qua /openapi.json: "Client không gửi id thì backend sinh
+        // mới") — currentViewedSeason được gán lại từ response ngay sau
+        // khi PATCH thành công (xem applyWorkflowTemplate()), nên phía
+        // client luôn hiển thị đúng id thật, không có bước nào render với
+        // id giả trước đó.
         name: step.name || '',
-        activityType: step.activityType || ACTIVITY_TYPES[0].key,
+        activity_type: step.activityType || ACTIVITY_TYPES[0].key,
         instruction: step.instruction || '',
-        requireQr: !!step.requireQr,
-        requireSupply: !!step.requireSupply,
-        supplyId: step.supplyId || '',
-        requireImage: !!step.requireImage,
-        // Đổi tên từ `status` ('pending'/'completed') thành `done` (boolean)
-        // — tránh trùng tên "status" với seasons.status (5 giá trị khác hẳn
-        // phạm vi giá trị), dễ gây nhầm khi đọc/ghi nhầm field.
+        require_qr: !!step.requireQr,
+        require_supply: !!step.requireSupply,
+        supply_id: step.supplyId || null,
+        require_image: !!step.requireImage,
         done: false,
-        completedAt: null,
-        logId: null,
-        batchId: null
+        completed_at: null,
+        log_id: null,
+        batch_id: null
       };
     });
   }
@@ -1665,27 +2038,36 @@
     if (!template || !currentViewedSeason) return;
 
     var changes = {
-      workflowTemplateId: template.id,
-      workflowTemplateName: template.name,
-      workflowSteps: cloneTemplateSteps(template)
+      workflow_template_id: template.id,
+      workflow_template_name: template.name,
+      workflow_steps: cloneTemplateSteps(template)
     };
-    store.update('seasons', currentViewedSeason.id, changes);
-    currentViewedSeason = store.find('seasons', currentViewedSeason.id);
-    renderSeasonProcess();
-    global.AgriChain.toast('Đã áp dụng mẫu quy trình.');
+    processApplyBtn.disabled = true;
+    api.seasons.update(currentViewedSeason.id, changes).then(function (updated) {
+      currentViewedSeason = updated;
+      renderSeasonProcess();
+      global.AgriChain.toast('Đã áp dụng mẫu quy trình.');
+    }).catch(function (err) {
+      global.AgriChain.toast(err.message);
+    }).then(function () {
+      processApplyBtn.disabled = !processTemplateSelect.value;
+    });
   }
 
   function createEmptyWorkflow() {
     if (!currentViewedSeason) return;
     var changes = {
-      workflowTemplateId: null,
-      workflowTemplateName: 'Quy trình tự tạo',
-      workflowSteps: []
+      workflow_template_id: null,
+      workflow_template_name: 'Quy trình tự tạo',
+      workflow_steps: []
     };
-    store.update('seasons', currentViewedSeason.id, changes);
-    currentViewedSeason = store.find('seasons', currentViewedSeason.id);
-    renderSeasonProcess();
-    openProcessStepModal(); // danh sách đang rỗng — mở luôn để tự thêm bước
+    api.seasons.update(currentViewedSeason.id, changes).then(function (updated) {
+      currentViewedSeason = updated;
+      renderSeasonProcess();
+      openProcessStepModal(); // danh sách đang rỗng — mở luôn để tự thêm bước
+    }).catch(function (err) {
+      global.AgriChain.toast(err.message);
+    });
   }
 
   // Bước "tới lượt" duy nhất trong checklist: bước CHƯA hoàn thành ĐẦU
@@ -1711,12 +2093,12 @@
 
     var head = el('div', 'workflow-checklist__head');
     head.appendChild(el('strong', 'workflow-checklist__step-title', 'Bước ' + (index + 1) + ': ' + step.name));
-    if (step.requireQr) head.appendChild(el('span', 'badge badge--success', 'Yêu cầu sinh QR'));
+    if (step.require_qr) head.appendChild(el('span', 'badge badge--success', 'Yêu cầu sinh QR'));
     head.appendChild(el('span', 'badge ' + (step.done ? 'badge--success' : 'badge--warning'),
       step.done ? 'Hoàn thành' : 'Đang chờ'));
     card.appendChild(head);
 
-    var activity = statusOf(ACTIVITY_TYPES, step.activityType);
+    var activity = statusOf(ACTIVITY_TYPES, step.activity_type);
     var activityRow = el('div', 'workflow-checklist__activity workflow-checklist__activity--' + activity.color);
     activityRow.appendChild(svgIcon(activity.icon));
     activityRow.appendChild(el('span', null, activity.label));
@@ -1750,7 +2132,7 @@
   }
 
   function renderProcessSteps() {
-    var steps = currentViewedSeason.workflowSteps || [];
+    var steps = currentViewedSeason.workflow_steps || [];
     processStepsNode.textContent = '';
 
     if (!steps.length) {
@@ -1768,7 +2150,7 @@
   function renderSeasonProcess() {
     if (!currentViewedSeason) return;
 
-    if (!currentViewedSeason.workflowSteps) {
+    if (!currentViewedSeason.workflow_steps) {
       processEmptyNode.hidden = false;
       processDetailNode.hidden = true;
       fillProcessTemplateSelect();
@@ -1778,23 +2160,51 @@
 
     processEmptyNode.hidden = true;
     processDetailNode.hidden = false;
-    processTemplateNameNode.textContent = currentViewedSeason.workflowTemplateName || 'Quy trình tự tạo';
+    processTemplateNameNode.textContent = currentViewedSeason.workflow_template_name || 'Quy trình tự tạo';
     renderProcessSteps();
   }
 
   /* --- Hoàn tất 1 bước: mở modal nhật ký (điền sẵn loại hoạt động), rồi
      nếu bước yêu cầu QR thì mở tiếp modal tạo lô hàng sau khi ghi xong --- */
 
+  // Banner "log đã tạo nhưng chưa cập nhật được trạng thái bước" — xem ghi
+  // chú ở completeWorkflowStep() bên dưới. KHÔNG dùng .toast (biến mất sau
+  // 4s, không đủ thời gian cho người dùng bấm thử lại).
+  var processRetryNotice = document.querySelector('[data-process-retry-notice]');
+  var processRetryMessage = document.querySelector('[data-process-retry-message]');
+  var processRetryBtn = document.querySelector('[data-process-retry-btn]');
+  var retryStepId = null;
+  var retryLogId = null;
+
+  function showProcessRetryNotice(message, stepId, logId) {
+    retryStepId = stepId;
+    retryLogId = logId;
+    processRetryMessage.textContent = message;
+    processRetryNotice.hidden = false;
+  }
+
+  function hideProcessRetryNotice() {
+    retryStepId = null;
+    retryLogId = null;
+    processRetryNotice.hidden = true;
+  }
+
   function startStepCompletion(step) {
     completingStepId = step.id;
     openSeasonLogModal();
-    activityTypeSelect.value = step.activityType || ACTIVITY_TYPES[0].key;
+    activityTypeSelect.value = step.activity_type || ACTIVITY_TYPES[0].key;
     document.getElementById('log-description').value = step.instruction || '';
   }
 
+  // ⚠️ Gửi `workflow_steps[].done` — backend hiện vẫn dùng `status`
+  // ('pending'/'completed'), đây là BUG backend đang chờ sửa (xem ghi chú ở
+  // cloneTemplateSteps() và CLAUDE.md). Cho tới khi backend sửa xong, PATCH
+  // này có thể "thành công" (204/200) nhưng KHÔNG thực sự đổi trạng thái
+  // bước phía server (Pydantic bỏ qua field lạ `done`) — chưa kiểm chứng
+  // được đầu-cuối, chỉ mới đúng theo hợp đồng dữ liệu đã chốt.
   function completeWorkflowStep(stepId, logId) {
     if (!currentViewedSeason) return;
-    var steps = (currentViewedSeason.workflowSteps || []).slice();
+    var steps = (currentViewedSeason.workflow_steps || []).slice();
     var step = null;
     for (var i = 0; i < steps.length; i++) {
       if (steps[i].id === stepId) { step = steps[i]; break; }
@@ -1802,29 +2212,41 @@
     if (!step) return;
 
     step.done = true;
-    step.completedAt = new Date().toISOString();
-    step.logId = logId;
+    step.completed_at = new Date().toISOString();
+    step.log_id = logId;
 
-    store.update('seasons', currentViewedSeason.id, { workflowSteps: steps });
-    currentViewedSeason = store.find('seasons', currentViewedSeason.id);
-    renderSeasonProcess();
-    global.AgriChain.toast('Đã hoàn thành bước "' + step.name + '".');
+    hideProcessRetryNotice();
+    api.seasons.update(currentViewedSeason.id, { workflow_steps: steps }).then(function (updated) {
+      currentViewedSeason = updated;
+      renderSeasonProcess();
+      global.AgriChain.toast('Đã hoàn thành bước "' + step.name + '".');
 
-    if (step.requireQr) {
-      pendingQrStepId = step.id;
-      openBatchModal();
-    }
+      if (step.require_qr) {
+        pendingQrStepId = step.id;
+        openBatchModal();
+      }
+    }).catch(function (err) {
+      // Nhật ký ĐÃ tạo thành công trước khi gọi hàm này (xem
+      // handleSeasonLogSubmit()) — không được để trạng thái nửa vời trong
+      // im lặng: log tồn tại thật nhưng bước chưa được đánh dấu hoàn
+      // thành. Hiện banner có nút thử lại ĐÚNG lệnh PATCH này, không phải
+      // toast tự biến mất.
+      showProcessRetryNotice(err.message, stepId, logId);
+    });
   }
 
   function linkBatchToStep(stepId, batchId) {
     if (!currentViewedSeason) return;
-    var steps = (currentViewedSeason.workflowSteps || []).slice();
+    var steps = (currentViewedSeason.workflow_steps || []).slice();
     for (var i = 0; i < steps.length; i++) {
-      if (steps[i].id === stepId) { steps[i].batchId = batchId; break; }
+      if (steps[i].id === stepId) { steps[i].batch_id = batchId; break; }
     }
-    store.update('seasons', currentViewedSeason.id, { workflowSteps: steps });
-    currentViewedSeason = store.find('seasons', currentViewedSeason.id);
-    renderSeasonProcess();
+    api.seasons.update(currentViewedSeason.id, { workflow_steps: steps }).then(function (updated) {
+      currentViewedSeason = updated;
+      renderSeasonProcess();
+    }).catch(function (err) {
+      global.AgriChain.toast('Không lưu được liên kết lô hàng vào bước quy trình: ' + err.message);
+    });
   }
 
   /* --- Modal "Tuỳ biến bước quy trình": cùng cơ chế "DOM là nguồn dữ liệu"
@@ -1862,14 +2284,17 @@
     // Giữ nguyên trạng thái thực hiện của bước (nếu có) qua dataset —
     // collectProcessSteps() đọc lại đúng các giá trị này lúc lưu, không
     // phải input người dùng chỉnh sửa được trong modal này.
-    card.dataset.stepId = data.id || store.newId();
+    // Bước MỚI (chưa có data.id) thì KHÔNG gán dataset.stepId — không tự
+    // sinh id giả (store.newId() không phải UUID hợp lệ), để trống thì
+    // collectProcessSteps() bỏ qua field `id`, backend tự cấp UUID thật.
+    if (data.id) card.dataset.stepId = data.id;
     // dataset luôn ép giá trị về chuỗi — ghi tường minh 'true'/'false' thay
     // vì gán thẳng boolean (sẽ tự thành chuỗi "true"/"false" nhưng đọc lại
     // qua so sánh === 'true' cho rõ ý, tránh hiểu nhầm là boolean thật).
     card.dataset.stepDone = data.done ? 'true' : 'false';
-    card.dataset.stepCompletedAt = data.completedAt || '';
-    card.dataset.stepLogId = data.logId || '';
-    card.dataset.stepBatchId = data.batchId || '';
+    card.dataset.stepCompletedAt = data.completed_at || '';
+    card.dataset.stepLogId = data.log_id || '';
+    card.dataset.stepBatchId = data.batch_id || '';
 
     var side = el('div', 'workflow-step__side');
     var numberNode = el('span', 'workflow-step__number', String(processStepCount));
@@ -1911,7 +2336,7 @@
     ACTIVITY_TYPES.forEach(function (type) {
       var option = el('option', null, type.label);
       option.value = type.key;
-      if (type.key === (data.activityType || ACTIVITY_TYPES[0].key)) option.selected = true;
+      if (type.key === (data.activity_type || ACTIVITY_TYPES[0].key)) option.selected = true;
       typeSelect.appendChild(option);
     });
     typeField.appendChild(typeSelect);
@@ -1943,7 +2368,7 @@
     var qrLabel = el('label', 'checkbox workflow-step__qr');
     var qrInput = el('input', 'checkbox__input step-require-qr');
     qrInput.type = 'checkbox';
-    qrInput.checked = !!data.requireQr;
+    qrInput.checked = !!data.require_qr;
     qrLabel.appendChild(qrInput);
     qrLabel.appendChild(el('span', 'checkbox__label', 'Yêu cầu tạo QR truy xuất'));
     instructionRow.appendChild(qrLabel);
@@ -1954,7 +2379,7 @@
     var supplyLabel = el('label', 'checkbox');
     var supplyInput = el('input', 'checkbox__input step-require-supply');
     supplyInput.type = 'checkbox';
-    supplyInput.checked = !!data.requireSupply;
+    supplyInput.checked = !!data.require_supply;
     supplyLabel.appendChild(supplyInput);
     supplyLabel.appendChild(el('span', 'checkbox__label', 'Yêu cầu dùng vật tư'));
     flagsRow.appendChild(supplyLabel);
@@ -1962,7 +2387,7 @@
     var imageLabel = el('label', 'checkbox');
     var imageInput = el('input', 'checkbox__input step-require-image');
     imageInput.type = 'checkbox';
-    imageInput.checked = !!data.requireImage;
+    imageInput.checked = !!data.require_image;
     imageLabel.appendChild(imageInput);
     imageLabel.appendChild(el('span', 'checkbox__label', 'Bắt buộc hình ảnh'));
     flagsRow.appendChild(imageLabel);
@@ -1970,16 +2395,19 @@
     body.appendChild(flagsRow);
 
     var supplyField = el('div', 'field workflow-step__supply-field');
-    supplyField.hidden = !data.requireSupply;
+    supplyField.hidden = !data.require_supply;
     supplyField.appendChild(el('label', 'label', 'Chỉ định vật tư cụ thể (Tuỳ chọn)'));
     var supplySelect = el('select', 'select step-supply-id');
     var emptyOption = el('option', null, '— Không chỉ định —');
     emptyOption.value = '';
     supplySelect.appendChild(emptyOption);
-    store.list('supplies').forEach(function (supply) {
+    // Vật tư đã chuyển sang API — dùng chung danh sách đã tải sẵn
+    // (availableSupplies, xem loadSupplyOptions() ở mục "Nhật ký mùa vụ"),
+    // không đọc store.js nữa.
+    availableSupplies.forEach(function (supply) {
       var option = el('option', null, supply.code + ' — ' + supply.name);
       option.value = supply.id;
-      if (supply.id === data.supplyId) option.selected = true;
+      if (supply.id === data.supply_id) option.selected = true;
       supplySelect.appendChild(option);
     });
     supplyField.appendChild(supplySelect);
@@ -2001,7 +2429,7 @@
   function resetProcessSteps() {
     processStepCount = 0;
     processStepsListNode.textContent = '';
-    var steps = (currentViewedSeason && currentViewedSeason.workflowSteps) || [];
+    var steps = (currentViewedSeason && currentViewedSeason.workflow_steps) || [];
     if (steps.length) {
       steps.forEach(function (step) { addProcessStep(step); });
     } else {
@@ -2012,20 +2440,24 @@
   function collectProcessSteps() {
     return Array.prototype.map.call(processStepsListNode.querySelectorAll('[data-step-card]'), function (card) {
       var requireSupply = card.querySelector('.step-require-supply').checked;
-      return {
-        id: card.dataset.stepId,
+      var step = {
         name: card.querySelector('.step-name').value.trim(),
-        activityType: card.querySelector('.step-type').value,
+        activity_type: card.querySelector('.step-type').value,
         instruction: card.querySelector('.step-instruction').value.trim(),
-        requireQr: card.querySelector('.step-require-qr').checked,
-        requireSupply: requireSupply,
-        supplyId: requireSupply ? card.querySelector('.step-supply-id').value : '',
-        requireImage: card.querySelector('.step-require-image').checked,
+        require_qr: card.querySelector('.step-require-qr').checked,
+        require_supply: requireSupply,
+        supply_id: requireSupply ? (card.querySelector('.step-supply-id').value || null) : null,
+        require_image: card.querySelector('.step-require-image').checked,
         done: card.dataset.stepDone === 'true',
-        completedAt: card.dataset.stepCompletedAt || null,
-        logId: card.dataset.stepLogId || null,
-        batchId: card.dataset.stepBatchId || null
+        completed_at: card.dataset.stepCompletedAt || null,
+        log_id: card.dataset.stepLogId || null,
+        batch_id: card.dataset.stepBatchId || null
       };
+      // Chỉ gửi `id` cho bước ĐÃ có (đang sửa) — bước mới thêm trong modal
+      // này chưa có dataset.stepId (xem processStepEditorCard()), bỏ trống
+      // để backend tự cấp UUID thật thay vì gửi chuỗi rỗng không hợp lệ.
+      if (card.dataset.stepId) step.id = card.dataset.stepId;
+      return step;
     });
   }
 
@@ -2056,51 +2488,34 @@
     event.preventDefault();
     if (!validateProcessSteps() || !currentViewedSeason) return;
 
-    store.update('seasons', currentViewedSeason.id, { workflowSteps: collectProcessSteps() });
-    currentViewedSeason = store.find('seasons', currentViewedSeason.id);
-    closeProcessStepModal();
-    renderSeasonProcess();
-    global.AgriChain.toast('Đã lưu quy trình.');
+    var submitButton = processStepForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+
+    api.seasons.update(currentViewedSeason.id, { workflow_steps: collectProcessSteps() }).then(function (updated) {
+      currentViewedSeason = updated;
+      closeProcessStepModal();
+      renderSeasonProcess();
+      global.AgriChain.toast('Đã lưu quy trình.');
+    }).catch(function (err) {
+      global.AgriChain.toast(err.message);
+    }).then(function () {
+      submitButton.disabled = false;
+    });
   }
 
   /* --- Khởi động ----------------------------------------------------------- */
 
   document.addEventListener('DOMContentLoaded', function () {
+    applyPermissionGates();
     fillCertStatuses();
     fillSeasonStatuses();
     fillActivityTypes();
     fillBatchUnits();
     fillBatchStatuses();
+    loadSupplyOptions(); // dùng chung cho dropdown vật tư ở form nhật ký + form tuỳ biến bước quy trình
 
     var code = new URLSearchParams(global.location.search).get('ma') || '';
-    var farm = store.list('farms').find(function (item) {
-      return item.code.toLowerCase() === code.trim().toLowerCase();
-    });
-
-    if (!farm) {
-      showNotFound(code);
-      return;
-    }
-
-    showFarm(farm);
-
-    // Điều hướng thẳng tới đúng mùa vụ + tab "Lô hàng" — dùng khi bấm nút
-    // sửa/xoá ở trang lo-hang.html, ví dụ
-    // nong-trai-chi-tiet.html?ma=NV01&season=MV01-2026#lo-hang.
-    var seasonCode = new URLSearchParams(global.location.search).get('season');
-    if (seasonCode) {
-      var targetSeason = store.list('seasons').find(function (item) {
-        return item.farmId === farm.id &&
-          item.code.toLowerCase() === seasonCode.trim().toLowerCase();
-      });
-      if (targetSeason) {
-        openSeasonViewModal(targetSeason);
-        if (global.location.hash === '#lo-hang') {
-          var batchesTab = seasonViewModal.querySelector('[data-tab-target="season-view-tab-batches"]');
-          if (batchesTab) batchesTab.click();
-        }
-      }
-    }
+    loadFarmByCode(code);
 
     document.querySelectorAll('[data-open-cert-form]').forEach(function (button) {
       button.addEventListener('click', function () { openCertModal(); });
@@ -2167,5 +2582,9 @@
       addProcessStep();
     });
     processStepForm.addEventListener('submit', handleProcessStepsSubmit);
+
+    processRetryBtn.addEventListener('click', function () {
+      if (retryStepId) completeWorkflowStep(retryStepId, retryLogId);
+    });
   });
 })(window);

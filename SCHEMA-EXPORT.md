@@ -1,24 +1,38 @@
 # SCHEMA-EXPORT — Cấu trúc dữ liệu "Hoạt động sản xuất"
 
-Tài liệu này mô tả cấu trúc dữ liệu hiện có của 6 thực thể thuộc nhóm
+Tài liệu này mô tả cấu trúc dữ liệu hiện có của 7 thực thể thuộc nhóm
 "Hoạt động sản xuất": **farms** (nông trại), **seasons** (mùa vụ),
 **seasonLogs** (nhật ký hoạt động), **supplies** (vật tư), **certifications**
-(chứng nhận), **workflowTemplates** (mẫu quy trình).
+(chứng nhận), **batches** (lô hàng), **workflowTemplates** (mẫu quy trình).
 
 Mục đích: làm tài liệu tham chiếu khi thiết kế backend thật (API) thay thế
 dần cho lớp `js/store.js` (localStorage) hiện tại — cùng tinh thần với mục
 "Kết nối backend" đã áp dụng cho `tai-khoan.html`/`dang-nhap.html` trong
 `CLAUDE.md`.
 
+> **⚠️ ĐÃ MỘT PHẦN LỖI THỜI (2026-09-07):** tài liệu này ban đầu mô tả khuôn
+> dữ liệu localStorage (camelCase: `farmId`, `startDate`, `plannedArea`...).
+> `farms`/`seasons`/`seasonLogs`/`certifications`/`supplies` sau đó đã CHUYỂN
+> SANG BACKEND THẬT (xem mục "Kết nối backend" trong `CLAUDE.md`) — response
+> API dùng **snake_case** (`farm_id`, `start_date`, `planned_area`...), khác
+> tên field so với các bảng bên dưới. **Chỉ riêng bảng `LogSupply`** đã được
+> cập nhật lại đúng theo API thật (xem ghi chú "Đã xác nhận lại" trong mục
+> `seasonLogs`); phần còn lại của tài liệu (tên field cụ thể, không phải
+> khái niệm/quan hệ) vẫn đang mô tả bản CŨ, chưa rà soát lại toàn bộ theo
+> snake_case. `workflowTemplates` (mẫu quy trình) và `batches` (lô hàng)
+> chưa migrate, vẫn giữ nguyên camelCase như tài liệu mô tả.
+
 ## Cách đọc tài liệu này
 
 - Nguồn: đọc trực tiếp `js/store.js` (lớp lưu trữ generic, không tự định
   nghĩa khuôn dữ liệu — chỉ có `list/insert/update/remove` thô) và toàn bộ
-  trang đang đọc/ghi 6 collection trên: `js/nong-trai.js`, `js/nong-trai-chi-tiet.js`,
+  trang đang đọc/ghi 7 collection trên: `js/nong-trai.js`, `js/nong-trai-chi-tiet.js`,
   `js/vat-tu.js`, `js/mau-quy-trinh.js`, `js/lo-hang.js`, `js/truy-xuat.js`.
   Khuôn dữ liệu suy ra từ chính các form/validate()/payload gửi vào
-  `store.insert()`/`store.update()` trong các file này — không có schema
-  khai báo tường minh ở đâu khác trong dự án.
+  `store.insert()`/`store.update()` (cho `batches`/`workflowTemplates`, vẫn
+  ở store.js) hoặc gửi lên `api.*` thật (5 collection còn lại, đã migrate)
+  trong các file này — không có schema khai báo tường minh ở đâu khác
+  trong dự án.
 - **⚠️ Bản ghi mẫu ở mỗi mục là dữ liệu MINH HOẠ do agent dựng lại đúng theo
   khuôn/quy ước trong code, KHÔNG PHẢI trích xuất từ dữ liệu thật đang nằm
   trong `localStorage` trình duyệt của bạn** — agent chạy trong terminal,
@@ -30,7 +44,10 @@ dần cho lớp `js/store.js` (localStorage) hiện tại — cùng tinh thần 
   ```
   rồi tự ẩn các trường nhạy cảm (địa chỉ thật, tên người...) trước khi chia sẻ.
 
-## Quy ước chung (áp dụng cho cả 6 thực thể)
+## Quy ước chung (áp dụng cho cả 7 thực thể — riêng phần `id`/`createdAt`
+tự sinh bên dưới chỉ còn đúng cho `batches`/`workflowTemplates`, 2 collection
+chưa migrate; 5 collection còn lại đã đổi sang id/timestamp do backend cấp,
+xem cảnh báo đầu tài liệu)
 
 - **Key localStorage**: `agrichain:<tên collection>` — tiền tố `agrichain:`
   cộng thẳng tên trong mảng `COLLECTIONS` của `js/store.js` (VD
@@ -48,7 +65,7 @@ dần cho lớp `js/store.js` (localStorage) hiện tại — cùng tinh thần 
   sửa đầu tiên. Khi đọc để hiển thị, code trong app luôn ưu tiên
   `updatedAt || createdAt` để tránh `undefined`.
 - **Không có `ownerId`**: khác nhóm "Thương mại điện tử" (`shops`,
-  `products`... khoá theo `ownerId = session.id`), cả 6 collection này dùng
+  `products`... khoá theo `ownerId = session.id`), cả 7 collection này dùng
   chung 1 danh sách cho toàn bộ phiên đăng nhập hiện tại — đúng quy ước
   "Hoạt động sản xuất" đã ghi trong `CLAUDE.md`.
 - Mọi validate() hiện tại đều chạy **phía client only** (không có server nào
@@ -118,7 +135,7 @@ dần cho lớp `js/store.js` (localStorage) hiện tại — cùng tinh thần 
 
 **Quan hệ**: `farms.id` được tham chiếu bởi `seasons.farmId`,
 `certifications.farmId`, `seasonLogs.farmId` (bản sao), và `batches.farmId`
-(ngoài phạm vi tài liệu này — xem mục "Quan hệ tổng hợp" cuối file).
+(mục 6 — xem mục "Quan hệ tổng hợp" cuối file).
 
 **Trường chỉ dùng ở client**: không có field UI-thuần-tuý nào trên `farms` —
 mọi trường đều là dữ liệu nghiệp vụ cần backend lưu. Duy nhất `id` là chi
@@ -198,7 +215,7 @@ tầng dữ liệu hiện tại — người dùng có thể đổi tự do gi�
 | `done` | boolean | có | không | Trạng thái THỰC HIỆN riêng của mùa vụ này (không có trên mẫu gốc). **Đã đổi tên từ `status` (chuỗi `'pending'`\|`'completed'`) sang `done` (boolean)** — xem ghi chú "Đã chuẩn hoá" ngay dưới bảng này. Bước `done: false` **đầu tiên** theo thứ tự mảng mới "tới lượt" (hiện nút hoàn thành); các bước `done: false` phía sau hiện "Chờ đến lượt". |
 | `completedAt` | string (ISO) \| `null` | có (khởi tạo `null`) | có | Thời điểm hoàn thành bước, gán khi `done` chuyển `true`. |
 | `logId` | string (FK → `seasonLogs.id`) \| `null` | có (khởi tạo `null`) | có | Nhật ký được tạo/liên kết khi hoàn thành bước này (qua modal "Ghi nhật ký & hoàn thành"). |
-| `batchId` | string (FK → `batches.id`, ngoài phạm vi tài liệu) \| `null` | có (khởi tạo `null`) | có | Lô hàng được tạo khi bước có `requireQr: true` — gắn NGAY sau khi lưu lô hàng mới, tự mở QR luôn. |
+| `batchId` | string (FK → `batches.id`, mục 6) \| `null` | có (khởi tạo `null`) | có | Lô hàng được tạo khi bước có `requireQr: true` — gắn NGAY sau khi lưu lô hàng mới, tự mở QR luôn. |
 
 > **Đã chuẩn hoá (sửa code, không chỉ tài liệu):** `WorkflowStep.status` (2
 > giá trị `'pending'`/`'completed'`) trước đây trùng TÊN với `seasons.status`
@@ -286,9 +303,11 @@ chuẩn hoá code) — 3 field quy trình đều `null` tường minh:
 ```
 
 **Quan hệ**: `seasons.farmId → farms.id`; `seasons.id` được tham chiếu bởi
-`seasonLogs.seasonId`, `batches.seasonId` (ngoài phạm vi); `seasons.workflowTemplateId → workflowTemplates.id`
+`seasonLogs.seasonId` và `batches.seasonId` (mục 6 — `batches` CHƯA migrate,
+vẫn ở store.js, nhưng KHÔNG còn "ngoài phạm vi tài liệu" từ bản cập nhật
+này); `seasons.workflowTemplateId → workflowTemplates.id`
 (tham chiếu snapshot, có thể "treo" nếu mẫu gốc đã xoá); `seasons.workflowSteps[].supplyId → supplies.id`;
-`seasons.workflowSteps[].logId → seasonLogs.id`; `seasons.workflowSteps[].batchId → batches.id`.
+`seasons.workflowSteps[].logId → seasonLogs.id`; `seasons.workflowSteps[].batchId → batches.id` (mục 6).
 
 **Trường chỉ dùng ở client**: không có — `workflowTemplateId`/`workflowTemplateName`
 là snapshot CHỦ ĐÍCH (không phải cache tiện lợi có thể suy ra bằng join),
@@ -317,16 +336,29 @@ join sống tới `workflowTemplates` (sẽ làm sai lịch sử nếu mẫu g�
 | `images` | `Array<{name:string, dataUrl:string}>` | không | mảng rỗng `[]` nếu không có ảnh | Ảnh hiện trường minh hoạ, đọc qua `FileReader`. |
 | `createdAt` / `updatedAt` | string (ISO) | như quy ước chung | | |
 
-**Cấu trúc `LogSupply`** (mỗi phần tử `seasonLogs.supplies[]`):
+**Cấu trúc `LogSupply`** (mỗi phần tử `seasonLogs.supplies[]`) — **7 trường,
+đã xác nhận đúng theo `POST /logs` thật của backend** (gọi thử trên Swagger
+trước khi code, phát hiện lệch với bản mô tả trước đó của tài liệu này —
+xem ghi chú "Đã xác nhận lại" bên dưới):
 
 | Trường | Kiểu | Bắt buộc | Ý nghĩa |
 |---|---|---|---|
-| `supplyId` | string (FK → `supplies.id`) | có | Vật tư đã dùng. |
+| `supply_id` | string (FK → `supplies.id`) | có | Vật tư đã dùng — chỉ để đối chiếu/thống kê, KHÔNG dùng để hiển thị (xoá vật tư gốc không được phép làm hỏng nhật ký cũ). |
+| `code` | string | **có** | **Mã vật tư ĐÃ CHỤP** tại thời điểm ghi nhật ký — cùng tinh thần với `name`: không tự cập nhật nếu mã vật tư gốc đổi sau đó. |
 | `name` | string | có | **Tên vật tư ĐÃ CHỤP** tại thời điểm ghi nhật ký — không tự cập nhật nếu vật tư gốc đổi tên/bị xoá sau đó (lịch sử vẫn hiển thị đúng tên lúc dùng). |
-| `quantity` | number | có (mặc định 0 nếu bỏ trống) | Số lượng đã dùng. |
 | `unit` | string | có | Đơn vị tính — GỢI Ý mặc định theo đơn vị của vật tư (`supplies.unit`) nhưng **cho phép chọn khác** cho đúng lần dùng cụ thể (VD vật tư đo bằng "kg" nhưng lần này ghi theo "Gói"). |
-| `method` | string | không (có thể rỗng `''`) | Phương pháp sử dụng — chọn từ danh sách gợi ý (`MATERIAL_METHODS`, xem "Danh mục dùng chung"), KHÔNG ràng buộc cứng, field vẫn nhận giá trị tự do vì control là `<select>` không có validate riêng. |
-| `purpose` | string | không (có thể rỗng `''`) | Mục đích sử dụng (tự do). |
+| `quantity` | number | có, phải **lớn hơn 0** (backend: `exclusiveMinimum: 0`) | Số lượng đã dùng. |
+| `method` | string \| `null` | không | Phương pháp sử dụng — chọn từ danh sách gợi ý (`MATERIAL_METHODS`, xem "Danh mục dùng chung"), KHÔNG ràng buộc cứng, field vẫn nhận giá trị tự do vì control là `<select>` không có validate riêng. |
+| `purpose` | string \| `null` | không | Mục đích sử dụng (tự do). |
+
+> **Đã xác nhận lại (2026-09-07):** trước khi nối API, tài liệu này mô tả
+> `LogSupply` chỉ có 6 trường (thiếu `code`) — gọi thử `POST /logs` trên
+> Swagger thật cho thấy backend YÊU CẦU đủ 7 trường như bảng trên, `code`
+> là BẮT BUỘC. Đây đúng là điểm nghi ngờ đã nêu trước đó ("một chỗ comment
+> SQL ghi thừa trường code") — hoá ra `code` không phải sai sót cần dọn,
+> mà là field THẬT SỰ cần có; đã sửa `getMaterialRowsData()` trong
+> `js/nong-trai-chi-tiet.js` để snapshot thêm `supply.code` cùng lúc với
+> `name` khi người dùng chọn vật tư.
 
 **Bản ghi mẫu (minh hoạ):**
 
@@ -342,10 +374,11 @@ join sống tới `workflowTemplates` (sẽ làm sai lịch sử nếu mẫu g�
   "description": "Bón phân hữu cơ đợt 1 sau khi cây bén rễ.",
   "supplies": [
     {
-      "supplyId": "mgk1a0b-c2d3e4",
+      "supply_id": "mgk1a0b-c2d3e4",
+      "code": "PB01",
       "name": "Phân hữu cơ vi sinh Compost+",
-      "quantity": 50,
       "unit": "kg",
+      "quantity": 50,
       "method": "Bón đất",
       "purpose": "Bổ sung dinh dưỡng nền cho cây con"
     }
@@ -459,12 +492,160 @@ hiển thị cho link tải), chỉ riêng cách LƯU NỘI DUNG tệp mới c�
 
 ---
 
-## 6. `workflowTemplates` (Mẫu quy trình)
+## 6. `batches` (Lô hàng)
+
+**Key localStorage**: `agrichain:batches`
+**Trang/JS quản lý**: tab "Lô hàng" trong modal xem chi tiết 1 mùa vụ ở
+`nong-trai-chi-tiet.html` / `js/nong-trai-chi-tiet.js` — thêm/sửa/xoá +
+xác thực blockchain + mở QR. Đọc lại (CHỈ xem/lọc/QR/xác thực, không có
+form riêng) ở `lo-hang.html` / `js/lo-hang.js` (danh sách toàn bộ lô hàng
+của mọi nông trại/mùa vụ) và `truy-xuat.html` / `js/truy-xuat.js` (trang
+công khai, xem 1 lô hàng qua mã).
+
+> **⚠️ `batches` CHƯA MIGRATE (giai đoạn 3)** — khác hẳn `farms`/`seasons`/
+> `seasonLogs`/`certifications`/`supplies` đã chuyển sang API thật, bảng
+> này vẫn hoàn toàn nằm trong `localStorage`, đọc/ghi qua
+> `store.insert()`/`update()`/`remove()`/`find()`/`list()` như quy ước gốc.
+> Điểm cần lưu ý: vì `seasons`/`farms` ĐÃ migrate, giá trị `batches.farmId`/
+> `batches.seasonId` của các lô hàng tạo MỚI sau khi migrate giờ là **UUID
+> thật do backend cấp** (đọc từ `currentFarm.id`/`currentViewedSeason.id`,
+> vốn lấy từ response API) — không còn là id dạng `store.newId()` cũ. Lô
+> hàng tạo TRƯỚC thời điểm migrate (nếu còn tồn tại trong localStorage của
+> ai đó) vẫn mang id kiểu cũ, sẽ không khớp được với bất kỳ farm/season nào
+> tồn tại thật trên backend nữa — coi như dữ liệu mồ côi (xem cột `code` xử
+> lý ca này trong `js/lo-hang.js`, hàm `deleteOrphanBatch()`).
+
+| Trường | Kiểu | Bắt buộc | Null? | Ý nghĩa |
+|---|---|---|---|---|
+| `id` | string | có (auto) | không | Mã nội bộ, xem "Quy ước chung". |
+| `seasonId` | string (FK → `seasons.id`) | **có** | không | Mùa vụ sở hữu lô hàng — gán = `currentViewedSeason.id` lúc lưu. |
+| `farmId` | string (FK → `farms.id`) | **có** | không | **Bản sao (denormalize)** của `seasons.farmId` tại thời điểm tạo — cùng lý do với `seasonLogs.farmId` (lọc/hiển thị không cần join ngược). |
+| `code` | string | **có** | không | Mã hiển thị — xem mục "Định dạng mã lô hàng" ngay bên dưới. Phải **duy nhất trong phạm vi 1 mùa vụ** (validate lọc theo `seasonId`, KHÔNG phải duy nhất toàn cục như `farms.code`). |
+| `startDate` | string (`YYYY-MM-DD`) | **có** | không | Ngày bắt đầu của lô hàng (nhãn UI: "Ngày bắt đầu"). |
+| `area` | number | **có** | không | Diện tích áp dụng cho lô hàng này (ha) — có thể là một phần diện tích của mùa vụ, không nhất thiết bằng `seasons.actual_area`. |
+| `harvestDate` | string (`YYYY-MM-DD`) | **có** | không | Ngày thu hoạch **dự kiến** (nhãn UI ghi rõ "dự kiến", phân biệt với `actualHarvestDate`). |
+| `actualHarvestDate` | string (`YYYY-MM-DD`) | **có** | không | Ngày thu hoạch **thực tế**. |
+| `expectedYield` | number | **có** | không | Sản lượng dự kiến của lô hàng. |
+| `unit` | string (enum) | **có** | không | Đơn vị sản lượng — 1 trong 7 giá trị: `kg`, `Tấn`, `Bó/Nài`, `Cái/Trái`, `Bao/Túi`, `Két/Thùng`, `Khác` (`BATCH_UNITS`, xem "Danh mục dùng chung"). |
+| `status` | string (enum) | **có** | không | 1 trong 7 giá trị: `planning` (Đang lập kế hoạch) · `planted` (Đang xuống giống) · `growing` (Đang canh tác) · `harvested` (Đã thu hoạch) · `processed` (Đã sơ chế) · `completed` (Hoàn thành) · `failed` (Thất bại) — `BATCH_STATUSES`, xem "Danh mục dùng chung". |
+| `note` | string | không | có thể rỗng `''` | Ghi chú tự do. |
+| `createdAt` / `updatedAt` | string (ISO) | như quy ước chung | | |
+| `sealed` | boolean | không (vắng mặt/falsy cho tới khi niêm phong) | — | `true` sau khi xác thực lên "blockchain" (thật ra là sổ cái hash-chain mô phỏng client-side, xem mục "QR / xác thực" bên dưới) qua `store.sealBatch()`. Sau khi `true`, giao diện KHOÁ HẲN sửa/xoá lô hàng (chỉ còn xem QR). |
+| `sealedAt` | string (ISO) | chỉ có khi `sealed: true` | có (trước khi niêm phong) | Thời điểm niêm phong — gán từ `block.timestamp` của khối vừa tạo trong `ledger`. |
+| `hash` | string | chỉ có khi `sealed: true` | có | Mã băm của khối chứa lô hàng này trong sổ cái mô phỏng — gán từ `block.hash`. |
+| `blockIndex` | number | chỉ có khi `sealed: true` | có | Số thứ tự khối trong sổ cái mô phỏng — gán từ `block.index`. |
+
+### Định dạng mã lô hàng (`code`)
+
+Dạng `<farms.code>-<seasons.code>-NNN`, ví dụ `NV01-MV02-001`. Sinh gợi ý
+bởi `suggestBatchCode()` trong `js/nong-trai-chi-tiet.js`:
+
+```js
+function suggestBatchCode() {
+  var seq = String(batchesOfSeason(currentViewedSeason.id).length + 1);
+  while (seq.length < 3) seq = '0' + seq;
+  return currentFarm.code + '-' + currentViewedSeason.code + '-' + seq;
+}
+```
+
+- **`NNN` đếm riêng theo TỪNG MÙA VỤ, không phải toàn cục và không phải
+  theo từng nông trại** — `batchesOfSeason(seasonId)` lọc `store.list('batches')`
+  theo đúng `seasonId` đang xem rồi lấy `.length + 1`, đệm số 0 tới tối
+  thiểu 3 chữ số (lô thứ 1000+ của cùng 1 mùa vụ sẽ tự nhiên có 4 chữ số,
+  không bị cắt).
+  Nghĩa là mùa vụ khác nhau của CÙNG 1 nông trại (hoặc mùa vụ trùng mã ở
+  nông trại khác — dù `seasons.code` chỉ cần duy nhất trong phạm vi 1 nông
+  trại) đều bắt đầu đếm lại từ `001`.
+- Đây **CHỈ LÀ GỢI Ý** hiển thị sẵn trong ô nhập khi mở modal "Thêm lô hàng
+  mới" — người dùng sửa tay thoải mái trước khi lưu. Ràng buộc DUY NHẤT
+  thật sự được kiểm tra khi lưu là **`code` không trùng với lô hàng khác
+  CÙNG `seasonId`** (xem bảng trên) — không kiểm tra mã có đúng định dạng
+  `<farm>-<season>-NNN` hay không, người dùng có thể đặt mã tuỳ ý miễn
+  không trùng trong mùa vụ.
+
+### QR / xác thực blockchain (mô phỏng, hiện trạng thật của code)
+
+- **Không có field QR nào lưu trong bản ghi** — mã QR được **sinh động mỗi
+  lần mở modal xem** (`openQrModal()`), không lưu trữ sẵn. Nội dung mã QR
+  luôn là URL `<location.origin>/truy-xuat.html?ma=<batches.code>` (hàm
+  `traceabilityUrl()`, lặp lại y hệt ở cả `js/nong-trai-chi-tiet.js` lẫn
+  `js/lo-hang.js` — 2 trang không nạp chéo JS của nhau). Vẽ bằng thư viện
+  `QRCode.js` nạp qua CDN ngay trong trình duyệt.
+- **"Xác thực blockchain" hiện tại là mô phỏng thuần client-side, KHÔNG
+  PHẢI blockchain thật** — không có mạng phân tán, không có node xác thực
+  độc lập bên ngoài trình duyệt của chính người dùng. Cơ chế thật: bấm
+  "Xác thực blockchain" gọi `store.sealBatch(batchId)`, băm (Web Crypto
+  API, `js/chain.js`) một payload rút gọn của lô hàng nối tiếp vào khối
+  băm trước đó trong collection riêng `ledger` (ngoài phạm vi tài liệu
+  này), rồi ghi lại `sealed`/`sealedAt`/`hash`/`blockIndex` như bảng trên.
+  Payload được băm **CHỈ gồm**: `batchId, code, seasonId, farmId,
+  startDate, harvestDate, actualHarvestDate, area, expectedYield, unit,
+  status` — **KHÔNG gồm `note`** (sửa ghi chú sau khi niêm phong, nếu có
+  đường nào làm được, sẽ không làm sai lệch hash đã băm — dù trên thực tế
+  giao diện hiện tại đã khoá hẳn sửa/xoá ngay khi `sealed: true`, nên đây
+  chỉ là một chi tiết kỹ thuật của cơ chế băm, không phải lỗ hổng đang bị
+  khai thác được qua UI).
+
+**Bản ghi mẫu (minh hoạ, không phải dữ liệu thật) — đã niêm phong:**
+
+```json
+{
+  "id": "mgk8m6n-o4p5q6",
+  "seasonId": "b3f1a2c4-5d6e-4f78-9a0b-1c2d3e4f5678",
+  "farmId": "a1b2c3d4-5e6f-4789-8a9b-0c1d2e3f4567",
+  "code": "NV01-MV01-001",
+  "startDate": "2026-05-20",
+  "area": 1.8,
+  "harvestDate": "2026-05-25",
+  "actualHarvestDate": "2026-05-26",
+  "expectedYield": 500,
+  "unit": "kg",
+  "status": "harvested",
+  "note": "Thu hoạch đợt 1, thời tiết thuận lợi.",
+  "createdAt": "2026-05-20T01:00:00.000Z",
+  "updatedAt": "2026-05-26T03:00:00.000Z",
+  "sealed": true,
+  "sealedAt": "2026-05-26T03:00:05.000Z",
+  "hash": "7f4a9c2e1b8d3f6a0c5e2b9d4f7a1c3e6b8d0f2a4c7e9b1d3f5a8c0e2b4d6f9a",
+  "blockIndex": 42
+}
+```
+
+**Trường hợp CHƯA niêm phong** — chỉ khác: không có `sealed`/`sealedAt`/
+`hash`/`blockIndex` (4 field này hoàn toàn VẮNG MẶT, không phải `null`,
+cho tới lần niêm phong đầu tiên).
+
+**Quan hệ**: `batches.farmId → farms.id`; `batches.seasonId → seasons.id`;
+chiều ngược `seasons.workflow_steps[].batch_id → batches.id` (gắn khi 1
+bước quy trình có `require_qr: true` được hoàn thành — xem
+`linkBatchToStep()` trong `js/nong-trai-chi-tiet.js`).
+
+**Trường chỉ dùng ở client**: về bản chất, **toàn bộ cơ chế `sealed`/
+`hash`/`blockIndex`/`sealedAt` hiện là mô phỏng phía client** (collection
+`ledger` cũng nằm trong `localStorage`) — khi có kiến trúc blockchain thật
+ở giai đoạn sau, các field này cần ánh xạ lại theo đúng cơ chế thật (VD
+địa chỉ giao dịch, mã băm on-chain thật...), không chỉ đơn thuần đổi tên
+field như các entity khác.
+
+---
+
+## 7. `workflowTemplates` (Mẫu quy trình)
 
 **Key localStorage**: `agrichain:workflowTemplates`
 **Trang/JS quản lý**: `mau-quy-trinh.html` / `js/mau-quy-trinh.js`. Được
 `js/nong-trai-chi-tiet.js` đọc lại để áp dụng cho 1 mùa vụ cụ thể (xem
-`seasons.workflowSteps` — CHỤP bản sao, không tham chiếu ngược).
+`seasons.workflow_steps` — CHỤP bản sao, không tham chiếu ngược; field đổi
+tên `workflowSteps` → `workflow_steps` từ khi `seasons` migrate sang API,
+xem mục 2).
+
+> **Đã rà lại (2026-09-08):** khuôn `workflowTemplates`/`TemplateStep` mô
+> tả dưới đây **không đổi** so với bản trước — `js/mau-quy-trinh.js` vẫn
+> ghi/đọc đúng các field này qua `store.js` (chưa migrate, giai đoạn 3).
+> Thay đổi DUY NHẤT: dropdown "Chỉ định vật tư cụ thể" trong modal (nguồn
+> của `supplyId`) giờ đọc `api.supplies.list()` thay vì `store.list('supplies')`
+> — bản thân field `supplyId` trên `TemplateStep` không đổi tên/kiểu, chỉ
+> khác là giá trị giờ là UUID thật do backend `supplies` cấp thay vì id
+> kiểu `store.newId()` cũ.
 
 | Trường | Kiểu | Bắt buộc | Null? | Ý nghĩa |
 |---|---|---|---|---|
@@ -603,6 +784,16 @@ trừu tượng thừa cho những gì đang nhất quán):
   tưới`, `Tưới nhỏ giọt`, `Xông hơi`, `Khác`.
 - **`certifications.status`** (4 giá trị): `active`, `expired`, `suspended`,
   `revoked`.
+- **`batches.unit`** (7 giá trị, `BATCH_UNITS` trong `js/nong-trai-chi-tiet.js`
+  — KHÁC bộ với `supplies.unit`/`seasonLogs.supplies[].unit` ở trên, đơn vị
+  đo SẢN LƯỢNG chứ không phải đơn vị VẬT TƯ, không dùng chung được):
+  `kg`, `Tấn`, `Bó/Nài`, `Cái/Trái`, `Bao/Túi`, `Két/Thùng`, `Khác`.
+- **`batches.status`** (7 giá trị, `BATCH_STATUSES` trong
+  `js/nong-trai-chi-tiet.js`, khai báo lặp lại y hệt ở `js/lo-hang.js` và
+  `js/truy-xuat.js` — 3 file không nạp chéo nhau): `planning` (Đang lập kế
+  hoạch), `planted` (Đang xuống giống), `growing` (Đang canh tác),
+  `harvested` (Đã thu hoạch), `processed` (Đã sơ chế), `completed` (Hoàn
+  thành), `failed` (Thất bại).
 - **`seasons.status`** (5 giá trị, ý nghĩa từng giá trị xem mục "Danh sách
   giá trị `seasons.status`" ở trên): `planned`, `in_progress`, `harvested`,
   `completed`, `failed`.
@@ -625,18 +816,19 @@ supplies (1) ──< seasonLogs.supplies[]     seasonLogs.supplies[].supplyId �
 supplies (1) ──< workflowTemplates.steps[] workflowTemplates.steps[].supplyId → supplies.id
 supplies (1) ──< seasons.workflowSteps[]   seasons.workflowSteps[].supplyId → supplies.id
 seasonLogs (1) ··> seasons.workflowSteps[] seasons.workflowSteps[].logId → seasonLogs.id
+farms (1) ──< batches (nhiều)              batches.farmId → farms.id
+seasons (1) ──< batches (nhiều)            batches.seasonId → seasons.id
+batches (1) ··> seasons.workflowSteps[]    seasons.workflowSteps[].batchId → batches.id  (gắn khi hoàn thành 1 bước có requireQr: true)
 ```
 
-**Ngoài phạm vi tài liệu này nhưng có liên hệ trực tiếp** (thực thể
-`batches` — chưa được yêu cầu mô tả chi tiết ở đây):
-`batches.farmId → farms.id`, `batches.seasonId → seasons.id`,
-`seasons.workflowSteps[].batchId → batches.id`. Mã lô hàng (`batches.code`)
-có định dạng `<farms.code>-<seasons.code>-NNN` (ghép chuỗi hiển thị, không
-phải khoá ngoại thật).
+Mã lô hàng (`batches.code`) có định dạng `<farms.code>-<seasons.code>-NNN`
+(ghép chuỗi HIỂN THỊ do `suggestBatchCode()` gợi ý, không phải khoá ngoại
+thật — người dùng sửa tay được, xem mục "Định dạng mã lô hàng" ở phần
+`batches`).
 
 ## Nhận xét chung về "trường chỉ dùng ở client"
 
-Tổng hợp lại trên cả 6 thực thể, chỉ có **2 kiểu trường** thật sự cần đổi
+Tổng hợp lại trên cả 7 thực thể, có **3 kiểu trường** thật sự cần đổi
 cách lưu khi chuyển sang backend (không phải "bỏ đi", mà là "đổi cách biểu
 diễn"):
 
@@ -649,8 +841,17 @@ diễn"):
    phía trình duyệt (không đảm bảo duy nhất tuyệt đối giữa nhiều trình
    duyệt/thiết bị cùng thao tác — chỉ chấp nhận được vì đây là bản demo
    single-user localStorage). Backend thật cần thay bằng cơ chế sinh id đảm
-   bảo duy nhất toàn hệ thống (UUID hoặc serial do DB cấp).
+   bảo duy nhất toàn hệ thống (UUID hoặc serial do DB cấp). **Đã xảy ra thật**
+   với `farms`/`seasons`/`seasonLogs`/`certifications`/`supplies` (id giờ là
+   UUID do backend cấp) — `batches`/`workflowTemplates` (mục 6, 7) vẫn dùng
+   định dạng cũ vì chưa migrate.
+3. **`batches.sealed`/`hash`/`blockIndex`/`sealedAt`** (mục 6) — toàn bộ cơ
+   chế "xác thực blockchain" hiện là mô phỏng hash-chain thuần client-side
+   (`js/chain.js`, Web Crypto API), không phải blockchain thật. Khi có kiến
+   trúc blockchain thật, nhóm field này cần thiết kế lại theo đúng cơ chế
+   đó (địa chỉ giao dịch, hash on-chain thật...), không chỉ đổi tên field
+   như cách xử lý các entity khác trong tài liệu này.
 
 Không có trường nào thuần tuý là "trạng thái UI" (như cờ đang mở rộng/thu
-gọn 1 khối, đang hover...) bị trộn lẫn vào dữ liệu nghiệp vụ của 6 thực thể
+gọn 1 khối, đang hover...) bị trộn lẫn vào dữ liệu nghiệp vụ của 7 thực thể
 này — toàn bộ field còn lại đều cần backend lưu trữ nguyên vẹn.

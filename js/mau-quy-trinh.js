@@ -5,13 +5,30 @@
    tử": đây là dữ liệu "Hoạt động sản xuất", theo đúng quy ước của farms/
    supplies/batches (danh sách chung của Đơn vị đang đăng nhập, không có
    khái niệm nhiều chủ sở hữu trong 1 phiên).
-   Nạp SAU js/store.js, js/app-shell.js, js/enums.js (ACTIVITY_TYPES dùng chung).
+   Vật tư (bước "Chỉ định vật tư cụ thể") ĐÃ CHUYỂN SANG API — đọc qua
+   api.supplies.list(), không đọc store.js nữa (supplies đã migrate, dữ
+   liệu local collection "supplies" không còn được ghi mới).
+   Nạp SAU js/api-config.js, js/api.js, js/store.js, js/app-shell.js,
+   js/enums.js (ACTIVITY_TYPES dùng chung).
    ========================================================================== */
 
 (function (global) {
   'use strict';
 
+  var api = global.AgriChain.api;
   var store = global.AgriChain.store;
+
+  // Vật tư — tải 1 lần lúc trang khởi động, dùng chung cho mọi bước quy
+  // trình mở trong modal (giống cách js/nong-trai-chi-tiet.js làm).
+  var availableSupplies = [];
+
+  function loadSupplyOptions() {
+    return api.supplies.list({ page_size: 100 }).then(function (data) {
+      availableSupplies = data.items || [];
+    }).catch(function (err) {
+      global.AgriChain.toast('Không tải được danh sách vật tư: ' + err.message);
+    });
+  }
 
   // Nguồn duy nhất cho danh mục "loại hoạt động" — js/enums.js, nạp trước
   // file này (xem thứ tự script trong mau-quy-trinh.html). Trước đây khai
@@ -238,7 +255,7 @@
     var emptyOption = el('option', null, '— Không chỉ định —');
     emptyOption.value = '';
     supplySelect.appendChild(emptyOption);
-    store.list('supplies').forEach(function (supply) {
+    availableSupplies.forEach(function (supply) {
       var option = el('option', null, supply.code + ' — ' + supply.name);
       option.value = supply.id;
       if (supply.id === data.supplyId) option.selected = true;
@@ -382,6 +399,7 @@
   /* --- Khởi động -------------------------------------------------------------- */
 
   document.addEventListener('DOMContentLoaded', function () {
+    loadSupplyOptions();
     render();
 
     document.querySelectorAll('[data-open-template-form]').forEach(function (button) {

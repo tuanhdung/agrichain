@@ -4,13 +4,37 @@
    thông tin lô hàng/nông trại/mùa vụ + trạng thái xác thực blockchain.
    Trang KHÔNG cần đăng nhập — dành cho người quét mã QR từ nong-trai-chi-tiet.js,
    nên không nạp js/app-shell.js (không có requireSession()). Nạp SAU
-   js/chain.js và js/store.js.
+   js/api-config.js, js/api.js, js/chain.js và js/store.js.
+
+   farms/seasons ĐÃ CHUYỂN SANG API — backend đã mở public-read riêng cho
+   GET /farms/{id} và GET /seasons/{id} (không cần Authorization header,
+   đúng cho trang công khai này, xem CLAUDE.md phía backend). Tra cứu qua
+   getFarmSafe()/getSeasonSafe() bên dưới, cùng mẫu getFarmCached()/
+   getSeasonCached() ở js/lo-hang.js — không cache ở đây vì trang chỉ tra
+   đúng 1 lô hàng/1 lượt tải, không lặp lại nhiều lần như danh sách.
+   `batches` và `certifications` VẪN ở store.js: backend chỉ mở công khai
+   đúng 2 route farms/seasons kể trên, certifications vẫn yêu cầu đăng nhập
+   nên trang khách không gọi được. VÁ PHẠM VI HẸP: chỉ đổi phần tra cứu
+   farm/season, không đụng luồng batch/QR/xác thực blockchain/certifications.
    ========================================================================== */
 
 (function (global) {
   'use strict';
 
+  var api = global.AgriChain.api;
   var store = global.AgriChain.store;
+
+  // Lỗi (VD nông trại/mùa vụ đã bị xoá) trả về null thay vì làm hỏng cả
+  // trang — showBatch() đã có sẵn nhánh xử lý "farm/season null".
+  function getFarmSafe(id) {
+    if (!id) return Promise.resolve(null);
+    return api.farms.get(id, { auth: false }).catch(function () { return null; });
+  }
+
+  function getSeasonSafe(id) {
+    if (!id) return Promise.resolve(null);
+    return api.seasons.get(id, { auth: false }).catch(function () { return null; });
+  }
 
   // Nhãn tiếng Việt cho trạng thái lô hàng — trùng với BATCH_STATUSES trong
   // nong-trai-chi-tiet.js, nhưng khai báo lại riêng vì 2 trang độc lập với
@@ -99,24 +123,28 @@
       verifyDesc.textContent = 'Dữ liệu lô hàng này chưa được niêm phong lên sổ cái.';
     }
 
-    var farm = store.find('farms', batch.farmId);
-    if (farm) {
-      fillField('[data-trace-farm-name]', farm.name);
-      fillField('[data-trace-farm-code]', farm.code);
-      fillField('[data-trace-farm-address]',
-        [farm.address, farm.ward, farm.province].filter(Boolean).join(', '));
+    Promise.all([getFarmSafe(batch.farmId), getSeasonSafe(batch.seasonId)])
+      .then(function (results) {
+        var farm = results[0];
+        var season = results[1];
 
-      var certsNode = document.querySelector('[data-trace-certs]');
-      certsNode.textContent = '';
-      store.list('certifications')
-        .filter(function (item) { return item.farmId === farm.id; })
-        .forEach(function (cert) {
-          certsNode.appendChild(el('span', 'badge badge--success', cert.name));
-        });
-    }
+        if (farm) {
+          fillField('[data-trace-farm-name]', farm.name);
+          fillField('[data-trace-farm-code]', farm.code);
+          fillField('[data-trace-farm-address]',
+            [farm.address, farm.ward, farm.province].filter(Boolean).join(', '));
 
-    var season = store.find('seasons', batch.seasonId);
-    fillField('[data-trace-season]', season ? season.name + ' (' + season.code + ')' : '—');
+          var certsNode = document.querySelector('[data-trace-certs]');
+          certsNode.textContent = '';
+          store.list('certifications')
+            .filter(function (item) { return item.farmId === farm.id; })
+            .forEach(function (cert) {
+              certsNode.appendChild(el('span', 'badge badge--success', cert.name));
+            });
+        }
+
+        fillField('[data-trace-season]', season ? season.name + ' (' + season.code + ')' : '—');
+      });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
