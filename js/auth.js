@@ -97,9 +97,10 @@
   }
 
   /* --- Đăng nhập (đã chuyển sang backend thật qua js/api.js) ----------------
-     Giữ nguyên "remember" trên giao diện dù API hiện chưa dùng tới (token
-     luôn lưu localStorage — xem ghi chú nợ kỹ thuật ở js/api.js) — bỏ tuỳ
-     chọn này đi sẽ là một thay đổi UX không cần thiết ở giai đoạn này. */
+     Checkbox "Ghi nhớ đăng nhập" (name="remember", không có id riêng) giờ
+     có tác dụng THẬT — đọc lúc submit, truyền vào api.auth.login() để quyết
+     định lưu token ở localStorage (tick) hay sessionStorage (bỏ tick, xem
+     js/api.js). */
 
   function setupLogin() {
     var form = document.getElementById('login-form');
@@ -121,6 +122,7 @@
 
       var email = document.getElementById('login-email');
       var password = document.getElementById('login-password');
+      var remember = form.querySelector('[name="remember"]');
 
       var problems = [];
       if (!isEmail(email.value.trim())) {
@@ -139,7 +141,7 @@
       submitButton.disabled = true;
       submitButton.textContent = 'Đang đăng nhập...';
 
-      api.auth.login(email.value.trim(), password.value).then(function () {
+      api.auth.login(email.value.trim(), password.value, remember && remember.checked).then(function () {
         global.location.href = redirectTarget();
       }).catch(function (error) {
         submitButton.disabled = false;

@@ -7,9 +7,11 @@
    AgriChain.api.requireAuth() ngay trong <head> để tránh chớp nội dung
    trước khi chuyển hướng — script defer sẽ chạy quá trễ cho việc đó).
 
-   Token lưu trong localStorage (agrichain.access_token/refresh_token/user)
-   — NỢ KỸ THUẬT đã biết, xem CLAUDE.md: cần chuyển sang cookie httpOnly
-   trước khi lên production, localStorage không an toàn trước XSS.
+   Token lưu trong localStorage HOẶC sessionStorage tuỳ checkbox "Ghi nhớ
+   đăng nhập" lúc submit (xem activeStorage() ngay dưới đây và api.auth.
+   login()) — NỢ KỸ THUẬT vẫn còn (dù đã giảm nhẹ): cả 2 kiểu Web Storage
+   đều không an toàn trước XSS như cookie httpOnly, cần chuyển hẳn sang đó
+   trước khi lên production. Xem CLAUDE.md mục "Kết nối backend".
    ========================================================================== */
 
 (function (global) {
@@ -19,11 +21,44 @@
   var REFRESH_TOKEN_KEY = 'agrichain.refresh_token';
   var USER_KEY = 'agrichain.user';
 
-  /* --- Đọc/ghi localStorage — bọc try/catch giống store.js, không để trang
-     chết trắng nếu localStorage không dùng được (chế độ ẩn danh...). ------- */
+  /* --- Chọn storage: localStorage (Ghi nhớ đăng nhập) hay sessionStorage
+     (không ghi nhớ — tự đăng xuất khi đóng hẳn trình duyệt) -----------------
+     `STORAGE_MODE_KEY` là cờ nhỏ ('local'/'session') đánh dấu ĐANG dùng
+     storage nào — bản thân cờ này LUÔN nằm ở localStorage (không phải nơi
+     lưu token, không nhạy cảm) vì nó phải đọc được NGAY LÚC TẢI TRANG, TRƯỚC
+     khi biết nên tìm token ở đâu — đặt cờ vào sessionStorage sẽ tự phá vỡ
+     mục đích của chính nó (sessionStorage mất khi đóng trình duyệt, cờ cũng
+     mất theo, không còn gì để biết "lần trước dùng sessionStorage"). Toàn bộ
+     hàm đọc/ghi/xoá token bên dưới đi qua `activeStorage()`, không gọi thẳng
+     `localStorage.*`/`sessionStorage.*` nữa. */
+  var STORAGE_MODE_KEY = 'agrichain.storage_mode';
+
+  function getStorageMode() {
+    try {
+      return global.localStorage.getItem(STORAGE_MODE_KEY) === 'session' ? 'session' : 'local';
+    } catch (err) {
+      return 'local';
+    }
+  }
+
+  function setStorageMode(mode) {
+    try {
+      global.localStorage.setItem(STORAGE_MODE_KEY, mode);
+    } catch (err) {
+      console.warn('[api] Không ghi được chế độ lưu phiên:', err);
+    }
+  }
+
+  function activeStorage() {
+    return getStorageMode() === 'session' ? global.sessionStorage : global.localStorage;
+  }
+
+  /* --- Đọc/ghi storage đang active — bọc try/catch giống store.js, không để
+     trang chết trắng nếu localStorage/sessionStorage không dùng được (chế
+     độ ẩn danh...). ---------------------------------------------------------- */
   function readStorage(key) {
     try {
-      return global.localStorage.getItem(key);
+      return activeStorage().getItem(key);
     } catch (err) {
       console.warn('[api] Không đọc được "' + key + '":', err);
       return null;
@@ -32,7 +67,7 @@
 
   function writeStorage(key, value) {
     try {
-      global.localStorage.setItem(key, value);
+      activeStorage().setItem(key, value);
     } catch (err) {
       console.error('[api] Không ghi được "' + key + '":', err);
     }
@@ -40,10 +75,25 @@
 
   function removeStorage(key) {
     try {
-      global.localStorage.removeItem(key);
+      activeStorage().removeItem(key);
     } catch (err) {
       console.warn('[api] Không xoá được "' + key + '":', err);
     }
+  }
+
+  // Xoá sạch token/user còn sót ở CẢ 2 storage — gọi lúc đăng nhập, TRƯỚC
+  // khi setStorageMode() đổi chế độ, để không bao giờ có tình huống 1 token
+  // cũ (VD từ lần đăng nhập trước, khác chế độ "Ghi nhớ") còn nằm im ở
+  // storage không active — dù không đọc/ghi qua đó nữa, vẫn là dữ liệu phiên
+  // cũ vô tình còn sống trong trình duyệt lâu hơn cần thiết.
+  function clearBothStorages() {
+    [global.localStorage, global.sessionStorage].forEach(function (storage) {
+      try {
+        storage.removeItem(ACCESS_TOKEN_KEY);
+        storage.removeItem(REFRESH_TOKEN_KEY);
+        storage.removeItem(USER_KEY);
+      } catch (err) { /* im lặng — chế độ ẩn danh có thể chặn cả 2 storage */ }
+    });
   }
 
   /* --- Phiên đăng nhập ------------------------------------------------------ */
@@ -264,12 +314,20 @@
 
   /* --- auth ------------------------------------------------------------- */
 
-  function login(email, password) {
+  // `remember` (boolean, đọc từ checkbox "Ghi nhớ đăng nhập" ở dang-nhap.html)
+  // quyết định token lưu ở localStorage (true — sống sót qua đóng/mở lại
+  // trình duyệt) hay sessionStorage (false/mặc định — tự mất khi đóng hẳn
+  // trình duyệt, không chỉ đóng tab). Đổi chế độ TRƯỚC saveSession() để bản
+  // ghi mới đi đúng chỗ; clearBothStorages() trước đó dọn sạch token cũ ở
+  // storage không active, tránh sót dữ liệu phiên cũ.
+  function login(email, password, remember) {
     return request('POST', '/auth/login', {
       body: { email: email, password: password },
       auth: false,
       retry: false
     }).then(function (data) {
+      clearBothStorages();
+      setStorageMode(remember ? 'local' : 'session');
       saveSession(data);
       // /auth/login có thể chưa kèm đầy đủ mảng quyền — gọi thêm /auth/me để
       // có bản user đầy đủ nhất (kèm quyền) rồi ghi đè lại bản vừa lưu.
@@ -477,12 +535,43 @@
   /* --- Bảo vệ trang cần đăng nhập --------------------------------------------
      Gọi ở đầu <head> bằng script THƯỜNG (không defer) để chuyển hướng trước
      khi nội dung trang kịp vẽ ra. */
-  function requireAuth() {
-    if (isLoggedIn()) return true;
+  function redirectToLogin() {
     var here = global.location.pathname.split('/').pop() + global.location.search;
     global.location.href = 'dang-nhap.html?redirect=' + encodeURIComponent(here);
+  }
+
+  // Đánh dấu trang HIỆN TẠI có gọi requireAuth() hay không — dùng ở listener
+  // 'pageshow' bên dưới để biết có cần kiểm tra lại phiên đăng nhập khi trang
+  // được khôi phục từ bfcache hay không (tránh áp nhầm vào trang công khai
+  // như index.html/truy-xuat.html, vốn không gọi requireAuth() nên cờ này
+  // luôn ở false). Biến nội bộ trong closure — không cần lộ ra
+  // AgriChain.api vì cả requireAuth() lẫn listener pageshow đều nằm chung
+  // module này.
+  var pageRequiresAuth = false;
+
+  function requireAuth() {
+    pageRequiresAuth = true;
+    if (isLoggedIn()) return true;
+    redirectToLogin();
     return false;
   }
+
+  // Bug bảo mật đã vá (2026-09-08): đăng xuất xong bấm nút Back của trình
+  // duyệt có thể hiện lại trang cần đăng nhập (VD nong-trai.html) kèm dữ
+  // liệu cũ, dù access token đã bị xoá — do trình duyệt khôi phục trang từ
+  // bfcache (back-forward cache) thay vì tải lại thật, nên requireAuth() ở
+  // <head> (chỉ chạy đúng 1 lần lúc tải trang ban đầu) không có cơ hội chạy
+  // lại để phát hiện phiên đã mất. Sự kiện 'pageshow' báo lại MỌI lần trang
+  // được hiển thị, kể cả khi khôi phục từ bfcache (`event.persisted ===
+  // true`, không có ở lần tải trang bình thường đầu tiên) — nghe sự kiện
+  // này ở phạm vi toàn cục (mọi trang có nạp api.js), chỉ hành động khi
+  // đúng 2 điều kiện: trang được khôi phục từ bfcache VÀ trang này thật sự
+  // cần đăng nhập (`pageRequiresAuth`) VÀ không còn access token hợp lệ.
+  global.addEventListener('pageshow', function (event) {
+    if (event.persisted && pageRequiresAuth && !isLoggedIn()) {
+      redirectToLogin();
+    }
+  });
 
   global.AgriChain = global.AgriChain || {};
   global.AgriChain.api = {

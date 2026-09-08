@@ -343,8 +343,10 @@ Nạp SAU `api-config.js`, ở mọi trang, **không `defer`** (một số trang
 `AgriChain.api.requireAuth()` ngay trong `<head>` để chặn hiển thị trước khi kịp chuyển
 hướng — script `defer` chạy quá trễ cho việc đó).
 
-- **Lưu phiên**: `localStorage` — `agrichain.access_token`, `agrichain.refresh_token`,
-  `agrichain.user` (JSON, gồm cả mảng quyền trả về từ `/auth/me`).
+- **Lưu phiên**: `agrichain.access_token`, `agrichain.refresh_token`, `agrichain.user`
+  (JSON, gồm cả mảng quyền trả về từ `/auth/me`) — lưu ở `localStorage` **hoặc**
+  `sessionStorage` tuỳ checkbox "Ghi nhớ đăng nhập" ở `dang-nhap.html` lúc đăng nhập, xem
+  mục "Checkbox 'Ghi nhớ đăng nhập'" ngay dưới đây.
 - **`AgriChain.api.isLoggedIn()`** — có access token hay không.
   **`AgriChain.api.hasPermission(code)`** — dò trong mảng quyền đã lưu của user, dùng để
   ẩn/hiện nút trên giao diện (đánh dấu bằng `data-requires-permission="<mã quyền>"` trên
@@ -352,6 +354,36 @@ hướng — script `defer` chạy quá trễ cho việc đó).
 - **`AgriChain.api.requireAuth()`** — gọi ở đầu `<head>` bằng script thường (không defer)
   cho các trang cần đăng nhập; chưa có token thì chuyển hướng ngay sang
   `dang-nhap.html?redirect=<trang hiện tại>`.
+- **Checkbox "Ghi nhớ đăng nhập" (`dang-nhap.html`) giờ có tác dụng THẬT (2026-09-08)** —
+  trước đó chỉ là UI, API chưa dùng tới. `js/auth.js` đọc `form.querySelector('[name=
+  "remember"]').checked` lúc submit, truyền vào `api.auth.login(email, password, remember)`.
+  Trong `js/api.js`: cờ `agrichain.storage_mode` (`'local'`/`'session'`, LUÔN nằm ở
+  `localStorage` — phải đọc được ngay lúc tải trang, trước khi biết nên tìm token ở đâu, nên
+  không thể tự đặt vào `sessionStorage`) quyết định `activeStorage()` trả về `localStorage`
+  hay `sessionStorage`; toàn bộ hàm đọc/ghi/xoá token (`getAccessToken`/`saveSession`/
+  `clearSession`...) đều đi qua `activeStorage()`, không gọi thẳng `localStorage.*` nữa.
+  `login()` gọi `clearBothStorages()` rồi mới `setStorageMode(remember ? 'local' : 'session')`
+  — dọn sạch token cũ ở storage không active trước khi đổi chế độ, tránh sót phiên cũ.
+  **Đây là giải pháp GIẢM NHẸ, không phải giải quyết dứt điểm**: `sessionStorage` tự mất khi
+  đóng hẳn trình duyệt (đúng ý nghĩa "không ghi nhớ"), nhưng cả 2 kiểu Web Storage vẫn đọc
+  được bởi bất kỳ JS nào chạy trên trang (kể cả từ thư viện ngoài bị lỗi) — **không an toàn
+  trước XSS như cookie `httpOnly`**. Nợ kỹ thuật "chuyển sang cookie `httpOnly` + `Secure` +
+  `SameSite` trước khi lên production" (xem mục "Nợ kỹ thuật đã biết" cuối file) vẫn còn
+  nguyên, checkbox này không thay thế được việc đó.
+- **⚠️ Bug bảo mật đã vá — bfcache sau khi đăng xuất (2026-09-08):** đăng xuất xong bấm
+  nút Back của trình duyệt từng hiện lại trang cần đăng nhập (VD `nong-trai.html`) kèm dữ
+  liệu cũ, dù access token đã bị xoá. Nguyên nhân: trình duyệt khôi phục trang từ **bfcache**
+  (back-forward cache) thay vì tải lại thật, nên `requireAuth()` ở `<head>` — chỉ chạy đúng
+  1 lần lúc tải trang ban đầu — không có cơ hội chạy lại để phát hiện phiên đã mất. Đã vá
+  bằng listener `pageshow` đăng ký **ở phạm vi toàn cục** (chạy trên MỌI trang có nạp
+  `api.js`, kể cả trang công khai): khi `event.persisted === true` (trang được khôi phục từ
+  bfcache) VÀ trang hiện tại có gọi `requireAuth()` (cờ nội bộ `pageRequiresAuth`, chỉ được
+  bật lên khi `requireAuth()` chạy — nhờ vậy KHÔNG áp nhầm logic này vào trang công khai như
+  `index.html`/`truy-xuat.html`) VÀ không còn access token hợp lệ → chuyển hướng ngay sang
+  `dang-nhap.html?redirect=...`, y hệt logic `requireAuth()`. Nếu sau này thêm cơ chế kiểm
+  tra phiên đăng nhập nào khác ngoài `requireAuth()`, nhớ áp dụng lại đúng mẫu "kiểm tra lại
+  trên `pageshow` khi `persisted`" này — bfcache là hành vi trình duyệt, không riêng gì
+  `requireAuth()`.
 - **Lỗi**: mọi lỗi ném ra là `AgriChain.api.ApiError` — luôn có `.status` (mã HTTP, `0` =
   lỗi mạng), `.code` (`VALIDATION_ERROR`/`UNAUTHORIZED`/`FORBIDDEN`/`NOT_FOUND`/`CONFLICT`/
   `INTERNAL_ERROR`/`NETWORK_ERROR`), `.message` (tiếng Việt, hiển thị thẳng được),
@@ -541,11 +573,14 @@ xoá mềm). `js/api.js` bọc thêm `api.farms.*`/`api.seasons.*`/`api.logs.*`/
 
 ### Nợ kỹ thuật đã biết
 
-**Lưu access/refresh token trong `localStorage` không an toàn trước tấn công XSS** (bất kỳ
-đoạn JS nào chạy được trên trang, kể cả từ thư viện ngoài bị lỗi, cũng đọc được token). Đây
-là đánh đổi CHỦ ĐỘNG cho giai đoạn phát triển (đơn giản, không cần cấu hình CORS/cookie
-phức tạp) — **bắt buộc phải chuyển sang cookie `httpOnly` + `Secure` + `SameSite`
-(backend set cookie, frontend không đụng tới token nữa) trước khi lên production.**
+**Lưu access/refresh token trong `localStorage`/`sessionStorage` không an toàn trước tấn
+công XSS** (bất kỳ đoạn JS nào chạy được trên trang, kể cả từ thư viện ngoài bị lỗi, cũng
+đọc được token — checkbox "Ghi nhớ đăng nhập" (2026-09-08, xem mục "Kết nối backend") chỉ
+đổi TUỔI THỌ của token (sống sót qua đóng/mở trình duyệt hay không), không đổi việc nó vẫn
+là Web Storage đọc được bởi mọi JS, KHÔNG giải quyết được lỗ hổng XSS này). Đây là đánh đổi
+CHỦ ĐỘNG cho giai đoạn phát triển (đơn giản, không cần cấu hình CORS/cookie phức tạp) —
+**bắt buộc phải chuyển sang cookie `httpOnly` + `Secure` + `SameSite` (backend set cookie,
+frontend không đụng tới token nữa) trước khi lên production.**
 
 ## Quy ước CSS
 

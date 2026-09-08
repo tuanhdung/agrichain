@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriVerse - Sàn Nông Sản TMĐT & Siêu Thị VR360 Doanh Nghiệp</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        amber: {
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        },
+                        earth: '#2d3748',
+                    },
+                    fontFamily: {
+                        sans: ['Lexend', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts Lexend -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Three.js & OrbitControls for Graphics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- GSAP for Smooth Camera Transitions in VR360 Supermarket -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    
+    <!-- QRious Standard High-Precision QR Generator -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+
+    <style>
+        body { font-family: 'Lexend', sans-serif; background-color: #fafaf8; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .glass-panel-dark {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #22c55e; border-radius: 8px; }
+        @keyframes pulse-subtle {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
+        }
+        .ai-pulse { animation: pulse-subtle 3s infinite ease-in-out; }
+        .shop-tab-active {
+            background: linear-gradient(135deg, #16a34a 0%, #0d9488 100%);
+            color: #ffffff !important;
+            border-color: transparent !important;
+            box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
+        }
+    </style>
+</head>
+<body class="text-slate-800 bg-[#fbfbfa] min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+    <!-- Navigation Header -->
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-emerald-100 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <!-- Logo & Slogan (No 3D on badges) -->
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="window.scrollTo({top:0, behavior:'smooth'})">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-700 via-emerald-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+                        <i class="fa-solid fa-cube text-2xl"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-2xl font-black bg-gradient-to-r from-brand-800 via-emerald-600 to-amber-600 bg-clip-text text-transparent tracking-tight">AgriVerse</span>
+                            <span class="px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 font-extrabold text-[10px] tracking-wider uppercase">VR360 Live</span>
+                        </div>
+                        <p class="text-xs text-slate-500 font-medium">Sàn Dưa Lưới Tiến Phát • Siêu Thị VR360 • Quét Mã QR Chuẩn 100%</p>
+                    </div>
+                </div>
+
+                <!-- Global Search Bar -->
+                <div class="hidden md:flex flex-1 max-w-md mx-8">
+                    <div class="relative w-full">
+                        <input type="text" placeholder="Tìm Dưa lưới Tiến Phát, Cà phê Kơho, Mít sấy OCOP..." 
+                            class="w-full pl-11 pr-4 py-2.5 bg-slate-100/90 rounded-full text-sm border border-transparent focus:border-brand-500 focus:bg-white focus:outline-none transition-all shadow-inner">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400"></i>
+                    </div>
+                </div>
+
+                <!-- Nav Actions & VR Tour Trigger -->
+                <div class="flex items-center space-x-3">
+                    <a href="#vr-supermarket-section" class="flex items-center space-x-2 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow-md transition transform hover:-translate-y-0.5">
+                        <i class="fa-solid fa-vr-cardboard text-amber-300 animate-pulse text-sm"></i>
+                        <span>Đi Siêu Thị VR360</span>
+                    </a>
+                    <button onclick="toggleAIChat()" class="flex items-center space-x-2 px-3.5 py-2 rounded-full bg-emerald-50 text-brand-700 font-semibold text-xs border border-emerald-200 hover:bg-emerald-100 transition">
+                        <i class="fa-solid fa-robot text-brand-600 animate-bounce"></i>
+                        <span class="hidden sm:inline">Trợ Lý AI Tiến Phát</span>
+                    </button>
+                    <button class="relative p-2.5 rounded-full hover:bg-slate-100 text-slate-700 transition" onclick="openCartModal()">
+                        <i class="fa-solid fa-basket-shopping text-xl"></i>
+                        <span id="cart-count" class="absolute -top-1 -right-1 bg-amber-500 text-slate-950 font-black text-xs w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section with Interactive Melon 360 & Clean Badges -->
+    <section class="relative bg-gradient-to-b from-emerald-950 via-brand-950 to-slate-950 text-white overflow-hidden min-h-[580px] flex items-center">
+        <!-- Subtle Grid Pattern -->
+        <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#22c55e_1px,transparent_1px)] [background-size:18px_18px]"></div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full relative z-10">
+            <!-- Hero Text Content & Certification Badges -->
+            <div class="max-w-4xl mx-auto space-y-6 text-center">
+                <!-- Eyebrow Badge: 1 badge duy nhất, chấm xanh nhấp nháy kiểu "trạng thái sống" -->
+                <div class="inline-flex items-center gap-2 pl-2.5 pr-4 py-1.5 rounded-full bg-white/5 border border-emerald-500/30 backdrop-blur-sm mx-auto">
+                    <span class="relative flex h-2 w-2 shrink-0">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                    </span>
+                    <span class="text-emerald-200 text-xs font-bold uppercase tracking-wider">Minh Bạch Chuỗi Sinh Trưởng Bằng Mã QR Chuẩn 100%</span>
+                </div>
+
+                <!-- Updated Title theo ảnh mẫu -->
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black leading-tight tracking-tight">
+                    Trải Nghiệm <span class="bg-gradient-to-r from-amber-400 via-emerald-300 to-teal-200 bg-clip-text text-transparent">Sàn Nông Sản 3D</span>
+                </h1>
+                
+                <p class="text-slate-300 text-base sm:text-lg max-w-xl mx-auto leading-relaxed font-light">
+                    Khám phá không gian gian hàng ảo 3D sinh động, tương tác trực tiếp với nông sản và quét mã QR kiểm tra nhật ký canh tác bất biến trên Blockchain.
+                </p>
+
+                <!-- Feature Highlights: Blockchain / 3D Shop / AI Agent -->
+                <div class="pt-6 border-t border-emerald-900/80 grid grid-cols-3 gap-4 text-left">
+                    <div>
+                        <p class="text-lg sm:text-xl font-black text-amber-400">Blockchain</p>
+                        <p class="text-xs text-slate-400 font-medium mt-1 leading-snug">Minh Bạch 100% Nhật Ký</p>
+                    </div>
+                    <div>
+                        <p class="text-lg sm:text-xl font-black text-emerald-400">3D Shop</p>
+                        <p class="text-xs text-slate-400 font-medium mt-1 leading-snug">Dẫn Điểm Từ Ngoài Vào Gian Hàng</p>
+                    </div>
+                    <div>
+                        <p class="text-lg sm:text-xl font-black text-white">AI Agent</p>
+                        <p class="text-xs text-slate-400 font-medium mt-1 leading-snug">Tư Vấn Nông Sản 24/7</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- VR360 Enterprise Supermarket Walkthrough Section (Updated title & Enterprise Shop Switcher as requested) -->
+    <section id="vr-supermarket-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-6 scroll-mt-20">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+                <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-100 text-brand-800 text-xs font-bold uppercase tracking-wider mb-2">
+                    <i class="fa-solid fa-street-view text-brand-600"></i>
+                    <span>Trải Nghiệm Nhập Vai VR360</span>
+                </div>
+                <!-- Updated Title: Siêu Thị Nông Sản VR360 Doanh Nghiệp -->
+                <h2 class="text-3xl font-black text-slate-900 tracking-tight">Siêu Thị Nông Sản VR360 Doanh Nghiệp</h2>
+                <p class="text-slate-600 text-sm mt-1">Chọn siêu thị VR360 của từng Doanh nghiệp bên dưới để tham quan không gian trưng bày riêng biệt, xem sản phẩm & quét mã QR.</p>
+            </div>
+
+            <!-- Enterprise Shop Selector Tabs -->
+            <div class="flex flex-wrap gap-2">
+                <button onclick="switchEnterpriseShop('tienphat')" id="shop-btn-tienphat" class="shop-tab-btn shop-tab-active px-4 py-2.5 rounded-2xl border border-slate-200 text-slate-800 font-extrabold text-xs transition shadow-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-store text-emerald-400"></i>
+                    <span>HTX Tiến Phát (Dưa Lưới)</span>
+                </button>
+                <button onclick="switchEnterpriseShop('koho')" id="shop-btn-koho" class="shop-tab-btn px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-800 font-extrabold text-xs hover:border-amber-500 transition shadow-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-mug-saucer text-amber-700"></i>
+                    <span>Kơho Coffee (Cà Phê Đà Lạt)</span>
+                </button>
+                <button onclick="switchEnterpriseShop('dongthap')" id="shop-btn-dongthap" class="shop-tab-btn px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-800 font-extrabold text-xs hover:border-orange-500 transition shadow-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-sun text-orange-600"></i>
+                    <span>Đồng Tháp OCOP (Hoa Quả Sấy)</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- VR360 Dynamic Canvas Box -->
+        <div class="relative w-full h-[520px] sm:h-[600px] rounded-3xl overflow-hidden bg-slate-950 border-2 border-emerald-500/40 shadow-2xl group">
+            <!-- Three.js VR Canvas Container -->
+            <div id="vr-supermarket-canvas" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
+
+            <!-- Floating VR Controls Overlay Header -->
+            <div class="absolute top-4 left-4 right-4 flex flex-wrap justify-between items-center gap-2 pointer-events-none z-10">
+                <div class="bg-black/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20 text-white flex items-center space-x-3 shadow-lg">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span id="vr-current-zone-label" class="text-xs font-black text-emerald-300">Siêu thị: HTX Nông Nghiệp Tiến Phát</span>
+                </div>
+
+                <!-- Zone Waypoints Selector for Current Enterprise -->
+                <div id="vr-zone-waypoints-bar" class="pointer-events-auto flex items-center space-x-1.5 bg-black/70 backdrop-blur-md p-1.5 rounded-2xl border border-white/15">
+                    <button onclick="navigateVR360Zone('entrance')" class="vr-zone-btn active px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold text-[11px] transition shadow">
+                        Cổng Vào
+                    </button>
+                    <button onclick="navigateVR360Zone('main_shelf')" class="vr-zone-btn px-3 py-1.5 rounded-xl bg-black/40 text-slate-200 font-bold text-[11px] hover:text-white transition">
+                        Kệ Hàng Chính
+                    </button>
+                    <button onclick="navigateVR360Zone('premium_display')" class="vr-zone-btn px-3 py-1.5 rounded-xl bg-black/40 text-slate-200 font-bold text-[11px] hover:text-white transition">
+                        Góc Sản Phẩm Cao Cấp
+                    </button>
+                </div>
+            </div>
+
+            <!-- Instruction Hint Toast Overlay -->
+            <div class="absolute bottom-4 left-4 right-4 z-10 pointer-events-none flex flex-col sm:flex-row justify-between items-center gap-3 bg-black/85 backdrop-blur-md p-3.5 rounded-2xl border border-emerald-500/30 text-white">
+                <div class="flex items-center space-x-3 text-xs">
+                    <div class="w-9 h-9 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold flex-shrink-0">
+                        <i class="fa-solid fa-hand-pointer text-amber-300"></i>
+                    </div>
+                    <div>
+                        <p id="vr-shop-status-heading" class="font-bold text-emerald-300">Đang xem: Siêu Thị VR360 HTX Tiến Phát</p>
+                        <p class="text-[11px] text-slate-300">Kéo chuột xoay không gian 360° • Chọn góc xem sản phẩm & bấm "Quét QR" bên dưới!</p>
+                    </div>
+                </div>
+
+                <!-- Quick Action Button inside VR Canvas -->
+                <div class="pointer-events-auto flex items-center space-x-2">
+                    <button id="vr-inspect-product-btn" onclick="openProduct3DModal('melon1')" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs transition shadow flex items-center space-x-1.5">
+                        <i class="fa-solid fa-qrcode"></i>
+                        <span id="vr-inspect-btn-text">Xem QR Dưa Lưới Tiến Phát</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 space-y-16">
+
+        <!-- Category Filter Pills -->
+        <section class="flex items-center space-x-3 overflow-x-auto pb-2 custom-scrollbar">
+            <button onclick="filterCategory('all')" class="cat-pill active px-5 py-2.5 rounded-full bg-brand-700 text-white font-bold text-sm whitespace-nowrap shadow-md shadow-brand-700/20">
+                <i class="fa-solid fa-border-all mr-1.5"></i> Tất Cả Nông Sản
+            </button>
+            <button onclick="filterCategory('melon')" class="cat-pill px-5 py-2.5 rounded-full bg-white text-slate-700 hover:bg-emerald-50 hover:text-brand-700 font-semibold text-sm whitespace-nowrap border border-slate-200 transition shadow-sm">
+                <i class="fa-solid fa-cloud-sun text-amber-500 mr-1.5"></i> Dưa Lưới Tiến Phát
+            </button>
+            <button onclick="filterCategory('coffee')" class="cat-pill px-5 py-2.5 rounded-full bg-white text-slate-700 hover:bg-emerald-50 hover:text-brand-700 font-semibold text-sm whitespace-nowrap border border-slate-200 transition shadow-sm">
+                <i class="fa-solid fa-mug-hot text-amber-700 mr-1.5"></i> Cà Phê & Cacao Đặc Sản
+            </button>
+            <button onclick="filterCategory('dried-fruit')" class="cat-pill px-5 py-2.5 rounded-full bg-white text-slate-700 hover:bg-emerald-50 hover:text-brand-700 font-semibold text-sm whitespace-nowrap border border-slate-200 transition shadow-sm">
+                <i class="fa-solid fa-sun text-amber-600 mr-1.5"></i> Hoa Quả Sấy Khô Dẻo
+            </button>
+            <button onclick="filterCategory('honey')" class="cat-pill px-5 py-2.5 rounded-full bg-white text-slate-700 hover:bg-emerald-50 hover:text-brand-700 font-semibold text-sm whitespace-nowrap border border-slate-200 transition shadow-sm">
+                <i class="fa-solid fa-jar text-emerald-600 mr-1.5"></i> Mật Chiết & Gia Vị
+            </button>
+            <button onclick="filterCategory('ocop')" class="cat-pill px-5 py-2.5 rounded-full bg-white text-slate-700 hover:bg-emerald-50 hover:text-brand-700 font-semibold text-sm whitespace-nowrap border border-slate-200 transition shadow-sm">
+                <i class="fa-solid fa-star text-amber-500 mr-1.5"></i> OCOP & Vùng Miền
+            </button>
+        </section>
+
+        <!-- Featured Enterprise Stalls Section -->
+        <section id="featured-stalls" class="space-y-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <span class="text-xs font-extrabold text-brand-700 uppercase tracking-widest">Multi-Vendor Showroom VR</span>
+                    <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Gian Hàng Doanh Nghiệp Nổi Bật</h2>
+                    <p class="text-slate-500 text-sm mt-1">Mỗi gian hàng có <strong>nhiều sản phẩm</strong>, mỗi sản phẩm đính kèm <strong>mã QR truy xuất nguồn gốc</strong> độc lập.</p>
+                </div>
+            </div>
+
+            <!-- Stall Cards Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- Stall 1: HTX Nông Nghiệp Xanh Tiến Phát -->
+                <div class="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden flex flex-col justify-between hover:border-brand-500 transition group">
+                    <div>
+                        <!-- Stall Header -->
+                        <div class="bg-gradient-to-r from-emerald-800 via-brand-700 to-teal-700 p-6 text-white space-y-3 relative">
+                            <div class="flex justify-between items-start">
+                                <span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-semibold border border-white/30">
+                                    <i class="fa-solid fa-location-dot mr-1"></i> Trang Trại Tiến Phát
+                                </span>
+                                <span class="px-2.5 py-1 bg-amber-400 text-slate-950 font-black text-xs rounded-lg shadow">
+                                    VietGAP / GlobalGAP
+                                </span>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-extrabold">HTX Nông Nghiệp Tiến Phát</h3>
+                                <p class="text-xs text-emerald-200 mt-0.5">Chuyên dưa lưới công nghệ cao • 2 Mẫu dưa chủ đạo</p>
+                            </div>
+
+                            <!-- AI Agent Badge for Stall -->
+                            <div class="p-2.5 bg-black/25 rounded-2xl border border-white/20 flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold text-sm shadow ai-pulse">
+                                        <i class="fa-solid fa-robot"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-emerald-100">Bé Dưa Tiến Phát AI</span>
+                                </div>
+                                <button onclick="startStallAIChat('HTX Nông Nghiệp Tiến Phát', 'Bé Dưa Tiến Phát')" class="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-[11px] transition">
+                                    Hỏi AI
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Multi-Product List within Stall -->
+                        <div class="p-5 space-y-4">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Sản phẩm thuộc gian hàng (2):</p>
+
+                            <!-- Product 1 -->
+                            <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 hover:border-brand-500 transition space-y-2">
+                                <div class="flex items-center space-x-3">
+                                    <img src="https://images.unsplash.com/photo-1595855759920-86582396756a?auto=format&fit=crop&w=300&q=80" alt="Dưa Lưới Tiến Phát Hữu Cơ" class="w-14 h-14 object-cover rounded-xl border border-slate-200">
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="text-xs font-bold text-slate-900 truncate">1. Dưa Lưới Tiến Phát Hữu Cơ</h4>
+                                        <p class="text-[11px] text-slate-500 font-mono">Lô: V3-V2-2026 • Brix 15°</p>
+                                        <p class="text-xs font-black text-brand-700 mt-0.5">145.000đ / Trái</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                                    <button onclick="openQRModal('melon1')" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[11px] transition flex items-center space-x-1 shadow-sm">
+                                        <i class="fa-solid fa-qrcode"></i>
+                                        <span>Xem Mã QR Lô V3-V2</span>
+                                    </button>
+                                    <button onclick="openProduct3DModal('melon1')" class="px-2.5 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-[11px] transition">
+                                        <i class="fa-solid fa-cube mr-1"></i>Mô Hình 360°
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Product 2 -->
+                            <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 hover:border-brand-500 transition space-y-2">
+                                <div class="flex items-center space-x-3">
+                                    <img src="https://images.unsplash.com/photo-1571575173700-afb9492e6a50?auto=format&fit=crop&w=300&q=80" alt="Dưa Lưới Huỳnh Long Tiến Phát" class="w-14 h-14 object-cover rounded-xl border border-slate-200">
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="text-xs font-bold text-slate-900 truncate">2. Dưa Lưới Huỳnh Long Tiến Phát</h4>
+                                        <p class="text-[11px] text-slate-500 font-mono">Lô: HL-TP-2026 • Vỏ Vàng Giòn</p>
+                                        <p class="text-xs font-black text-brand-700 mt-0.5">165.000đ / Trái</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                                    <button onclick="openQRModal('melon2')" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[11px] transition flex items-center space-x-1 shadow-sm">
+                                        <i class="fa-solid fa-qrcode"></i>
+                                        <span>Xem Mã QR Lô HL-TP</span>
+                                    </button>
+                                    <button onclick="openProduct3DModal('melon2')" class="px-2.5 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-[11px] transition">
+                                        <i class="fa-solid fa-cube mr-1"></i>Mô Hình 360°
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Stall Footer -->
+                    <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                        <span class="text-xs text-slate-500"><strong class="text-slate-800">2</strong> Sản Phẩm Đã Xác Thực QR</span>
+                        <a href="#vr-supermarket-section" onclick="switchEnterpriseShop('tienphat')" class="text-xs font-extrabold text-brand-700 hover:underline flex items-center">
+                            Mở VR360 Tiến Phát <i class="fa-solid fa-angle-right ml-1"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Stall 2: Kơho Speciality Coffee -->
+                <div class="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden flex flex-col justify-between hover:border-amber-500 transition group">
+                    <div>
+                        <!-- Stall Header -->
+                        <div class="bg-gradient-to-r from-amber-900 via-amber-800 to-amber-950 p-6 text-white space-y-3 relative">
+                            <div class="flex justify-between items-start">
+                                <span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-semibold border border-white/30">
+                                    <i class="fa-solid fa-location-dot mr-1"></i> Langbiang (1,500m)
+                                </span>
+                                <span class="px-2.5 py-1 bg-amber-400 text-slate-950 font-black text-xs rounded-lg shadow">
+                                    Specialty 86+
+                                </span>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-extrabold">Kơho Speciality Coffee</h3>
+                                <p class="text-xs text-amber-200 mt-0.5">Cà phê Arabica rừng nguyên sinh • Hái chín tay 100%</p>
+                            </div>
+
+                            <!-- AI Agent Badge for Stall -->
+                            <div class="p-2.5 bg-black/25 rounded-2xl border border-white/20 flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold text-sm shadow ai-pulse">
+                                        <i class="fa-solid fa-mug-saucer"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-amber-100">AI Sommelier Kơho</span>
+                                </div>
+                                <button onclick="startStallAIChat('Kơho Speciality Coffee', 'AI Sommelier Kơho')" class="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-[11px] transition">
+                                    Hỏi AI
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Multi-Product List within Stall -->
+                        <div class="p-5 space-y-4">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Sản phẩm thuộc gian hàng (2):</p>
+
+                            <!-- Product 1 -->
+                            <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 hover:border-amber-500 transition space-y-2">
+                                <div class="flex items-center space-x-3">
+                                    <img src="https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=300&q=80" alt="Cà Phê Moka Langbiang" class="w-14 h-14 object-cover rounded-xl border border-slate-200">
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="text-xs font-bold text-slate-900 truncate">1. Cà Phê Moka Langbiang Rang Mộc</h4>
+                                        <p class="text-[11px] text-slate-500 font-mono">Lô: MK-LB-2026 • Gói 250g</p>
+                                        <p class="text-xs font-black text-amber-800 mt-0.5">245.000đ / Hũ</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                                    <button onclick="openQRModal('coffee1')" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[11px] transition flex items-center space-x-1 shadow-sm">
+                                        <i class="fa-solid fa-qrcode"></i>
+                                        <span>Xem Mã QR Lô MK-LB</span>
+                                    </button>
+                                    <button onclick="openProduct3DModal('coffee1')" class="px-2.5 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-[11px] transition">
+                                        <i class="fa-solid fa-cube mr-1"></i>Mô Hình 360°
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Product 2 -->
+                            <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 hover:border-amber-500 transition space-y-2">
+                                <div class="flex items-center space-x-3">
+                                    <img src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=300&q=80" alt="Fine Robusta Honey Kơho" class="w-14 h-14 object-cover rounded-xl border border-slate-200">
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="text-xs font-bold text-slate-900 truncate">2. Cà Phê Fine Robusta Honey</h4>
+                                        <p class="text-[11px] text-slate-500 font-mono">Lô: RB-HN-2026 • Lên men tự nhiên</p>
+                                        <p class="text-xs font-black text-amber-800 mt-0.5">180.000đ / Hũ</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                                    <button onclick="openQRModal('coffee2')" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[11px] transition flex items-center space-x-1 shadow-sm">
+                                        <i class="fa-solid fa-qrcode"></i>
+                                        <span>Xem Mã QR Lô RB-HN</span>
+                                    </button>
+                                    <button onclick="openProduct3DModal('coffee2')" class="px-2.5 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-[11px] transition">
+                                        <i class="fa-solid fa-cube mr-1"></i>Mô Hình 360°
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Stall Footer -->
+                    <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                        <span class="text-xs text-slate-500"><strong class="text-slate-800">2</strong> Sản Phẩm Đã Xác Thực QR</span>
+                        <a href="#vr-supermarket-section" onclick="switchEnterpriseShop('koho')" class="text-xs font-extrabold text-amber-800 hover:underline flex items-center">
+                            Mở VR360 Cà Phê <i class="fa-solid fa-angle-right ml-1"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Stall 3: Nông Sản Sấy Đồng Tháp OCOP -->
+                <div class="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden flex flex-col justify-between hover:border-orange-500 transition group">
+                    <div>
+                        <!-- Stall Header -->
+                        <div class="bg-gradient-to-r from-orange-700 via-amber-600 to-orange-800 p-6 text-white space-y-3 relative">
+                            <div class="flex justify-between items-start">
+                                <span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-semibold border border-white/30">
+                                    <i class="fa-solid fa-location-dot mr-1"></i> Đồng Tháp
+                                </span>
+                                <span class="px-2.5 py-1 bg-white text-orange-800 font-black text-xs rounded-lg shadow">
+                                    OCOP 4-5 SAO
+                                </span>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-extrabold">Nông Sản Sấy Đồng Tháp</h3>
+                                <p class="text-xs text-orange-200 mt-0.5">Trái cây sấy dẻo công nghệ sấy lạnh HACCP</p>
+                            </div>
+
+                            <!-- AI Agent Badge for Stall -->
+                            <div class="p-2.5 bg-black/25 rounded-2xl border border-white/20 flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-sm shadow ai-pulse">
+                                        <i class="fa-solid fa-robot"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-orange-100">AI Chuyên Gia Sấy Khô</span>
+                                </div>
+                                <button onclick="startStallAIChat('Nông Sản Sấy Đồng Tháp', 'AI Chuyên Gia Sấy Khô')" class="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-[11px] transition">
+                                    Hỏi AI
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Multi-Product List within Stall -->
+                        <div class="p-5 space-y-4">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Sản phẩm thuộc gian hàng (2):</p>
+
+                            <!-- Product 1 -->
+                            <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 hover:border-orange-500 transition space-y-2">
+                                <div class="flex items-center space-x-3">
+                                    <img src="https://images.unsplash.com/photo-1601039641847-7857b994d701?auto=format&fit=crop&w=300&q=80" alt="Mít Thái Sấy Dẻo" class="w-14 h-14 object-cover rounded-xl border border-slate-200">
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="text-xs font-bold text-slate-900 truncate">1. Mít Thái Sấy Dẻo Ít Đường</h4>
+                                        <p class="text-[11px] text-slate-500 font-mono">Lô: MT-DT-2026 • Túi 500g</p>
+                                        <p class="text-xs font-black text-orange-700 mt-0.5">120.000đ / Túi</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                                    <button onclick="openQRModal('dryfruit1')" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[11px] transition flex items-center space-x-1 shadow-sm">
+                                        <i class="fa-solid fa-qrcode"></i>
+                                        <span>Xem Mã QR Lô MT-DT</span>
+                                    </button>
+                                    <button onclick="openProduct3DModal('dryfruit1')" class="px-2.5 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-[11px] transition">
+                                        <i class="fa-solid fa-cube mr-1"></i>Mô Hình 360°
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Product 2 -->
+                            <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 hover:border-orange-500 transition space-y-2">
+                                <div class="flex items-center space-x-3">
+                                    <img src="https://images.unsplash.com/photo-1550258987-190a2d41a8ba?auto=format&fit=crop&w=300&q=80" alt="Xoài Cát Chu Sấy Dẻo" class="w-14 h-14 object-cover rounded-xl border border-slate-200">
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="text-xs font-bold text-slate-900 truncate">2. Xoài Cát Chu Sấy Dẻo OCOP</h4>
+                                        <p class="text-[11px] text-slate-500 font-mono">Lô: XC-DT-2026 • Vị thơm ngọt nhẹ</p>
+                                        <p class="text-xs font-black text-orange-700 mt-0.5">110.000đ / Túi</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                                    <button onclick="openQRModal('dryfruit2')" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[11px] transition flex items-center space-x-1 shadow-sm">
+                                        <i class="fa-solid fa-qrcode"></i>
+                                        <span>Xem Mã QR Lô XC-DT</span>
+                                    </button>
+                                    <button onclick="openProduct3DModal('dryfruit2')" class="px-2.5 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-[11px] transition">
+                                        <i class="fa-solid fa-cube mr-1"></i>Mô Hình 360°
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Stall Footer -->
+                    <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                        <span class="text-xs text-slate-500"><strong class="text-slate-800">2</strong> Sản Phẩm Đã Xác Thực QR</span>
+                        <a href="#vr-supermarket-section" onclick="switchEnterpriseShop('dongthap')" class="text-xs font-extrabold text-orange-700 hover:underline flex items-center">
+                            Mở VR360 Đồng Tháp <i class="fa-solid fa-angle-right ml-1"></i>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Main Products Showcase Grid -->
+        <section class="space-y-6">
+            <div class="flex justify-between items-end">
+                <div>
+                    <span class="text-xs font-extrabold text-amber-600 uppercase tracking-widest">Sản Phẩm Đã Kiểm Định Mã QR Trực Tiếp</span>
+                    <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Danh Mục Nông Sản Tiến Phát & Vùng Miền</h2>
+                </div>
+            </div>
+
+            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Dynamic product items rendered via JS script below -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal 1: 360 Product Inspector Modal -->
+    <div id="product-3d-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl border border-slate-200 grid grid-cols-1 md:grid-cols-12 max-h-[90vh]">
+            
+            <!-- 360 Canvas Section -->
+            <div class="md:col-span-7 bg-slate-900 relative min-h-[350px] md:min-h-[480px]">
+                <div id="modal-3d-canvas" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
+                
+                <div class="absolute top-4 left-4 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full text-white text-xs font-semibold flex items-center space-x-2">
+                    <i class="fa-solid fa-hand-pointer text-amber-400"></i>
+                    <span>Kéo để xoay 360° • Lăn chuột phóng to</span>
+                </div>
+
+                <div class="absolute bottom-4 left-4 right-4 flex justify-between items-center">
+                    <button onclick="toggle3DLight()" class="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-amber-300 text-xs font-medium backdrop-blur-md border border-slate-600">
+                        <i class="fa-solid fa-lightbulb mr-1"></i> Bật/Tắt Đèn
+                    </button>
+                    <span id="modal-3d-title-badge" class="px-3 py-1.5 rounded-xl bg-brand-600 text-white text-xs font-extrabold">
+                        Mô Hình Tiến Phát 360°
+                    </span>
+                </div>
+            </div>
+
+            <!-- Details & QR Action Panel -->
+            <div class="md:col-span-5 p-6 flex flex-col justify-between space-y-4 overflow-y-auto custom-scrollbar">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span id="modal-stall-name" class="text-xs font-bold text-brand-700">HTX Nông Nghiệp Xanh Tiến Phát</span>
+                        <h3 id="modal-product-title" class="text-xl font-bold text-slate-900 mt-0.5">Dưa Lưới Tiến Phát Hữu Cơ</h3>
+                    </div>
+                    <button onclick="closeProduct3DModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <p id="modal-product-desc" class="text-xs text-slate-600 leading-relaxed">
+                    Mô hình Dưa Lưới Tiến Phát với vỏ vàng ruộm, vân lưới nổi rõ nét. Dưa giòn ngọt, mọng nước, đường Brix 15° đạt tiêu chuẩn VietGAP/GlobalGAP.
+                </p>
+
+                <!-- Scannable QR Code Quick Box inside Modal -->
+                <div class="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-bold text-amber-900"><i class="fa-solid fa-qrcode text-amber-600 mr-1"></i> Nhật Ký Canh Tác Mã QR</span>
+                        <span id="modal-batch-id" class="text-slate-800 font-mono font-bold">V3-V2-2026</span>
+                    </div>
+                    <p class="text-[11px] text-slate-600">Quét mã QR để mở nhật ký canh tác công nghệ cao chuẩn 100%.</p>
+                    <button id="modal-open-qr-btn" onclick="openCurrentQRFromModal()" class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs transition flex items-center justify-center space-x-2 shadow">
+                        <i class="fa-solid fa-qrcode text-sm"></i>
+                        <span>Quét Mã QR Lô Hàng Ngay</span>
+                    </button>
+                </div>
+
+                <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs text-slate-400">Giá niêm yết:</span>
+                        <p id="modal-product-price" class="text-2xl font-black text-brand-700">145.000đ</p>
+                    </div>
+                    <button id="modal-add-cart-btn" onclick="addCurrentModalToCart()" class="px-6 py-3 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm shadow-md transition">
+                        Thêm Giỏ Hàng
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2: High Precision Scannable QR Code Modal -->
+    <div id="qr-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden" onclick="closeQRModal()">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl border border-emerald-100 relative text-center" onclick="event.stopPropagation()">
+            
+            <button onclick="closeQRModal()" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <!-- Header -->
+            <div class="space-y-1">
+                <span class="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full uppercase tracking-wider">
+                    <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Mã Truy Xuất Chuẩn 100%
+                </span>
+                <h3 id="qr-modal-title" class="text-xl font-extrabold text-slate-900 pt-2">Nhật Ký Dưa Lưới Tiến Phát</h3>
+                <p class="text-xs text-slate-500">Mở Camera điện thoại hoặc ứng dụng Zalo quét trực tiếp</p>
+            </div>
+
+            <!-- Scannable QR Display Card -->
+            <div class="p-5 bg-[#f2f4ee] border-2 border-emerald-200/80 rounded-3xl space-y-4 shadow-inner flex flex-col items-center">
+                <div class="bg-white p-3.5 rounded-2xl shadow-md border border-slate-200 flex justify-center items-center overflow-hidden">
+                    <canvas id="qr-canvas" class="w-[240px] h-[240px] block rounded-lg"></canvas>
+                </div>
+
+                <div class="px-6 py-2 bg-[#e2e8f0] rounded-xl text-[#0b1a78] font-mono font-black text-base tracking-wider border border-slate-300 shadow-sm flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-fingerprint text-brand-700 text-sm"></i>
+                    <span id="qr-modal-id-label">ID Lô: 9b0e26ae</span>
+                </div>
+
+                <div class="text-xs text-slate-600 font-medium">
+                    Mã lô sản phẩm: <span id="qr-modal-batch-label" class="font-bold text-slate-800 font-mono text-sm">V3-V2-2026</span>
+                </div>
+            </div>
+
+            <!-- URL Input & Copy -->
+            <div class="text-left space-y-1.5">
+                <label class="text-[11px] font-bold text-slate-600 flex items-center justify-between">
+                    <span><i class="fa-solid fa-link text-brand-600 mr-1"></i> Liên kết mã QR thực tế:</span>
+                    <button onclick="copyQRLink()" class="text-brand-700 hover:underline text-[10px] font-bold">Sao chép link</button>
+                </label>
+                <input id="custom-qr-url-input" type="text" readonly
+                    value="https://agrichain.com.vn/qr/9b0e26ae?zarsrc=1303&utm_source=zalo&utm_medium=zalo" 
+                    class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 font-mono focus:outline-none">
+            </div>
+
+            <button onclick="closeQRModal()" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm rounded-2xl shadow-md transition">
+                Đóng Bảng Mã QR
+            </button>
+        </div>
+    </div>
+
+    <!-- Shopping Cart Drawer Modal -->
+    <div id="cart-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md hidden justify-end transition-opacity">
+        <div class="w-full max-w-md bg-white h-full shadow-2xl p-6 flex flex-col justify-between">
+            <div class="space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-100 pb-4">
+                    <h3 class="text-lg font-black text-slate-900 flex items-center space-x-2">
+                        <i class="fa-solid fa-basket-shopping text-brand-600"></i>
+                        <span>Giỏ Hàng Nông Sản</span>
+                    </h3>
+                    <button onclick="closeCartModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div id="cart-items-container" class="space-y-3 overflow-y-auto max-h-[60vh] custom-scrollbar">
+                    <!-- Cart Items populated via JS -->
+                </div>
+            </div>
+
+            <div class="space-y-3 pt-4 border-t border-slate-100">
+                <div class="flex justify-between items-center text-sm font-bold text-slate-800">
+                    <span>Tổng tiền thanh toán:</span>
+                    <span id="cart-total-price" class="text-xl font-black text-brand-700">0đ</span>
+                </div>
+                <button onclick="checkoutCart()" class="w-full py-3.5 bg-gradient-to-r from-brand-600 to-emerald-600 hover:from-brand-700 hover:to-emerald-700 text-white font-bold text-sm rounded-2xl shadow-lg transition">
+                    Thanh Toán Đơn Hàng
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating AI Agent Chat Drawer -->
+    <div id="ai-chat-drawer" class="fixed bottom-6 right-6 z-50 w-[90vw] sm:w-[380px] bg-white rounded-3xl shadow-2xl border border-emerald-200 overflow-hidden flex flex-col transition-all duration-300 transform translate-y-[120%]" style="height: 520px;">
+        <!-- Header -->
+        <div class="p-4 bg-gradient-to-r from-brand-800 to-emerald-700 text-white flex justify-between items-center shadow-md">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-xl text-amber-300 font-bold border border-white/30">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <div>
+                    <h3 id="ai-agent-name" class="font-bold text-sm">Trợ Lý AI Dưa Lưới Tiến Phát</h3>
+                    <p id="ai-agent-role" class="text-[11px] text-emerald-200">Đang hoạt động • Tư vấn 24/7</p>
+                </div>
+            </div>
+            <button onclick="toggleAIChat()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition">
+                <i class="fa-solid fa-minus"></i>
+            </button>
+        </div>
+
+        <!-- Chat History -->
+        <div id="ai-chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3.5 bg-slate-50 text-xs custom-scrollbar">
+            <div class="flex items-start space-x-2">
+                <div class="w-7 h-7 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <div class="bg-white p-3 rounded-2xl rounded-tl-none border border-slate-200 text-slate-800 max-w-[85%] shadow-sm leading-relaxed">
+                    Xin chào! Tôi là Trợ Lý AI của gian hàng <strong>Dưa Lưới Tiến Phát</strong>. Bạn cần tư vấn về độ ngọt Brix, quy trình VietGAP hay mã QR lô dưa V3-V2-2026 ạ?
+                </div>
+            </div>
+        </div>
+
+        <!-- Inputs -->
+        <div class="p-3 bg-white border-t border-slate-100 flex items-center space-x-2">
+            <input id="ai-user-input" type="text" placeholder="Nhập câu hỏi cho Trợ Lý AI..." onkeydown="if(event.key==='Enter') sendAIMessage()" class="flex-1 px-3.5 py-2 bg-slate-100 rounded-xl text-xs border border-transparent focus:border-brand-500 focus:bg-white focus:outline-none">
+            <button onclick="sendAIMessage()" class="p-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Data Products Array with Traceability Codes & Categories
+        const PRODUCTS_DATA = [
+            {
+                id: 'melon1',
+                name: 'Dưa Lưới Tiến Phát Hữu Cơ',
+                stall: 'HTX Nông Nghiệp Tiến Phát',
+                category: 'melon',
+                price: 145000,
+                oldPrice: 170000,
+                batch: 'V3-V2-2026',
+                qrId: '9b0e26ae',
+                brix: '15° Brix',
+                img: 'https://images.unsplash.com/photo-1595855759920-86582396756a?auto=format&fit=crop&w=600&q=80',
+                desc: 'Dưa Lưới Tiến Phát vỏ vân lưới đều đặn, ruột cam giòn ngọt mọng nước. Trồng nhà màng công nghệ cao đạt chuẩn VietGAP.'
+            },
+            {
+                id: 'melon2',
+                name: 'Dưa Lưới Huỳnh Long Tiến Phát',
+                stall: 'HTX Nông Nghiệp Tiến Phát',
+                category: 'melon',
+                price: 165000,
+                oldPrice: 190000,
+                batch: 'HL-TP-2026',
+                qrId: 'hl-789a23',
+                brix: '16° Brix',
+                img: 'https://images.unsplash.com/photo-1571575173700-afb9492e6a50?auto=format&fit=crop&w=600&q=80',
+                desc: 'Dưa Lưới Huỳnh Long ruột vàng óng, độ giòn cao, hương thơm tự nhiên đậm đà, tích hợp mã QR xuất xứ.'
+            },
+            {
+                id: 'coffee1',
+                name: 'Cà Phê Moka Langbiang Rang Mộc',
+                stall: 'Kơho Speciality Coffee',
+                category: 'coffee',
+                price: 245000,
+                oldPrice: 0,
+                batch: 'MK-LB-2026',
+                qrId: 'mk-456b12',
+                brix: 'Specialty 86+',
+                img: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=600&q=80',
+                desc: 'Hạt Moka chín đỏ hái tay 100% tại đỉnh núi Langbiang cao 1,500m, rang mộc độ vừa tỏa vị trái cây mượt mà.'
+            },
+            {
+                id: 'coffee2',
+                name: 'Cà Phê Fine Robusta Honey',
+                stall: 'Kơho Speciality Coffee',
+                category: 'coffee',
+                price: 180000,
+                oldPrice: 200000,
+                batch: 'RB-HN-2026',
+                qrId: 'rb-901c34',
+                brix: 'Fine Grade',
+                img: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80',
+                desc: 'Robusta sấy mật ong ngọt hậu, kem dày, hương chocolate thanh nhẹ.'
+            },
+            {
+                id: 'dryfruit1',
+                name: 'Mít Thái Sấy Dẻo Ít Đường',
+                stall: 'Nông Sản Sấy Đồng Tháp',
+                category: 'dried-fruit',
+                price: 120000,
+                oldPrice: 140000,
+                batch: 'MT-DT-2026',
+                qrId: 'mt-123c89',
+                brix: 'Sấy Lạnh HACCP',
+                img: 'https://images.unsplash.com/photo-1601039641847-7857b994d701?auto=format&fit=crop&w=600&q=80',
+                desc: 'Mít sấy dẻo giữ nguyên màu vàng tự nhiên và vitamin tươi ngon, túi zipper 500g đạt chuẩn OCOP.'
+            },
+            {
+                id: 'dryfruit2',
+                name: 'Xoài Cát Chu Sấy Dẻo OCOP',
+                stall: 'Nông Sản Sấy Đồng Tháp',
+                category: 'dried-fruit',
+                price: 110000,
+                oldPrice: 130000,
+                batch: 'XC-DT-2026',
+                qrId: 'xc-567d45',
+                brix: 'OCOP 4 Sao',
+                img: 'https://images.unsplash.com/photo-1550258987-190a2d41a8ba?auto=format&fit=crop&w=600&q=80',
+                desc: 'Xoài Cát Chu Cao Lãnh sấy dẻo dẻo quánh, chua ngọt hài hòa.'
+            },
+            {
+                id: 'honey1',
+                name: 'Mật Chiết Hoa Dưa Lưới & Bạc Hà',
+                stall: 'Trang Trại Tiến Phát',
+                category: 'honey',
+                price: 210000,
+                oldPrice: 0,
+                batch: 'MC-TP-2026',
+                qrId: 'mc-888e12',
+                brix: 'Nguyên Chất 100%',
+                img: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=600&q=80',
+                desc: 'Mật thu hoạch từ nông trại dưa lưới kết hợp hoa hoa thảo mộc tự nhiên.'
+            }
+        ];
+
+        let cartItems = [];
+        let activeProductFor3D = PRODUCTS_DATA[0];
+        let currentQRProduct = PRODUCTS_DATA[0];
+
+        // Render Product Cards Grid
+        function renderProductGrid(filter = 'all') {
+            const container = document.getElementById('product-grid');
+            container.innerHTML = '';
+
+            const filtered = filter === 'all' 
+                ? PRODUCTS_DATA 
+                : PRODUCTS_DATA.filter(p => p.category === filter || (filter === 'ocop' && p.brix.includes('OCOP')));
+
+            filtered.forEach(p => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-3xl border border-slate-200 p-5 space-y-4 hover:border-brand-500 hover:shadow-xl transition flex flex-col justify-between group";
+                
+                card.innerHTML = `
+                    <div class="space-y-3">
+                        <div class="relative rounded-2xl bg-gradient-to-br from-amber-50 to-emerald-50 h-52 flex items-center justify-center overflow-hidden">
+                            <img src="${p.img}" alt="${p.name}" class="h-44 object-contain group-hover:scale-105 transition duration-300">
+                            
+                            <button onclick="openProduct3DModal('${p.id}')" class="absolute bottom-3 left-3 px-3 py-1.5 rounded-full bg-slate-900/85 backdrop-blur-md text-amber-300 text-xs font-bold border border-amber-400/30 flex items-center space-x-1.5 shadow-md hover:bg-slate-900 transition">
+                                <i class="fa-solid fa-cube animate-spin"></i>
+                                <span>Xem 360°</span>
+                            </button>
+
+                            <button onclick="openQRModal('${p.id}')" class="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 shadow text-slate-800 hover:bg-amber-500 hover:text-slate-950 flex items-center justify-center transition" title="Quét Mã QR Truy Xuất">
+                                <i class="fa-solid fa-qrcode text-base"></i>
+                            </button>
+                        </div>
+
+                        <div>
+                            <span class="text-[11px] font-bold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-md">${p.stall}</span>
+                            <h3 class="font-bold text-slate-900 text-base mt-1.5">${p.name}</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Mã Lô: <strong class="text-slate-800 font-mono">${p.batch}</strong> • ${p.brix}</p>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <div>
+                            <span class="text-xl font-black text-slate-900">${p.price.toLocaleString('vi-VN')}đ</span>
+                            ${p.oldPrice ? `<span class="text-xs text-slate-400 line-through ml-1">${p.oldPrice.toLocaleString('vi-VN')}đ</span>` : ''}
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="openQRModal('${p.id}')" class="px-3 py-2 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs flex items-center space-x-1 shadow-sm transition">
+                                <i class="fa-solid fa-qrcode"></i>
+                                <span>Mã QR</span>
+                            </button>
+                            <button onclick="addToCart('${p.name}', ${p.price})" class="w-10 h-10 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white flex items-center justify-center shadow-md shadow-brand-600/30 transition">
+                                <i class="fa-solid fa-plus text-base"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function filterCategory(cat) {
+            document.querySelectorAll('.cat-pill').forEach(btn => {
+                btn.classList.remove('bg-brand-700', 'text-white');
+                btn.classList.add('bg-white', 'text-slate-700');
+            });
+            event.currentTarget.classList.remove('bg-white', 'text-slate-700');
+            event.currentTarget.classList.add('bg-brand-700', 'text-white');
+            renderProductGrid(cat);
+        }
+
+        // QR Code Scannable Generator Modal
+        function openQRModal(productId) {
+            const product = PRODUCTS_DATA.find(p => p.id === productId) || PRODUCTS_DATA[0];
+            currentQRProduct = product;
+
+            document.getElementById('qr-modal-title').innerText = product.name;
+            document.getElementById('qr-modal-batch-label').innerText = product.batch;
+            document.getElementById('qr-modal-id-label').innerText = `ID Lô: ${product.qrId}`;
+
+            const url = `https://agrichain.com.vn/qr/${product.qrId}?batch=${product.batch}&zarsrc=1303&utm_source=zalo&utm_medium=zalo`;
+            document.getElementById('custom-qr-url-input').value = url;
+
+            // Generate high precision QR Code using QRious
+            new QRious({
+                element: document.getElementById('qr-canvas'),
+                value: url,
+                size: 240,
+                level: 'H'
+            });
+
+            document.getElementById('qr-modal').classList.remove('hidden');
+        }
+
+        function closeQRModal() {
+            document.getElementById('qr-modal').classList.add('hidden');
+        }
+
+        function copyQRLink() {
+            const input = document.getElementById('custom-qr-url-input');
+            input.select();
+            document.execCommand('copy');
+            alert('Đã sao chép liên kết mã QR thành công!');
+        }
+
+        function openCurrentQRFromModal() {
+            closeProduct3DModal();
+            openQRModal(activeProductFor3D.id);
+        }
+
+        // Cart Drawer Operations
+        function addToCart(name, price) {
+            const existing = cartItems.find(i => i.name === name);
+            if (existing) {
+                existing.qty++;
+            } else {
+                cartItems.push({ name, price, qty: 1 });
+            }
+            updateCartUI();
+            openCartModal();
+        }
+
+        function updateCartUI() {
+            const countBadge = document.getElementById('cart-count');
+            const totalQty = cartItems.reduce((acc, i) => acc + i.qty, 0);
+            countBadge.innerText = totalQty;
+
+            const container = document.getElementById('cart-items-container');
+            container.innerHTML = '';
+            let total = 0;
+
+            if (cartItems.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-8">Giỏ hàng của bạn đang trống.</p>`;
+            } else {
+                cartItems.forEach((item, index) => {
+                    total += item.price * item.qty;
+                    const div = document.createElement('div');
+                    div.className = "flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs";
+                    div.innerHTML = `
+                        <div>
+                            <p class="font-bold text-slate-900">${item.name}</p>
+                            <p class="text-slate-500">${item.price.toLocaleString('vi-VN')}đ x ${item.qty}</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="changeQty(${index}, -1)" class="w-6 h-6 rounded-lg bg-slate-200 hover:bg-slate-300 font-bold">-</button>
+                            <span class="font-mono font-bold">${item.qty}</span>
+                            <button onclick="changeQty(${index}, 1)" class="w-6 h-6 rounded-lg bg-slate-200 hover:bg-slate-300 font-bold">+</button>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+
+            document.getElementById('cart-total-price').innerText = total.toLocaleString('vi-VN') + 'đ';
+        }
+
+        function changeQty(index, delta) {
+            cartItems[index].qty += delta;
+            if (cartItems[index].qty <= 0) cartItems.splice(index, 1);
+            updateCartUI();
+        }
+
+        function openCartModal() {
+            document.getElementById('cart-modal').classList.remove('hidden');
+            document.getElementById('cart-modal').classList.add('flex');
+        }
+
+        function closeCartModal() {
+            document.getElementById('cart-modal').classList.add('hidden');
+            document.getElementById('cart-modal').classList.remove('flex');
+        }
+
+        function checkoutCart() {
+            if (cartItems.length === 0) return alert('Giỏ hàng trống!');
+            alert('Cảm ơn bạn đã đặt hàng nông sản Tiến Phát! Đơn hàng sẽ được chuyển tới quản lý trang trại.');
+            cartItems = [];
+            updateCartUI();
+            closeCartModal();
+        }
+
+        // AI Chat Drawer Operations
+        function toggleAIChat() {
+            const drawer = document.getElementById('ai-chat-drawer');
+            if (drawer.classList.contains('translate-y-[120%]')) {
+                drawer.classList.remove('translate-y-[120%]');
+            } else {
+                drawer.classList.add('translate-y-[120%]');
+            }
+        }
+
+        function startStallAIChat(stallName, agentName) {
+            document.getElementById('ai-agent-name').innerText = agentName;
+            document.getElementById('ai-agent-role').innerText = `Tư vấn cho ${stallName}`;
+            
+            const messages = document.getElementById('ai-chat-messages');
+            messages.innerHTML = `
+                <div class="flex items-start space-x-2">
+                    <div class="w-7 h-7 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div class="bg-white p-3 rounded-2xl rounded-tl-none border border-slate-200 text-slate-800 max-w-[85%] shadow-sm leading-relaxed">
+                        Xin chào! Tôi là <strong>${agentName}</strong> của gian hàng <strong>${stallName}</strong>. Tôi có thể giải đáp mọi thông tin mã QR, nhật ký canh tác và thông số sản phẩm cho bạn!
+                    </div>
+                </div>
+            `;
+            
+            const drawer = document.getElementById('ai-chat-drawer');
+            drawer.classList.remove('translate-y-[120%]');
+        }
+
+        function sendAIMessage() {
+            const input = document.getElementById('ai-user-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const messages = document.getElementById('ai-chat-messages');
+            
+            // User message
+            const userDiv = document.createElement('div');
+            userDiv.className = "flex justify-end";
+            userDiv.innerHTML = `<div class="bg-brand-600 text-white p-3 rounded-2xl rounded-tr-none max-w-[85%] leading-relaxed shadow-sm">${text}</div>`;
+            messages.appendChild(userDiv);
+
+            input.value = '';
+            messages.scrollTop = messages.scrollHeight;
+
+            // AI Simulated Bot Response
+            setTimeout(() => {
+                const aiDiv = document.createElement('div');
+                aiDiv.className = "flex items-start space-x-2";
+                aiDiv.innerHTML = `
+                    <div class="w-7 h-7 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div class="bg-white p-3 rounded-2xl rounded-tl-none border border-slate-200 text-slate-800 max-w-[85%] shadow-sm leading-relaxed">
+                        Dạ, sản phẩm <strong>Dưa Lưới Tiến Phát</strong> có độ ngọt 15° Brix, mã lô V3-V2-2026 đính kèm chuẩn mã QR VietGAP. Bạn có thể bấm nút "Mã QR" để quét xem trực tiếp ạ!
+                    </div>
+                `;
+                messages.appendChild(aiDiv);
+                messages.scrollTop = messages.scrollHeight;
+            }, 800);
+        }
+
+        // Three.js Hero Canvas Renderer
+        let heroScene, heroCamera, heroRenderer, heroControls, heroMesh;
+
+        function initHero3D() {
+            const container = document.getElementById('hero-3d-canvas');
+            if (!container) return;
+
+            heroScene = new THREE.Scene();
+            heroCamera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+            heroCamera.position.set(0, 1.2, 4.5);
+
+            heroRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            heroRenderer.setSize(container.clientWidth, container.clientHeight);
+            heroRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            heroRenderer.shadowMap.enabled = true;
+            container.appendChild(heroRenderer.domElement);
+
+            heroControls = new THREE.OrbitControls(heroCamera, heroRenderer.domElement);
+            heroControls.enableDamping = true;
+            heroControls.dampingFactor = 0.05;
+            heroControls.autoRotate = true;
+            heroControls.autoRotateSpeed = 2.0;
+
+            // Lights
+            const ambient = new THREE.AmbientLight(0xffffff, 0.8);
+            heroScene.add(ambient);
+
+            const dirLight = new THREE.DirectionalLight(0xfef08a, 1.8);
+            dirLight.position.set(5, 10, 5);
+            heroScene.add(dirLight);
+
+            // Melon Core Sphere
+            const melonGeo = new THREE.SphereGeometry(1.3, 64, 64);
+            const melonMat = new THREE.MeshStandardMaterial({
+                color: 0x22c55e,
+                roughness: 0.3,
+                metalness: 0.1,
+            });
+            heroMesh = new THREE.Mesh(melonGeo, melonMat);
+            heroScene.add(heroMesh);
+
+            // Outer Net Pattern
+            const netGeo = new THREE.TorusKnotGeometry(1.2, 0.15, 100, 16);
+            const netMat = new THREE.MeshStandardMaterial({
+                color: 0xf59e0b,
+                roughness: 0.4,
+                wireframe: true
+            });
+            const netMesh = new THREE.Mesh(netGeo, netMat);
+            heroMesh.add(netMesh);
+
+            function animate() {
+                requestAnimationFrame(animate);
+                heroControls.update();
+                heroRenderer.render(heroScene, heroCamera);
+            }
+            animate();
+        }
+
+        function resetHeroCamera() {
+            if (heroCamera) heroCamera.position.set(0, 1.2, 4.5);
+            if (heroControls) heroControls.target.set(0, 0, 0);
+        }
+
+        // VR360 Multi-Enterprise Showroom Data & Three.js Logic
+        const ENTERPRISE_SHOPS = {
+            tienphat: {
+                id: 'tienphat',
+                name: 'HTX Nông Nghiệp Tiến Phát',
+                subtitle: 'Siêu Thị VR360 HTX Tiến Phát (Dưa Lưới VietGAP)',
+                bgColor: 0x052e16,
+                lightColor: 0x22c55e,
+                accentColor: 0xf59e0b,
+                productId: 'melon1',
+                inspectText: 'Xem QR Dưa Lưới Tiến Phát',
+                meshColor: 0x22c55e,
+                zones: {
+                    entrance: { pos: { x: 0, y: 3, z: 12 }, target: { x: 0, y: 1.5, z: 0 }, label: 'Cổng Vào HTX Tiến Phát' },
+                    main_shelf: { pos: { x: -5, y: 2.2, z: 2 }, target: { x: -5, y: 1.5, z: -3 }, label: 'Kệ Dưa Lưới Tiến Phát Hữu Cơ' },
+                    premium_display: { pos: { x: 5, y: 2.2, z: 2 }, target: { x: 5, y: 1.5, z: -3 }, label: 'Khu Dưa Lưới Huỳnh Long Premium' }
+                }
+            },
+            koho: {
+                id: 'koho',
+                name: 'Kơho Speciality Coffee',
+                subtitle: 'Siêu Thị VR360 Kơho Coffee (Cà Phê Đà Lạt)',
+                bgColor: 0x1c100a,
+                lightColor: 0xd97706,
+                accentColor: 0xfbbf24,
+                productId: 'coffee1',
+                inspectText: 'Xem QR Cà Phê Moka Langbiang',
+                meshColor: 0x92400e,
+                zones: {
+                    entrance: { pos: { x: 0, y: 3, z: 12 }, target: { x: 0, y: 1.5, z: 0 }, label: 'Cổng Vào Kơho Coffee' },
+                    main_shelf: { pos: { x: -5, y: 2.2, z: 2 }, target: { x: -5, y: 1.5, z: -3 }, label: 'Kệ Cà Phê Moka Langbiang' },
+                    premium_display: { pos: { x: 5, y: 2.2, z: 2 }, target: { x: 5, y: 1.5, z: -3 }, label: 'Góc Cà Phê Fine Robusta Honey' }
+                }
+            },
+            dongthap: {
+                id: 'dongthap',
+                name: 'Nông Sản Sấy Đồng Tháp',
+                subtitle: 'Siêu Thị VR360 Nông Sản Sấy Đồng Tháp (OCOP 5★)',
+                bgColor: 0x271203,
+                lightColor: 0xea580c,
+                accentColor: 0xfacc15,
+                productId: 'dryfruit1',
+                inspectText: 'Xem QR Mít Thái Sấy Dẻo',
+                meshColor: 0xea580c,
+                zones: {
+                    entrance: { pos: { x: 0, y: 3, z: 12 }, target: { x: 0, y: 1.5, z: 0 }, label: 'Cổng Vào Nông Sản Sấy Đồng Tháp' },
+                    main_shelf: { pos: { x: -5, y: 2.2, z: 2 }, target: { x: -5, y: 1.5, z: -3 }, label: 'Kệ Mít Thái Sấy Dẻo HACCP' },
+                    premium_display: { pos: { x: 5, y: 2.2, z: 2 }, target: { x: 5, y: 1.5, z: -3 }, label: 'Khu Xoài Cát Chu Sấy Dẻo OCOP' }
+                }
+            }
+        };
+
+        let currentEnterpriseKey = 'tienphat';
+        let supermarketScene, supermarketCamera, supermarketRenderer, supermarketControls;
+        let shelfMeshGroup;
+
+        function initSupermarketVR360() {
+            const container = document.getElementById('vr-supermarket-canvas');
+            if (!container) return;
+
+            supermarketScene = new THREE.Scene();
+            supermarketScene.background = new THREE.Color(ENTERPRISE_SHOPS.tienphat.bgColor);
+            supermarketScene.fog = new THREE.FogExp2(ENTERPRISE_SHOPS.tienphat.bgColor, 0.035);
+
+            const shopData = ENTERPRISE_SHOPS.tienphat;
+            supermarketCamera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+            supermarketCamera.position.set(shopData.zones.entrance.pos.x, shopData.zones.entrance.pos.y, shopData.zones.entrance.pos.z);
+
+            supermarketRenderer = new THREE.WebGLRenderer({ antialias: true });
+            supermarketRenderer.setSize(container.clientWidth, container.clientHeight);
+            supermarketRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(supermarketRenderer.domElement);
+
+            supermarketControls = new THREE.OrbitControls(supermarketCamera, supermarketRenderer.domElement);
+            supermarketControls.enableDamping = true;
+            supermarketControls.dampingFactor = 0.05;
+            supermarketControls.maxPolarAngle = Math.PI / 2 - 0.01;
+
+            // Ambient & Spot Lights
+            const ambient = new THREE.AmbientLight(0xffffff, 0.9);
+            supermarketScene.add(ambient);
+
+            shelfMeshGroup = new THREE.Group();
+            supermarketScene.add(shelfMeshGroup);
+
+            // Floor Tile Grid
+            const grid = new THREE.GridHelper(40, 40, 0x22c55e, 0x1e293b);
+            grid.position.y = 0;
+            supermarketScene.add(grid);
+
+            rebuildEnterprise3DShowroom('tienphat');
+
+            function animateVR() {
+                requestAnimationFrame(animateVR);
+                supermarketControls.update();
+                supermarketRenderer.render(supermarketScene, supermarketCamera);
+            }
+            animateVR();
+        }
+
+        function switchEnterpriseShop(shopKey) {
+            const shopData = ENTERPRISE_SHOPS[shopKey];
+            if (!shopData) return;
+            currentEnterpriseKey = shopKey;
+
+            // Update UI Tab States
+            document.querySelectorAll('.shop-tab-btn').forEach(btn => {
+                btn.classList.remove('shop-tab-active');
+            });
+            const activeBtn = document.getElementById(`shop-btn-${shopKey}`);
+            if (activeBtn) activeBtn.classList.add('shop-tab-active');
+
+            // Update Labels
+            document.getElementById('vr-current-zone-label').innerText = `Siêu thị: ${shopData.name}`;
+            document.getElementById('vr-shop-status-heading').innerText = `Đang xem: ${shopData.subtitle}`;
+            document.getElementById('vr-inspect-btn-text').innerText = shopData.inspectText;
+            document.getElementById('vr-inspect-product-btn').setAttribute('onclick', `openProduct3DModal('${shopData.productId}')`);
+
+            // Rebuild Scene Elements & Animate Scene Colors
+            if (supermarketScene) {
+                supermarketScene.background = new THREE.Color(shopData.bgColor);
+                supermarketScene.fog = new THREE.FogExp2(shopData.bgColor, 0.035);
+                rebuildEnterprise3DShowroom(shopKey);
+            }
+
+            // Move Camera smoothly to entrance
+            navigateVR360Zone('entrance');
+        }
+
+        function rebuildEnterprise3DShowroom(shopKey) {
+            if (!shelfMeshGroup) return;
+            // Clear previous items
+            while(shelfMeshGroup.children.length > 0){ 
+                shelfMeshGroup.remove(shelfMeshGroup.children[0]); 
+            }
+
+            const shop = ENTERPRISE_SHOPS[shopKey];
+
+            // Build Left Main Shelf
+            createShelfPod(-5, -3, shop.meshColor, shop.name + " - Kệ 1");
+            // Build Right Premium Display Shelf
+            createShelfPod(5, -3, shop.accentColor, shop.name + " - Kệ 2");
+            // Center Feature Stand
+            createCenterDisplayStand(0, -7, shop.meshColor);
+        }
+
+        function createShelfPod(x, z, colorHex, label) {
+            // Stand Base
+            const shelfGeo = new THREE.BoxGeometry(4.5, 1.2, 2.2);
+            const shelfMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.3 });
+            const shelf = new THREE.Mesh(shelfGeo, shelfMat);
+            shelf.position.set(x, 0.6, z);
+            shelfMeshGroup.add(shelf);
+
+            // Display Pod Geometry
+            const itemGeo = new THREE.IcosahedronGeometry(0.8, 2);
+            const itemMat = new THREE.MeshStandardMaterial({ color: colorHex, metalness: 0.2, roughness: 0.2 });
+            const itemMesh = new THREE.Mesh(itemGeo, itemMat);
+            itemMesh.position.set(x, 2.0, z);
+            shelfMeshGroup.add(itemMesh);
+        }
+
+        function createCenterDisplayStand(x, z, colorHex) {
+            const baseGeo = new THREE.CylinderGeometry(2, 2.5, 1, 32);
+            const baseMat = new THREE.MeshStandardMaterial({ color: 0x0f172a });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            base.position.set(x, 0.5, z);
+            shelfMeshGroup.add(base);
+
+            const featureGeo = new THREE.SphereGeometry(0.9, 32, 32);
+            const featureMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.2 });
+            const featureMesh = new THREE.Mesh(featureGeo, featureMat);
+            featureMesh.position.set(x, 1.8, z);
+            shelfMeshGroup.add(featureMesh);
+        }
+
+        function navigateVR360Zone(zoneKey) {
+            const shop = ENTERPRISE_SHOPS[currentEnterpriseKey];
+            const zone = shop.zones[zoneKey] || shop.zones.entrance;
+
+            document.getElementById('vr-current-zone-label').innerText = `Góc nhìn: ${zone.label}`;
+
+            gsap.to(supermarketCamera.position, {
+                x: zone.pos.x,
+                y: zone.pos.y,
+                z: zone.pos.z,
+                duration: 1.6,
+                ease: "power2.inOut"
+            });
+
+            gsap.to(supermarketControls.target, {
+                x: zone.target.x,
+                y: zone.target.y,
+                z: zone.target.z,
+                duration: 1.6,
+                ease: "power2.inOut"
+            });
+
+            document.querySelectorAll('.vr-zone-btn').forEach(b => {
+                b.classList.remove('bg-emerald-600', 'text-white');
+                b.classList.add('bg-black/40', 'text-slate-200');
+            });
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.remove('bg-black/40', 'text-slate-200');
+                event.currentTarget.classList.add('bg-emerald-600', 'text-white');
+            }
+        }
+
+        // 360 Product Inspector Modal Logic
+        let modal3DScene, modal3DCamera, modal3DRenderer, modal3DControls, modalMesh;
+
+        function openProduct3DModal(productId) {
+            const p = PRODUCTS_DATA.find(item => item.id === productId) || PRODUCTS_DATA[0];
+            activeProductFor3D = p;
+
+            document.getElementById('modal-stall-name').innerText = p.stall;
+            document.getElementById('modal-product-title').innerText = p.name;
+            document.getElementById('modal-product-desc').innerText = p.desc;
+            document.getElementById('modal-batch-id').innerText = p.batch;
+            document.getElementById('modal-product-price').innerText = p.price.toLocaleString('vi-VN') + 'đ';
+
+            document.getElementById('product-3d-modal').classList.remove('hidden');
+
+            setTimeout(() => {
+                initModal3DCanvas();
+            }, 100);
+        }
+
+        function closeProduct3DModal() {
+            document.getElementById('product-3d-modal').classList.add('hidden');
+        }
+
+        function initModal3DCanvas() {
+            const container = document.getElementById('modal-3d-canvas');
+            if (!container) return;
+            container.innerHTML = '';
+
+            modal3DScene = new THREE.Scene();
+            modal3DCamera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+            modal3DCamera.position.set(0, 1, 3.5);
+
+            modal3DRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            modal3DRenderer.setSize(container.clientWidth, container.clientHeight);
+            modal3DRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(modal3DRenderer.domElement);
+
+            modal3DControls = new THREE.OrbitControls(modal3DCamera, modal3DRenderer.domElement);
+            modal3DControls.enableDamping = true;
+
+            const ambient = new THREE.AmbientLight(0xffffff, 0.9);
+            modal3DScene.add(ambient);
+
+            const dir = new THREE.DirectionalLight(0xfef08a, 1.5);
+            dir.position.set(5, 10, 5);
+            modal3DScene.add(dir);
+
+            const geo = new THREE.IcosahedronGeometry(1.1, 2);
+            const mat = new THREE.MeshStandardMaterial({
+                color: activeProductFor3D.category === 'melon' ? 0x22c55e : (activeProductFor3D.category === 'coffee' ? 0x92400e : 0xea580c),
+                roughness: 0.2,
+                metalness: 0.1
+            });
+            modalMesh = new THREE.Mesh(geo, mat);
+            modal3DScene.add(modalMesh);
+
+            function animateModal() {
+                requestAnimationFrame(animateModal);
+                modalMesh.rotation.y += 0.005;
+                modal3DControls.update();
+                modal3DRenderer.render(modal3DScene, modal3DCamera);
+            }
+            animateModal();
+        }
+
+        function toggle3DLight() {
+            if (modal3DScene) {
+                modal3DScene.children.forEach(c => {
+                    if (c.isLight) c.visible = !c.visible;
+                });
+            }
+        }
+
+        function addCurrentModalToCart() {
+            addToCart(activeProductFor3D.name, activeProductFor3D.price);
+            closeProduct3DModal();
+        }
+
+        // Initialize App on Window Load
+        window.addEventListener('load', () => {
+            renderProductGrid('all');
+            // initHero3D() đã bỏ — khối quả dưa 3D xoay 360° ở hero đã xoá khỏi giao diện,
+            // #hero-3d-canvas không còn tồn tại nên gọi hàm này sẽ ném lỗi và chặn luôn
+            // initSupermarketVR360() chạy sau nó trong cùng handler.
+            initSupermarketVR360();
+        });
+
+        // Window Resize Handler
+        window.addEventListener('resize', () => {
+            const heroCont = document.getElementById('hero-3d-canvas');
+            if (heroCont && heroCamera && heroRenderer) {
+                heroCamera.aspect = heroCont.clientWidth / heroCont.clientHeight;
+                heroCamera.updateProjectionMatrix();
+                heroRenderer.setSize(heroCont.clientWidth, heroCont.clientHeight);
+            }
+
+            const vrCont = document.getElementById('vr-supermarket-canvas');
+            if (vrCont && supermarketCamera && supermarketRenderer) {
+                supermarketCamera.aspect = vrCont.clientWidth / vrCont.clientHeight;
+                supermarketCamera.updateProjectionMatrix();
+                supermarketRenderer.setSize(vrCont.clientWidth, vrCont.clientHeight);
+            }
+        });
+    </script>
+</body>
+</html>
