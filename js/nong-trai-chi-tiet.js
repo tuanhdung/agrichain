@@ -6,9 +6,11 @@
    certifications ĐÃ CHUYỂN SANG BACKEND THẬT, KHÔNG còn dùng AgriChain.store
    nữa cho 4 collection này.
 
-   NGOẠI LỆ — vẫn dùng store.js: mẫu quy trình (workflowTemplates, chưa có
-   ở backend, giai đoạn 3) và lô hàng (batches, cũng giai đoạn 3) — xem mục
-   "Quy trình mùa vụ"/"Lô hàng" bên dưới. Vật tư (supplies) đã chuyển API
+   NGOẠI LỆ — vẫn dùng store.js: lô hàng (batches, chưa có ở backend, giai
+   đoạn 3) — xem mục "Lô hàng" bên dưới. Mẫu quy trình (workflowTemplates)
+   ĐÃ CHUYỂN SANG API (api.workflowTemplates.*, xem js/mau-quy-trinh.js) —
+   fillProcessTemplateSelect()/applyWorkflowTemplate() trong mục "Quy trình
+   mùa vụ" đọc qua đó, không còn store.js. Vật tư (supplies) đã chuyển API
    nên MỌI chỗ chọn vật tư trên trang này (dropdown trong form nhật ký, form
    tuỳ biến bước quy trình) đọc qua api.supplies.list(), không đọc store.js
    nữa — nếu không id vật tư chọn được sẽ không khớp bản ghi thật trong DB.
@@ -21,8 +23,8 @@
   'use strict';
 
   var api = global.AgriChain.api;
-  // store.js CHỈ còn dùng cho workflowTemplates + batches (giai đoạn 3,
-  // xem ghi chú đầu file) — mọi farms/seasons/logs/certifications đã qua api.*.
+  // store.js CHỈ còn dùng cho batches (giai đoạn 3, xem ghi chú đầu file) —
+  // farms/seasons/logs/certifications/workflowTemplates đã qua api.* hết.
   var store = global.AgriChain.store;
 
   var CERT_STATUSES = [
@@ -1954,8 +1956,8 @@
   /* ======================================================================
      Quy trình mùa vụ (tab "Quy trình mùa vụ" trong modal xem chi tiết mùa vụ)
      ======================================================================
-     Áp dụng 1 Mẫu Quy Trình (workflowTemplates, vẫn ở store.js, xem
-     js/mau-quy-trinh.js — giai đoạn 3 mới có ở backend) cho 1 mùa vụ cụ
+     Áp dụng 1 Mẫu Quy Trình (workflowTemplates — ĐÃ CHUYỂN SANG API qua
+     api.workflowTemplates.*, xem js/mau-quy-trinh.js) cho 1 mùa vụ cụ
      thể — KHÔNG tham chiếu ngược tới mẫu gốc mà CHỤP (snapshot) nguyên bản
      steps[] vào season.workflow_steps (đã qua API thật) tại thời điểm áp
      dụng, mỗi bước được gắn thêm id riêng + trạng thái thực hiện
@@ -1982,10 +1984,12 @@
   var completingStepId = null;
   var pendingQrStepId = null;
 
-  // Chụp bước từ MẪU (workflowTemplates, vẫn ở store.js — camelCase) sang
-  // bước của MÙA VỤ (seasons.workflow_steps, đã qua API thật — snake_case,
-  // khớp WorkflowStep của backend) — đây CHÍNH LÀ điểm nối 2 hệ khác nhau,
-  // không phải lớp chuyển đổi thừa.
+  // Chụp bước từ MẪU (workflowTemplates, đã qua API thật — TemplateStep,
+  // snake_case) sang bước của MÙA VỤ (seasons.workflow_steps, cũng snake_case,
+  // khớp WorkflowStep của backend) — 2 khuôn giờ gần như trùng field, chỉ
+  // khác việc WorkflowStep có thêm state riêng cho tiến độ thực hiện
+  // (done/completed_at/log_id/batch_id) mà TemplateStep (bản thiết kế tĩnh)
+  // không có.
   //
   // ⚠️ `done` (boolean) là tên field phía DỰ ÁN đã quyết định dùng (tránh
   // trùng "status" với seasons.status) — backend hiện VẪN CÒN dùng `status`
@@ -1997,21 +2001,20 @@
   function cloneTemplateSteps(template) {
     return (template.steps || []).map(function (step) {
       return {
-        // KHÔNG tự sinh `id` — store.newId() ("m8x2k1-a9f3") không phải
-        // UUID hợp lệ, trong khi WorkflowStep.id backend yêu cầu đúng
-        // format: uuid. Bỏ trống thì backend tự sinh UUID thật (đã xác
-        // nhận qua /openapi.json: "Client không gửi id thì backend sinh
-        // mới") — currentViewedSeason được gán lại từ response ngay sau
-        // khi PATCH thành công (xem applyWorkflowTemplate()), nên phía
-        // client luôn hiển thị đúng id thật, không có bước nào render với
-        // id giả trước đó.
+        // KHÔNG tự sinh `id` — WorkflowStep.id backend yêu cầu đúng
+        // format: uuid (TemplateStep của mẫu gốc không có id nào để chép
+        // lại). Bỏ trống thì backend tự sinh UUID thật (đã xác nhận qua
+        // /openapi.json: "Client không gửi id thì backend sinh mới") —
+        // currentViewedSeason được gán lại từ response ngay sau khi PATCH
+        // thành công (xem applyWorkflowTemplate()), nên phía client luôn
+        // hiển thị đúng id thật, không có bước nào render với id giả trước đó.
         name: step.name || '',
-        activity_type: step.activityType || ACTIVITY_TYPES[0].key,
+        activity_type: step.activity_type || ACTIVITY_TYPES[0].key,
         instruction: step.instruction || '',
-        require_qr: !!step.requireQr,
-        require_supply: !!step.requireSupply,
-        supply_id: step.supplyId || null,
-        require_image: !!step.requireImage,
+        require_qr: !!step.require_qr,
+        require_supply: !!step.require_supply,
+        supply_id: step.supply_id || null,
+        require_image: !!step.require_image,
         done: false,
         completed_at: null,
         log_id: null,
@@ -2020,21 +2023,39 @@
     });
   }
 
+  // Mẫu vừa tải giữ lại đây — applyWorkflowTemplate() tra cứu lại theo id
+  // thay vì gọi thêm api.workflowTemplates.get(), vì GET /workflow-templates
+  // (danh sách) đã trả về ĐẦY ĐỦ steps[] ngay trong response (khác logs/
+  // certifications phải tách list/detail), không cần round-trip thứ 2.
+  var loadedWorkflowTemplates = [];
+
+  function findLoadedWorkflowTemplate(id) {
+    for (var i = 0; i < loadedWorkflowTemplates.length; i++) {
+      if (loadedWorkflowTemplates[i].id === id) return loadedWorkflowTemplates[i];
+    }
+    return null;
+  }
+
   function fillProcessTemplateSelect() {
     processTemplateSelect.textContent = '';
     var placeholder = el('option', null, 'Chọn mẫu quy trình áp dụng');
     placeholder.value = '';
     processTemplateSelect.appendChild(placeholder);
 
-    store.list('workflowTemplates').forEach(function (template) {
-      var option = el('option', null, template.name);
-      option.value = template.id;
-      processTemplateSelect.appendChild(option);
+    api.workflowTemplates.list({ page_size: 100 }).then(function (data) {
+      loadedWorkflowTemplates = data.items || [];
+      loadedWorkflowTemplates.forEach(function (template) {
+        var option = el('option', null, template.name);
+        option.value = template.id;
+        processTemplateSelect.appendChild(option);
+      });
+    }).catch(function (err) {
+      global.AgriChain.toast('Không tải được danh sách mẫu quy trình: ' + err.message);
     });
   }
 
   function applyWorkflowTemplate(templateId) {
-    var template = store.find('workflowTemplates', templateId);
+    var template = findLoadedWorkflowTemplate(templateId);
     if (!template || !currentViewedSeason) return;
 
     var changes = {

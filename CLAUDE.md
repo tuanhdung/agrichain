@@ -47,7 +47,9 @@ js/
   store.js               # Lớp lưu trữ qua localStorage (users, farms, supplies, batches, events, ledger,
                           # orgUsers, shops, products, orders, shippingAddresses, inventoryImports,
                           # workflowTemplates, phiên đăng nhập) — mọi trang đọc/ghi dữ liệu qua đây,
-                          # không gọi thẳng localStorage
+                          # không gọi thẳng localStorage. `orgUsers`/`workflowTemplates` giờ MỒ CÔI
+                          # (không còn trang nào đọc/ghi, đã chuyển hẳn sang API) — chưa xoá khỏi
+                          # COLLECTIONS, để lại cho một đợt dọn dẹp sau (xem mục "Kết nối backend").
   password-field.js      # Nút hiện/ẩn mật khẩu (data-password-toggle) + danh sách điều kiện mật khẩu
                           # (data-password-rules="<id ô mật khẩu>") dùng chung — tách từ js/auth.js để
                           # js/tai-khoan.js dùng lại được, không chép lại 2 hàm này.
@@ -76,11 +78,10 @@ js/
                           # "Kết nối backend"
   vat-tu.js               # Logic riêng cho vat-tu.html — ĐÃ CHUYỂN SANG BACKEND THẬT qua
                           # api.supplies.*
-  mau-quy-trinh.js         # Logic riêng cho mau-quy-trinh.html (danh sách + thêm/sửa/xoá mẫu quy
-                           # trình mùa vụ — collection "workflowTemplates", KHÔNG khoá ownerId, theo
-                           # đúng quy ước "Hoạt động sản xuất" như farms/supplies/batches — VẪN
-                           # dùng store.js, giai đoạn 3; riêng dropdown chọn vật tư trong bước mẫu
-                           # đã đổi sang api.supplies.list())
+  mau-quy-trinh.js         # Logic riêng cho mau-quy-trinh.html — ĐÃ CHUYỂN SANG BACKEND THẬT qua
+                           # api.workflowTemplates.* (danh sách + tìm kiếm/phân trang + thêm/sửa/xoá
+                           # mẫu quy trình mùa vụ), KHÔNG khoá ownerId, theo đúng quy ước "Hoạt động
+                           # sản xuất" như farms/supplies — xem mục "Kết nối backend"
   lo-hang.js               # Logic riêng cho lo-hang.html (danh sách TẤT CẢ lô hàng, lọc theo nông trại/
                            # mùa vụ, QR + xác thực blockchain tại chỗ — thêm/sửa/xoá vẫn ở
                            # nong-trai-chi-tiet.html, nút sửa/xoá ở đây chỉ điều hướng qua đó)
@@ -308,13 +309,19 @@ trang đều dùng backend thật ngay**:
 
 - **Đã chuyển sang API**: `dang-nhap.html` (chỉ đăng nhập), `tai-khoan.html` (toàn bộ),
   `nong-trai.html` (farms), `vat-tu.html` (supplies), `nong-trai-chi-tiet.html` (farms +
-  seasons + logs + certifications — riêng workflowTemplates và batches trên chính trang
-  này VẪN dùng `store.js`, xem mục riêng bên dưới), `mau-quy-trinh.html` (chỉ dropdown chọn
-  vật tư trong bước mẫu — bản thân mẫu quy trình vẫn ở `store.js`).
+  seasons + logs + certifications — riêng `batches` trên chính trang này VẪN dùng
+  `store.js`, xem mục riêng bên dưới), `mau-quy-trinh.html` (toàn bộ — mẫu quy trình qua
+  `api.workflowTemplates.*`, dropdown chọn vật tư trong bước mẫu qua `api.supplies.*` từ
+  trước).
 - **Vẫn dùng `store.js`**: mọi trang còn lại (kể cả `dang-ky.html`/`ho-so.html`), cộng thêm
-  2 collection trên `nong-trai-chi-tiet.html`/`js/lo-hang.js`/`js/truy-xuat.js`:
-  `workflowTemplates` (mẫu quy trình) và `batches` (lô hàng) — cả 2 chưa có ở backend, chờ
-  giai đoạn 3.
+  1 collection trên `nong-trai-chi-tiet.html`/`js/lo-hang.js`/`js/truy-xuat.js`: `batches`
+  (lô hàng) — chưa có ở backend, chờ giai đoạn 3. Collection `workflowTemplates` trong
+  `store.js` giờ **MỒ CÔI** (không còn trang nào đọc/ghi) kể từ khi `mau-quy-trinh.html`
+  chuyển sang API — cùng tình trạng với `orgUsers` (xem mục "Đăng nhập/Đăng ký"), chưa xoá
+  khỏi `COLLECTIONS` vì ngoài phạm vi lần chuyển đổi này. Mẫu quy trình đã tạo trước lúc
+  migrate (lưu trong `localStorage`, id dạng `store.newId()` không phải UUID) sẽ KHÔNG tự
+  chuyển lên backend — biến mất khỏi danh sách sau khi migrate, người dùng tự tạo lại qua
+  giao diện mới nếu cần.
 - **`truy-xuat.html`/`js/truy-xuat.js`** (trang truy xuất công khai, quét mã QR, không đăng
   nhập): tra cứu farm/season của lô hàng qua `api.farms.get()`/`api.seasons.get()` — backend
   đã mở riêng 2 route này thành **public-read** (`GET /farms/{id}`, `GET /seasons/{id}`
@@ -411,9 +418,9 @@ giả định):
 - **Permission KHÔNG có `id` số** — chỉ có `code` (chuỗi, VD `"farms.view"`), `name`
   (chuỗi hiển thị, VD `"Xem nông trại"`), `group_name`. Toàn bộ thao tác chọn/lưu quyền
   trong `js/tai-khoan.js` làm việc trực tiếp trên `code`, không có khái niệm id quyền.
-- Đúng **28 mã quyền**, dạng `"<nhóm số nhiều>.<hành động>"` — 4 hành động
-  `add`/`edit`/`view`/`delete` x 7 nhóm nghiệp vụ `certifications`/`farms`/`logs`/`roles`/
-  `seasons`/`supplies`/`users`. Danh sách đầy đủ:
+- Đúng **32 mã quyền**, dạng `"<nhóm số nhiều>.<hành động>"` — 4 hành động
+  `add`/`edit`/`view`/`delete` x 8 nhóm nghiệp vụ `certifications`/`farms`/`logs`/`roles`/
+  `seasons`/`supplies`/`users`/`workflow_templates`. Danh sách đầy đủ:
   ```
   certifications.add / certifications.delete / certifications.edit / certifications.view
   farms.add / farms.delete / farms.edit / farms.view
@@ -422,7 +429,16 @@ giả định):
   seasons.add / seasons.delete / seasons.edit / seasons.view
   supplies.add / supplies.delete / supplies.edit / supplies.view
   users.add / users.delete / users.edit / users.view
+  workflow_templates.add / workflow_templates.delete / workflow_templates.edit / workflow_templates.view
   ```
+  Nhóm `workflow_templates` xác nhận qua `GET /permissions` thật lúc chuyển
+  `mau-quy-trinh.html` sang API (2026-09-08) — thêm SAU 7 nhóm gốc, dùng ở
+  `js/mau-quy-trinh.js` (nút sửa/xoá mỗi thẻ mẫu + nút "Tạo quy trình mới").
+  **Chưa thêm vào ma trận phân quyền của `tai-khoan.html`** — `js/tai-khoan.js`
+  vẫn hiện đúng 7 hàng (`PREFIX_ORDER`, xem bên dưới), quyền `workflow_
+  templates.*` của 1 vai trò hiện KHÔNG sửa được qua giao diện đó (chỉ có thể
+  gán qua backend/seed trực tiếp) — cần bổ sung hàng thứ 8 ở lần cập nhật
+  `tai-khoan.html` sau, ngoài phạm vi lần migrate `mau-quy-trinh.html` này.
   Quy ước đặt tên này áp dụng cho MỌI phân hệ sẽ chuyển sang API sau này — trang mới nào
   gọi `AgriChain.api.hasPermission(code)` thì dùng đúng mẫu `"<nhóm số nhiều>.<add|edit|
   view|delete>"` ngay từ đầu, không suy đoán số ít/số nhiều hay từ đồng nghĩa khác.
@@ -503,11 +519,21 @@ xoá mềm). `js/api.js` bọc thêm `api.farms.*`/`api.seasons.*`/`api.logs.*`/
   cho tới khi backend sửa xong**. Có banner "Thử lại cập nhật trạng thái bước"
   (`[data-process-retry-notice]`) phòng trường hợp nhật ký tạo được nhưng PATCH mùa vụ lỗi —
   không để trạng thái nửa vời trong im lặng.
-- **`workflowTemplates` (mẫu quy trình) và `batches` (lô hàng) CHƯA migrate** — giai đoạn 3.
-  Trên `nong-trai-chi-tiet.html`, khi áp dụng 1 mẫu cho mùa vụ, mẫu vẫn đọc từ `store.js`
-  nhưng KẾT QUẢ snapshot (`workflow_template_id`/`_name`/`_steps`) được gửi qua
-  `PATCH /seasons/{id}` của API thật — đây là điểm nối 2 hệ dữ liệu, không phải lớp chuyển
-  đổi thừa (xem `cloneTemplateSteps()`).
+- **`batches` (lô hàng) CHƯA migrate** — giai đoạn 3, vẫn ở `store.js`.
+- **`workflowTemplates` (mẫu quy trình) ĐÃ CHUYỂN SANG API** (`mau-quy-trinh.html`, 2026-09-08)
+  qua `api.workflowTemplates.*` — xem mục "Mẫu quy trình mùa vụ" bên dưới. Trên
+  `nong-trai-chi-tiet.html`, khi áp dụng 1 mẫu cho mùa vụ, mẫu giờ đọc qua
+  `api.workflowTemplates.list()` (`fillProcessTemplateSelect()`/`findLoadedWorkflowTemplate()`)
+  — KẾT QUẢ snapshot (`workflow_template_id`/`_name`/`_steps`) vẫn gửi qua `PATCH /seasons/{id}`
+  của API thật như trước, đây là điểm nối 2 hệ dữ liệu (mẫu ↔ mùa vụ), không phải lớp chuyển
+  đổi thừa (xem `cloneTemplateSteps()`). `TemplateStep` (mẫu) và `WorkflowStep` (mùa vụ) đều
+  snake_case và gần như trùng tên field — `cloneTemplateSteps()` giờ chỉ thêm 4 field trạng
+  thái riêng của mùa vụ (`done`/`completed_at`/`log_id`/`batch_id`), không còn phải đổi tên
+  field từ camelCase như hồi còn đọc `store.js`.
+  Mẫu quy trình tạo TRƯỚC lúc migrate (lưu trong `localStorage`, id không phải UUID —
+  `store.newId()`) sẽ KHÔNG tự động xuất hiện lại trên `mau-quy-trinh.html` sau khi migrate,
+  cũng KHÔNG chọn được ở dropdown "Chọn mẫu quy trình áp dụng" này — người dùng tạo lại qua
+  giao diện mới nếu cần.
 - Dropdown chọn vật tư ở MỌI nơi trên `nong-trai-chi-tiet.html`/`mau-quy-trinh.html` (form
   nhật ký, form bước quy trình mẫu, form tuỳ biến bước quy trình mùa vụ) đọc qua
   `api.supplies.list()`, tải 1 lần lúc trang khởi động — không đọc `store.js` nữa, nếu không
@@ -703,20 +729,37 @@ thực lại (verify) hash ngay tại trang này thay vì chỉ đọc `batch.ha
 
 ## Mẫu quy trình mùa vụ (`mau-quy-trinh.html`)
 
-Collection `workflowTemplates` (`store.js`) — **KHÔNG khoá theo `ownerId`** như nhóm "Thương
-mại điện tử": trang này thuộc "Hoạt động sản xuất", theo đúng quy ước sẵn có của
-`farms`/`supplies`/`batches` (danh sách chung cho Đơn vị đang đăng nhập, không có khái niệm
-nhiều chủ sở hữu trong 1 phiên — xem `js/vat-tu.js` để đối chiếu).
+**ĐÃ CHUYỂN SANG BACKEND THẬT** (2026-09-08) qua `api.workflowTemplates.*`
+(`GET/POST/PATCH/DELETE /workflow-templates`) — không còn đọc/ghi qua
+`AgriChain.store`/collection `workflowTemplates` nữa. Cùng khuôn danh sách với
+`nong-trai.html`/`vat-tu.html`: tìm kiếm (debounce), phân trang, khối loading/lỗi/rỗng
+(`.async-state`/`.empty-state`), nút "Sửa"/"Xoá" mỗi thẻ và nút "Tạo quy trình mới" ẩn theo
+`api.hasPermission('workflow_templates.edit'/'delete'/'add')` — xem mục "Trang tai-khoan.html"
+phía trên để biết 4 mã quyền nhóm `workflow_templates` (mới xác nhận, ngoài 28 mã gốc).
+Backend **không khoá theo `ownerId`** (giống trang cũ) — danh sách chung cho Đơn vị đang đăng
+nhập, không có khái niệm nhiều chủ sở hữu trong 1 phiên.
+
+Payload gửi lên đổi tên field sang snake_case khớp `TemplateStep` thật của backend
+(`activityType` -> `activity_type`, `requireQr` -> `require_qr`, `requireSupply` ->
+`require_supply`, `supplyId` -> `supply_id`, `requireImage` -> `require_image`); response trả
+về giữ nguyên snake_case, đọc thẳng. `TemplateStep` xác nhận qua `/openapi.json` **không có
+`id` riêng** (khác `seasons.workflow_steps[]`/`WorkflowStep`, cần `id` để theo dõi tiến độ mùa
+vụ) — mẫu chỉ là bản thiết kế tĩnh, chưa gắn lần thực hiện nào, khớp đúng giả định code từ
+trước nên không có rủi ro định dạng UUID nào phát sinh ở lần chuyển đổi này.
+`GET /workflow-templates/{id}` (và cả bản danh sách) trả về **đầy đủ** `steps[]` ngay trong
+response — không tách list/detail như `logs`/`certifications`, nên modal Sửa không cần gọi
+thêm request nào để lấy đủ dữ liệu bước.
 
 Mỗi mẫu quy trình gồm nhiều "bước thực hiện" (`steps[]`), mỗi bước có: tên, loại hoạt động kỹ
-thuật (`activityType`, dùng lại đúng 9 giá trị/icon của `ACTIVITY_TYPES` trong
+thuật (`activity_type`, dùng lại đúng 9 giá trị/icon của `ACTIVITY_TYPES` trong
 `js/nong-trai-chi-tiet.js` — Gieo trồng/Gieo hạt, Bón phân, Tưới nước, Phòng trừ sâu bệnh, Làm
 cỏ, Cắt tỉa, Thu hoạch, Kiểm tra/Giám sát, Hoạt động khác), hướng dẫn thực hiện, và 3 cờ
-boolean (`requireQr`, `requireSupply` kèm `supplyId` tuỳ chọn trỏ tới `store.list('supplies')`,
-`requireImage`). Modal build từng thẻ bước bằng `stepCard()` (giống cách `variantCard()` dựng
+boolean (`require_qr`, `require_supply` kèm `supply_id` tuỳ chọn trỏ tới `api.supplies.list()`,
+`require_image`). Modal build từng thẻ bước bằng `stepCard()` (giống cách `variantCard()` dựng
 biến thể sản phẩm ở `js/thuong-mai-san-pham.js`) — nhưng KHÔNG dùng mảng JS giữ trạng thái
 sống: dữ liệu bước đọc/ghi thẳng qua DOM bằng các class đánh dấu (`.step-name`, `.step-type`...)
-lúc `collectSteps()` chạy ở submit, y hệt cách `collectVariants()` hoạt động.
+lúc `collectSteps()` chạy ở submit (trả về đúng snake_case), y hệt cách `collectVariants()`
+hoạt động.
 
 Nút lên/xuống mỗi bước **di chuyển thẳng DOM node** (`insertBefore`) thay vì re-render từ mảng —
 đơn giản hơn và tận dụng luôn việc DOM đã là nguồn dữ liệu (xem lý do ở trên). Số thứ tự hiển
@@ -725,6 +768,11 @@ thị (`1`, `2`, `3`...) được tính lại từ vị trí DOM thật qua `ren
 tạo 1 thẻ mới, không dùng để hiển thị số, nên không bao giờ bị lệch dù người dùng thêm/xoá xen
 kẽ nhiều lần. Xoá bước cuối cùng còn lại sẽ tự thêm ngay 1 bước trống thay thế — modal không
 bao giờ để danh sách bước rỗng hoàn toàn.
+
+Dữ liệu mẫu quy trình tạo TRƯỚC lúc migrate (localStorage, id dạng `store.newId()` không phải
+UUID) KHÔNG tự động chuyển lên backend — biến mất khỏi danh sách sau khi migrate (collection
+`workflowTemplates` trong `store.js` giờ mồ côi, xem mục "Nợ kỹ thuật đã biết"), tự tạo lại
+qua giao diện mới nếu cần.
 
 ## Quy trình mùa vụ — áp dụng cho 1 mùa vụ cụ thể (tab "Quy trình mùa vụ")
 

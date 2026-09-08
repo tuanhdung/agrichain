@@ -117,7 +117,7 @@
     }
   </style>
   <script src="js/api-config.js?v=1"></script>
-  <script src="js/api.js?v=4"></script>
+  <script src="js/api.js?v=5"></script>
   <script>
     // Vật tư trong trang này đã chuyển sang backend thật — chặn ngay trong
     // <head> (không defer) để tránh chớp nội dung trước khi chuyển hướng
@@ -325,24 +325,50 @@
             Tổng số: <strong data-template-count>0</strong> mẫu.
           </p>
         </div>
-        <button type="button" class="btn btn--primary btn--lg" data-open-template-form>
+        <button type="button" class="btn btn--primary btn--lg" data-open-template-form data-requires-permission="workflow_templates.add">
           <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
           Tạo quy trình mới
         </button>
       </div>
 
+      <div class="search-field" style="max-width: 360px; margin-bottom: var(--space-5);">
+        <svg class="icon search-field__icon"><use href="icons/sprite.svg#icon-search"></use></svg>
+        <input class="input" type="search" placeholder="Tìm theo tên mẫu quy trình..." data-template-search />
+      </div>
+
+      <!-- Đang tải -->
+      <div class="async-state" data-template-loading hidden>
+        <span class="spinner spinner--lg"></span>
+        <p class="async-state__title">Đang tải danh sách mẫu quy trình...</p>
+      </div>
+
+      <!-- Gọi API lỗi -->
+      <div class="async-state async-state--error" data-template-error hidden>
+        <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-x-circle"></use></svg>
+        <p class="async-state__title">Không tải được danh sách mẫu quy trình</p>
+        <p class="async-state__desc" data-template-error-message></p>
+        <button type="button" class="btn btn--outline btn--sm" data-template-retry>Thử lại</button>
+      </div>
+
       <!-- Danh sách -->
       <div class="grid grid--3" data-template-list hidden></div>
 
+      <!-- Phân trang -->
+      <div class="pagination" data-template-pagination hidden>
+        <button type="button" class="btn btn--outline btn--sm" data-template-prev-page>‹ Trước</button>
+        <span class="pagination__info" data-template-page-info></span>
+        <button type="button" class="btn btn--outline btn--sm" data-template-next-page>Sau ›</button>
+      </div>
+
       <!-- Trạng thái rỗng -->
-      <div class="empty-state" data-template-empty>
+      <div class="empty-state" data-template-empty hidden>
         <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-workflow"></use></svg>
-        <p class="empty-state__title">Chưa có Mẫu Quy Trình nào</p>
-        <p class="empty-state__desc">
+        <p class="empty-state__title" data-template-empty-title>Chưa có Mẫu Quy Trình nào</p>
+        <p class="empty-state__desc" data-template-empty-desc>
           Tạo mẫu quy trình chuẩn gồm các bước bón phân, tưới tiêu, bón lót, thu hoạch... để
           nông dân thực hiện theo trên App.
         </p>
-        <button type="button" class="btn btn--primary" data-open-template-form>
+        <button type="button" class="btn btn--primary" data-open-template-form data-requires-permission="workflow_templates.add">
           Tạo ngay quy trình đầu tiên
         </button>
       </div>
@@ -416,6 +442,6 @@
   <script src="js/store.js?v=12" defer></script>
   <script src="js/app-shell.js?v=10" defer></script>
   <script src="js/enums.js?v=1" defer></script>
-  <script src="js/mau-quy-trinh.js?v=3" defer></script>
+  <script src="js/mau-quy-trinh.js?v=4" defer></script>
 </body>
 </html>

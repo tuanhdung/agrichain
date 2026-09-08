@@ -10,17 +10,19 @@ dần cho lớp `js/store.js` (localStorage) hiện tại — cùng tinh thần 
 "Kết nối backend" đã áp dụng cho `tai-khoan.html`/`dang-nhap.html` trong
 `CLAUDE.md`.
 
-> **⚠️ ĐÃ MỘT PHẦN LỖI THỜI (2026-09-07):** tài liệu này ban đầu mô tả khuôn
+> **⚠️ ĐÃ MỘT PHẦN LỖI THỜI (2026-09-08):** tài liệu này ban đầu mô tả khuôn
 > dữ liệu localStorage (camelCase: `farmId`, `startDate`, `plannedArea`...).
-> `farms`/`seasons`/`seasonLogs`/`certifications`/`supplies` sau đó đã CHUYỂN
-> SANG BACKEND THẬT (xem mục "Kết nối backend" trong `CLAUDE.md`) — response
-> API dùng **snake_case** (`farm_id`, `start_date`, `planned_area`...), khác
-> tên field so với các bảng bên dưới. **Chỉ riêng bảng `LogSupply`** đã được
-> cập nhật lại đúng theo API thật (xem ghi chú "Đã xác nhận lại" trong mục
-> `seasonLogs`); phần còn lại của tài liệu (tên field cụ thể, không phải
-> khái niệm/quan hệ) vẫn đang mô tả bản CŨ, chưa rà soát lại toàn bộ theo
-> snake_case. `workflowTemplates` (mẫu quy trình) và `batches` (lô hàng)
-> chưa migrate, vẫn giữ nguyên camelCase như tài liệu mô tả.
+> `farms`/`seasons`/`seasonLogs`/`certifications`/`supplies`/`workflowTemplates`
+> sau đó đã CHUYỂN SANG BACKEND THẬT (xem mục "Kết nối backend" trong
+> `CLAUDE.md`) — response API dùng **snake_case** (`farm_id`, `start_date`,
+> `planned_area`...), khác tên field so với 1 số bảng bên dưới. **Đã cập
+> nhật lại đúng theo API thật**: bảng `LogSupply` (mục `seasonLogs`) và
+> toàn bộ mục 7 `workflowTemplates`; phần còn lại (`farms`/`seasons`/
+> `seasonLogs` ngoài `LogSupply`/`certifications`/`supplies`) vẫn đang mô
+> tả bản CŨ, chưa rà soát lại toàn bộ theo snake_case — tên field cụ thể có
+> thể sai, khái niệm/quan hệ vẫn đúng. **Chỉ riêng `batches` (mục 6)** chưa
+> migrate, vẫn giữ nguyên camelCase THẬT (đúng với code hiện tại, không lỗi
+> thời).
 
 ## Cách đọc tài liệu này
 
@@ -29,10 +31,10 @@ dần cho lớp `js/store.js` (localStorage) hiện tại — cùng tinh thần 
   trang đang đọc/ghi 7 collection trên: `js/nong-trai.js`, `js/nong-trai-chi-tiet.js`,
   `js/vat-tu.js`, `js/mau-quy-trinh.js`, `js/lo-hang.js`, `js/truy-xuat.js`.
   Khuôn dữ liệu suy ra từ chính các form/validate()/payload gửi vào
-  `store.insert()`/`store.update()` (cho `batches`/`workflowTemplates`, vẫn
-  ở store.js) hoặc gửi lên `api.*` thật (5 collection còn lại, đã migrate)
-  trong các file này — không có schema khai báo tường minh ở đâu khác
-  trong dự án.
+  `store.insert()`/`store.update()` (chỉ còn `batches`, vẫn ở store.js) hoặc
+  gửi lên `api.*` thật (6 collection còn lại đã migrate, xem cảnh báo đầu
+  tài liệu) trong các file này — không có schema khai báo tường minh ở đâu
+  khác trong dự án.
 - **⚠️ Bản ghi mẫu ở mỗi mục là dữ liệu MINH HOẠ do agent dựng lại đúng theo
   khuôn/quy ước trong code, KHÔNG PHẢI trích xuất từ dữ liệu thật đang nằm
   trong `localStorage` trình duyệt của bạn** — agent chạy trong terminal,
@@ -45,8 +47,8 @@ dần cho lớp `js/store.js` (localStorage) hiện tại — cùng tinh thần 
   rồi tự ẩn các trường nhạy cảm (địa chỉ thật, tên người...) trước khi chia sẻ.
 
 ## Quy ước chung (áp dụng cho cả 7 thực thể — riêng phần `id`/`createdAt`
-tự sinh bên dưới chỉ còn đúng cho `batches`/`workflowTemplates`, 2 collection
-chưa migrate; 5 collection còn lại đã đổi sang id/timestamp do backend cấp,
+tự sinh bên dưới chỉ còn đúng cho `batches`, collection DUY NHẤT chưa
+migrate; 6 collection còn lại đã đổi sang id/timestamp do backend cấp,
 xem cảnh báo đầu tài liệu)
 
 - **Key localStorage**: `agrichain:<tên collection>` — tiền tố `agrichain:`
@@ -437,7 +439,7 @@ và `js/mau-quy-trinh.js` đọc lại (chọn vật tư cho bước nhật ký/
 ```
 
 **Quan hệ**: `supplies.id` được tham chiếu bởi `seasonLogs.supplies[].supplyId`,
-`workflowTemplates.steps[].supplyId`, `seasons.workflowSteps[].supplyId`.
+`workflowTemplates.steps[].supply_id`, `seasons.workflowSteps[].supplyId`.
 
 **Trường chỉ dùng ở client**: không có.
 
@@ -631,89 +633,102 @@ field như các entity khác.
 
 ## 7. `workflowTemplates` (Mẫu quy trình)
 
-**Key localStorage**: `agrichain:workflowTemplates`
-**Trang/JS quản lý**: `mau-quy-trinh.html` / `js/mau-quy-trinh.js`. Được
-`js/nong-trai-chi-tiet.js` đọc lại để áp dụng cho 1 mùa vụ cụ thể (xem
-`seasons.workflow_steps` — CHỤP bản sao, không tham chiếu ngược; field đổi
-tên `workflowSteps` → `workflow_steps` từ khi `seasons` migrate sang API,
-xem mục 2).
+**ĐÃ CHUYỂN SANG BACKEND THẬT** (2026-09-08) — `GET/POST/PATCH/DELETE
+/workflow-templates` qua `api.workflowTemplates.*`, không còn ở
+`store.js`/`localStorage`. **Trang/JS quản lý**: `mau-quy-trinh.html` /
+`js/mau-quy-trinh.js`. Được `js/nong-trai-chi-tiet.js` đọc lại
+(`fillProcessTemplateSelect()`) để áp dụng cho 1 mùa vụ cụ thể (xem
+`seasons.workflow_steps` — CHỤP bản sao, không tham chiếu ngược, mục 2).
 
-> **Đã rà lại (2026-09-08):** khuôn `workflowTemplates`/`TemplateStep` mô
-> tả dưới đây **không đổi** so với bản trước — `js/mau-quy-trinh.js` vẫn
-> ghi/đọc đúng các field này qua `store.js` (chưa migrate, giai đoạn 3).
-> Thay đổi DUY NHẤT: dropdown "Chỉ định vật tư cụ thể" trong modal (nguồn
-> của `supplyId`) giờ đọc `api.supplies.list()` thay vì `store.list('supplies')`
-> — bản thân field `supplyId` trên `TemplateStep` không đổi tên/kiểu, chỉ
-> khác là giá trị giờ là UUID thật do backend `supplies` cấp thay vì id
-> kiểu `store.newId()` cũ.
+> **Đã xác nhận qua `/openapi.json` thật (2026-09-08):** khuôn dưới đây lấy
+> trực tiếp từ `WorkflowTemplateCreate`/`WorkflowTemplateUpdate`/
+> `WorkflowTemplateOut`/`TemplateStep` — snake_case, KHÔNG còn camelCase
+> như bản localStorage cũ. Khác biệt so với bản cũ: `id`/`created_at`/
+> `updated_at` do backend cấp (UUID/ISO datetime thật, không phải
+> `store.newId()`); `created_by` (uuid FK → user tạo mẫu, có thể `null`)
+> là field MỚI, localStorage cũ không có; `description`/`instruction`/
+> `supply_id` rỗng gửi lên là `null` (không phải chuỗi rỗng `''`) —
+> `js/mau-quy-trinh.js` đã đổi theo đúng quy ước này.
 
 | Trường | Kiểu | Bắt buộc | Null? | Ý nghĩa |
 |---|---|---|---|---|
-| `id` | string | có (auto) | không | Mã nội bộ — được `seasons.workflowTemplateId` tham chiếu (snapshot, có thể "treo" nếu mẫu bị xoá sau khi đã áp dụng). |
-| `name` | string | **có** | không | Tên mẫu quy trình. |
-| `description` | string | không | có thể rỗng `''` | Mô tả mẫu. |
-| `steps` | `Array<TemplateStep>` | không bị ép buộc bởi validate() bằng độ dài mảng, nhưng **UI luôn đảm bảo tối thiểu 1 bước** (modal tự thêm 1 thẻ bước trống khi mở, và tự thêm lại nếu người dùng xoá hết) | mảng rỗng `[]` VẪN CÓ THỂ xảy ra nếu gọi thẳng `store.insert()` ngoài luồng UI bình thường | Danh sách bước thực hiện theo thứ tự — thứ tự trong mảng CHÍNH LÀ thứ tự thực hiện (không có field `order`/`sequence` riêng, kéo-thả chỉ đổi vị trí phần tử trong mảng). |
-| `createdAt` / `updatedAt` | string (ISO) | như quy ước chung | | |
+| `id` | string (UUID, do backend cấp) | có (auto) | không | Được `seasons.workflow_template_id` tham chiếu (snapshot, có thể "treo" nếu mẫu bị xoá sau khi đã áp dụng). |
+| `name` | string (1-200 ký tự) | **có** | không | Tên mẫu quy trình. |
+| `description` | string (≤5000 ký tự) | không | **`null`** nếu để trống (không phải `''`) | Mô tả mẫu. |
+| `steps` | `Array<TemplateStep>` | không bắt buộc ở schema backend (không có ràng buộc độ dài) | mảng rỗng `[]` hợp lệ | Danh sách bước thực hiện theo thứ tự — thứ tự trong mảng CHÍNH LÀ thứ tự thực hiện. **UI vẫn tự đảm bảo tối thiểu 1 bước** (modal tự thêm 1 thẻ bước trống khi mở/xoá hết), đây là ràng buộc phía client, không phải backend. |
+| `created_by` | string (UUID) hoặc `null` | có (auto) | có thể `null` | Người tạo mẫu — field mới so với bản localStorage cũ. |
+| `created_at` / `updated_at` | string (ISO datetime, do backend cấp) | có (auto) | không | |
 
 **Cấu trúc `TemplateStep`** (mỗi phần tử `workflowTemplates.steps[]`) —
-**không có `id` riêng** (khác hẳn `seasons.workflowSteps[]`, vốn có `id` vì
-cần theo dõi tiến độ; mẫu chỉ là bản thiết kế tĩnh):
+**không có `id` riêng** (khác hẳn `seasons.workflow_steps[]`/`WorkflowStep`,
+vốn có `id` vì cần theo dõi tiến độ; mẫu chỉ là bản thiết kế tĩnh, xác nhận
+đúng qua schema thật — không có rủi ro định dạng UUID khi mùa vụ áp dụng
+mẫu và tự sinh bước mới):
 
 | Trường | Kiểu | Bắt buộc | Null? | Ý nghĩa |
 |---|---|---|---|---|
-| `name` | string | **có** | không | Tên bước. |
-| `activityType` | string (enum, xem "Danh mục dùng chung") | có (luôn có giá trị mặc định từ `<select>`) | không | Loại hoạt động kỹ thuật của bước. |
-| `instruction` | string | không | có thể rỗng `''` | Hướng dẫn thực hiện cho nông dân — được copy nguyên văn vào `description` của nhật ký khi hoàn thành bước tương ứng lúc áp dụng cho mùa vụ. |
-| `requireQr` | boolean | có | không | Bước này có bắt buộc tạo QR truy xuất (tức tạo 1 lô hàng mới) khi hoàn thành hay không. |
-| `requireSupply` | boolean | có | không | Cờ "yêu cầu dùng vật tư" — hiện **chỉ mang tính khai báo/hiển thị**, chưa có logic nào chặn hoàn thành bước nếu thiếu vật tư. |
-| `supplyId` | string (FK → `supplies.id`) | không | rỗng `''` nếu `requireSupply` là `false` hoặc chưa chỉ định vật tư cụ thể | Vật tư gợi ý cho bước (tuỳ chọn dù `requireSupply` là `true`). |
-| `requireImage` | boolean | có | không | Cờ "bắt buộc hình ảnh" — tương tự `requireSupply`, chưa được enforce bằng logic. |
-| `createdAt` / `updatedAt` | (không áp dụng — đây là phần tử mảng, không phải bản ghi độc lập) | | | |
+| `name` | string (1-200 ký tự) | **có** | không | Tên bước. |
+| `activity_type` | string (enum, xem "Danh mục dùng chung") | **có** | không | Loại hoạt động kỹ thuật của bước. |
+| `instruction` | string (≤5000 ký tự) | không | **`null`** nếu để trống | Hướng dẫn thực hiện cho nông dân — được copy nguyên văn vào `description` của nhật ký khi hoàn thành bước tương ứng lúc áp dụng cho mùa vụ. |
+| `require_qr` | boolean | không (default `false`) | không | Bước này có bắt buộc tạo QR truy xuất (tức tạo 1 lô hàng mới) khi hoàn thành hay không. |
+| `require_supply` | boolean | không (default `false`) | không | Cờ "yêu cầu dùng vật tư" — hiện **chỉ mang tính khai báo/hiển thị**, chưa có logic nào chặn hoàn thành bước nếu thiếu vật tư. |
+| `supply_id` | string (UUID, FK → `supplies.id`) | không | **`null`** nếu `require_supply` là `false` hoặc chưa chỉ định vật tư cụ thể (không phải chuỗi rỗng `''`) | Vật tư gợi ý cho bước (tuỳ chọn dù `require_supply` là `true`). |
+| `require_image` | boolean | không (default `false`) | không | Cờ "bắt buộc hình ảnh" — tương tự `require_supply`, chưa được enforce bằng logic. |
 
-**Bản ghi mẫu (minh hoạ):**
+**Bản ghi mẫu (minh hoạ, đúng khuôn `WorkflowTemplateOut` thật):**
 
 ```json
 {
-  "id": "mgk2p0q-r5s6t7",
+  "id": "3f9a1c2e-6b4d-4a7f-9e21-8c5d0f1a2b3c",
   "name": "Quy trình canh tác cà phê hữu cơ",
   "description": "Áp dụng cho các mùa vụ trồng cà phê Arabica theo hướng hữu cơ, không dùng hoá chất tổng hợp.",
   "steps": [
     {
       "name": "Xuống giống",
-      "activityType": "planting",
+      "activity_type": "planting",
       "instruction": "Gieo hạt giống đã ủ mầm, khoảng cách hàng 1.5m.",
-      "requireQr": false,
-      "requireSupply": true,
-      "supplyId": "mgk1a0b-c2d3e4",
-      "requireImage": true
+      "require_qr": false,
+      "require_supply": true,
+      "supply_id": "9d1e2f3a-4b5c-4d6e-8f7a-1b2c3d4e5f6a",
+      "require_image": true
     },
     {
       "name": "Bón phân đợt 1",
-      "activityType": "fertilizing",
+      "activity_type": "fertilizing",
       "instruction": "Bón phân hữu cơ hoai mục quanh gốc, cách gốc 20cm.",
-      "requireQr": false,
-      "requireSupply": true,
-      "supplyId": "",
-      "requireImage": false
+      "require_qr": false,
+      "require_supply": true,
+      "supply_id": null,
+      "require_image": false
     },
     {
       "name": "Thu hoạch đợt 1",
-      "activityType": "harvesting",
+      "activity_type": "harvesting",
       "instruction": "Thu hái quả chín trên 90%, đóng bao ngay tại vườn.",
-      "requireQr": true,
-      "requireSupply": false,
-      "supplyId": "",
-      "requireImage": true
+      "require_qr": true,
+      "require_supply": false,
+      "supply_id": null,
+      "require_image": true
     }
   ],
-  "createdAt": "2025-11-20T01:00:00.000Z"
+  "created_by": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+  "created_at": "2025-11-20T01:00:00.000Z",
+  "updated_at": "2025-11-20T01:00:00.000Z"
 }
 ```
 
-**Quan hệ**: `workflowTemplates.id` được tham chiếu bởi `seasons.workflowTemplateId`
-(snapshot); `workflowTemplates.steps[].supplyId → supplies.id`.
+**Quan hệ**: `workflowTemplates.id` được tham chiếu bởi `seasons.workflow_template_id`
+(snapshot); `workflowTemplates.steps[].supply_id → supplies.id`; `workflowTemplates.created_by → users.id`.
 
 **Trường chỉ dùng ở client**: không có.
+
+**Dữ liệu cũ trước khi migrate**: mẫu tạo trong `localStorage` (id dạng
+`store.newId()`, VD `"mgk2p0q-r5s6t7"`, không phải UUID) KHÔNG tự động
+chuyển lên backend — biến mất khỏi `mau-quy-trinh.html` sau khi migrate,
+cũng không chọn được ở dropdown "Chọn mẫu quy trình áp dụng" trên
+`nong-trai-chi-tiet.html`. Collection `workflowTemplates` trong `store.js`
+giờ mồ côi, chưa xoá khỏi `COLLECTIONS` (xem `CLAUDE.md` mục "Kết nối
+backend").
 
 ---
 
@@ -721,7 +736,7 @@ cần theo dõi tiến độ; mẫu chỉ là bản thiết kế tĩnh):
 
 ### `activityType` (9 giá trị) — ĐÃ HỢP NHẤT về 1 nguồn duy nhất
 
-Dùng ở `seasonLogs.activityType`, `workflowTemplates.steps[].activityType`,
+Dùng ở `seasonLogs.activityType`, `workflowTemplates.steps[].activity_type`,
 `seasons.workflowSteps[].activityType`.
 
 **Trước đây** (đã sửa) `js/mau-quy-trinh.js` và `js/nong-trai-chi-tiet.js`
@@ -813,7 +828,7 @@ seasons (1) ──< seasonLogs (nhiều)         seasonLogs.seasonId → seasons
 farms (1) ──< seasonLogs (nhiều, bản sao)  seasonLogs.farmId → farms.id  (denormalize từ seasons.farmId)
 workflowTemplates (1) ··> seasons (nhiều)  seasons.workflowTemplateId → workflowTemplates.id  (SNAPSHOT, không phải FK sống — có thể trỏ tới bản ghi đã xoá)
 supplies (1) ──< seasonLogs.supplies[]     seasonLogs.supplies[].supplyId → supplies.id
-supplies (1) ──< workflowTemplates.steps[] workflowTemplates.steps[].supplyId → supplies.id
+supplies (1) ──< workflowTemplates.steps[] workflowTemplates.steps[].supply_id → supplies.id
 supplies (1) ──< seasons.workflowSteps[]   seasons.workflowSteps[].supplyId → supplies.id
 seasonLogs (1) ··> seasons.workflowSteps[] seasons.workflowSteps[].logId → seasonLogs.id
 farms (1) ──< batches (nhiều)              batches.farmId → farms.id
@@ -842,9 +857,9 @@ diễn"):
    duyệt/thiết bị cùng thao tác — chỉ chấp nhận được vì đây là bản demo
    single-user localStorage). Backend thật cần thay bằng cơ chế sinh id đảm
    bảo duy nhất toàn hệ thống (UUID hoặc serial do DB cấp). **Đã xảy ra thật**
-   với `farms`/`seasons`/`seasonLogs`/`certifications`/`supplies` (id giờ là
-   UUID do backend cấp) — `batches`/`workflowTemplates` (mục 6, 7) vẫn dùng
-   định dạng cũ vì chưa migrate.
+   với `farms`/`seasons`/`seasonLogs`/`certifications`/`supplies`/
+   `workflowTemplates` (id giờ là UUID do backend cấp) — chỉ còn `batches`
+   (mục 6) vẫn dùng định dạng cũ vì chưa migrate.
 3. **`batches.sealed`/`hash`/`blockIndex`/`sealedAt`** (mục 6) — toàn bộ cơ
    chế "xác thực blockchain" hiện là mô phỏng hash-chain thuần client-side
    (`js/chain.js`, Web Crypto API), không phải blockchain thật. Khi có kiến

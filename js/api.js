@@ -456,6 +456,24 @@
     }
   };
 
+  var workflowTemplates = {
+    list: function (params) {
+      return request('GET', '/workflow-templates', { query: params });
+    },
+    get: function (id) {
+      return request('GET', '/workflow-templates/' + id);
+    },
+    create: function (data) {
+      return request('POST', '/workflow-templates', { body: data });
+    },
+    update: function (id, data) {
+      return request('PATCH', '/workflow-templates/' + id, { body: data });
+    },
+    remove: function (id) {
+      return request('DELETE', '/workflow-templates/' + id);
+    }
+  };
+
   /* --- Bảo vệ trang cần đăng nhập --------------------------------------------
      Gọi ở đầu <head> bằng script THƯỜNG (không defer) để chuyển hướng trước
      khi nội dung trang kịp vẽ ra. */
@@ -488,6 +506,7 @@
     seasons: seasons,
     logs: logs,
     supplies: supplies,
-    certifications: certifications
+    certifications: certifications,
+    workflowTemplates: workflowTemplates
   };
 })(window);

@@ -1,22 +1,33 @@
 /* ==========================================================================
    AgriChain — Trang Mẫu quy trình (mùa vụ)
-   Danh sách + thêm/sửa/xoá mẫu quy trình sản xuất chuẩn hoá — collection
-   "workflowTemplates". KHÔNG khoá theo ownerId như nhóm "Thương mại điện
-   tử": đây là dữ liệu "Hoạt động sản xuất", theo đúng quy ước của farms/
-   supplies/batches (danh sách chung của Đơn vị đang đăng nhập, không có
-   khái niệm nhiều chủ sở hữu trong 1 phiên).
-   Vật tư (bước "Chỉ định vật tư cụ thể") ĐÃ CHUYỂN SANG API — đọc qua
-   api.supplies.list(), không đọc store.js nữa (supplies đã migrate, dữ
-   liệu local collection "supplies" không còn được ghi mới).
-   Nạp SAU js/api-config.js, js/api.js, js/store.js, js/app-shell.js,
-   js/enums.js (ACTIVITY_TYPES dùng chung).
+   ĐÃ CHUYỂN SANG BACKEND THẬT qua js/api.js (GET/POST/PATCH/DELETE
+   /workflow-templates) — không còn đọc/ghi qua AgriChain.store/collection
+   "workflowTemplates" nữa. Payload gửi lên đổi tên field sang snake_case
+   khớp cột backend (activityType -> activity_type, requireQr -> require_qr,
+   requireSupply -> require_supply, supplyId -> supply_id, requireImage ->
+   require_image); response trả về giữ nguyên snake_case, đọc thẳng — đúng
+   quy ước đã dùng cho farms/seasons/supplies. `TemplateStep` (backend) xác
+   nhận KHÔNG có `id` riêng — khớp đúng giả định code từ trước, không có
+   rủi ro định dạng UUID như vụ `seasons.workflowSteps[]`.
+
+   Mã quyền `workflow_templates.view/add/edit/delete` đã được xác nhận THẬT
+   qua GET /permissions (2026-09-08) — KHÔNG nằm trong danh sách 28 mã ghi
+   trong CLAUDE.md trước đây (nhóm này thêm sau, khi domain workflow-
+   templates lên backend), đã cập nhật lại tài liệu.
+
+   Vật tư (bước "Chỉ định vật tư cụ thể") ĐÃ CHUYỂN SANG API từ trước, đọc
+   qua api.supplies.list() — không đổi gì thêm ở lần migrate này.
+
+   Nạp SAU js/api-config.js, js/api.js, js/app-shell.js, js/enums.js
+   (ACTIVITY_TYPES dùng chung).
    ========================================================================== */
 
 (function (global) {
   'use strict';
 
   var api = global.AgriChain.api;
-  var store = global.AgriChain.store;
+  var PAGE_SIZE = 12;
+  var SEARCH_DEBOUNCE_MS = 300;
 
   // Vật tư — tải 1 lần lúc trang khởi động, dùng chung cho mọi bước quy
   // trình mở trong modal (giống cách js/nong-trai-chi-tiet.js làm).
@@ -34,6 +45,15 @@
   // file này (xem thứ tự script trong mau-quy-trinh.html). Trước đây khai
   // báo riêng ở đây, lệch nhãn/icon với bản ở js/nong-trai-chi-tiet.js.
   var ACTIVITY_TYPES = global.AgriChain.ACTIVITY_TYPES;
+
+  function debounce(fn, wait) {
+    var timer = null;
+    return function () {
+      var args = arguments;
+      global.clearTimeout(timer);
+      timer = global.setTimeout(function () { fn.apply(null, args); }, wait);
+    };
+  }
 
   function el(tag, className, text) {
     var node = document.createElement(tag);
@@ -55,7 +75,19 @@
 
   var listNode = document.querySelector('[data-template-list]');
   var emptyNode = document.querySelector('[data-template-empty]');
+  var emptyTitleNode = document.querySelector('[data-template-empty-title]');
+  var emptyDescNode = document.querySelector('[data-template-empty-desc]');
   var countNode = document.querySelector('[data-template-count]');
+  var searchInput = document.querySelector('[data-template-search]');
+  var loadingNode = document.querySelector('[data-template-loading]');
+  var errorNode = document.querySelector('[data-template-error]');
+  var errorMessageNode = document.querySelector('[data-template-error-message]');
+  var paginationNode = document.querySelector('[data-template-pagination]');
+  var pageInfoNode = document.querySelector('[data-template-page-info]');
+  var prevPageBtn = document.querySelector('[data-template-prev-page]');
+  var nextPageBtn = document.querySelector('[data-template-next-page]');
+
+  var listState = { page: 1, q: '', total: 0 };
 
   function templateCard(template) {
     var card = el('div', 'card card--hover');
@@ -75,6 +107,7 @@
     editButton.type = 'button';
     editButton.setAttribute('aria-label', 'Sửa ' + template.name);
     editButton.setAttribute('data-tooltip', 'Sửa');
+    if (!api.hasPermission('workflow_templates.edit')) editButton.hidden = true;
     editButton.appendChild(svgIcon('icon-pencil'));
     editButton.addEventListener('click', function () { openModal(template); });
     footer.appendChild(editButton);
@@ -83,6 +116,7 @@
     deleteButton.type = 'button';
     deleteButton.setAttribute('aria-label', 'Xoá ' + template.name);
     deleteButton.setAttribute('data-tooltip', 'Xoá');
+    if (!api.hasPermission('workflow_templates.delete')) deleteButton.hidden = true;
     deleteButton.appendChild(svgIcon('icon-trash'));
     deleteButton.addEventListener('click', function () { handleDelete(template); });
     footer.appendChild(deleteButton);
@@ -91,32 +125,79 @@
     return card;
   }
 
-  function render() {
-    var templates = store.list('workflowTemplates');
-    countNode.textContent = templates.length;
+  function setListView(view) {
+    loadingNode.hidden = view !== 'loading';
+    errorNode.hidden = view !== 'error';
+    listNode.hidden = view !== 'data';
+    emptyNode.hidden = view !== 'empty';
+    paginationNode.hidden = view !== 'data';
+  }
+
+  function renderTemplates(data) {
+    var templates = data.items || [];
+    listState.total = data.total || 0;
+    countNode.textContent = listState.total;
 
     listNode.textContent = '';
+
     if (!templates.length) {
-      listNode.hidden = true;
-      emptyNode.hidden = false;
+      if (listState.q) {
+        emptyTitleNode.textContent = 'Không tìm thấy mẫu quy trình nào';
+        emptyDescNode.textContent = 'Thử lại với từ khoá khác.';
+      } else {
+        emptyTitleNode.textContent = 'Chưa có Mẫu Quy Trình nào';
+        emptyDescNode.textContent = 'Tạo mẫu quy trình chuẩn gồm các bước bón phân, tưới tiêu, ' +
+          'bón lót, thu hoạch... để nông dân thực hiện theo trên App.';
+      }
+      setListView('empty');
       return;
     }
 
-    emptyNode.hidden = true;
-    listNode.hidden = false;
     templates.forEach(function (template) {
       listNode.appendChild(templateCard(template));
     });
+    setListView('data');
+
+    var totalPages = Math.max(1, Math.ceil(listState.total / PAGE_SIZE));
+    pageInfoNode.textContent = 'Trang ' + listState.page + ' / ' + totalPages;
+    prevPageBtn.disabled = listState.page <= 1;
+    nextPageBtn.disabled = listState.page >= totalPages;
   }
+
+  function loadTemplates() {
+    setListView('loading');
+    api.workflowTemplates.list({
+      q: listState.q || undefined,
+      page: listState.page,
+      page_size: PAGE_SIZE
+    }).then(function (data) {
+      renderTemplates(data);
+    }).catch(function (err) {
+      errorMessageNode.textContent = err.message;
+      setListView('error');
+    });
+  }
+
+  var handleSearchInput = debounce(function () {
+    listState.q = searchInput.value.trim();
+    listState.page = 1;
+    loadTemplates();
+  }, SEARCH_DEBOUNCE_MS);
 
   function handleDelete(template) {
     global.AgriChain.confirm(
       'Xoá mẫu quy trình "' + template.name + '"? Hành động này không thể hoàn tác.'
     ).then(function (confirmed) {
       if (!confirmed) return;
-      store.remove('workflowTemplates', template.id);
-      render();
-      global.AgriChain.toast('Đã xoá mẫu quy trình.');
+      api.workflowTemplates.remove(template.id).then(function () {
+        loadTemplates();
+        global.AgriChain.toast('Đã xoá mẫu quy trình.');
+      }).catch(function (err) {
+        // Sửa/xoá mẫu KHÔNG ảnh hưởng mùa vụ đã áp dụng nó trước đó (mùa vụ
+        // lưu bản chụp riêng ở seasons.workflow_steps[]) — 409 ở đây (nếu
+        // có) không phải vì "đang được dùng", hiện đúng message backend trả.
+        global.AgriChain.toast(err.message);
+      });
     });
   }
 
@@ -151,6 +232,10 @@
     renumberSteps();
   }
 
+  // `data` đọc snake_case (activity_type, require_qr, require_supply,
+  // supply_id, require_image) — khớp response thật của GET /workflow-
+  // templates/{id}, dùng chung cho cả lúc sửa (điền sẵn từ API) lẫn lúc
+  // thêm bước mới (data={}).
   function stepCard(data) {
     stepCount++;
     var card = el('div', 'workflow-step');
@@ -192,7 +277,7 @@
     var typeField = el('div', 'field');
     typeField.appendChild(el('label', 'label', 'Loại hoạt động kỹ thuật'));
     var typeSelect = el('select', 'select step-type');
-    fillActivitySelect(typeSelect, data.activityType);
+    fillActivitySelect(typeSelect, data.activity_type);
     typeField.appendChild(typeSelect);
     grid1.appendChild(typeField);
 
@@ -222,7 +307,7 @@
     var qrLabel = el('label', 'checkbox workflow-step__qr');
     var qrInput = el('input', 'checkbox__input step-require-qr');
     qrInput.type = 'checkbox';
-    qrInput.checked = !!data.requireQr;
+    qrInput.checked = !!data.require_qr;
     qrLabel.appendChild(qrInput);
     qrLabel.appendChild(el('span', 'checkbox__label', 'Yêu cầu tạo QR truy xuất'));
     instructionRow.appendChild(qrLabel);
@@ -233,7 +318,7 @@
     var supplyLabel = el('label', 'checkbox');
     var supplyInput = el('input', 'checkbox__input step-require-supply');
     supplyInput.type = 'checkbox';
-    supplyInput.checked = !!data.requireSupply;
+    supplyInput.checked = !!data.require_supply;
     supplyLabel.appendChild(supplyInput);
     supplyLabel.appendChild(el('span', 'checkbox__label', 'Yêu cầu dùng vật tư'));
     flagsRow.appendChild(supplyLabel);
@@ -241,7 +326,7 @@
     var imageLabel = el('label', 'checkbox');
     var imageInput = el('input', 'checkbox__input step-require-image');
     imageInput.type = 'checkbox';
-    imageInput.checked = !!data.requireImage;
+    imageInput.checked = !!data.require_image;
     imageLabel.appendChild(imageInput);
     imageLabel.appendChild(el('span', 'checkbox__label', 'Bắt buộc hình ảnh'));
     flagsRow.appendChild(imageLabel);
@@ -249,7 +334,7 @@
     body.appendChild(flagsRow);
 
     var supplyField = el('div', 'field workflow-step__supply-field');
-    supplyField.hidden = !data.requireSupply;
+    supplyField.hidden = !data.require_supply;
     supplyField.appendChild(el('label', 'label', 'Chỉ định vật tư cụ thể (Tuỳ chọn)'));
     var supplySelect = el('select', 'select step-supply-id');
     var emptyOption = el('option', null, '— Không chỉ định —');
@@ -258,7 +343,7 @@
     availableSupplies.forEach(function (supply) {
       var option = el('option', null, supply.code + ' — ' + supply.name);
       option.value = supply.id;
-      if (supply.id === data.supplyId) option.selected = true;
+      if (supply.id === data.supply_id) option.selected = true;
       supplySelect.appendChild(option);
     });
     supplyField.appendChild(supplySelect);
@@ -283,17 +368,22 @@
     addStep();
   }
 
+  // Trả về snake_case khớp TemplateStep thật (backend) — supplyId/instruction
+  // rỗng gửi `null` thay vì chuỗi rỗng, đúng khuôn anyOf[string|null]/
+  // anyOf[uuid|null] của schema (không phải optional string luôn có giá trị).
   function collectSteps() {
     return Array.prototype.map.call(stepsList.querySelectorAll('[data-step-card]'), function (card) {
       var requireSupply = card.querySelector('.step-require-supply').checked;
+      var supplyId = requireSupply ? card.querySelector('.step-supply-id').value : '';
+      var instruction = card.querySelector('.step-instruction').value.trim();
       return {
         name: card.querySelector('.step-name').value.trim(),
-        activityType: card.querySelector('.step-type').value,
-        instruction: card.querySelector('.step-instruction').value.trim(),
-        requireQr: card.querySelector('.step-require-qr').checked,
-        requireSupply: requireSupply,
-        supplyId: requireSupply ? card.querySelector('.step-supply-id').value : '',
-        requireImage: card.querySelector('.step-require-image').checked
+        activity_type: card.querySelector('.step-type').value,
+        instruction: instruction || null,
+        require_qr: card.querySelector('.step-require-qr').checked,
+        require_supply: requireSupply,
+        supply_id: supplyId || null,
+        require_image: card.querySelector('.step-require-image').checked
       };
     });
   }
@@ -304,6 +394,7 @@
   var form = document.getElementById('template-form');
   var modalTitle = document.getElementById('template-modal-title');
   var submitLabel = document.querySelector('[data-template-submit-label]');
+  var submitButton = form.querySelector('button[type="submit"]');
 
   var editingTemplateId = null;
 
@@ -335,6 +426,7 @@
 
   function closeModal() {
     modal.close();
+    editingTemplateId = null;
   }
 
   /* --- Kiểm tra dữ liệu ----------------------------------------------------- */
@@ -374,6 +466,19 @@
     return true;
   }
 
+  // Ánh xạ tên field backend trả về trong lỗi (details.field) sang đúng
+  // input trên form — khớp WorkflowTemplateCreate/Update thật. Lỗi ở field
+  // "steps" (mảng, VD 1 bước thiếu activity_type hợp lệ) không map được về
+  // 1 input cụ thể — rơi về toast chung.
+  function fieldNodeFor(fieldName) {
+    var map = {
+      name: 'template-name',
+      description: 'template-description'
+    };
+    var id = map[fieldName];
+    return id ? document.getElementById(id) : null;
+  }
+
   function handleSubmit(event) {
     event.preventDefault();
     if (!validate()) return;
@@ -381,26 +486,66 @@
     var data = new FormData(form);
     var payload = {
       name: String(data.get('name') || '').trim(),
-      description: String(data.get('description') || '').trim(),
+      description: String(data.get('description') || '').trim() || null,
       steps: collectSteps()
     };
 
-    if (editingTemplateId) {
-      store.update('workflowTemplates', editingTemplateId, payload);
-    } else {
-      store.insert('workflowTemplates', payload);
-    }
+    submitButton.disabled = true;
+    submitLabel.textContent = 'Đang lưu...';
 
-    closeModal();
-    render();
-    global.AgriChain.toast(editingTemplateId ? 'Đã lưu thay đổi.' : 'Đã tạo mẫu quy trình.');
+    var request = editingTemplateId
+      ? api.workflowTemplates.update(editingTemplateId, payload)
+      : api.workflowTemplates.create(payload);
+
+    request.then(function () {
+      closeModal();
+      loadTemplates();
+      global.AgriChain.toast(editingTemplateId ? 'Đã lưu thay đổi.' : 'Đã tạo mẫu quy trình.');
+    }).catch(function (err) {
+      if (err.details && err.details.field) {
+        var field = fieldNodeFor(err.details.field);
+        if (field) {
+          showError(field, err.message);
+          field.focus();
+        } else {
+          global.AgriChain.toast(err.message);
+        }
+      } else {
+        global.AgriChain.toast(err.message);
+      }
+    }).then(function () {
+      submitButton.disabled = false;
+      submitLabel.textContent = editingTemplateId ? 'Lưu thay đổi' : 'Lưu quy trình';
+    });
+  }
+
+  // Ẩn nút nào người dùng hiện tại không có quyền — đánh dấu sẵn bằng
+  // data-requires-permission="<mã quyền>" trên nút trong HTML.
+  function applyPermissionGates() {
+    document.querySelectorAll('[data-requires-permission]').forEach(function (node) {
+      var code = node.getAttribute('data-requires-permission');
+      if (!api.hasPermission(code)) node.hidden = true;
+    });
   }
 
   /* --- Khởi động -------------------------------------------------------------- */
 
   document.addEventListener('DOMContentLoaded', function () {
+    applyPermissionGates();
     loadSupplyOptions();
-    render();
+    loadTemplates();
+
+    searchInput.addEventListener('input', handleSearchInput);
+    prevPageBtn.addEventListener('click', function () {
+      if (listState.page <= 1) return;
+      listState.page -= 1;
+      loadTemplates();
+    });
+    nextPageBtn.addEventListener('click', function () {
+      listState.page += 1;
+      loadTemplates();
+    });
+    document.querySelector('[data-template-retry]').addEventListener('click', loadTemplates);
 
     document.querySelectorAll('[data-open-template-form]').forEach(function (button) {
       button.addEventListener('click', function () { openModal(); });
