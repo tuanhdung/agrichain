@@ -111,42 +111,113 @@
       justify-content: center;
     }
     @media (min-width: 960px) {
-      .hero__showcase { justify-content: flex-end; }
+      .hero__showcase {
+        justify-content: flex-end;
+        /* .hero__showcase CŨNG là display:flex, chứa đúng 1 con có
+           width:100% (.hero__video) — ở hàng ngang (flex-direction: row
+           của .hero__layout), nếu không cho .hero__showcase 1 width cố
+           định thì nó co theo nội dung, mà nội dung lại tính % theo
+           chính nó -> vòng lặp không giải được, trình duyệt co về gần 0
+           (chỉ lộ ra ở ≥960px vì ở dưới đó .hero__layout là column,
+           .hero__showcase tự nhận đủ bề rộng qua align-items:stretch
+           mặc định, không phụ thuộc con). min-width:0 để vẫn co được
+           nếu màn hẹp hơn 540px thật (mặc định flex item có
+           min-width:auto, có thể chặn co dưới kích thước nội dung — nhờ
+           đó ở đúng ngưỡng 960px, khi .hero__inner + gap + khung video
+           cộng lại vượt bề rộng .container còn lại, cả 2 bên tự co theo
+           tỉ lệ qua flex-shrink mặc định, không tràn ra ngoài). */
+        width: 540px;
+        min-width: 0;
+      }
     }
 
-    .hero__card {
+    /* Khung video giới thiệu — thay cho .hero__card (thẻ "Đã xác thực") cũ,
+       giữ nguyên vị trí trong .hero__showcase (kích thước rộng hơn 1 chút
+       so với .hero__card cũ — 540px thay vì 420px — vì video cần không
+       gian ngang nhiều hơn 1 thẻ thông tin, cân đối hơn với cột chữ bên
+       trái .hero__inner, max-width 560px). Dùng facade (ảnh thumbnail +
+       nút play) thay vì nhúng <iframe> YouTube ngay từ đầu — xem
+       js/video-intro.js để biết lý do hiệu năng (trang chủ là trang đầu
+       tiên khách vào, iframe YouTube tải sẵn JS nặng dù chưa bấm play). */
+    .hero__video {
+      position: relative;
       width: 100%;
-      max-width: 420px;
+      max-width: 540px;
+      aspect-ratio: 16 / 9;
+      border-radius: var(--radius-lg);
       box-shadow: var(--shadow-xl);
-    }
-    .hero__card .badge {
-      margin-bottom: var(--space-2);
-    }
-
-    .hero__timeline {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-3);
+      overflow: hidden;
+      background: var(--neutral-900);
     }
 
-    .hero__timeline-item {
+    .hero__video-frame {
+      position: absolute;
+      inset: 0;
+    }
+    .hero__video-frame iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .hero__video-facade {
+      position: relative;
+      display: block;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      border: none;
+      background: none;
+      cursor: pointer;
+    }
+    .hero__video-facade img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .hero__video-facade::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.25);
+      transition: background var(--transition-base);
+    }
+    .hero__video-facade:hover::after,
+    .hero__video-facade:focus-visible::after {
+      background: rgba(0, 0, 0, 0.4);
+    }
+
+    .hero__video-play-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1;
       display: flex;
       align-items: center;
-      gap: var(--space-3);
+      justify-content: center;
+      width: var(--space-16);
+      height: var(--space-16);
+      border-radius: var(--radius-full);
+      background: var(--color-bg);
+      box-shadow: var(--shadow-lg);
+      transition: transform var(--transition-base);
     }
-    .hero__timeline-item .icon {
-      color: var(--color-primary);
+    .hero__video-facade:hover .hero__video-play-button,
+    .hero__video-facade:focus-visible .hero__video-play-button {
+      transform: translate(-50%, -50%) scale(1.08);
     }
-
-    .hero__timeline-label {
-      flex: 1;
-      font-size: var(--text-sm);
-      color: var(--color-text);
-    }
-
-    .hero__timeline-date {
-      font-size: var(--text-xs);
-      color: var(--color-text-muted);
+    /* Tam giác play vẽ bằng CSS thuần (sprite.svg chưa có icon play) — dịch
+       nhẹ sang phải bằng margin để cân giữa quang học trong vòng tròn. */
+    .hero__video-play-button::before {
+      content: '';
+      margin-left: 4px;
+      border-style: solid;
+      border-width: 11px 0 11px 18px;
+      border-color: transparent transparent transparent var(--color-primary);
     }
 
     .hero__scroll {
@@ -496,50 +567,29 @@
 
             <div class="hero__stats">
               <div class="hero__stat">
-                <span class="hero__stat-value">1.247</span>
+                <span class="hero__stat-value">1.247+</span>
                 <span class="hero__stat-label">Nông hộ</span>
               </div>
               <div class="hero__stat">
-                <span class="hero__stat-value">38</span>
+                <span class="hero__stat-value">33</span>
                 <span class="hero__stat-label">Tỉnh thành</span>
               </div>
               <div class="hero__stat">
-                <span class="hero__stat-value">12.400</span>
+                <span class="hero__stat-value">12.400+</span>
                 <span class="hero__stat-label">Lô hàng đã xác thực</span>
               </div>
             </div>
           </div>
 
           <div class="hero__showcase">
-            <div class="card hero__card">
-              <div class="card__header">
-                <span class="badge badge--info">Đã xác thực</span>
-                <h3 class="card__title">Lô #AGC-2408-0193</h3>
-                <p class="card__subtitle">Nông hộ Nguyễn Văn A — Đắk Lắk</p>
-              </div>
-              <div class="card__body">
-                <ul class="hero__timeline" role="list">
-                  <li class="hero__timeline-item">
-                    <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-seedling"></use></svg>
-                    <span class="hero__timeline-label">Gieo trồng</span>
-                    <span class="hero__timeline-date">15/06/2026</span>
-                  </li>
-                  <li class="hero__timeline-item">
-                    <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-leaf"></use></svg>
-                    <span class="hero__timeline-label">Thu hoạch</span>
-                    <span class="hero__timeline-date">10/08/2026</span>
-                  </li>
-                  <li class="hero__timeline-item">
-                    <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-truck"></use></svg>
-                    <span class="hero__timeline-label">Vận chuyển</span>
-                    <span class="hero__timeline-date">14/08/2026</span>
-                  </li>
-                  <li class="hero__timeline-item">
-                    <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-warehouse"></use></svg>
-                    <span class="hero__timeline-label">Lên kệ</span>
-                    <span class="hero__timeline-date">18/08/2026</span>
-                  </li>
-                </ul>
+            <div class="hero__video">
+              <div class="hero__video-frame" data-video-frame>
+                <button type="button" class="hero__video-facade" data-video-facade
+                  aria-label="Phát video giới thiệu AgriChain">
+                  <img src="https://img.youtube.com/vi/5dK7Ek3KkU8/maxresdefault.jpg"
+                    alt="Ảnh xem trước video giới thiệu nền tảng AgriChain" loading="lazy" />
+                  <span class="hero__video-play-button" aria-hidden="true"></span>
+                </button>
               </div>
             </div>
           </div>
@@ -832,5 +882,6 @@
 
   <script src="js/header.js?v=3" defer></script>
   <script src="js/contact-form.js?v=2" defer></script>
+  <script src="js/video-intro.js?v=1" defer></script>
 </body>
 </html>

@@ -739,8 +739,10 @@ frontend không đụng tới token nữa) trước khi lên production.**
 
 Trang chủ (`index.html`) hiện có Hero, Tính Năng, Quy Trình, Lợi Ích, CTA, Liên Hệ, Footer.
 Form Liên Hệ mới validate + hiện thông báo phía client, chưa gửi đi đâu thật. Menu header/
-footer mục "E-commerce" trỏ sang `ecommerce.html` (xem mục riêng bên dưới). Chưa có: tích
-hợp AI thật.
+footer mục "E-commerce" trỏ sang `agriverse-3d.html` (2026-09-08, trước đó trỏ
+`ecommerce.html` — trang cũ vẫn còn nguyên trên đĩa, không bị xoá, chỉ không còn liên kết
+từ menu chính; xem mục "Hero — video giới thiệu" bên dưới cho phần Hero, mục "E-commerce
+công khai" bên dưới mô tả `ecommerce.html`). Chưa có: tích hợp AI thật.
 
 Trang Blog (`blog.html` + `blog-chi-tiet.html`) đã có ở mức cơ bản: hero + danh sách 3 bài viết
 + trang chi tiết đọc nội dung đầy đủ (đoạn văn/tiêu đề phụ/danh sách), cả 2 trang cùng đọc từ
@@ -761,6 +763,48 @@ Trang truy xuất nguồn gốc (`truy-xuat.html`) đã có ở mức cơ bản:
 (hoặc `?ma=...` trực tiếp), thấy trạng thái xác thực blockchain + thông tin nông trại/mùa
 vụ liên quan. Chưa có: liệt kê nhiều lô hàng, tìm kiếm theo mã tự nhập tay trên trang, xác
 thực lại (verify) hash ngay tại trang này thay vì chỉ đọc `batch.hash` đã lưu sẵn.
+
+## Hero — video giới thiệu (`index.html`)
+
+Cột phải của Hero (`.hero__showcase`) **không còn hiện thẻ "Đã xác thực"** (badge + mã lô
+`#AGC-2408-0193` + timeline gieo trồng/thu hoạch/vận chuyển/lên kệ, class `.hero__card`,
+2026-09-09 đã xoá hẳn) — thay bằng khung video giới thiệu 16:9 (`.hero__video`), giữ nguyên
+vị trí và bố cục 2 cột của `.hero__layout` (kích thước rộng hơn 1 chút so với `.hero__card`
+cũ — `max-width: 540px` thay vì `420px`, video cần không gian ngang nhiều hơn 1 thẻ thông
+tin). 4 icon từng dùng ở timeline đó (`icon-seedling`/`icon-leaf`/`icon-truck`/
+`icon-warehouse`) đã kiểm tra vẫn được dùng rộng rãi ở nhiều trang khác trong dự án
+(sidebar, badge trạng thái...) — **không xoá khỏi `icons/sprite.svg`**.
+
+**⚠️ Bug đã vá — flex item chứa con `width: 100%` tự co về 0 ở bố cục hàng ngang**:
+`.hero__showcase` bản thân cũng là `display: flex` (chỉ để canh `.hero__video` sang phải ở
+desktop), và là 1 flex item của `.hero__layout` khi layout đó chuyển `flex-direction: row`
+(≥960px). Chỉ đặt `width: 100%` trên `.hero__video` (con) là KHÔNG đủ nếu `.hero__showcase`
+(cha, cũng là flex item) không có width cố định — cha co theo nội dung, nội dung lại tính %
+theo chính cha, vòng lặp không giải được nên trình duyệt co cả 2 về gần 0. Lỗi CHỈ lộ ra ở
+≥960px vì dưới đó `.hero__layout` là `column`, `.hero__showcase` tự nhận đủ bề rộng qua
+`align-items: stretch` mặc định (không phụ thuộc con). Đã vá bằng cách cho `.hero__showcase`
+1 `width: 540px` cố định (khớp `max-width` của `.hero__video`) + `min-width: 0` (phá mặc
+định `min-width: auto` của flex item, để vẫn co được nếu màn hẹp hơn 540px) trong đúng
+`@media (min-width: 960px)`. Bài học chung: khi 1 phần tử `display: flex` được đặt LÀM flex
+item của 1 flex container khác, và con trực tiếp của nó dùng `width`/`height` theo phần
+trăm, luôn kiểm tra chính nó (không chỉ con) có nguồn kích thước xác định (width cố định,
+hoặc `flex-basis` không phải `auto`/content-based) hay chưa — thiếu 1 mắt xích là sập cả
+chuỗi %.
+
+**Kỹ thuật nhúng — facade, KHÔNG nhúng `<iframe>` YouTube ngay từ đầu**: iframe YouTube tải
+sẵn JS nặng ngay cả khi chưa bấm play, làm chậm trang chủ — đây là trang đầu tiên khách vào,
+cần tải nhanh nhất có thể. `js/video-intro.js` ban đầu chỉ hiện `.hero__video-facade` (nút
+`<button>` — có sẵn hành vi bàn phím Enter/Space, không cần tự bắt `keydown`) chứa ảnh
+thumbnail YouTube (`img.youtube.com/vi/<id>/maxresdefault.jpg`) + lớp phủ tối mờ (CSS
+`::after`) + nút play tròn `.hero__video-play-button` (tam giác vẽ bằng CSS `border-*` thuần,
+KHÔNG có icon play nào trong `icons/sprite.svg`). Bấm vào mới tạo `<iframe>` thật và chèn vào
+`.hero__video-frame` (`data-video-frame`), trỏ **`youtube-nocookie.com`** (không phải
+`youtube.com`) để giảm cookie/tracking khi người dùng chưa chắc đã muốn xem.
+
+**⚠️ Video ID hiện tại (`5dK7Ek3KkU8`) là TẠM THỜI** — chưa phải video giới thiệu chính thức
+của AgriChain, đánh dấu bằng comment `// TODO: thay bằng ID video giới thiệu chính thức khi
+có` ngay trên khai báo `VIDEO_ID` trong `js/video-intro.js`. Nhớ thay ID này (và ảnh
+thumbnail sẽ tự đổi theo vì lấy từ đúng ID) trước khi lên production.
 
 ## Mẫu quy trình mùa vụ (`mau-quy-trinh.html`)
 
