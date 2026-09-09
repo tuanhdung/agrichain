@@ -40,7 +40,12 @@
     @media (min-width: 960px) {
       .hero__layout {
         flex-direction: row;
-        align-items: flex-start;
+        /* center (không phải flex-start) — khung video (.hero__showcase)
+           thấp hơn cột chữ (.hero__inner, có tiêu đề+mô tả+nút+thống kê)
+           nên flex-start từng khiến video bị dồn lên sát đỉnh hàng thay vì
+           nằm giữa; center thì 2 cột tự canh theo tâm chiều cao của nhau,
+           giống lg:items-center ở agriverse-3d.html. */
+        align-items: center;
         justify-content: space-between;
         gap: var(--space-12);
       }
