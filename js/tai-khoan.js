@@ -7,11 +7,21 @@
    được XÁC NHẬN THẬT qua /openapi.json + dữ liệu thật của backend (không
    còn là giả định) — xem mục riêng về trang này trong CLAUDE.md.
 
-   28 mã quyền thật, dạng "<nhóm số nhiều>.<hành động>" (4 hành động
-   add/edit/view/delete x 7 nhóm nghiệp vụ: certifications, farms, logs,
-   roles, seasons, supplies, users) — permission KHÔNG có id số, chỉ có
+   32 mã quyền hiển thị trong ma trận, dạng "<nhóm số nhiều>.<hành động>" (4
+   hành động add/edit/view/delete x 8 nhóm nghiệp vụ: certifications, farms,
+   logs, roles, seasons, supplies, users, workflow_templates — hàng
+   workflow_templates thêm 2026-09-11) — permission KHÔNG có id số, chỉ có
    `code` (chuỗi) — role.permissions và PATCH /roles/{id} đều làm việc
-   trực tiếp trên mảng chuỗi mã quyền này, không phải mảng id.
+   trực tiếp trên mảng chuỗi mã quyền này, không phải mảng id. Backend còn có
+   thêm 4 mã "batches.*" (group_name "Lô hàng") CHƯA đưa vào ma trận này —
+   xem ghi chú ở PREFIX_ORDER.
+
+   Vai trò is_system=true (VD "Quản trị Đơn vị" tự tạo lúc đăng ký business,
+   xem POST /auth/register/business) — modal Phân quyền mở READ-ONLY cho vai
+   trò này (checkbox disabled, ẩn nút Lưu, xem loadPermissionMatrix()); nút
+   "Nhường quyền quản trị" (modal riêng, gọi api.users.transferAdmin()) CHỈ
+   hiện khi vai trò của người đang đăng nhập là is_system=true — xem mục
+   riêng về trang này trong CLAUDE.md để biết đầy đủ khuôn lỗi 401/403/409.
    Nạp SAU js/api-config.js, js/api.js, js/app-shell.js và js/password-field.js.
    ========================================================================== */
 
@@ -30,14 +40,28 @@
   // nếu hiển thị theo group_name thì 1 ô (nhóm x hành động) sẽ có 2 mã quyền
   // (VD "roles.view" và "users.view" cùng rơi vào ô "Xem" của "Quản lý đơn
   // vị"), phá vỡ giả định "1 checkbox = 1 mã quyền" của bảng ma trận. Tách
-  // theo tiền tố mã quyền cho ra đúng 7 hàng, mỗi hàng 1 mã quyền/hành động.
-  var PREFIX_ORDER = ['farms', 'certifications', 'seasons', 'supplies', 'logs', 'roles', 'users'];
+  // theo tiền tố mã quyền cho ra đúng 8 hàng, mỗi hàng 1 mã quyền/hành động.
+  //
+  // "workflow_templates" thêm 2026-09-11 (mẫu quy trình mùa vụ đã chuyển
+  // sang API từ trước — xem mau-quy-trinh.html — nhưng ma trận này chưa có
+  // hàng tương ứng, khiến quyền workflow_templates.* của 1 vai trò không sửa
+  // được qua giao diện, xem CLAUDE.md).
+  //
+  // ⚠️ ĐÃ PHÁT HIỆN THÊM (2026-09-11, gọi thật GET /permissions): backend giờ
+  // CÒN CÓ 1 nhóm quyền "batches" (batches.add/edit/view/delete, group_name
+  // "Lô hàng") ngoài 8 nhóm dưới đây — CHƯA thêm vào PREFIX_ORDER vì
+  // `batches` (lô hàng) phía frontend vẫn dùng store.js, chưa chuyển sang
+  // API (xem CLAUDE.md mục "Kết nối backend") nên chưa có trang nào thật sự
+  // cần gán quyền này qua giao diện — để lại cho đợt chuyển `batches` sang
+  // API (giai đoạn 3), ngoài phạm vi lần sửa này.
+  var PREFIX_ORDER = ['farms', 'certifications', 'seasons', 'supplies', 'logs', 'workflow_templates', 'roles', 'users'];
   var PREFIX_LABELS = {
     farms: 'Nông trại',
     certifications: 'Chứng nhận',
     seasons: 'Mùa vụ',
     supplies: 'Vật tư',
     logs: 'Nhật ký',
+    workflow_templates: 'Mẫu quy trình',
     roles: 'Vai trò',
     users: 'Người dùng'
   };
@@ -47,6 +71,7 @@
     seasons: 'icon-calendar',
     supplies: 'icon-box',
     logs: 'icon-file-text',
+    workflow_templates: 'icon-workflow',
     roles: 'icon-shield-check',
     users: 'icon-user'
   };
@@ -574,21 +599,27 @@
   var permissionErrorMessage = document.querySelector('[data-permission-error-message]');
   var permissionTableWrap = document.querySelector('[data-permission-table-wrap]');
   var permissionTableBody = document.querySelector('[data-permission-table-body]');
+  var permissionReadonlyNotice = document.querySelector('[data-permission-readonly-notice]');
   var savePermissionBtn = document.querySelector('[data-save-permission]');
 
   var currentPermissionUser = null;
   var currentRole = null;
   // Mã quyền (code) của MỌI quyền đã render thành checkbox trong bảng — quyền
   // của vai trò hiện tại mà KHÔNG nằm trong tập này (nhóm/hành động lạ ngoài
-  // 7 phân hệ x 4 hành động đang hiển thị) sẽ được giữ nguyên khi lưu, xem
+  // 8 phân hệ x 4 hành động đang hiển thị) sẽ được giữ nguyên khi lưu, xem
   // handlePermissionSave().
   var managedCodes = null;
 
-  function setPermissionView(view) {
+  // isSystemRole: vai trò is_system=true — backend chặn PATCH /roles/{id}
+  // sửa permissions (409 CONFLICT), nên ẩn luôn nút Lưu ở đây thay vì để bấm
+  // vào việc chắc chắn thất bại. Mặc định false ở view 'loading'/'error'
+  // (chưa biết currentRole) — không sao vì savePermissionBtn cũng ẩn ở 2
+  // view đó rồi (view !== 'data').
+  function setPermissionView(view, isSystemRole) {
     permissionLoading.hidden = view !== 'loading';
     permissionError.hidden = view !== 'error';
     permissionTableWrap.hidden = view !== 'data';
-    savePermissionBtn.hidden = view !== 'data' || !api.hasPermission('roles.edit');
+    savePermissionBtn.hidden = view !== 'data' || !api.hasPermission('roles.edit') || !!isSystemRole;
   }
 
   // groupsFromApi: PermissionGroupOut[] — GET /permissions ĐÃ nhóm sẵn theo
@@ -717,7 +748,19 @@
         permissionTableBody.appendChild(permissionRow(group, grantedCodes));
       });
 
-      setPermissionView('data');
+      // Vai trò hệ thống (is_system=true) — khoá hết checkbox, kể cả những ô
+      // đã được permissionRow() gán .checked từ grantedCodes ở trên, để
+      // giao diện không hứa hẹn 1 thay đổi mà backend chắc chắn từ chối
+      // (409 CONFLICT, xem roles.py:update_role của agrichain-api).
+      var isSystemRole = !!currentRole.is_system;
+      permissionReadonlyNotice.hidden = !isSystemRole;
+      if (isSystemRole) {
+        permissionTableBody.querySelectorAll('input[type="checkbox"]').forEach(function (checkbox) {
+          checkbox.disabled = true;
+        });
+      }
+
+      setPermissionView('data', isSystemRole);
     }).catch(function (err) {
       permissionErrorMessage.textContent = err.message;
       setPermissionView('error');
@@ -732,6 +775,10 @@
     permissionName.textContent = user.full_name;
     permissionEmail.textContent = user.email;
     permissionRoleName.textContent = '—';
+    // Reset về ẩn mỗi lần mở — tránh còn hiện lại ghi chú chỉ-đọc của lần mở
+    // TRƯỚC (VD vừa xem 1 vai trò is_system, đóng lại, mở người khác có vai
+    // trò thường) trong lúc loadPermissionMatrix() còn đang tải.
+    permissionReadonlyNotice.hidden = true;
 
     permissionModal.showModal();
     loadPermissionMatrix(user);
@@ -752,9 +799,10 @@
       if (checkbox.checked) checkedCodes.push(checkbox.dataset.code);
     });
 
-    // Giữ nguyên các quyền của vai trò này nằm NGOÀI 7 phân hệ x 4 hành
-    // động đang hiển thị (nhóm lạ/hành động lạ) — không được vô tình xoá
-    // mất khi lưu, xem ghi chú ở khai báo managedCodes phía trên.
+    // Giữ nguyên các quyền của vai trò này nằm NGOÀI 8 phân hệ x 4 hành
+    // động đang hiển thị (nhóm lạ/hành động lạ, VD "batches.*" — xem ghi chú
+    // ở PREFIX_ORDER) — không được vô tình xoá mất khi lưu, xem ghi chú ở
+    // khai báo managedCodes phía trên.
     var keptCodes = (currentRole.permissions || [])
       .filter(function (code) { return !managedCodes[code]; });
 
@@ -774,6 +822,217 @@
     });
   }
 
+  /* ======================================================================
+     Nhường quyền quản trị (POST /users/{id}/transfer-admin) — chỉ hiện với
+     người đang đăng nhập giữ vai trò is_system=true (Quản trị Đơn vị).
+     ====================================================================== */
+
+  // Gọi 1 lần lúc tải trang — hiện/ẩn nút "Nhường quyền quản trị" tuỳ vai
+  // trò CỦA CHÍNH NGƯỜI ĐANG ĐĂNG NHẬP có is_system=true hay không.
+  // AgriChain.api.getUser() không có field is_system (UserOut chỉ có
+  // role_id/role_code/role_name) nên phải tự đối chiếu qua GET /roles.
+  function refreshTransferAdminVisibility() {
+    var me = api.getUser();
+    if (!me) return;
+    api.roles.list().then(function (roleList) {
+      var myRole = roleList.filter(function (role) { return role.id === me.role_id; })[0];
+      var isOrgAdmin = !!(myRole && myRole.is_system);
+      document.querySelectorAll('[data-open-transfer-admin]').forEach(function (button) {
+        button.hidden = !isOrgAdmin;
+      });
+    }).catch(function () {
+      // Không tải được vai trò — giữ nút ẩn (mặc định trong HTML), an toàn
+      // hơn là lỡ hiện nhầm cho người không phải Quản trị Đơn vị.
+    });
+  }
+
+  var transferAdminModal = document.getElementById('transfer-admin-modal');
+  var transferAdminForm = document.getElementById('transfer-admin-form');
+  var transferAdminTargetSelect = document.getElementById('transfer-admin-target');
+  var transferAdminRoleSelect = document.getElementById('transfer-admin-role');
+  var transferAdminPasswordInput = document.getElementById('transfer-admin-password');
+  var transferAdminSubmitButton = transferAdminForm.querySelector('button[type="submit"]');
+  var transferAdminSubmitLabel = transferAdminSubmitButton.textContent;
+
+  // Danh sách người nhận: user CÙNG Đơn vị (GET /users tự lọc theo Đơn vị
+  // của người gọi, không cần tự lọc thêm), đang is_active, KHÔNG gồm chính
+  // mình. page_size: 100 (mức tối đa backend cho phép) thay vì phân trang
+  // 10/trang như bảng chính — đây là 1 select chọn nhanh, không phải danh
+  // sách để duyệt trang.
+  function populateTransferAdminTargets() {
+    var me = api.getUser();
+    transferAdminTargetSelect.disabled = true;
+    transferAdminTargetSelect.textContent = '';
+    transferAdminTargetSelect.appendChild(el('option', null, 'Đang tải danh sách người dùng...'));
+
+    return api.users.list({ is_active: true, page_size: 100 }).then(function (data) {
+      var candidates = (data.items || []).filter(function (u) { return u.id !== me.id; });
+
+      transferAdminTargetSelect.textContent = '';
+      if (!candidates.length) {
+        transferAdminTargetSelect.appendChild(el('option', null, 'Không có người dùng nào khác để nhường quyền'));
+        return;
+      }
+
+      var blank = el('option', null, '-- Chọn người nhận --');
+      blank.value = '';
+      transferAdminTargetSelect.appendChild(blank);
+      candidates.forEach(function (u) {
+        var option = el('option', null, u.full_name + ' (' + u.email + ')');
+        option.value = u.id;
+        transferAdminTargetSelect.appendChild(option);
+      });
+      transferAdminTargetSelect.disabled = false;
+    }).catch(function (err) {
+      transferAdminTargetSelect.textContent = '';
+      transferAdminTargetSelect.appendChild(el('option', null, 'Không tải được danh sách người dùng'));
+      global.AgriChain.toast(err.message);
+    });
+  }
+
+  // Vai trò mới cho CHÍNH người đang nhường — loại bỏ vai trò is_system vì
+  // không có ý nghĩa "chuyển sang chính vai trò mình sắp nhường đi" (Đơn vị
+  // hiện chỉ có đúng 1 vai trò is_system: "Quản trị Đơn vị", chính là vai
+  // trò đang giữ).
+  function populateTransferAdminRoles() {
+    transferAdminRoleSelect.disabled = true;
+    transferAdminRoleSelect.textContent = '';
+    transferAdminRoleSelect.appendChild(el('option', null, 'Đang tải vai trò...'));
+
+    return api.roles.list().then(function (roleList) {
+      var candidates = roleList.filter(function (role) { return !role.is_system; });
+
+      transferAdminRoleSelect.textContent = '';
+      if (!candidates.length) {
+        transferAdminRoleSelect.appendChild(el('option', null, 'Chưa có vai trò nào khác — tạo vai trò mới trước'));
+        return;
+      }
+
+      var blank = el('option', null, '-- Chọn vai trò mới cho bạn --');
+      blank.value = '';
+      transferAdminRoleSelect.appendChild(blank);
+      candidates.forEach(function (role) {
+        var option = el('option', null, role.name);
+        option.value = role.id;
+        transferAdminRoleSelect.appendChild(option);
+      });
+      transferAdminRoleSelect.disabled = false;
+    }).catch(function (err) {
+      transferAdminRoleSelect.textContent = '';
+      transferAdminRoleSelect.appendChild(el('option', null, 'Không tải được vai trò'));
+      global.AgriChain.toast(err.message);
+    });
+  }
+
+  function openTransferAdminModal() {
+    transferAdminForm.reset();
+    clearErrors(transferAdminForm);
+    transferAdminModal.showModal();
+    populateTransferAdminTargets();
+    populateTransferAdminRoles();
+  }
+
+  function closeTransferAdminModal() {
+    transferAdminModal.close();
+  }
+
+  // Ánh xạ field lỗi (details.field) của TransferAdminRequest — chỉ 2 field
+  // trong body, "password" sai KHÔNG đi qua đường này (backend trả 401 riêng,
+  // xem handleTransferAdminSubmit()).
+  function transferAdminFieldNodeFor(fieldName) {
+    var map = {
+      new_role_id_for_current_admin: 'transfer-admin-role',
+      password: 'transfer-admin-password'
+    };
+    var id = map[fieldName];
+    return id ? document.getElementById(id) : null;
+  }
+
+  function handleTransferAdminSubmit(event) {
+    event.preventDefault();
+    clearErrors(transferAdminForm);
+
+    var problems = [];
+    if (!transferAdminTargetSelect.value) {
+      showError(transferAdminTargetSelect, 'Chọn người nhận quyền quản trị.');
+      problems.push(transferAdminTargetSelect);
+    }
+    if (!transferAdminRoleSelect.value) {
+      showError(transferAdminRoleSelect, 'Chọn vai trò mới cho bạn.');
+      problems.push(transferAdminRoleSelect);
+    }
+    if (!transferAdminPasswordInput.value) {
+      showError(transferAdminPasswordInput, 'Nhập mật khẩu hiện tại để xác nhận.');
+      problems.push(transferAdminPasswordInput);
+    }
+    if (problems.length) {
+      problems[0].focus();
+      return;
+    }
+
+    var targetUserId = transferAdminTargetSelect.value;
+    var newRoleId = Number(transferAdminRoleSelect.value);
+    var password = transferAdminPasswordInput.value;
+    var me = api.getUser();
+
+    transferAdminSubmitButton.disabled = true;
+    transferAdminSubmitButton.textContent = 'Đang xử lý...';
+
+    api.users.transferAdmin(targetUserId, {
+      new_role_id_for_current_admin: newRoleId,
+      password: password
+    }).then(function () {
+      // QUAN TRỌNG: KHÔNG chỉ gọi api.auth.me() — permissions trong access
+      // token hiện tại lấy thẳng từ payload JWT lúc CẤP token (xem
+      // CurrentUser.permissions, agrichain-api/app/dependencies.py), me()
+      // không cấp lại token nên vẫn trả về mảng quyền CŨ dù role_id/role_name
+      // đã đổi (vai trò MỚI chỉ có hiệu lực với token cấp SAU đó). Đăng nhập
+      // lại NGAY bằng chính email/mật khẩu vừa xác nhận để lấy token mới —
+      // cũng là cách DUY NHẤT, vì backend đã tự thu hồi refresh token của
+      // người gọi ngay trong transfer_admin() (agrichain-api/app/routers/
+      // users.py), lần /auth/refresh kế tiếp chắc chắn thất bại.
+      return api.auth.login(me.email, password, api.isRemembered()).catch(function () {
+        // Nhường quyền ĐÃ THÀNH CÔNG dù bước đăng nhập lại tự động này lỗi
+        // (mạng chập chờn...) — không được coi đây là lỗi của thao tác
+        // nhường quyền (xem nhánh .catch cuối cùng bên dưới, chỉ xử lý lỗi
+        // của chính transferAdmin()). Vẫn tải lại trang — requireAuth()/
+        // listener pageshow sẽ tự đưa về trang đăng nhập nếu token cũ hết
+        // hạn thật.
+        global.AgriChain.toast(
+          'Đã nhường quyền quản trị, nhưng không tự làm mới được phiên đăng ' +
+          'nhập — đăng nhập lại nếu giao diện có gì bất thường.'
+        );
+      });
+    }).then(function () {
+      closeTransferAdminModal();
+      global.location.reload();
+    }).catch(function (err) {
+      transferAdminSubmitButton.disabled = false;
+      transferAdminSubmitButton.textContent = transferAdminSubmitLabel;
+
+      // Sai mật khẩu xác nhận -> 401 UNAUTHORIZED (KHÔNG phải 403) — xem
+      // transfer_admin() trong agrichain-api.
+      if (err.status === 401) {
+        showError(transferAdminPasswordInput, err.message);
+        transferAdminPasswordInput.focus();
+        return;
+      }
+      if (err.details && err.details.field) {
+        var field = transferAdminFieldNodeFor(err.details.field);
+        if (field) {
+          showError(field, err.message);
+          field.focus();
+          return;
+        }
+      }
+      // 403 (tự thao tác chính mình — không nên xảy ra ở luồng UI này vì đã
+      // loại chính mình khỏi danh sách người nhận, xử lý phòng hờ) và 409
+      // (VD Đơn vị mất admin cuối cùng...) đều hiện qua toast, dùng đúng
+      // message tiếng Việt thật từ backend, không tự bịa thông báo.
+      global.AgriChain.toast(err.message);
+    });
+  }
+
   /* --- Khởi động -------------------------------------------------------------- */
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -786,6 +1045,7 @@
 
     applyPermissionGates();
     loadUsers();
+    refreshTransferAdminVisibility();
 
     searchInput.addEventListener('input', handleSearchInput);
 
@@ -826,5 +1086,13 @@
       if (currentPermissionUser) loadPermissionMatrix(currentPermissionUser);
     });
     savePermissionBtn.addEventListener('click', handlePermissionSave);
+
+    document.querySelectorAll('[data-open-transfer-admin]').forEach(function (button) {
+      button.addEventListener('click', openTransferAdminModal);
+    });
+    document.querySelectorAll('[data-close-transfer-admin]').forEach(function (button) {
+      button.addEventListener('click', closeTransferAdminModal);
+    });
+    transferAdminForm.addEventListener('submit', handleTransferAdminSubmit);
   });
 })(window);

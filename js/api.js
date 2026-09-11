@@ -49,6 +49,14 @@
     }
   }
 
+  // Đọc lại chế độ "Ghi nhớ đăng nhập" hiện tại (không đổi gì) — dùng khi cần
+  // TỰ đăng nhập lại ngầm (VD sau transfer-admin ở tai-khoan.js, xem
+  // CLAUDE.md) để giữ đúng lựa chọn ban đầu của người dùng, không vô tình
+  // đổi 1 phiên "không ghi nhớ" thành "ghi nhớ" hay ngược lại.
+  function isRemembered() {
+    return getStorageMode() === 'local';
+  }
+
   function activeStorage() {
     return getStorageMode() === 'session' ? global.sessionStorage : global.localStorage;
   }
@@ -137,6 +145,25 @@
 
   function isLoggedIn() {
     return !!getAccessToken();
+  }
+
+  // Đọc đồng bộ từ agrichain.user đã lưu (UserOut, xem /auth/me) — KHÔNG gọi
+  // API. account_type: 'customer' (khách hàng, không thuộc Đơn vị nào) hay
+  // 'business' (nông hộ/doanh nghiệp, luôn có organization_id) — xác nhận
+  // đúng 2 giá trị này qua app/schemas/enums.py (AccountType) của
+  // agrichain-api, không phải suy đoán.
+  function getAccountType() {
+    var user = getUser();
+    return user ? (user.account_type || null) : null;
+  }
+
+  function isBusiness() {
+    return getAccountType() === 'business';
+  }
+
+  function getOrganizationId() {
+    var user = getUser();
+    return user ? (user.organization_id || null) : null;
   }
 
   // Kiểm tra quyền trong mảng quyền đã lưu của user (từ /auth/me) — dùng để
@@ -364,6 +391,24 @@
     });
   }
 
+  // Công khai (auth: false), không tự đăng nhập sau khi tạo — trang gọi
+  // xong tự tiếp tục bằng api.auth.login(email, password) nếu muốn vào thẳng
+  // (đúng mô tả "Đăng nhập bằng POST /auth/login sau khi đăng ký" của
+  // agrichain-api). Trả về UserOut (201) khi thành công.
+  // payload: { email, password, full_name, phone? }
+  function registerCustomer(payload) {
+    return request('POST', '/auth/register/customer', { body: payload, auth: false, retry: false });
+  }
+
+  // payload: { organization: { name, tax_code?, phone?, address? }, email,
+  // password, full_name, phone? } — xem RegisterBusinessRequest/
+  // OrganizationRegisterInfo trong agrichain-api (trường `phone` lồng riêng
+  // trong `organization` là số của Đơn vị, khác `phone` ở cấp ngoài là số
+  // của người đăng ký, không được gộp chung).
+  function registerBusiness(payload) {
+    return request('POST', '/auth/register/business', { body: payload, auth: false, retry: false });
+  }
+
   /* --- users ------------------------------------------------------------- */
 
   var users = {
@@ -384,6 +429,14 @@
     },
     resetPassword: function (id, newPassword) {
       return request('POST', '/users/' + id + '/reset-password', { body: { new_password: newPassword } });
+    },
+    // data: { new_role_id_for_current_admin, password } — password là mật
+    // khẩu HIỆN TẠI của người gọi (xác thực lại danh tính), không phải mật
+    // khẩu mới; khớp đúng tên field của TransferAdminRequest, không đổi tên
+    // sang camelCase vì trang gọi hàm này tự chịu trách nhiệm map đúng field
+    // (cùng quy ước với mọi hàm *.update() khác ở file này).
+    transferAdmin: function (id, data) {
+      return request('POST', '/users/' + id + '/transfer-admin', { body: data });
     }
   };
 
@@ -556,6 +609,27 @@
     return false;
   }
 
+  // Chặn trang dành riêng cho tài khoản 'business' (nông hộ/doanh nghiệp) —
+  // account_type='customer' bị đá sang agriverse-3d.html (trang thương mại
+  // điện tử ĐANG DÙNG THẬT của dự án, KHÔNG phải ecommerce.html — trang đó
+  // giờ mồ côi, không còn nơi nào trỏ tới, xem CLAUDE.md). Gọi SAU
+  // requireAuth() ở đầu <head>: giả định trang ĐÃ đăng nhập rồi mới tới
+  // lượt kiểm account_type — nếu gọi khi chưa đăng nhập (auth chưa chạy,
+  // hoặc gọi nhầm thứ tự), !isLoggedIn() sớm return true luôn, để
+  // requireAuth() (nếu có gọi) tự xử lý ca "chưa đăng nhập",
+  // requireBusiness() không giẫm lên việc đó.
+  var pageRequiresBusiness = false;
+
+  function requireBusiness() {
+    pageRequiresBusiness = true;
+    if (!isLoggedIn()) return true;
+    if (!isBusiness()) {
+      global.location.href = 'agriverse-3d.html';
+      return false;
+    }
+    return true;
+  }
+
   // Bug bảo mật đã vá (2026-09-08): đăng xuất xong bấm nút Back của trình
   // duyệt có thể hiện lại trang cần đăng nhập (VD nong-trai.html) kèm dữ
   // liệu cũ, dù access token đã bị xoá — do trình duyệt khôi phục trang từ
@@ -564,12 +638,26 @@
   // lại để phát hiện phiên đã mất. Sự kiện 'pageshow' báo lại MỌI lần trang
   // được hiển thị, kể cả khi khôi phục từ bfcache (`event.persisted ===
   // true`, không có ở lần tải trang bình thường đầu tiên) — nghe sự kiện
-  // này ở phạm vi toàn cục (mọi trang có nạp api.js), chỉ hành động khi
-  // đúng 2 điều kiện: trang được khôi phục từ bfcache VÀ trang này thật sự
-  // cần đăng nhập (`pageRequiresAuth`) VÀ không còn access token hợp lệ.
+  // này ở phạm vi toàn cục (mọi trang có nạp api.js).
+  //
+  // Áp THÊM đúng mẫu này cho requireBusiness() (2026-09-11): kịch bản tương
+  // tự nhưng không cần đăng xuất — tài khoản 'business' A xem xong 1 trang
+  // quản trị, đăng xuất, tài khoản 'customer' B đăng nhập TRÊN CÙNG trình
+  // duyệt, rồi bấm Back → bfcache khôi phục lại trang quản trị của A, phiên
+  // hiện tại (B) vẫn còn access token HỢP LỆ (requireAuth() sẽ không bắt
+  // được ca này, vì B đang đăng nhập thật) nhưng sai account_type. Vì vậy 2
+  // điều kiện xét ĐỘC LẬP nhau trong cùng 1 listener, không gộp else-if:
+  // mất đăng nhập thì về trang đăng nhập; còn đăng nhập nhưng sai loại tài
+  // khoản thì về agriverse-3d.html (không phải ecommerce.html, xem ghi chú
+  // ở requireBusiness()).
   global.addEventListener('pageshow', function (event) {
-    if (event.persisted && pageRequiresAuth && !isLoggedIn()) {
+    if (!event.persisted) return;
+    if (pageRequiresAuth && !isLoggedIn()) {
       redirectToLogin();
+      return;
+    }
+    if (pageRequiresBusiness && isLoggedIn() && !isBusiness()) {
+      global.location.href = 'agriverse-3d.html';
     }
   });
 
@@ -582,11 +670,18 @@
     getAccessToken: getAccessToken,
     clearSession: clearSession,
     requireAuth: requireAuth,
+    getAccountType: getAccountType,
+    isBusiness: isBusiness,
+    getOrganizationId: getOrganizationId,
+    requireBusiness: requireBusiness,
+    isRemembered: isRemembered,
     auth: {
       login: login,
       logout: logout,
       me: me,
-      changePassword: changePassword
+      changePassword: changePassword,
+      registerCustomer: registerCustomer,
+      registerBusiness: registerBusiness
     },
     users: users,
     roles: roles,

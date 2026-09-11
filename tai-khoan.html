@@ -18,12 +18,16 @@
   <link rel="stylesheet" href="css/app-shell.css" />
 
   <script src="js/api-config.js?v=1"></script>
-  <script src="js/api.js?v=7"></script>
+  <script src="js/api.js?v=10"></script>
   <script>
     // Trang đầu tiên chuyển hẳn sang backend thật — chặn ngay trong <head>
     // (không defer) để tránh chớp nội dung trước khi chuyển hướng nếu chưa
     // đăng nhập qua API.
     AgriChain.api.requireAuth();
+    // Khu quản trị — tài khoản 'customer' không có quyền gì ở đây (xem
+    // ADMIN_SHELL_PAGES trong js/auth.js), đá thẳng sang agriverse-3d.html
+    // trước khi trang kịp vẽ ra, không để lọt vào rồi mới nhận lỗi 403.
+    AgriChain.api.requireBusiness();
   </script>
 
   <style>
@@ -294,6 +298,15 @@
           <h1 class="page-header__title">Quản lý Người dùng</h1>
           <p class="page-header__meta">Quản lý người dùng trong Đơn vị của bạn.</p>
         </div>
+        <!-- Chỉ hiện khi vai trò của NGƯỜI ĐANG ĐĂNG NHẬP là is_system=true
+             (Quản trị Đơn vị) — JS tự bật hiển thị qua
+             refreshTransferAdminVisibility() (js/tai-khoan.js), không dùng
+             data-requires-permission vì đây không phải kiểm 1 mã quyền mà
+             kiểm role.is_system của chính người dùng. -->
+        <button type="button" class="btn btn--outline btn--lg" data-open-transfer-admin hidden>
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+          Nhường quyền quản trị
+        </button>
         <button type="button" class="btn btn--primary btn--lg" data-open-user-form data-requires-permission="users.add">
           <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-plus"></use></svg>
           Thêm người dùng
@@ -554,6 +567,15 @@
           MỌI người dùng đang có cùng vai trò này, không chỉ riêng người này.</span>
       </div>
 
+      <!-- Vai trò is_system=true (VD "Quản trị Đơn vị" tự tạo lúc đăng ký
+           business) — backend chặn PATCH /roles/{id} sửa permissions của vai
+           trò này (409 CONFLICT), notice này + checkbox disabled bên dưới chỉ
+           để giao diện không mời bấm vào việc chắc chắn thất bại. -->
+      <div class="notice notice--warning" data-permission-readonly-notice hidden style="margin-bottom: var(--space-4);">
+        <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+        <span>Đây là vai trò hệ thống, không thể chỉnh sửa quyền.</span>
+      </div>
+
       <!-- Đang tải quyền/vai trò -->
       <div class="async-state" data-permission-loading hidden>
         <span class="spinner spinner--lg"></span>
@@ -601,6 +623,56 @@
     </div>
   </dialog>
 
+  <!-- Modal: Nhường quyền quản trị -->
+  <dialog class="modal modal--sm" id="transfer-admin-modal" aria-labelledby="transfer-admin-modal-title">
+    <form class="modal__form" id="transfer-admin-form" novalidate>
+      <div class="modal__header">
+        <svg class="icon"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+        <h2 class="modal__title" id="transfer-admin-modal-title">Nhường quyền quản trị</h2>
+        <button type="button" class="modal__close" data-close-transfer-admin aria-label="Đóng">&times;</button>
+      </div>
+
+      <div class="modal__body">
+        <div class="notice notice--danger" style="margin-bottom: var(--space-4);">
+          <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+          <span>Sau khi xác nhận, bạn sẽ mất quyền Quản trị Đơn vị.</span>
+        </div>
+
+        <div class="field">
+          <label class="label" for="transfer-admin-target">Người nhận quyền quản trị</label>
+          <select class="select" id="transfer-admin-target" name="targetUserId" required>
+            <option value="">Đang tải danh sách người dùng...</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="label" for="transfer-admin-role">Vai trò mới cho bạn sau khi nhường</label>
+          <select class="select" id="transfer-admin-role" name="newRoleId" required>
+            <option value="">Đang tải vai trò...</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="label" for="transfer-admin-password">Mật khẩu hiện tại của bạn</label>
+          <div class="password-field">
+            <input class="input" type="password" id="transfer-admin-password" name="password"
+              autocomplete="current-password" required />
+            <button type="button" class="password-toggle" data-password-toggle="transfer-admin-password"
+              aria-label="Hiện mật khẩu">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-eye"></use></svg>
+            </button>
+          </div>
+          <p class="field__hint">Xác nhận lại danh tính của bạn trước khi thực hiện thao tác này.</p>
+        </div>
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--secondary" data-close-transfer-admin>Huỷ</button>
+        <button type="submit" class="btn btn--danger">Xác nhận nhường quyền</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- Xác nhận xoá (dùng chung, gọi qua AgriChain.confirm) -->
   <dialog class="modal modal--sm" id="confirm-dialog" aria-labelledby="confirm-dialog-title">
     <div class="modal__header">
@@ -626,6 +698,6 @@
   <script src="js/store.js?v=12" defer></script>
   <script src="js/app-shell.js?v=10" defer></script>
   <script src="js/password-field.js?v=1" defer></script>
-  <script src="js/tai-khoan.js?v=4" defer></script>
+  <script src="js/tai-khoan.js?v=5" defer></script>
 </body>
 </html>

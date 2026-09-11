@@ -77,7 +77,17 @@
     }
   </style>
   <script src="js/api-config.js?v=1"></script>
-  <script src="js/api.js?v=7"></script>
+  <script src="js/api.js?v=10"></script>
+  <script>
+    // Chặn tài khoản 'customer' vào khu quản trị — ngay trong <head> (không
+    // defer) để tránh chớp nội dung trước khi chuyển hướng. LƯU Ý: trang này
+    // CHƯA gọi AgriChain.api.requireAuth() (khác 6 trang farms/supplies/...
+    // đã migrate hẳn — xem CLAUDE.md mục "Cầu nối tạm với js/app-shell.js"),
+    // vẫn dựa vào requireSession() (js/app-shell.js, chạy sau
+    // DOMContentLoaded) để chặn khách CHƯA đăng nhập — ngoài phạm vi lần sửa
+    // này, chỉ thêm đúng phần chặn theo account_type được yêu cầu.
+    AgriChain.api.requireBusiness();
+  </script>
 </head>
 <body class="app-shell">
 

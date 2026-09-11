@@ -81,6 +81,16 @@
             box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
         }
     </style>
+
+    <!-- Trạng thái đăng nhập (khu tài khoản ở header) — trang này trước đó KHÔNG
+         nạp 2 file này, không có cách nào biết ai đang đăng nhập. api-config.js
+         PHẢI trước api.js; cả 2 KHÔNG defer (giống mọi trang khác trong dự án) vì
+         renderAccountArea() cần AgriChain.api sẵn sàng ngay khi window 'load'
+         chạy — xem <script> cuối trang. Trang này vẫn KHÔNG gọi requireAuth()/
+         requireBusiness() — đúng ý, đây là trang công khai, khách 'customer'
+         phải vào được. -->
+    <script src="js/api-config.js?v=1"></script>
+    <script src="js/api.js?v=10"></script>
 </head>
 <body class="text-slate-800 bg-[#fbfbfa] min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
 
@@ -125,6 +135,17 @@
                         <i class="fa-solid fa-basket-shopping text-xl"></i>
                         <span id="cart-count" class="absolute -top-1 -right-1 bg-amber-500 text-slate-950 font-black text-xs w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow">0</span>
                     </button>
+
+                    <!-- Khu vực tài khoản — renderAccountArea() (cuối trang) điền nội
+                         dung lúc tải trang dựa vào AgriChain.api.isLoggedIn(). Mặc định
+                         tĩnh dưới đây (link Đăng Nhập) chỉ để không hiện khung rỗng nếu
+                         JS lỗi/chưa kịp chạy. -->
+                    <div id="account-area" class="relative">
+                        <a href="dang-nhap.html" class="flex items-center space-x-2 px-3.5 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition">
+                            <i class="fa-solid fa-user"></i>
+                            <span class="hidden sm:inline">Đăng Nhập</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -180,11 +201,24 @@
 
                 <!-- Cột phải: Video giới thiệu AgriVerse — facade, chỉ tải iframe YouTube khi
                      bấm play (giống index.html). Nội dung bên trong #agriverse-video-frame và
-                     loadAgriverseVideo() giữ nguyên y hệt, không sửa gì. -->
+                     loadAgriverseVideo() giữ nguyên y hệt, không sửa gì (aspect-[16/10] không đổi
+                     ở lần sửa này — CSS aspect-ratio tự tính lại chiều cao theo width mới).
+                     Dưới lg: giữ "max-w-md mx-auto" (448px, canh giữa) — cột lưới lúc này rộng
+                     hơn 448px khá nhiều nên có chỗ canh giữa thoải mái, không đổi so với trước.
+                     Từ lg trở lên: "lg:max-w-none lg:mx-0" bỏ hẳn cap 448px + canh giữa, để khung
+                     video LẤP ĐẦY 100% cột lg:col-span-5 (w-full) — đây là mức tăng TỐI ĐA còn an
+                     toàn, không tràn: ở ≥1344px (khi .max-w-7xl đã kịch trần 1280px, cột phải cố
+                     định ~483,33px) tăng được đúng phần dư hiện có (483,33 - 448 = 35,33px) so với
+                     bản canh giữa 448px trước đó; ở đúng breakpoint lg (1024px) cột chỉ rộng
+                     ~376,67px (< 448px) nên video vốn đã lấp đầy 100% cột từ trước, không tăng
+                     thêm được (đã báo lại người dùng, không đủ chỗ cho mức tăng 56,7px yêu cầu ban
+                     đầu ở BẤT KỲ breakpoint nào trong số 1024/1440/1920 — xem giải trình trong
+                     hội thoại). Không còn margin 2 bên ở ≥1024px (đánh đổi đã được xác nhận: ưu
+                     tiên tăng tối đa an toàn thay vì giữ canh giữa). -->
                 <!-- TODO: thay 5dK7Ek3KkU8 bằng ID video giới thiệu chính thức khi có -->
                 <div class="lg:col-span-5">
-                    <div class="max-w-3xl mx-auto lg:max-w-none w-full">
-                        <div id="agriverse-video-frame" class="relative w-full aspect-video rounded-3xl overflow-hidden bg-slate-950 border-2 border-emerald-500/40 shadow-2xl cursor-pointer group" onclick="loadAgriverseVideo()">
+                    <div class="w-full max-w-md mx-auto lg:max-w-none lg:mx-0">
+                        <div id="agriverse-video-frame" class="relative w-full aspect-[16/10] rounded-3xl overflow-hidden bg-slate-950 border-2 border-emerald-500/40 shadow-2xl cursor-pointer group" onclick="loadAgriverseVideo()">
                             <img src="https://img.youtube.com/vi/5dK7Ek3KkU8/maxresdefault.jpg" alt="Video giới thiệu AgriVerse - Sàn nông sản 3D" class="w-full h-full object-cover opacity-70 group-hover:opacity-90 transition" />
                             <div class="absolute inset-0 flex items-center justify-center">
                                 <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-emerald-500/90 group-hover:bg-emerald-400 flex items-center justify-center shadow-xl transition transform group-hover:scale-110" role="button" aria-label="Phát video giới thiệu AgriVerse">
@@ -959,7 +993,7 @@
         function loadAgriverseVideo() {
             const frame = document.getElementById('agriverse-video-frame');
             if (!frame) return;
-            frame.outerHTML = `<div class="relative w-full aspect-video rounded-3xl overflow-hidden shadow-2xl border-2 border-emerald-500/40">
+            frame.outerHTML = `<div class="relative w-full aspect-[16/10] rounded-3xl overflow-hidden shadow-2xl border-2 border-emerald-500/40">
                 <iframe class="absolute inset-0 w-full h-full" src="https://www.youtube-nocookie.com/embed/5dK7Ek3KkU8?autoplay=1" title="Video giới thiệu AgriVerse" allow="autoplay; encrypted-media" allowfullscreen></iframe>
             </div>`;
         }
@@ -1070,6 +1104,110 @@
             cartItems = [];
             updateCartUI();
             closeCartModal();
+        }
+
+        // Account Area Operations (B5, 2026-09-11) — trang public, không gọi
+        // requireAuth()/requireBusiness(), chỉ ĐỌC trạng thái đăng nhập hiện có
+        // (nếu có) để hiện đúng UI. AgriChain.api có thể chưa tồn tại nếu
+        // js/api.js lỗi tải (CDN chậm...) — mọi hàm dưới đây tự kiểm tra trước.
+        //
+        // LUÔN tự vẽ lại CẢ 2 trạng thái (đăng nhập/chưa đăng nhập) mỗi lần gọi
+        // — KHÔNG được early-return "coi như mặc định vẫn còn" ở nhánh chưa đăng
+        // nhập (bug đã vá 2026-09-11): renderAccountArea() còn được gọi lại từ
+        // listener 'pageshow' khi trang khôi phục từ bfcache (xem dưới), lúc đó
+        // DOM hiện tại có thể đang hiện avatar/dropdown CŨ (từ trước khi đăng
+        // xuất) dù access token đã mất thật — nếu chỉ return sớm, DOM cũ tưởng
+        // nhầm là "mặc định" sẽ bị bỏ lại y nguyên, hiện sai trạng thái.
+        function renderAccountArea() {
+            const area = document.getElementById('account-area');
+            if (!area) return;
+            const api = window.AgriChain && window.AgriChain.api;
+
+            if (!api || !api.isLoggedIn()) {
+                area.innerHTML = `
+                    <a href="dang-nhap.html" class="flex items-center space-x-2 px-3.5 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition">
+                        <i class="fa-solid fa-user"></i>
+                        <span class="hidden sm:inline">Đăng Nhập</span>
+                    </a>
+                `;
+                return;
+            }
+
+            const user = api.getUser() || {};
+            const fullName = user.full_name || 'Tài khoản';
+            const initials = fullName.trim().split(/\s+/).map(w => w[0]).slice(-2).join('').toUpperCase() || '?';
+            const isBusiness = api.isBusiness();
+
+            // Khung HTML tĩnh (do mình viết, an toàn) — fullName/email của người
+            // dùng gán riêng qua textContent bên dưới, KHÔNG nội suy thẳng vào
+            // chuỗi HTML này, tránh rủi ro XSS nếu giá trị đó từng lọt ký tự HTML.
+            area.innerHTML = `
+                <button type="button" onclick="toggleAccountMenu()" id="account-menu-trigger" class="flex items-center space-x-2 px-2 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition">
+                    <span id="account-menu-initials" class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold text-[11px] flex-shrink-0"></span>
+                    <span id="account-menu-name" class="hidden sm:inline max-w-[110px] truncate"></span>
+                    <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 hidden sm:inline"></i>
+                </button>
+                <div id="account-menu-panel" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50">
+                    <div class="px-4 py-2 border-b border-slate-100 mb-1">
+                        <p id="account-menu-panel-name" class="text-xs font-bold text-slate-900 truncate"></p>
+                        <p id="account-menu-panel-email" class="text-[11px] text-slate-400 truncate"></p>
+                    </div>
+                    ${isBusiness ? `
+                    <a href="nong-trai.html" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">
+                        <i class="fa-solid fa-gauge w-4"></i>
+                        <span class="ml-2">Khu Quản Lý</span>
+                    </a>
+                    <div class="border-t border-slate-100 my-1"></div>
+                    ` : ''}
+                    <button type="button" onclick="handleAccountLogout()" class="w-full text-left px-4 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition">
+                        <i class="fa-solid fa-right-from-bracket w-4"></i>
+                        <span class="ml-2">Đăng Xuất</span>
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('account-menu-initials').textContent = initials;
+            document.getElementById('account-menu-name').textContent = fullName;
+            document.getElementById('account-menu-panel-name').textContent = fullName;
+            document.getElementById('account-menu-panel-email').textContent = user.email || '';
+        }
+
+        // Bug bfcache đã vá (2026-09-11, cùng mẫu với listener 'pageshow' toàn
+        // cục trong js/api.js dùng cho requireAuth()/requireBusiness() ở 16
+        // trang quản trị): đăng xuất ở trang này xong bấm Back, trình duyệt có
+        // thể khôi phục lại trang từ bfcache thay vì tải lại thật — JS không
+        // chạy lại nên header vẫn hiện avatar/tên cũ dù access token đã bị xoá
+        // thật (mọi gọi API vẫn bị chặn đúng, đây CHỈ là bug hiển thị, không
+        // phải lỗ hổng bảo mật). 'pageshow' báo lại MỌI lần trang được hiển
+        // thị, kể cả khôi phục từ bfcache (`event.persisted === true`, không
+        // có ở lần tải trang bình thường) — gọi lại renderAccountArea() để vẽ
+        // lại đúng theo trạng thái đăng nhập THẬT tại thời điểm đó, không cần
+        // tải lại cả trang.
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) renderAccountArea();
+        });
+
+        function toggleAccountMenu() {
+            const panel = document.getElementById('account-menu-panel');
+            if (panel) panel.classList.toggle('hidden');
+        }
+
+        // Đóng menu khi bấm ra ngoài — cùng kiểu xử lý đơn giản như toggleAIChat(),
+        // không dùng thư viện ngoài cho 1 dropdown nhỏ.
+        document.addEventListener('click', (event) => {
+            const panel = document.getElementById('account-menu-panel');
+            const trigger = document.getElementById('account-menu-trigger');
+            if (!panel || panel.classList.contains('hidden')) return;
+            if (panel.contains(event.target) || (trigger && trigger.contains(event.target))) return;
+            panel.classList.add('hidden');
+        });
+
+        function handleAccountLogout() {
+            const api = window.AgriChain && window.AgriChain.api;
+            if (!api) return;
+            api.auth.logout().then(() => {
+                window.location.href = 'agriverse-3d.html';
+            });
         }
 
         // AI Chat Drawer Operations
@@ -1493,6 +1631,7 @@
             // #hero-3d-canvas không còn tồn tại nên gọi hàm này sẽ ném lỗi và chặn luôn
             // initSupermarketVR360() chạy sau nó trong cùng handler.
             initSupermarketVR360();
+            renderAccountArea();
         });
 
         // Window Resize Handler

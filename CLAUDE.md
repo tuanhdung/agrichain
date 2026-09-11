@@ -53,8 +53,11 @@ js/
   password-field.js      # Nút hiện/ẩn mật khẩu (data-password-toggle) + danh sách điều kiện mật khẩu
                           # (data-password-rules="<id ô mật khẩu>") dùng chung — tách từ js/auth.js để
                           # js/tai-khoan.js dùng lại được, không chép lại 2 hàm này.
-  auth.js                # Xử lý form đăng nhập/đăng ký (dang-nhap.html, dang-ky.html), dựa vào store.js
-                          # và js/password-field.js
+  auth.js                # Xử lý form đăng nhập/đăng ký (dang-nhap.html, dang-ky.html) — ĐÃ
+                          # CHUYỂN SANG API qua js/api.js (register Customer/Business + login),
+                          # dựa thêm vào js/password-field.js. redirectTarget() dùng chung cho
+                          # cả 2 form, nhận account_type để điều hướng đúng trang (xem mục
+                          # "Đăng nhập/Đăng ký" bên dưới)
   app-shell.js            # Tương tác khung quản trị (nút hamburger: trượt overlay dưới 960px, thu gọn
                            # hẳn sidebar từ 960px — xem mục "Sidebar" bên dưới; thu gọn/xổ nhóm menu,
                            # tab dùng chung, hộp thoại xác nhận AgriChain.confirm...)
@@ -136,7 +139,10 @@ images/
 index.html                # Trang chủ thật của AgriChain
 styleguide.html           # Trang demo design system (living style guide) — không phải trang thật
 dang-nhap.html            # Đăng nhập (giả lập, xem cảnh báo trong js/auth.js và js/store.js)
-dang-ky.html              # Đăng ký tài khoản (khách hàng / đơn vị-tổ chức)
+dang-ky.html              # Đăng ký tài khoản — 2 tab "Khách hàng"/"Nông hộ / Doanh nghiệp"
+                          # (account_type customer/business), ĐÃ CHUYỂN SANG API (2026-09-11)
+                          # qua api.auth.registerCustomer()/registerBusiness() — xem mục
+                          # "Đăng nhập/Đăng ký" bên dưới
 nong-trai.html            # Trang quản trị: nông trại (dùng chung khung app-shell)
 nong-trai-chi-tiet.html   # Trang chi tiết 1 nông trại, mở từ thẻ nông trại ở nong-trai.html —
                           # đọc mã nông trại qua query string ?ma=..., KHÔNG phải route thật (xem ghi
@@ -279,14 +285,13 @@ ký" bên dưới).
 
 ## Đăng nhập / Đăng ký
 
-**Đăng nhập (`dang-nhap.html`) đã chuyển sang backend thật** qua `js/api.js` — xem mục
-"Kết nối backend" ngay bên dưới. **Đăng ký (`dang-ky.html`) vẫn còn là giả lập** như
-trước: `js/auth.js` + `js/store.js` + `js/chain.js` mô phỏng một backend hoàn toàn trong
-`localStorage` của trình duyệt cho luồng này — không có máy chủ nào kiểm tra (đã ghi rõ
-trong comment đầu mỗi file). Vài điểm cần nhớ khi đụng vào:
-- `js/chain.js` dùng `crypto.subtle` (Web Crypto API) — chỉ chạy được trong "secure
-  context" (`https://` hoặc `http://localhost`/`127.0.0.1`). Mở file trực tiếp bằng
-  `file://` (double-click) sẽ lỗi ngay khi băm mật khẩu.
+**Cả `dang-nhap.html` (đăng nhập) VÀ `dang-ky.html` (đăng ký, 2026-09-11) đã chuyển sang
+backend thật** qua `js/api.js` — xem mục "Kết nối backend" ngay bên dưới. Vài điểm cần
+nhớ khi đụng vào:
+- `js/chain.js`/`js/store.js` **vẫn được nạp** ở cả 2 trang này dù `js/auth.js` không còn
+  gọi tới (từ khi đăng nhập, rồi đăng ký, chuyển lần lượt sang API) — gỡ 2 thẻ `<script>`
+  thừa này ngoài phạm vi các lần chuyển đổi đó, để lại cho một đợt dọn dẹp sau, cùng cách
+  xử lý với collection `orgUsers`/`workflowTemplates` mồ côi (xem dưới).
 - Nút "Đăng Nhập"/"Bắt Đầu Ngay" ở mọi trang (header, hero, CTA) phải trỏ thẳng
   `dang-nhap.html`/`dang-ky.html` — **không dùng anchor `#dang-nhap`/`#bat-dau-ngay`
   nữa** (đó là placeholder từ lúc 2 trang này chưa tồn tại; đã sửa ở `index.html` và
@@ -300,6 +305,159 @@ trong comment đầu mỗi file). Vài điểm cần nhớ khi đụng vào:
   (xem mục "Kết nối backend"). Chưa xoá `orgUsers` khỏi `COLLECTIONS` trong `store.js` vì
   đây là thay đổi ngoài phạm vi lần chuyển đổi này — để lại cho một đợt dọn dẹp sau.
 
+### Đăng ký — 2 loại tài khoản: `customer` / `business`
+
+`dang-ky.html` có 2 tab — **"Khách hàng"** (`account_type='customer'`, qua
+`api.auth.registerCustomer()`, body `{ email, password, full_name, phone? }`) và
+**"Nông hộ / Doanh nghiệp"** (`account_type='business'`, qua `api.auth.registerBusiness()`,
+body `{ organization: { name, tax_code?, phone?, address? }, email, password, full_name,
+phone? }`) — **4 field Đơn vị PHẢI gói vào object con `organization`**, không gửi rời ở
+top-level (khuôn thật của `RegisterBusinessRequest`, đã xác nhận qua Swagger). Radio
+`name="type"` dùng đúng 2 giá trị `customer`/`business` (khớp `account_type`, không còn
+`org` như tên cũ). Chỉ `organization.name` bắt buộc — 3 field còn lại của Đơn vị
+(`tax_code`/`phone`/`address`) và field `phone` cấp ngoài (số điện thoại NGƯỜI đăng ký,
+khác số của Đơn vị) đều tuỳ chọn, gửi `null` nếu bỏ trống (không gửi chuỗi rỗng). Input nào
+cần bắt buộc KHI tab đang active thì đánh dấu tĩnh `[data-required]` trong HTML —
+`setupTypeTabs()` (`js/auth.js`) chỉ gắn `required` cho input có dấu này lúc kích hoạt
+tab, KHÔNG còn gắn `required` tràn lên mọi input trong `[data-when-type]` như cũ (hồi đó
+mọi field trong tab "org" đều bắt buộc nên chưa cần phân biệt).
+
+Đăng ký thành công (201) → **tự gọi `api.auth.login()` luôn** (không bắt người dùng gõ lại
+email/mật khẩu) → điều hướng theo `account_type` của response: `customer` → `agriverse-3d.html`,
+`business` → `nong-trai.html` (xem `redirectTarget()` ngay dưới). Lỗi trùng email (400
+`VALIDATION_ERROR`, `details.field = "email"`) hiện thẳng `error.message` từ backend
+("Email đã được sử dụng.") vào đúng ô email qua `registerFieldNodeFor()` — map thêm cả
+field lồng trong `organization` (trả về dạng `"organization.name"`, Pydantic nối `loc` bằng
+`.`, xem `app/errors.py:_field_path` của `agrichain-api`) sang đúng input, không chỉ field
+phẳng như các trang CRUD khác.
+
+### `redirectTarget()` — nhận biết `account_type` (2026-09-11)
+
+`redirectTarget()` (`js/auth.js`, dùng chung bởi `setupLogin()` VÀ `setupRegister()`) giờ
+nhận tham số `accountType` (`'customer'`/`'business'`/`null` nếu chưa rõ — coi như
+`'business'` để giữ hành vi mặc định cũ): mặc định `customer` → `agriverse-3d.html`,
+`business` (hoặc chưa rõ) → `nong-trai.html`. **`agriverse-3d.html`, KHÔNG phải
+`ecommerce.html`** (đổi 2026-09-11, xem mục "Trang thương mại điện tử chính thức" ở dưới) —
+tham số `?redirect=` vẫn qua đúng regex chống open-redirect như trước, nhưng THÊM 1 lớp
+chặn: khai báo mảng `ADMIN_SHELL_PAGES` (**16** trang dùng khung quản trị app-shell —
+`nong-trai`, `nong-trai-chi-tiet`, `vat-tu`, `mau-quy-trinh`, `lo-hang`, `tai-khoan`,
+`ho-so`, `goi-phan-mem`, `lich-su-mua-goi`, và 7 trang `thuong-mai-*`) — nếu `?redirect=`
+trỏ vào 1 trong số này MÀ `accountType === 'customer'`, bỏ qua giá trị đó, dùng mặc định
+(`agriverse-3d.html`) thay vào. **Đây là bản vá cho lỗi đã gặp thật**: tài khoản `customer`
+đăng nhập xong từng bị đưa vào `nong-trai.html` (mặc định cũ, không phân biệt loại tài
+khoản) rồi nhận lỗi 403 ngay khi tải dữ liệu farms/supplies — RBAC backend không gán quyền
+gì cho vai trò hệ thống `'customer'`. Từ bản vá này, tài khoản `customer` không bao giờ
+được đưa vào khu quản trị qua `?redirect=`, dù chỉ thoáng qua. `ADMIN_SHELL_PAGES` là mảng
+DUY NHẤT khai báo danh sách 16 trang này trong toàn dự án — mọi chỗ khác cần danh sách
+tương tự (VD chèn `requireBusiness()`, xem ngay dưới) phải đối chiếu lại đúng mảng này,
+không gõ tay lại để tránh lệch.
+
+### `AgriChain.api.requireBusiness()` — áp dụng cho ĐỦ 16 trang `ADMIN_SHELL_PAGES` (2026-09-11)
+
+`js/api.js` có sẵn từ B1: `AgriChain.api.getAccountType()`/`isBusiness()`/
+`getOrganizationId()` đọc đồng bộ từ `agrichain.user` đã lưu (không gọi API), và
+`AgriChain.api.requireBusiness()` — tài khoản `customer` bị đá thẳng sang
+`agriverse-3d.html` ngay trong `<head>` (không `defer`), trước khi trang kịp vẽ ra. Listener `pageshow` chống
+bfcache (xem mục "Kết nối backend" → `js/api.js`) áp THÊM đúng mẫu này cho
+`requireBusiness()`: tài khoản `business` A xem trang quản trị, đăng xuất, `customer` B đăng
+nhập cùng trình duyệt, bấm Back → bfcache khôi phục lại trang quản trị của A với phiên B
+(vẫn hợp lệ, `requireAuth()` không bắt được) nhưng sai `account_type` → `requireBusiness()`
+bắt đúng ca này.
+
+**Đã gắn `AgriChain.api.requireBusiness()` vào `<head>` của ĐỦ 16 trang `ADMIN_SHELL_PAGES`**
+(không còn "chưa trang nào gọi" như ghi chú cũ). 2 cách gắn khác nhau tuỳ trạng thái sẵn có
+của từng trang — **phát hiện khi rà lại**: chỉ 6/16 trang (`nong-trai`, `nong-trai-chi-tiet`,
+`vat-tu`, `mau-quy-trinh`, `lo-hang`, `tai-khoan` — đúng nhóm đã migrate farms/supplies/...
+sang API) sẵn có `AgriChain.api.requireAuth()` trong `<head>`; **10 trang còn lại
+(`ho-so`, `goi-phan-mem`, `lich-su-mua-goi`, và 7 trang `thuong-mai-*`) KHÔNG hề gọi
+`requireAuth()`** — các trang này nạp `js/api.js` chỉ để dùng `hasPermission()`/hiển thị
+user, còn việc "chưa đăng nhập thì đá về `dang-nhap.html`" vẫn hoàn toàn dựa vào
+`requireSession()` (`js/app-shell.js`, chạy SAU `DOMContentLoaded` — xem mục "Cầu nối tạm
+với js/app-shell.js" ngay dưới), không chạy sớm trong `<head>` như `requireAuth()`.
+- 6 trang có `requireAuth()`: thêm `AgriChain.api.requireBusiness();` ngay dòng sau, cùng
+  1 khối `<script>`.
+- 10 trang còn lại: thêm khối `<script>` MỚI, chỉ có `AgriChain.api.requireBusiness();`
+  (không thêm `requireAuth()` — đó là khoảng trống riêng, có chủ đích để lại đúng theo cơ
+  chế `requireSession()` đang dùng, KHÔNG nằm trong phạm vi lần sửa này). Vẫn đủ chặn đúng
+  kịch bản "khách hàng đã đăng nhập cố vào khu quản trị" vì `requireBusiness()` tự kiểm
+  `isLoggedIn()` trước — không phụ thuộc `requireAuth()` đã chạy hay chưa. Kịch bản còn hở
+  (khách CHƯA đăng nhập gõ thẳng URL 10 trang này vẫn thấy chớp nội dung trước khi
+  `requireSession()` kịp chạy) là hạn chế ĐÃ CÓ TỪ TRƯỚC, không phải lỗi mới, và không phải
+  mục tiêu của lần sửa `requireBusiness()` này (mục tiêu là phân biệt loại tài khoản, không
+  phải làm lại toàn bộ cơ chế "đã đăng nhập hay chưa").
+
+### Trang thương mại điện tử chính thức: `agriverse-3d.html` (KHÔNG phải `ecommerce.html`, 2026-09-11)
+
+Toàn bộ luồng điều hướng tài khoản `customer` (`defaultTargetFor()`/`redirectTarget()` ở
+`js/auth.js`, `requireBusiness()` + listener `pageshow` ở `js/api.js`) giờ trỏ về
+**`agriverse-3d.html`**, không còn `ecommerce.html` — khớp đúng thực tế đã có từ trước
+(2026-09-08) ở menu header/footer "E-commerce" của `index.html`/`blog.html`/
+`blog-chi-tiet.html`/`styleguide.html` (xác nhận lại còn đúng, không bị các lần sửa
+B1–B3 ở trên vô tình đổi ngược — những lần đó chỉ đụng tới luồng đăng nhập/redirect,
+không đụng menu).
+
+**`ecommerce.html` giờ MỒ CÔI HOÀN TOÀN** — không còn bất kỳ `href`/`location.href` nào
+trong dự án trỏ tới nó nữa (trước đây chỉ mồ côi khỏi menu chính, nhưng vẫn còn là đích
+mặc định sau đăng nhập/đăng ký cho tài khoản `customer`; giờ cả đường đó cũng đã đổi sang
+`agriverse-3d.html`). **CHƯA xoá file** — `ecommerce.html`/`js/ecommerce.js` vẫn còn
+nguyên trên đĩa, cùng cách xử lý với collection `orgUsers`/`workflowTemplates` mồ côi
+trong `store.js` (xem mục "Đăng nhập/Đăng ký" ở trên) — việc dọn hẳn (xoá file hoặc gắn
+lại link) ngoài phạm vi các lần sửa này, để lại cho một đợt dọn dẹp sau. Các tham chiếu
+`href="ecommerce.html"` CÒN LẠI bên trong chính `ecommerce.html` (link tới trang chủ của
+chính nó ở header) là tự trỏ vào chính nó, không phải sót — không cần sửa.
+
+**Nợ kỹ thuật của `agriverse-3d.html`**: toàn bộ dữ liệu sản phẩm/gian hàng
+(`PRODUCTS_DATA`, `ENTERPRISE_SHOPS`) hiện là **hardcode trong JS demo ngay trong trang**
+— KHÔNG đọc `shops`/`products` thật qua `store.js` (khác `ecommerce.html`/`js/ecommerce.js`
+cũ, vốn đọc thẳng dữ liệu thật) hay qua API. Nối `agriverse-3d.html` vào dữ liệu
+`shops`/`products` thật (qua `store.js` hoặc API) là việc CHƯA làm, ngoài phạm vi các lần
+sửa điều hướng/khu tài khoản ở đây.
+
+### Khu vực tài khoản ở header `agriverse-3d.html` (2026-09-11)
+
+Trang này ban đầu KHÔNG nạp `js/api.js`/`js/api-config.js` (đứng độc lập, tự viết Tailwind
++ Three.js riêng — xem mục "Hero — video giới thiệu" phía trên) — nghĩa là khách hàng đăng
+nhập xong bị đưa vào đây (đích mặc định cho `account_type='customer'`, xem mục trên)
+nhưng **không có cách nào biết mình đang đăng nhập hay đăng xuất**, chặn hẳn việc test
+luồng đăng nhập/đăng ký thật. Đã vá bằng cách nạp thêm `js/api-config.js` rồi `js/api.js`
+ở cuối `<head>` (đúng thứ tự, KHÔNG `defer` — cùng quy ước mọi trang khác) — **vẫn KHÔNG
+gọi `requireAuth()`/`requireBusiness()`**, đúng chủ đích vì đây là trang công khai, khách
+chưa đăng nhập hay tài khoản `customer` đều phải vào được bình thường; chỉ dùng
+`AgriChain.api` để ĐỌC trạng thái đã đăng nhập (nếu có), không để CHẶN trang.
+
+`#account-area` trong header (cạnh icon giỏ hàng) mặc định tĩnh là link "Đăng Nhập" —
+`renderAccountArea()` (cuối `<script>` chính của trang, gọi trong `window.addEventListener
+('load', ...)` cùng `renderProductGrid()`/`initSupermarketVR360()`) LUÔN tự vẽ lại TOÀN BỘ
+`#account-area` mỗi lần gọi, cả 2 nhánh — **không** early-return "coi như mặc định vẫn còn"
+ở nhánh chưa đăng nhập (xem lý do ở mục bfcache ngay dưới). Nếu `AgriChain.api.isLoggedIn()`
+đúng: hiện avatar chữ cái đầu + tên (`user.full_name`, đọc qua `AgriChain.api.getUser()`)
+kèm dropdown (`toggleAccountMenu()`, tự đóng khi bấm ra ngoài — nghe `click` ở `document`,
+không dùng thư viện ngoài cho 1 dropdown nhỏ) gồm:
+- **"Khu Quản Lý"** → `nong-trai.html` — CHỈ hiện nếu `AgriChain.api.isBusiness()` đúng
+  (tài khoản `business` vừa mua hàng vừa quản trị Đơn vị cần đường quay lại khu quản trị).
+- **"Đăng Xuất"** (`handleAccountLogout()`) → `AgriChain.api.auth.logout()` rồi tải lại
+  chính `agriverse-3d.html` (không phải `dang-nhap.html` — đăng xuất ở trang công khai
+  không bắt buộc phải rời khỏi nó).
+
+`fullName`/`email` của người dùng gán vào DOM qua `textContent` (KHÔNG nội suy thẳng vào
+chuỗi HTML của `innerHTML`) — phòng rủi ro XSS nếu giá trị này từng lọt ký tự HTML qua
+đường đăng ký/sửa hồ sơ; chỉ phần khung HTML tĩnh (icon, class, cấu trúc) do chính trang
+viết mới nằm trong chuỗi `innerHTML`.
+
+**⚠️ Bug bfcache đã vá (2026-09-11)**: đăng xuất ở `agriverse-3d.html` xong bấm Back từng
+hiện lại avatar/tên CŨ dù access token đã bị xoá thật (F5 lại mới đúng — bug hiển thị
+thuần tuý, KHÔNG phải lỗ hổng bảo mật, mọi gọi API vẫn bị chặn đúng vì token đã mất thật).
+Nguyên nhân giống hệt bug bfcache đã vá 2026-09-08 cho `requireAuth()`/`requireBusiness()`
+(xem `js/api.js` ở mục "Kết nối backend" ngay dưới): trình duyệt khôi phục trang từ bfcache
+thay vì tải lại thật, JS không chạy lại nên DOM giữ nguyên trạng thái CŨ tại thời điểm rời
+trang (lúc đó vẫn đang đăng nhập, vì logout mới chỉ xoá token RỒI mới điều hướng đi, DOM
+của trang A chưa kịp tự vẽ lại trước khi rời). Vá bằng 1 listener `pageshow` RIÊNG ngay
+trong `agriverse-3d.html` (trang này không nạp `js/auth.js`, không dùng chung listener
+toàn cục của `js/api.js` — 2 cơ chế độc lập, cùng mẫu `event.persisted === true`): gọi lại
+`renderAccountArea()` để vẽ lại đúng theo trạng thái đăng nhập THẬT, không cần tải lại cả
+trang. Đây cũng chính là lý do `renderAccountArea()` phải LUÔN tự vẽ lại cả 2 nhánh thay vì
+early-return — nếu không, gọi lại từ `pageshow` sẽ vô tác dụng ở đúng ca cần vá nhất.
+
 ## Kết nối backend
 
 Dự án bắt đầu chuyển dần từ `store.js` (localStorage giả lập) sang backend thật (FastAPI,
@@ -307,13 +465,14 @@ repo riêng `agrichain-api`, mặc định chạy ở `http://127.0.0.1:8000`, t
 `/docs`). Hai lớp cùng tồn tại song song trong giai đoạn chuyển tiếp — **không phải mọi
 trang đều dùng backend thật ngay**:
 
-- **Đã chuyển sang API**: `dang-nhap.html` (chỉ đăng nhập), `tai-khoan.html` (toàn bộ),
-  `nong-trai.html` (farms), `vat-tu.html` (supplies), `nong-trai-chi-tiet.html` (farms +
-  seasons + logs + certifications — riêng `batches` trên chính trang này VẪN dùng
-  `store.js`, xem mục riêng bên dưới), `mau-quy-trinh.html` (toàn bộ — mẫu quy trình qua
-  `api.workflowTemplates.*`, dropdown chọn vật tư trong bước mẫu qua `api.supplies.*` từ
-  trước).
-- **Vẫn dùng `store.js`**: mọi trang còn lại (kể cả `dang-ky.html`/`ho-so.html`), cộng thêm
+- **Đã chuyển sang API**: `dang-nhap.html` (chỉ đăng nhập), `dang-ky.html` (đăng ký,
+  2026-09-11 — cả 2 luồng `customer`/`business`, xem mục "Đăng nhập/Đăng ký" phía trên),
+  `tai-khoan.html` (toàn bộ), `nong-trai.html` (farms), `vat-tu.html` (supplies),
+  `nong-trai-chi-tiet.html` (farms + seasons + logs + certifications — riêng `batches`
+  trên chính trang này VẪN dùng `store.js`, xem mục riêng bên dưới), `mau-quy-trinh.html`
+  (toàn bộ — mẫu quy trình qua `api.workflowTemplates.*`, dropdown chọn vật tư trong bước
+  mẫu qua `api.supplies.*` từ trước).
+- **Vẫn dùng `store.js`**: mọi trang còn lại (kể cả `ho-so.html`), cộng thêm
   1 collection trên `nong-trai-chi-tiet.html`/`js/lo-hang.js`/`js/truy-xuat.js`: `batches`
   (lô hàng) — chưa có ở backend, chờ giai đoạn 3. Collection `workflowTemplates` trong
   `store.js` giờ **MỒ CÔI** (không còn trang nào đọc/ghi) kể từ khi `mau-quy-trinh.html`
@@ -466,29 +625,35 @@ giả định):
   Nhóm `workflow_templates` xác nhận qua `GET /permissions` thật lúc chuyển
   `mau-quy-trinh.html` sang API (2026-09-08) — thêm SAU 7 nhóm gốc, dùng ở
   `js/mau-quy-trinh.js` (nút sửa/xoá mỗi thẻ mẫu + nút "Tạo quy trình mới").
-  **Chưa thêm vào ma trận phân quyền của `tai-khoan.html`** — `js/tai-khoan.js`
-  vẫn hiện đúng 7 hàng (`PREFIX_ORDER`, xem bên dưới), quyền `workflow_
-  templates.*` của 1 vai trò hiện KHÔNG sửa được qua giao diện đó (chỉ có thể
-  gán qua backend/seed trực tiếp) — cần bổ sung hàng thứ 8 ở lần cập nhật
-  `tai-khoan.html` sau, ngoài phạm vi lần migrate `mau-quy-trinh.html` này.
+  **ĐÃ thêm vào ma trận phân quyền của `tai-khoan.html` (2026-09-11)** — `js/tai-khoan.js`
+  giờ hiện đúng 8 hàng (`PREFIX_ORDER`, xem bên dưới), quyền `workflow_templates.*`
+  của 1 vai trò sửa được qua giao diện như 7 nhóm còn lại.
   Quy ước đặt tên này áp dụng cho MỌI phân hệ sẽ chuyển sang API sau này — trang mới nào
   gọi `AgriChain.api.hasPermission(code)` thì dùng đúng mẫu `"<nhóm số nhiều>.<add|edit|
   view|delete>"` ngay từ đầu, không suy đoán số ít/số nhiều hay từ đồng nghĩa khác.
+- ⚠️ **Phát hiện thêm (2026-09-11, gọi thật `GET /permissions`): backend giờ CÒN CÓ 1 nhóm
+  quyền thứ 9 — `batches.add/edit/view/delete` (`group_name` "Lô hàng")** — KHÔNG có trong
+  32 mã kể trên, và KHÔNG có hàng tương ứng trong ma trận `tai-khoan.html`. Cố tình CHƯA
+  thêm: `batches` (lô hàng) phía frontend vẫn dùng `store.js`, chưa chuyển sang API (xem mục
+  "Kết nối backend" — batches chờ giai đoạn 3), nên hiện chưa có trang nào thật sự cần gán
+  quyền `batches.*` qua giao diện. Khi `batches` chuyển sang API, nhớ thêm hàng thứ 9 vào
+  `PREFIX_ORDER`/`PREFIX_LABELS`/`PREFIX_ICONS`, đúng mẫu đã làm với `workflow_templates`.
 - `GET /permissions` trả về **đã nhóm sẵn** theo `group_name`, nhưng `roles.*` và `users.*`
   bị gộp chung vào 1 group_name duy nhất là `"Quản lý đơn vị"` (8 quyền/nhóm thay vì 4) —
   nếu ma trận phân quyền hiển thị thẳng theo `group_name` thì 1 ô (nhóm x hành động) sẽ chứa
   2 mã quyền (`roles.view` và `users.view` cùng rơi vào ô "Xem" của "Quản lý đơn vị"), phá
   vỡ giả định "1 checkbox = 1 mã quyền". `js/tai-khoan.js` vì vậy **bỏ qua `group_name`**,
   tự nhóm lại theo TIỀN TỐ mã quyền (phần trước dấu `.` đầu tiên — `PREFIX_ORDER`/
-  `PREFIX_LABELS`/`PREFIX_ICONS`) để luôn ra đúng 7 hàng, mỗi hàng 1 mã quyền/hành động
-  (Nông trại, Chứng nhận, Mùa vụ, Vật tư, Nhật ký, Vai trò, Người dùng).
+  `PREFIX_LABELS`/`PREFIX_ICONS`) để luôn ra đúng 8 hàng, mỗi hàng 1 mã quyền/hành động
+  (Nông trại, Chứng nhận, Mùa vụ, Vật tư, Nhật ký, Mẫu quy trình, Vai trò, Người dùng).
 - `role.permissions` (cả trong `GET /roles` lẫn body gửi lên `PATCH /roles/{id}`) là **mảng
   chuỗi mã quyền thuần** (`["farms.view", "farms.add", ...]`), không phải mảng object/id.
 - `PATCH /roles/{id}` nhận field **`permissions`** (không phải `permission_ids` như suy đoán
   ban đầu) — THAY THẾ TOÀN BỘ danh sách quyền hiện có. `handlePermissionSave()` vẫn phải tự
-  GHÉP LẠI các mã quyền nằm ngoài lưới 7×4 đang hiển thị (nhóm lạ/hành động lạ mà backend
-  thêm sau này) với các mã quyền vừa tick trong lưới trước khi gửi lên, tránh vô tình xoá
-  mất quyền không hiển thị trên giao diện này — xem biến `managedCodes`.
+  GHÉP LẠI các mã quyền nằm ngoài lưới 8×4 đang hiển thị (nhóm lạ/hành động lạ mà backend
+  thêm sau này, VD `batches.*` — xem ghi chú ở trên) với các mã quyền vừa tick trong lưới
+  trước khi gửi lên, tránh vô tình xoá mất quyền không hiển thị trên giao diện này — xem
+  biến `managedCodes`.
 - `UserCreate` yêu cầu `email`, `password`, `full_name`, `role_id` (bắt buộc), `phone` (tuỳ
   chọn). `UserUpdate` chỉ nhận `full_name`, `phone`, `role_id`, `is_active` — không có
   `email`/`password`, nên form Sửa là modal RIÊNG với form Thêm, không dùng chung.
@@ -506,6 +671,60 @@ Nếu backend thật đổi khuôn dữ liệu ở lần cập nhật sau, sửa
 `js/tai-khoan.js` (`PREFIX_ORDER`/`PREFIX_LABELS`/`PREFIX_ICONS`, `actionFromCode()`,
 `groupPermissions()`, `handlePermissionSave()`) — không cần sửa `js/api.js` vì lớp đó chỉ
 truyền dữ liệu thô, không diễn giải khuôn dạng permission/role.
+
+#### Vai trò `is_system` — modal Phân quyền READ-ONLY, "Nhường quyền quản trị" (2026-09-11)
+
+`RoleOut.is_system` (boolean, xác nhận đúng tên field qua `/openapi.json` thật — KHÔNG suy
+đoán) đánh dấu vai trò hệ thống, hiện chỉ có **"Quản trị Đơn vị"** (tạo tự động lúc
+`POST /auth/register/business`, xem mục "Đăng ký — 2 loại tài khoản" phía trên). Backend
+chặn cứng ở tầng API: `PATCH /roles/{id}` sửa `permissions` của vai trò này → **409
+CONFLICT** (`"Không thể sửa danh sách quyền của vai trò hệ thống."`) — xác nhận qua curl
+thật. `loadPermissionMatrix()` (`js/tai-khoan.js`) đọc `currentRole.is_system`: nếu đúng,
+khoá hết checkbox trong bảng (kể cả ô đã tick sẵn), ẩn nút Lưu, hiện ghi chú
+`[data-permission-readonly-notice]` — thuần UX (không mời bấm vào thao tác chắc chắn thất
+bại ở tầng API), không phải lớp bảo mật (lớp đó nằm ở backend).
+
+**Nút "Nhường quyền quản trị"** (`[data-open-transfer-admin]` trong `.page-header`, ẩn mặc
+định) chỉ hiện khi **vai trò của CHÍNH người đang đăng nhập** là `is_system=true` —
+`UserOut` (từ `AgriChain.api.getUser()`) không có field `is_system`, nên
+`refreshTransferAdminVisibility()` phải tự đối chiếu `role_id` của mình với danh sách
+`GET /roles` mỗi lần tải trang. Modal `transfer-admin-modal` gồm: select người nhận (lọc
+`is_active`, loại chính mình, tải qua `api.users.list({ is_active: true, page_size: 100 })`
+— KHÔNG dùng phân trang 10/trang như bảng chính), select vai trò mới cho chính mình (tải
+qua `GET /roles`, **loại bỏ vai trò `is_system`** — không có ý nghĩa "chuyển sang chính vai
+trò mình sắp nhường"), và ô mật khẩu hiện tại để xác nhận danh tính. Submit gọi
+`api.users.transferAdmin(targetId, { new_role_id_for_current_admin, password })` (đã có từ
+B1) — khuôn lỗi xác nhận qua curl thật: sai mật khẩu → **401 UNAUTHORIZED** (không phải
+403, vì đây là xác thực lại danh tính giống `old_password` của đổi mật khẩu, không phải
+phân quyền); tự thao tác chính mình → 403 FORBIDDEN (không nên xảy ra ở luồng UI này vì đã
+loại chính mình khỏi select người nhận, xử lý phòng hờ); vi phạm ràng buộc khác (VD mất
+admin cuối cùng) → 409 CONFLICT, hiện qua toast bằng đúng `err.message` thật từ backend.
+
+**⚠️ QUAN TRỌNG — vì sao KHÔNG chỉ gọi `api.auth.me()` sau khi nhường quyền thành công**:
+đã xác nhận qua đọc code thật (`agrichain-api/app/dependencies.py`, docstring của
+`CurrentUser.permissions`: *"lấy từ payload JWT chứ không truy vấn database — đổi quyền của
+vai trò chỉ có hiệu lực với token cấp SAU đó"*) VÀ kiểm chứng bằng curl thật (gọi
+`GET /auth/me` bằng token CŨ ngay sau `transfer-admin`: `role_name` tự cập nhật đúng — đọc
+từ DB — nhưng mảng `permissions` VẪN CÒN `users.add` — đọc từ JWT cũ) — `/auth/me` một mình
+tạo ra trạng thái **nửa vời, tự mâu thuẫn** (tên vai trò mới, quyền cũ), còn tệ hơn không
+gọi gì. Cách đúng DUY NHẤT để có token mới phản ánh đúng vai trò mới là cấp lại token —
+`handleTransferAdminSubmit()` vì vậy **tự đăng nhập lại ngầm** bằng chính email (từ
+`api.getUser().email`) + mật khẩu vừa nhập trong form, qua `api.auth.login(email, password,
+api.isRemembered())` (đã kiểm chứng qua curl: token mới có cả `role_name` LẪN `permissions`
+đúng vai trò mới) — không dùng `remember=true` cứng mà đọc lại đúng chế độ hiện tại qua
+`AgriChain.api.isRemembered()` (helper mới thêm trong `js/api.js`, đọc cờ
+`agrichain.storage_mode`) để không vô tình đổi 1 phiên "không ghi nhớ" thành "ghi nhớ".
+Đăng nhập lại xong `global.location.reload()` — tải lại toàn trang để MỌI thứ (sidebar,
+`applyPermissionGates()`, nút "Nhường quyền quản trị") tự vẽ lại đúng theo phiên mới, thay
+vì tự tay cập nhật từng phần DOM. Lỗi ở bước đăng nhập lại ngầm này (hiếm, VD mạng chập
+chờn) được `.catch()` RIÊNG, không lẫn với lỗi của chính `transferAdmin()` — tránh hiện
+nhầm "sai mật khẩu" cho 1 thao tác nhường quyền thực ra ĐÃ THÀNH CÔNG.
+
+Backend cũng tự thu hồi refresh token của CẢ NGƯỜI GỌI lẫn người nhận ngay trong
+`transfer_admin()` (`agrichain-api/app/routers/users.py`) — vì vậy nếu KHÔNG chủ động đăng
+nhập lại, lần `/auth/refresh` tự động kế tiếp của `js/api.js` (khi access token cũ hết hạn,
+tối đa 15 phút sau) sẽ thất bại và tự đá người dùng về `dang-nhap.html` một cách bất ngờ —
+chủ động đăng nhập lại ngay tránh được trải nghiệm đó.
 
 ### Trang "Hoạt động sản xuất" — farms/seasons/logs/certifications/supplies
 
@@ -739,10 +958,15 @@ frontend không đụng tới token nữa) trước khi lên production.**
 
 Trang chủ (`index.html`) hiện có Hero, Tính Năng, Quy Trình, Lợi Ích, CTA, Liên Hệ, Footer.
 Form Liên Hệ mới validate + hiện thông báo phía client, chưa gửi đi đâu thật. Menu header/
-footer mục "E-commerce" trỏ sang `agriverse-3d.html` (2026-09-08, trước đó trỏ
-`ecommerce.html` — trang cũ vẫn còn nguyên trên đĩa, không bị xoá, chỉ không còn liên kết
-từ menu chính; xem mục "Hero — video giới thiệu" bên dưới cho phần Hero, mục "E-commerce
-công khai" bên dưới mô tả `ecommerce.html`). Chưa có: tích hợp AI thật.
+footer mục "E-commerce" trỏ sang `agriverse-3d.html` (2026-09-08) — từ 2026-09-11,
+`agriverse-3d.html` cũng là đích điều hướng DUY NHẤT cho tài khoản `customer` trong toàn
+bộ luồng đăng nhập/đăng ký, khiến `ecommerce.html` giờ MỒ CÔI HOÀN TOÀN (không còn bất kỳ
+`href`/redirect nào trỏ tới, kể cả sau đăng nhập) — trang cũ vẫn còn nguyên trên đĩa, chưa
+bị xoá, xem mục "Trang thương mại điện tử chính thức" phía trên để biết chi tiết đầy đủ
+(mục "E-commerce công khai" bên dưới mô tả tính năng của `ecommerce.html` như trước khi mồ
+côi, vẫn đúng về mặt kỹ thuật của trang, chỉ không còn ai truy cập tới qua điều hướng
+trong app nữa — xem mục "Hero — video giới thiệu" bên dưới cho phần Hero). Chưa có: tích
+hợp AI thật.
 
 Trang Blog (`blog.html` + `blog-chi-tiet.html`) đã có ở mức cơ bản: hero + danh sách 3 bài viết
 + trang chi tiết đọc nội dung đầy đủ (đoạn văn/tiêu đề phụ/danh sách), cả 2 trang cùng đọc từ

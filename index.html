@@ -47,7 +47,12 @@
            giống lg:items-center ở agriverse-3d.html. */
         align-items: center;
         justify-content: space-between;
-        gap: var(--space-12);
+        /* Giảm từ --space-12 (48px, vẫn dùng ở layout xếp cột <960px) xuống
+           --space-4 (16px) chỉ ở hàng ngang này — nhường thêm chỗ cho khung
+           video (.hero__showcase) phóng to mà KHÔNG phải đụng tới max-width
+           560px của .hero__inner (cột chữ) — xem phép tính nhường chỗ ở
+           comment của .hero__showcase ngay dưới. */
+        gap: var(--space-4);
       }
     }
 
@@ -117,7 +122,13 @@
     }
     @media (min-width: 960px) {
       .hero__showcase {
-        justify-content: flex-end;
+        /* center (không phải flex-end) — .hero__showcase (572px) giờ CỐ
+           TÌNH rộng hơn .hero__video (max-width: 548px) một khoảng 24px
+           (12px mỗi bên), để khung video nằm GIỮA vùng cột phải thay vì
+           dồn sát ra mép phải/trái của nó — trước đây 2 giá trị này bằng
+           nhau (560/560) nên flex-end không có tác dụng gì (video lấp đầy
+           khít showcase), nhìn như dán chết vào 1 phía. */
+        justify-content: center;
         /* .hero__showcase CŨNG là display:flex, chứa đúng 1 con có
            width:100% (.hero__video) — ở hàng ngang (flex-direction: row
            của .hero__layout), nếu không cho .hero__showcase 1 width cố
@@ -126,30 +137,62 @@
            (chỉ lộ ra ở ≥960px vì ở dưới đó .hero__layout là column,
            .hero__showcase tự nhận đủ bề rộng qua align-items:stretch
            mặc định, không phụ thuộc con). min-width:0 để vẫn co được
-           nếu màn hẹp hơn 540px thật (mặc định flex item có
+           nếu màn hẹp hơn width cố định thật (mặc định flex item có
            min-width:auto, có thể chặn co dưới kích thước nội dung — nhờ
            đó ở đúng ngưỡng 960px, khi .hero__inner + gap + khung video
            cộng lại vượt bề rộng .container còn lại, cả 2 bên tự co theo
-           tỉ lệ qua flex-shrink mặc định, không tràn ra ngoài). */
-        width: 540px;
+           tỉ lệ qua flex-shrink mặc định, không tràn ra ngoài).
+           572px là mức TỐI ĐA còn "an toàn" cho cột trái: .container rộng
+           tối đa 1152px (var(--container-max-width) 1200px trừ 2 lần
+           --container-padding 24px) và KHÔNG nới thêm ở màn hình rộng hơn;
+           .hero__inner (cột chữ) có max-width: 560px riêng, cộng gap 16px
+           (--space-4, xem .hero__layout) + 572px này = 1148px, còn dư
+           4px — hero__inner vẫn luôn đạt đủ max-width 560px của nó, không
+           bị flex-shrink bóp lại. Đây là trần vật lý của bố cục hiện tại
+           (2 cột cùng nằm trong 1 .container 1200px) — muốn khung video
+           (kể cả phần margin canh giữa) to hơn nữa bắt buộc phải giảm
+           max-width của .hero__inner hoặc cho khung video tràn ra khỏi
+           .container, cả 2 đều ngoài phạm vi yêu cầu "không đụng cột
+           trái". */
+        width: 572px;
         min-width: 0;
       }
     }
 
     /* Khung video giới thiệu — thay cho .hero__card (thẻ "Đã xác thực") cũ,
-       giữ nguyên vị trí trong .hero__showcase (kích thước rộng hơn 1 chút
-       so với .hero__card cũ — 540px thay vì 420px — vì video cần không
-       gian ngang nhiều hơn 1 thẻ thông tin, cân đối hơn với cột chữ bên
-       trái .hero__inner, max-width 560px). Dùng facade (ảnh thumbnail +
-       nút play) thay vì nhúng <iframe> YouTube ngay từ đầu — xem
-       js/video-intro.js để biết lý do hiệu năng (trang chủ là trang đầu
-       tiên khách vào, iframe YouTube tải sẵn JS nặng dù chưa bấm play). */
+       nằm GIỮA .hero__showcase (kích thước rộng hơn hẳn so với .hero__card
+       cũ — 548px thay vì 420px — vì video cần không gian ngang nhiều hơn 1
+       thẻ thông tin, gần bằng cột chữ bên trái .hero__inner, max-width
+       560px), nhỏ hơn .hero__showcase (572px) đúng 24px để luôn có 12px lề
+       mỗi bên — xem phép tính ở comment của .hero__showcase. Tỉ lệ 16/10
+       khớp ĐÚNG aspect-[16/10] của #agriverse-video-frame bên
+       agriverse-3d.html (đã đổi từ 16/9 ở lần sửa trước, giữ nguyên ở lần
+       này). border-radius/border/box-shadow cũng đồng bộ theo khung đó:
+       - border-radius: var(--radius-2xl) = 24px, khớp CHÍNH XÁC
+         "rounded-3xl" (1.5rem = 24px) của Tailwind bên agriverse — không
+         cần chọn giá trị gần đúng, 2 hệ token trùng nhau vừa vặn.
+       - border: 2px, khớp "border-2" bên agriverse; màu dùng
+         color-mix() pha var(--color-primary) (biến ngữ nghĩa, không phải
+         raw --green-500) về 40% + trong suốt — khớp "border-emerald-500/40"
+         (viền xanh mờ 40% opacity) mà không cần thêm màu mới ngoài thang.
+       - box-shadow: var(--shadow-xl) — GIỮ NGUYÊN (đã dùng từ trước), đây
+         cũng là mức TO NHẤT có sẵn trong tokens.css, độ lan/đậm đã gần khớp
+         "shadow-2xl" bên agriverse (dự án không có --shadow-2xl riêng để
+         chọn gần hơn).
+       - background: var(--neutral-900) — GIỮ NGUYÊN, không đổi (không nằm
+         trong 4 mục yêu cầu ở lần sửa này); màu gần tương đương "bg-slate-950"
+         bên agriverse (cả 2 đều là nền tối gần đen, đủ gần để không cần đổi).
+       Dùng facade (ảnh thumbnail + nút play) thay vì nhúng <iframe> YouTube
+       ngay từ đầu — xem js/video-intro.js để biết lý do hiệu năng (trang
+       chủ là trang đầu tiên khách vào, iframe YouTube tải sẵn JS nặng dù
+       chưa bấm play). */
     .hero__video {
       position: relative;
       width: 100%;
-      max-width: 540px;
-      aspect-ratio: 16 / 9;
-      border-radius: var(--radius-lg);
+      max-width: 548px;
+      aspect-ratio: 16 / 10;
+      border-radius: var(--radius-2xl);
+      border: 2px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
       box-shadow: var(--shadow-xl);
       overflow: hidden;
       background: var(--neutral-900);
@@ -497,7 +540,7 @@
 
   </style>
   <script src="js/api-config.js?v=1"></script>
-  <script src="js/api.js?v=7"></script>
+  <script src="js/api.js?v=10"></script>
 </head>
 <body>
 

@@ -533,11 +533,15 @@
     }
   </style>
   <script src="js/api-config.js?v=1"></script>
-  <script src="js/api.js?v=7"></script>
+  <script src="js/api.js?v=10"></script>
   <script>
     // Đã chuyển sang backend thật — chặn ngay trong <head> (không defer)
     // để tránh chớp nội dung trước khi chuyển hướng nếu chưa đăng nhập.
     AgriChain.api.requireAuth();
+    // Khu quản trị — tài khoản 'customer' không có quyền gì ở đây (xem
+    // ADMIN_SHELL_PAGES trong js/auth.js), đá thẳng sang agriverse-3d.html
+    // trước khi trang kịp vẽ ra, không để lọt vào rồi mới nhận lỗi 403.
+    AgriChain.api.requireBusiness();
   </script>
 </head>
 <body class="app-shell">

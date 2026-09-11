@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/auth.css" />
   <script src="js/api-config.js?v=1"></script>
-  <script src="js/api.js?v=7"></script>
+  <script src="js/api.js?v=10"></script>
 </head>
 <body class="auth-page">
 
@@ -77,29 +77,53 @@
             Khách hàng
           </label>
           <label class="auth-tab">
-            <input class="auth-tab__input" type="radio" name="type" value="org" />
+            <input class="auth-tab__input" type="radio" name="type" value="business" />
             <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-factory"></use></svg>
-            Đơn vị/Tổ chức
+            Nông hộ / Doanh nghiệp
           </label>
         </fieldset>
 
-        <!-- Chỉ hiện với Đơn vị/Tổ chức -->
-        <div class="field" data-when-type="org">
+        <!-- Chỉ hiện với Nông hộ/Doanh nghiệp — 4 field này gói vào object con
+             "organization" khi gửi lên API (RegisterBusinessRequest), KHÔNG gửi rời ở
+             top-level, xem setupRegister() trong js/auth.js. -->
+        <p class="field__hint" data-when-type="business">
+          Bạn sẽ là quản trị viên đầu tiên của Đơn vị — có thể tạo thêm người dùng và
+          nhường lại quyền quản trị cho người khác sau này.
+        </p>
+
+        <div class="field" data-when-type="business">
           <label class="label" for="register-org-name">Tên đơn vị</label>
           <input class="input" type="text" id="register-org-name" name="orgName"
-            autocomplete="organization" />
+            autocomplete="organization" data-required />
         </div>
 
-        <div class="field" data-when-type="org">
-          <label class="label" for="register-tax-code">Mã doanh nghiệp</label>
+        <div class="field" data-when-type="business">
+          <label class="label" for="register-tax-code">Mã doanh nghiệp (tuỳ chọn)</label>
           <input class="input" type="text" id="register-tax-code" name="taxCode" />
           <p class="field__hint">Mã số thuế hoặc mã đăng ký kinh doanh.</p>
+        </div>
+
+        <div class="field" data-when-type="business">
+          <label class="label" for="register-org-phone">Số điện thoại Đơn vị (tuỳ chọn)</label>
+          <input class="input" type="tel" id="register-org-phone" name="orgPhone" />
+        </div>
+
+        <div class="field" data-when-type="business">
+          <label class="label" for="register-org-address">Địa chỉ Đơn vị (tuỳ chọn)</label>
+          <input class="input" type="text" id="register-org-address" name="orgAddress"
+            autocomplete="street-address" />
         </div>
 
         <div class="field">
           <label class="label" for="register-full-name">Họ tên</label>
           <input class="input" type="text" id="register-full-name" name="fullName"
             autocomplete="name" required />
+        </div>
+
+        <div class="field">
+          <label class="label" for="register-phone">Số điện thoại (tuỳ chọn)</label>
+          <input class="input" type="tel" id="register-phone" name="phone"
+            autocomplete="tel" />
         </div>
 
         <div class="field">
@@ -165,6 +189,6 @@
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=12" defer></script>
   <script src="js/password-field.js?v=1" defer></script>
-  <script src="js/auth.js?v=5" defer></script>
+  <script src="js/auth.js?v=8" defer></script>
 </body>
 </html>
