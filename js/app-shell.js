@@ -338,18 +338,26 @@
     });
   }
 
-  // Ẩn hẳn nhóm menu "Thương mại điện tử" (7 mục) khỏi Đơn vị KHÔNG phải nhà
-  // phân phối (2026-09-12) — chỉ "Đơn vị mặc định" (organization_is_distributor
-  // === true, xem AgriChain.api.isDistributor()) mới được bán hàng qua sàn.
+  // Ẩn hẳn nhóm menu "Thương mại điện tử" (7 mục) khỏi mọi tài khoản KHÔNG
+  // phải platform_admin. Lịch sử điều kiện (2026-09-12 → 2026-09-14): ban
+  // đầu chỉ ẩn khỏi Đơn vị KHÔNG phải nhà phân phối (kiểm
+  // organization_is_distributor qua AgriChain.api.isDistributor()) — mọi
+  // business của Đơn vị phân phối (VD admin@agrichain.vn) vẫn thấy được.
+  // Yêu cầu đã đổi lại, xác nhận rõ: TMĐT giờ CHỈ dành cho platform_admin,
+  // KỂ CẢ business của Đơn vị phân phối thật cũng không còn thấy nữa —
+  // `isDistributor()` KHÔNG còn dùng ở đây (mồ côi, xem CLAUDE.md mục "Quản
+  // trị hệ thống (platform_admin)"; hàm/field vẫn giữ nguyên, không xoá).
   // Đây là lớp ẩn ở GIAO DIỆN, đi kèm requireDistributor() (js/api.js) chặn
   // truy cập trực tiếp bằng URL ở đúng 7 trang thuong-mai-*.html — 2 lớp độc
-  // lập nhau, thiếu 1 trong 2 vẫn còn hở. #nav-thuong-mai là <ul> CỐ ĐỊNH
-  // (id giống hệt nhau trên cả 16 trang app-shell, xem CLAUDE.md) — tìm lên
-  // đúng khối .app-nav__section cha để ẩn luôn cả nút bấm mở nhóm, không chỉ
-  // ẩn danh sách bên trong (ẩn mỗi <ul> vẫn để lộ tiêu đề "Thương mại điện
-  // tử" trống trơn phía trên). Không áp cho 'customer' (không thấy sidebar
-  // này bao giờ, đã bị requireBusiness() đá đi trước khi tới bước này) —
-  // chỉ business không-phải-phân-phối mới cần ẩn thêm.
+  // lập nhau, thiếu 1 trong 2 vẫn còn hở, điều kiện PHẢI khớp nhau. #nav-
+  // thuong-mai là <ul> CỐ ĐỊNH (id giống hệt nhau trên cả 16 trang app-shell,
+  // xem CLAUDE.md) — tìm lên đúng khối .app-nav__section cha để ẩn luôn cả
+  // nút bấm mở nhóm, không chỉ ẩn danh sách bên trong (ẩn mỗi <ul> vẫn để lộ
+  // tiêu đề "Thương mại điện tử" trống trơn phía trên). Không áp cho
+  // 'customer' theo nghĩa riêng — tài khoản đó không thấy sidebar này bao
+  // giờ (đã bị requireBusiness() đá đi trước khi tới bước này), nhưng vẫn
+  // rơi đúng vào `!isPlatformAdmin()` nếu lỡ chạy tới đây, không cần tách
+  // riêng.
   //
   // LUÔN gán `hidden` tường minh cả 2 chiều (không chỉ set true rồi bỏ qua
   // nhánh false) — cùng bài học đã rút ra ở renderAccountArea()
@@ -357,16 +365,12 @@
   // còn được gọi lại từ listener 'pageshow' bên dưới khi khôi phục từ
   // bfcache, lúc đó DOM có thể đang ẩn/hiện sai theo phiên CŨ trước khi rời
   // trang — nếu chỉ set true có điều kiện, gọi lại từ pageshow sẽ không bao
-  // giờ hiện LẠI nhóm menu cho đúng chủ tài khoản phân phối.
+  // giờ hiện LẠI nhóm menu cho đúng platform_admin.
   function updateDistributorOnlyNav() {
     var list = document.getElementById('nav-thuong-mai');
     var section = list && list.closest('.app-nav__section');
     if (!section) return;
-    // platform_admin (2026-09-13) LUÔN thấy nhóm này — đứng trên mọi Đơn vị
-    // nên không có khái niệm is_distributor áp dụng, coi như luôn hợp lệ.
-    // requireDistributor() (js/api.js) đã bỏ qua platform_admin y hệt, 2 lớp
-    // (ẩn menu + chặn URL) phải khớp nhau, xem CLAUDE.md.
-    section.hidden = !!(api && api.isBusiness() && !api.isPlatformAdmin() && !api.isDistributor());
+    section.hidden = !!(api && !api.isPlatformAdmin());
   }
 
   // Ẩn mục "Quản lý Tài khoản" (tai-khoan.html) khỏi sidebar cho platform_admin

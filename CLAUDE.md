@@ -416,55 +416,59 @@ có sẵn ở cả 10 trang, đúng thứ tự/vị trí như 6 trang gốc — 
 "10 trang còn lại" nữa, cả 16 trang giờ dùng chung đúng 1 khuôn `<script>` (`api-config.js`
 → `api.js` → `requireAuth()` → `requireBusiness()`, không `defer`).
 
-### `AgriChain.api.requireDistributor()` — chặn 7 trang `thuong-mai-*.html` khỏi Đơn vị không phân phối (2026-09-12)
+### `AgriChain.api.requireDistributor()` — chặn 7 trang `thuong-mai-*.html` khỏi mọi tài khoản không phải `platform_admin` (2026-09-12, điều kiện đổi hẳn 2026-09-14)
 
-Backend giờ expose thêm **`organization_is_distributor`** qua `GET /auth/me` (field PHẲNG,
-cùng cấp với `user`/`permissions` trong `MeResponse`, KHÔNG lồng trong `user`) —
-`true` cho "Đơn vị mặc định" (công ty vận hành AgriChain), `false` cho Đơn vị khác (nông
-trại tự đăng ký qua `POST /auth/register/business`), `null` cho tài khoản `customer`
-(không thuộc Đơn vị nào). `me()`/`updateMe()` (`js/api.js`) đều phải tự gắn field này vào
-`agrichain.user` trước khi lưu — CÙNG LOẠI lỗi đã gặp với `permissions` (`GET /auth/me` trả
-về object bọc ngoài, không phải `user` phẳng): thiếu bước gắn thì `getUser().
-organization_is_distributor` luôn đọc ra `undefined`. `updateMe()` (response là `UserOut`
-phẳng, không có field này) phải giữ nguyên giá trị đã lưu trước đó — route đó không đổi
-được Đơn vị nên chắc chắn không đổi.
+Backend expose **`organization_is_distributor`** qua `GET /auth/me` (field PHẲNG, cùng cấp
+với `user`/`permissions` trong `MeResponse`, KHÔNG lồng trong `user`) — `true` cho "Đơn vị
+mặc định" (công ty vận hành AgriChain), `false` cho Đơn vị khác (nông trại tự đăng ký qua
+`POST /auth/register/business`), `null` cho tài khoản `customer` (không thuộc Đơn vị nào).
+`me()`/`updateMe()` (`js/api.js`) đều phải tự gắn field này vào `agrichain.user` trước khi
+lưu — CÙNG LOẠI lỗi đã gặp với `permissions` (`GET /auth/me` trả về object bọc ngoài, không
+phải `user` phẳng): thiếu bước gắn thì `getUser().organization_is_distributor` luôn đọc ra
+`undefined`. `updateMe()` (response là `UserOut` phẳng, không có field này) phải giữ nguyên
+giá trị đã lưu trước đó — route đó không đổi được Đơn vị nên chắc chắn không đổi.
 
-**`AgriChain.api.isDistributor()`** — đọc đồng bộ `getUser().organization_is_distributor
-=== true` (so sánh CHẶT, không chỉ truthy, vì `null`/`false`/`undefined` đều phải ra
-`false`), không gọi API.
+**⚠️ `AgriChain.api.isDistributor()` giờ MỒ CÔI (2026-09-14)** — ban đầu (2026-09-12) dùng để
+chặn `requireDistributor()`/ẩn menu TMĐT khỏi Đơn vị KHÔNG phải nhà phân phối (business của
+Đơn vị phân phối thật, VD `admin@agrichain.vn`, vẫn thấy được). Yêu cầu đã đổi lại, xác nhận
+rõ: nhóm "Thương mại điện tử" giờ **CHỈ dành cho `platform_admin`**, KỂ CẢ business của Đơn
+vị phân phối thật cũng không còn thấy nữa — `isDistributor()` không còn được gọi ở đâu trong
+dự án nữa (cùng cách xử lý `orgUsers`/`workflowTemplates`/`js/chain.js` đã mồ côi trước đó:
+KHÔNG xoá hàm này lẫn field `organization_is_distributor`/migration `009` phía backend, để
+dành cho mục đích khác sau này, chỉ ngừng gọi). Chi tiết đầy đủ lý do đổi hướng xem mục
+"Quản trị hệ thống (platform_admin)" bên dưới.
 
 **`AgriChain.api.requireDistributor()`** — đúng mẫu `requireBusiness()`, gắn vào `<head>`
 của **7 trang `thuong-mai-*.html`** (Tổng quan/Sản phẩm/Đơn hàng/Vận chuyển/Nhập hàng/Máy
 tính tiền/Thiết lập Shop), **NGAY SAU** `requireAuth()`/`requireBusiness()` đã có sẵn —
-KHÔNG áp cho 9 trang admin còn lại (`nong-trai`, `nong-trai-chi-tiet`, `vat-tu`,
-`mau-quy-trinh`, `lo-hang`, `tai-khoan`, `ho-so`, `goi-phan-mem`, `lich-su-mua-goi`). Khác
-`requireBusiness()` (chặn `customer`): người bị `requireDistributor()` chặn vẫn là
-`account_type='business'` hợp lệ, chỉ là Đơn vị của họ không phải nhà phân phối — đá về
-`nong-trai.html` (khu quản trị chung), KHÔNG phải `agriverse-3d.html` (đích riêng cho
-`customer`). Tự kiểm `!isLoggedIn() || !isBusiness()` trước rồi mới xét
-`isDistributor()` — nếu gọi khi chưa đăng nhập hoặc đang là `customer`, nhường việc xử lý
-lại cho `requireAuth()`/`requireBusiness()` (đã gọi trước đó), không giẫm lên nhau.
+KHÔNG áp cho 9 trang admin còn lại. Giờ chỉ kiểm `isPlatformAdmin()` — `true` thì qua,
+ngược lại (miễn `isLoggedIn() && isBusiness()`, để `requireAuth()`/`requireBusiness()` đã
+gọi trước đó tự xử lý ca chưa đăng nhập/`customer`) đá thẳng về `nong-trai.html` (khu quản
+trị chung), KHÔNG phải `agriverse-3d.html` (đích riêng cho `customer`) — người bị chặn ở
+đây vẫn là `account_type='business'` hợp lệ.
 
 **Listener `pageshow` chống bfcache** (xem mục "Kết nối backend" → `js/api.js`) áp THÊM
-đúng mẫu cho `requireDistributor()`: Đơn vị phân phối A xem xong 1 trang `thuong-mai-*.html`,
-đăng xuất, tài khoản business B (Đơn vị KHÔNG phải phân phối) đăng nhập cùng trình duyệt,
-bấm Back → bfcache khôi phục lại trang của A với phiên B (vẫn hợp lệ, `requireAuth()`/
-`requireBusiness()` không bắt được ca này) nhưng sai Đơn vị — `requireDistributor()` bắt
-đúng ca này. 3 điều kiện (`requireAuth`/`requireBusiness`/`requireDistributor`) xét ĐỘC
-LẬP nhau trong cùng 1 listener, không gộp `else if`, vì mỗi điều kiện đá về 1 đích khác
-nhau.
+đúng mẫu cho `requireDistributor()`: `platform_admin` A xem xong 1 trang `thuong-mai-*.html`,
+đăng xuất, tài khoản business B đăng nhập cùng trình duyệt (bất kể Đơn vị của B có phải
+phân phối hay không — không còn quan trọng), bấm Back → bfcache khôi phục lại trang của A
+với phiên B (vẫn hợp lệ, `requireAuth()`/`requireBusiness()` không bắt được ca này) nhưng
+không phải `platform_admin` — điều kiện chỉ còn `isBusiness()` (đã đủ, vì `platform_admin`
+không bao giờ `isBusiness()`). 3 điều kiện (`requireAuth`/`requireBusiness`/
+`requireDistributor`) xét ĐỘC LẬP nhau trong cùng 1 listener, không gộp `else if`, vì mỗi
+điều kiện đá về 1 đích khác nhau.
 
 **Ẩn nhóm menu sidebar "Thương mại điện tử" (`js/app-shell.js`)** — lớp thứ 2, độc lập với
 `requireDistributor()` (thiếu 1 trong 2 vẫn còn hở: ẩn menu không chặn được URL gõ trực
-tiếp, và chặn URL không tự ẩn menu). `updateDistributorOnlyNav()` tìm `#nav-thuong-mai`
-(id CỐ ĐỊNH, giống hệt nhau trên cả 16 trang app-shell) rồi lên tới `.app-nav__section`
-cha để ẩn CẢ nút bấm mở nhóm lẫn danh sách bên trong (ẩn mỗi `<ul>` vẫn để lộ tiêu đề nhóm
-trống trơn). Gán `hidden` TƯỜNG MINH cả 2 chiều (`section.hidden = !!(...)`, không chỉ set
-`true` có điều kiện) — cùng bài học đã rút ra ở `renderAccountArea()`
-(`agriverse-3d.html`)/`renderHeaderAccountArea()` (`js/header.js`): hàm này còn được gọi
-lại từ 1 listener `pageshow` RIÊNG trong `js/app-shell.js` khi khôi phục từ bfcache, nếu
-chỉ set `true` có điều kiện thì gọi lại sẽ không bao giờ HIỆN LẠI đúng cho chủ tài khoản
-phân phối. Gọi 1 lần trong `DOMContentLoaded` (sau `setupLogout()`).
+tiếp, và chặn URL không tự ẩn menu) — điều kiện PHẢI khớp nhau. `updateDistributorOnlyNav()`
+tìm `#nav-thuong-mai` (id CỐ ĐỊNH, giống hệt nhau trên cả 16 trang app-shell) rồi lên tới
+`.app-nav__section` cha để ẩn CẢ nút bấm mở nhóm lẫn danh sách bên trong (ẩn mỗi `<ul>` vẫn
+để lộ tiêu đề nhóm trống trơn). Giờ chỉ còn `section.hidden = !!(api && !api.isPlatformAdmin())`
+— gán `hidden` TƯỜNG MINH cả 2 chiều (không chỉ set `true` có điều kiện) — cùng bài học đã
+rút ra ở `renderAccountArea()` (`agriverse-3d.html`)/`renderHeaderAccountArea()`
+(`js/header.js`): hàm này còn được gọi lại từ 1 listener `pageshow` RIÊNG trong
+`js/app-shell.js` khi khôi phục từ bfcache, nếu chỉ set `true` có điều kiện thì gọi lại sẽ
+không bao giờ HIỆN LẠI đúng cho `platform_admin`. Gọi 1 lần trong `DOMContentLoaded` (sau
+`setupLogout()`).
 
 **Không đụng gì tới dữ liệu `shops`/`products`/`orders`** (vẫn ở `store.js`, chưa migrate)
 — lần sửa này CHỈ ẩn/chặn ở tầng giao diện theo `organization_is_distributor`, không đổi
@@ -502,19 +506,21 @@ chỉ 4 trang danh sách chính (farms/supplies/workflow-templates/batches) có 
 — **không có `requirePlatformAdmin()`** (đã xoá cùng đợt đổi hướng, không còn trang riêng
 nào cần guard kiểu đó).
 
-**`requireBusiness()`/`requireDistributor()` (`js/api.js`) đều đã sửa để platform_admin qua
-được, không bị đá đi:**
+**`requireBusiness()` sửa để platform_admin qua được (không bị đá đi);
+`requireDistributor()`/`updateDistributorOnlyNav()` sửa lại LẦN NỮA (2026-09-14) — TMĐT giờ
+CHỈ dành cho platform_admin, không còn phân biệt theo `is_distributor` nữa:**
 - `requireBusiness()` (gắn ở cả 16 trang app-shell): `!isBusiness() && !isPlatformAdmin()`
   mới đá sang `agriverse-3d.html` — trước đó (bản đổi-hướng-tạm-thời) từng có nhánh đá
   platform_admin sang 1 trang riêng, đã bỏ.
-- `requireDistributor()` (gắn ở 7 trang `thuong-mai-*.html`): `isPlatformAdmin()` LUÔN qua
-  được ngay từ điều kiện đầu (`if (!isLoggedIn() || isPlatformAdmin()) return true;`), bỏ
-  qua HOÀN TOÀN điều kiện `organization_is_distributor` — đứng trên mọi Đơn vị nên không có
-  khái niệm "Đơn vị đang active" để kiểm is_distributor, coi như luôn hợp lệ. Phải LUÔN thấy
-  đủ menu Thương mại điện tử bất kể thực tế bên dưới platform_admin không có Đơn vị nào.
+- `requireDistributor()` (gắn ở 7 trang `thuong-mai-*.html`): CHỈ còn kiểm `isPlatformAdmin()`
+  — `true` thì qua (`if (!isLoggedIn() || isPlatformAdmin()) return true;`), còn lại (miễn
+  `isBusiness()`) đá về `nong-trai.html`. **KHÔNG còn kiểm `organization_is_distributor`** —
+  bản 2026-09-13 (giữa chừng) từng để business của Đơn vị phân phối thật (VD
+  `admin@agrichain.vn`) vẫn qua được, đã xác nhận lại và bỏ hẳn: giờ MỌI business (kể cả Đơn
+  vị phân phối) đều bị chặn, chỉ platform_admin mới vào được.
 - `updateDistributorOnlyNav()` (`js/app-shell.js`, ẩn/hiện nhóm menu sidebar "Thương mại
-  điện tử") áp lại đúng logic: `isBusiness() && !isPlatformAdmin() && !isDistributor()` mới
-  ẩn — 2 lớp (ẩn menu + chặn URL) phải khớp nhau.
+  điện tử") áp lại đúng logic — giờ chỉ còn `!api.isPlatformAdmin()` (bỏ hẳn `isBusiness()`
+  và `isDistributor()` khỏi điều kiện), 2 lớp (ẩn menu + chặn URL) phải khớp nhau.
 - `defaultTargetFor()`/`redirectTarget()` (`js/auth.js`): **cố tình KHÔNG liệt kê nhánh
   riêng nào cho `platform_admin`** — rơi thẳng vào nhánh mặc định `nong-trai.html` giống hệt
   `business` (khớp đúng hướng "dùng chung giao diện"). `ADMIN_SHELL_PAGES` guard trong

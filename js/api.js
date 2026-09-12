@@ -176,9 +176,17 @@
   // phân phối (công ty vận hành AgriChain — "Đơn vị mặc định"), false = Đơn vị
   // khác (nông trại tự đăng ký qua register/business), null = tài khoản
   // 'customer' (không thuộc Đơn vị nào, khái niệm này không áp dụng). Đọc đồng
-  // bộ từ agrichain.user đã lưu, KHÔNG gọi API — dùng để ẩn/chặn nhóm menu
-  // "Thương mại điện tử" khỏi Đơn vị không phải nhà phân phối. So sánh CHẶT
-  // (=== true), không chỉ truthy — null/false/undefined đều phải ra false.
+  // bộ từ agrichain.user đã lưu, KHÔNG gọi API.
+  // ⚠️ MỒ CÔI kể từ 2026-09-14 (xem CLAUDE.md mục "Quản trị hệ thống
+  // (platform_admin)"): hàm này TỪNG dùng để ẩn/chặn nhóm menu "Thương mại
+  // điện tử" khỏi Đơn vị không phải nhà phân phối, nhưng yêu cầu đã đổi lại
+  // — TMĐT giờ CHỈ dành cho platform_admin, không còn phân biệt theo
+  // is_distributor nữa (`requireDistributor()`/`updateDistributorOnlyNav()`
+  // đều đã bỏ điều kiện này). Không còn nơi nào gọi `isDistributor()` trong
+  // dự án — vẫn giữ nguyên hàm + field `organization_is_distributor`
+  // (backend/migration 009 cũng KHÔNG xoá) để dành cho mục đích khác sau
+  // này, cùng cách xử lý đã áp dụng cho `orgUsers`/`workflowTemplates`
+  // (store.js)/`js/chain.js`.
   function isDistributor() {
     var user = getUser();
     return !!(user && user.organization_is_distributor === true);
@@ -768,20 +776,21 @@
     return true;
   }
 
-  // Chặn 7 trang "Thương mại điện tử" (thuong-mai-*.html) khỏi Đơn vị KHÔNG
-  // phải nhà phân phối (organization_is_distributor !== true) — dùng riêng
-  // cho nhóm 7 trang này, KHÔNG áp cho 9 trang admin còn lại. Khác
-  // requireBusiness(): người bị chặn ở đây vẫn là account_type='business'
-  // hợp lệ (không phải 'customer'), chỉ là Đơn vị của họ không được bán hàng
-  // qua sàn — đá về nong-trai.html (khu quản trị chung), KHÔNG phải
-  // agriverse-3d.html (đích dành riêng cho 'customer'). 'platform_admin'
-  // (2026-09-13) LUÔN qua được, bỏ qua hoàn toàn điều kiện is_distributor —
-  // đứng trên mọi Đơn vị nên coi như luôn "nhà phân phối", phải luôn thấy đủ
-  // menu Thương mại điện tử bất kể Đơn vị nào đang active (không có khái
-  // niệm "Đơn vị đang active" với tài khoản này). Gọi SAU
+  // Chặn 7 trang "Thương mại điện tử" (thuong-mai-*.html) khỏi mọi tài khoản
+  // KHÔNG phải platform_admin — dùng riêng cho nhóm 7 trang này, KHÔNG áp
+  // cho 9 trang admin còn lại. 2026-09-14: đổi lại lần nữa theo yêu cầu đã
+  // xác nhận rõ — TMĐT giờ CHỈ dành cho platform_admin, KỂ CẢ business của
+  // Đơn vị phân phối thật (organization_is_distributor === true, VD
+  // admin@agrichain.vn) cũng không còn được vào nữa. Trước đó (2026-09-12,
+  // rồi sửa lại 2026-09-13) hàm này kiểm `organization_is_distributor` qua
+  // `isDistributor()` — cờ đó giờ KHÔNG còn dùng ở đâu trong frontend nữa
+  // (mồ côi, xem CLAUDE.md, cùng cách xử lý orgUsers/workflowTemplates/
+  // js/chain.js — KHÔNG xoá hàm `isDistributor()`/migration/cột DB, chỉ
+  // ngừng gọi). Người bị chặn ở đây vẫn là account_type='business' hợp lệ
+  // (không phải 'customer') — đá về nong-trai.html (khu quản trị chung),
+  // KHÔNG phải agriverse-3d.html (đích dành riêng cho 'customer'). Gọi SAU
   // requireAuth()/requireBusiness() ở đầu <head>: giả định trang ĐÃ đăng
-  // nhập và ĐÃ qua requireBusiness() rồi mới tới lượt kiểm
-  // organization_is_distributor — nếu gọi khi chưa đăng nhập hoặc là
+  // nhập rồi mới tới lượt kiểm — nếu gọi khi chưa đăng nhập hoặc là
   // 'customer', !isLoggedIn() hoặc !isBusiness() sớm return true luôn, để 2
   // hàm kia (đã gọi trước) tự xử lý ca của mình, requireDistributor() không
   // giẫm lên việc đó.
@@ -791,11 +800,8 @@
     pageRequiresDistributor = true;
     if (!isLoggedIn() || isPlatformAdmin()) return true;
     if (!isBusiness()) return true;
-    if (!isDistributor()) {
-      global.location.href = 'nong-trai.html';
-      return false;
-    }
-    return true;
+    global.location.href = 'nong-trai.html';
+    return false;
   }
 
   // Bug bảo mật đã vá (2026-09-08): đăng xuất xong bấm nút Back của trình
@@ -819,20 +825,18 @@
   // khoản thì về agriverse-3d.html (không phải ecommerce.html, xem ghi chú
   // ở requireBusiness()).
   //
-  // Áp THÊM đúng mẫu này cho requireDistributor() (2026-09-12): kịch bản
-  // tương tự — tài khoản của Đơn vị phân phối A xem xong 1 trang
-  // thuong-mai-*.html, đăng xuất, tài khoản business B (Đơn vị KHÔNG phải
-  // phân phối) đăng nhập TRÊN CÙNG trình duyệt, rồi bấm Back → bfcache khôi
-  // phục lại trang của A, phiên hiện tại (B) vẫn còn access token HỢP LỆ và
-  // vẫn là 'business' (requireAuth()/requireBusiness() không bắt được ca
-  // này) nhưng sai Đơn vị. Cả 3 điều kiện xét ĐỘC LẬP nhau trong cùng 1
+  // Áp THÊM đúng mẫu này cho requireDistributor() (2026-09-12, điều kiện cập
+  // nhật 2026-09-14 theo TMĐT giờ chỉ dành riêng platform_admin): kịch bản
+  // tương tự — platform_admin A xem xong 1 trang thuong-mai-*.html, đăng
+  // xuất, tài khoản business B đăng nhập TRÊN CÙNG trình duyệt (bất kể Đơn
+  // vị của B có phải phân phối hay không — không còn quan trọng nữa), rồi
+  // bấm Back → bfcache khôi phục lại trang của A, phiên hiện tại (B) vẫn còn
+  // access token HỢP LỆ và là 'business' (requireAuth()/requireBusiness()
+  // không bắt được ca này, B vẫn hợp lệ ở 2 hàm đó) nhưng không phải
+  // platform_admin. `isBusiness()` một mình đã đủ điều kiện — platform_admin
+  // không bao giờ `isBusiness()` (account_type khác), không cần thêm
+  // `!isPlatformAdmin()`. Cả 3 điều kiện xét ĐỘC LẬP nhau trong cùng 1
   // listener, không gộp else-if, vì mỗi điều kiện đá về 1 đích khác nhau.
-  // 'platform_admin' (2026-09-13) không xuất hiện trong cả 2 nhánh dưới:
-  // requireBusiness() coi platform_admin hợp lệ (!isBusiness() &&
-  // !isPlatformAdmin() mới đá đi), requireDistributor() luôn bỏ qua
-  // platform_admin ngay từ đầu (điều kiện isBusiness() bên trong hàm chặn
-  // trước khi tới isDistributor()) — không có ca bfcache nào cần vá riêng
-  // cho platform_admin ở 2 hàm này.
   global.addEventListener('pageshow', function (event) {
     if (!event.persisted) return;
     if (pageRequiresAuth && !isLoggedIn()) {
@@ -843,7 +847,7 @@
       global.location.href = 'agriverse-3d.html';
       return;
     }
-    if (pageRequiresDistributor && isLoggedIn() && isBusiness() && !isDistributor()) {
+    if (pageRequiresDistributor && isLoggedIn() && isBusiness()) {
       global.location.href = 'nong-trai.html';
     }
   });
