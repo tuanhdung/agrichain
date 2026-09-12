@@ -1,23 +1,37 @@
 /* ==========================================================================
    AgriChain — Trang Hồ sơ (ho-so.html)
-   Xem/sửa thông tin cá nhân của tài khoản đang đăng nhập (collection
-   "users" — KHÁC "orgUsers" của tai-khoan.html) + đổi mật khẩu. Mở từ menu
-   tài khoản (bấm avatar ở topbar), không phải mục sidebar.
-   Nạp SAU js/store.js, js/app-shell.js, js/password-field.js.
+   Xem/sửa thông tin cá nhân của tài khoản đang đăng nhập + đổi mật khẩu. Mở
+   từ menu tài khoản (bấm avatar ở topbar), không phải mục sidebar.
+
+   ĐÃ CHUYỂN SANG BACKEND THẬT (2026-09-12) — vá bug thật vừa phát hiện:
+   trang từng đọc store.getSession() (phiên localStorage GIẢ LẬP, hoàn toàn
+   độc lập với phiên API đăng nhập thật) nên có thể hiện đúng dữ liệu rác cũ
+   còn sót trong localStorage của MỘT NGƯỜI KHÁC, không phải người đang đăng
+   nhập — dù sidebar/topbar (đã dùng API từ trước) vẫn hiện đúng tên thật.
+   Giờ đọc/ghi hoàn toàn qua js/api.js:
+     - Đọc dữ liệu ban đầu từ AgriChain.api.getUser() (đã có sẵn trong
+       storage từ lúc đăng nhập/lúc /auth/me chạy, không gọi lại API).
+     - Lưu tên/SĐT qua PATCH /auth/me (api.auth.updateMe()) — KHÁC
+       PATCH /users/{id} (api.users.update(), dành cho quản trị sửa NGƯỜI
+       KHÁC, yêu cầu quyền users.edit mà không phải vai trò nào cũng có —
+       xem CLAUDE.md phía agrichain-api mục "Tự sửa hồ sơ — PATCH /auth/me").
+     - Đổi mật khẩu qua POST /auth/change-password (api.auth.changePassword(),
+       yêu cầu nhập đúng mật khẩu hiện tại) — KHÁC
+       POST /users/{id}/reset-password (dành cho admin đặt lại mật khẩu
+       NGƯỜI KHÁC, không cần biết mật khẩu cũ, không dùng nhầm cho ca này).
+
+   3 field dob/gender/bio (Ngày sinh/Giới tính/Giới thiệu) đã BỎ HẲN khỏi cả
+   HTML lẫn file này — backend thật (UserOut/MeUpdate) KHÔNG có 3 field này,
+   chỉ có full_name/phone. Đây từng là field CHỈ tồn tại ở store.js
+   (localStorage giả lập) — không tự bịa ra chỗ lưu nào khác cho chúng.
+
+   Nạp SAU js/app-shell.js, js/api-config.js, js/api.js, js/password-field.js.
    ========================================================================== */
 
 (function (global) {
   'use strict';
 
-  var store = global.AgriChain.store;
-  var session = store.getSession();
-
-  var ROLE_LABELS = { org: 'Quản trị Đơn vị', customer: 'Khách hàng' };
-  var GENDERS = [
-    { key: 'male', label: 'Nam' },
-    { key: 'female', label: 'Nữ' },
-    { key: 'other', label: 'Khác' }
-  ];
+  var api = global.AgriChain.api;
 
   function el(tag, className, text) {
     var node = document.createElement(tag);
@@ -26,40 +40,19 @@
     return node;
   }
 
-  function formatDob(value) {
-    if (!value) return '';
-    var parts = value.split('-');
-    if (parts.length !== 3) return value;
-    return parts[2] + '/' + parts[1] + '/' + parts[0];
-  }
-
-  var genderSelect = document.getElementById('profile-gender');
-
-  function fillGenders() {
-    var placeholder = el('option', null, '— Chọn giới tính —');
-    placeholder.value = '';
-    genderSelect.appendChild(placeholder);
-    GENDERS.forEach(function (gender) {
-      var option = el('option', null, gender.label);
-      option.value = gender.key;
-      genderSelect.appendChild(option);
-    });
-  }
-
   /* --- Hiển thị thông tin ------------------------------------------------------ */
 
-  function currentUser() {
-    return store.find('users', session.id) || session;
-  }
-
   function renderProfile() {
-    var user = currentUser();
-    var displayName = user.fullName || user.email;
+    var user = api.getUser() || {};
+    var displayName = user.full_name || user.email;
 
     document.querySelector('[data-profile-initials]').textContent = global.AgriChain.initials(displayName);
     document.querySelector('[data-profile-name]').textContent = displayName;
     document.querySelector('[data-profile-email]').textContent = '@' + user.email;
-    document.querySelector('[data-profile-role]').textContent = ROLE_LABELS[user.type] || 'Người dùng';
+    // role_name đọc thẳng từ UserOut thật (VD "Quản trị viên", "Nông dân")
+    // — không cần bảng tra tên riêng như hồi còn store.js (chỉ có 2 giá trị
+    // 'org'/'customer' cố định).
+    document.querySelector('[data-profile-role]').textContent = user.role_name || 'Người dùng';
 
     document.querySelector('[data-profile-contact-email]').textContent = user.email;
 
@@ -67,15 +60,8 @@
     phoneRow.hidden = !user.phone;
     if (user.phone) document.querySelector('[data-profile-contact-phone]').textContent = user.phone;
 
-    var dobRow = document.querySelector('[data-profile-dob-row]');
-    dobRow.hidden = !user.dob;
-    if (user.dob) document.querySelector('[data-profile-contact-dob]').textContent = formatDob(user.dob);
-
-    document.getElementById('profile-full-name').value = user.fullName || '';
+    document.getElementById('profile-full-name').value = user.full_name || '';
     document.getElementById('profile-phone').value = user.phone || '';
-    document.getElementById('profile-dob').value = user.dob || '';
-    genderSelect.value = user.gender || '';
-    document.getElementById('profile-bio').value = user.bio || '';
   }
 
   /* --- Tab "Thông tin cá nhân" -------------------------------------------------- */
@@ -88,31 +74,48 @@
     });
   }
 
+  function showError(field, message) {
+    field.setAttribute('aria-invalid', 'true');
+    field.parentNode.appendChild(el('p', 'field__error', message));
+  }
+
+  // Ánh xạ tên field backend trả về trong lỗi (details.field) sang đúng
+  // input trên form — khớp MeUpdate thật (chỉ full_name/phone).
+  function infoFieldNodeFor(fieldName) {
+    var map = { full_name: 'profile-full-name', phone: 'profile-phone' };
+    var id = map[fieldName];
+    return id ? document.getElementById(id) : null;
+  }
+
   function handleProfileSubmit(event) {
     event.preventDefault();
     clearInfoErrors();
 
     var fullNameInput = document.getElementById('profile-full-name');
     if (!fullNameInput.value.trim()) {
-      fullNameInput.setAttribute('aria-invalid', 'true');
-      fullNameInput.parentNode.appendChild(el('p', 'field__error', 'Nhập họ và tên.'));
+      showError(fullNameInput, 'Nhập họ và tên.');
       fullNameInput.focus();
       return;
     }
 
     var data = new FormData(event.target);
     var payload = {
-      fullName: String(data.get('fullName') || '').trim(),
-      phone: String(data.get('phone') || '').trim(),
-      dob: String(data.get('dob') || ''),
-      gender: String(data.get('gender') || ''),
-      bio: String(data.get('bio') || '').trim()
+      full_name: String(data.get('fullName') || '').trim(),
+      phone: String(data.get('phone') || '').trim() || null
     };
 
-    store.update('users', session.id, payload);
-    store.updateSession(payload);
-    renderProfile();
-    global.AgriChain.toast('Đã cập nhật hồ sơ.');
+    api.auth.updateMe(payload).then(function () {
+      renderProfile();
+      global.AgriChain.toast('Đã cập nhật hồ sơ.');
+    }).catch(function (err) {
+      var field = err.details && infoFieldNodeFor(err.details.field);
+      if (field) {
+        showError(field, err.message);
+        field.focus();
+      } else {
+        global.AgriChain.toast(err.message);
+      }
+    });
   }
 
   /* --- Tab "Bảo mật" -------------------------------------------------------------- */
@@ -125,42 +128,53 @@
     });
   }
 
-  function showPasswordError(field, message) {
-    field.setAttribute('aria-invalid', 'true');
-    field.parentNode.appendChild(el('p', 'field__error', message));
-  }
-
   function handlePasswordSubmit(event) {
     event.preventDefault();
     clearPasswordErrors();
 
+    var currentInput = document.getElementById('profile-current-password');
     var passwordInput = document.getElementById('profile-new-password');
     var confirmInput = document.getElementById('profile-confirm-password');
 
+    if (!currentInput.value) {
+      showError(currentInput, 'Nhập mật khẩu hiện tại.');
+      currentInput.focus();
+      return;
+    }
+
     var problems = global.AgriChain.passwordProblems(passwordInput.value);
     if (problems.length) {
-      showPasswordError(passwordInput, 'Mật khẩu cần thêm: ' + problems.join(', ') + '.');
+      showError(passwordInput, 'Mật khẩu cần thêm: ' + problems.join(', ') + '.');
       passwordInput.focus();
       return;
     }
     if (passwordInput.value !== confirmInput.value) {
-      showPasswordError(confirmInput, 'Mật khẩu xác nhận không khớp.');
+      showError(confirmInput, 'Mật khẩu xác nhận không khớp.');
       confirmInput.focus();
       return;
     }
 
-    store.changePassword(session.id, passwordInput.value).then(function () {
+    api.auth.changePassword(currentInput.value, passwordInput.value).then(function () {
       event.target.reset();
       global.AgriChain.toast('Đã đổi mật khẩu.');
+    }).catch(function (err) {
+      // details.field: 'old_password' (sai mật khẩu hiện tại) hoặc
+      // 'new_password' (không đạt quy tắc độ mạnh) — khớp ChangePasswordRequest.
+      if (err.details && err.details.field === 'old_password') {
+        showError(currentInput, err.message);
+        currentInput.focus();
+      } else if (err.details && err.details.field === 'new_password') {
+        showError(passwordInput, err.message);
+        passwordInput.focus();
+      } else {
+        global.AgriChain.toast(err.message);
+      }
     });
   }
 
   /* --- Khởi động -------------------------------------------------------------- */
 
   document.addEventListener('DOMContentLoaded', function () {
-    if (!session) return; // app-shell.js đã tự chuyển hướng về trang đăng nhập
-
-    fillGenders();
     renderProfile();
     global.AgriChain.setupPasswordToggles();
     global.AgriChain.setupPasswordRules();

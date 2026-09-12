@@ -76,7 +76,7 @@
     }
   </style>
   <script src="js/api-config.js?v=1"></script>
-  <script src="js/api.js?v=11"></script>
+  <script src="js/api.js?v=12"></script>
   <script>
     // Trang khu quản trị — chặn ngay trong <head> (không defer) để tránh
     // chớp nội dung trước khi chuyển hướng nếu chưa đăng nhập qua API.
@@ -292,10 +292,6 @@
             <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-phone"></use></svg>
             <span data-profile-contact-phone></span>
           </div>
-          <div class="profile-card__row" data-profile-dob-row hidden>
-            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-calendar"></use></svg>
-            <span data-profile-contact-dob></span>
-          </div>
         </div>
 
         <!-- Chỉnh sửa -->
@@ -322,18 +318,6 @@
                   <label class="label" for="profile-phone">Số điện thoại</label>
                   <input class="input" type="tel" id="profile-phone" name="phone" />
                 </div>
-                <div class="field">
-                  <label class="label" for="profile-dob">Ngày sinh</label>
-                  <input class="input" type="date" id="profile-dob" name="dob" />
-                </div>
-                <div class="field">
-                  <label class="label" for="profile-gender">Giới tính</label>
-                  <select class="select" id="profile-gender" name="gender"></select>
-                </div>
-                <div class="field form-grid__full">
-                  <label class="label" for="profile-bio">Giới thiệu</label>
-                  <textarea class="textarea" id="profile-bio" name="bio"></textarea>
-                </div>
               </div>
               <div style="display: flex; justify-content: flex-end;">
                 <button type="submit" class="btn btn--primary">Xác nhận</button>
@@ -344,6 +328,17 @@
           <div class="tabs__panel" id="profile-tab-security" data-tab-panel role="tabpanel" hidden>
             <form id="profile-security-form" novalidate>
               <div class="form-grid" style="margin-bottom: var(--space-5);">
+                <div class="field form-grid__full">
+                  <label class="label" for="profile-current-password">Mật khẩu hiện tại</label>
+                  <div class="password-field">
+                    <input class="input" type="password" id="profile-current-password" name="oldPassword"
+                      autocomplete="current-password" required />
+                    <button type="button" class="password-toggle" data-password-toggle="profile-current-password"
+                      aria-label="Hiện mật khẩu">
+                      <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-eye"></use></svg>
+                    </button>
+                  </div>
+                </div>
                 <div class="field">
                   <label class="label" for="profile-new-password">Mật khẩu mới</label>
                   <div class="password-field">
@@ -409,6 +404,6 @@
   <script src="js/store.js?v=12" defer></script>
   <script src="js/app-shell.js?v=11" defer></script>
   <script src="js/password-field.js?v=1" defer></script>
-  <script src="js/ho-so.js?v=1" defer></script>
+  <script src="js/ho-so.js?v=2" defer></script>
 </body>
 </html>

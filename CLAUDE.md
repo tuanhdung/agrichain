@@ -98,8 +98,10 @@ js/
                           # không còn dùng store.js/collection "orgUsers" nữa — xem mục
                           # "Kết nối backend" bên dưới.
   ho-so.js                # Logic riêng cho ho-so.html (xem/sửa hồ sơ CHÍNH tài khoản đang đăng nhập
-                          # — collection "users" của store.js, vẫn giả lập, chưa chuyển sang API —
-                          # + đổi mật khẩu. Mở từ menu tài khoản ở topbar, không phải mục sidebar)
+                          # + đổi mật khẩu. Mở từ menu tài khoản ở topbar, không phải mục sidebar).
+                          # ĐÃ CHUYỂN SANG BACKEND THẬT (2026-09-12) qua api.auth.updateMe()
+                          # (PATCH /auth/me) + api.auth.changePassword() (POST /auth/change-password)
+                          # — xem mục "Kết nối backend"
   truy-xuat.js            # Logic riêng cho truy-xuat.html (trang truy xuất công khai — KHÔNG nạp
                           # js/app-shell.js, trang này không cần đăng nhập). Tra lô hàng qua
                           # api.batches.getByCode() (route public GET /batches/by-code/{code}),
@@ -169,7 +171,8 @@ tai-khoan.html            # Trang quản trị: danh sách người dùng trong 
                           # backend thật (không còn store.js) — xem mục "Kết nối backend" bên dưới.
 ho-so.html                # Trang quản trị: hồ sơ CHÍNH tài khoản đang đăng nhập + đổi mật khẩu (dùng
                           # chung khung app-shell) — mở từ menu tài khoản ở topbar (bấm avatar), KHÔNG
-                          # phải mục sidebar (xem mục "Menu tài khoản" bên dưới)
+                          # phải mục sidebar (xem mục "Menu tài khoản" bên dưới). ĐÃ CHUYỂN SANG
+                          # BACKEND THẬT (2026-09-12) — xem mục "Kết nối backend"
 goi-phan-mem.html         # Trang tạm "Đang phát triển" — mục "Gói Phần mềm" trong nhóm sidebar
                           # "Quản lý Đơn vị", chưa có nghiệp vụ thật
 lich-su-mua-goi.html      # Trang tạm "Đang phát triển" — mục "Lịch sử mua Gói" trong nhóm sidebar
@@ -280,15 +283,9 @@ từng nằm ở đó giờ đều chuyển hết vào menu tài khoản này) �
 menu) nhờ vậy chiếm trọn chiều cao còn lại của sidebar (`flex: 1`), không phải chừa chỗ cho
 chân trang nữa.
 
-`ho-so.html` thêm 4 field tuỳ chọn mới vào bản ghi `users` (collection đăng nhập thật, KHÔNG
-phải `orgUsers`): `phone`, `dob`, `gender`, `bio` — lưu qua `store.update('users', session.id,
-...)` VÀ `store.updateSession(...)` cùng lúc để phiên đăng nhập hiện tại thấy thay đổi ngay,
-không cần đăng nhập lại (`updateSession()` tự suy ra đang lưu ở `localStorage` hay
-`sessionStorage` dựa vào cái nào đang giữ session, xem `js/store.js`). Tab "Bảo mật" đổi mật
-khẩu thật qua `store.changePassword(userId, mậtKhẩuMới)` — sinh salt mới + băm lại đúng cơ chế
-`registerUser()`, hợp lệ vì đây là `users` (có xác thực, dù giả lập) — KHÁC quy tắc "không lưu
-mật khẩu dưới bất kỳ hình thức nào" chỉ áp dụng riêng cho `orgUsers` (xem mục "Đăng nhập/Đăng
-ký" bên dưới).
+`ho-so.html` **ĐÃ CHUYỂN SANG BACKEND THẬT** (2026-09-12) — xem mục "Kết nối backend" để biết
+chi tiết đầy đủ (bug thật đã phát hiện + phát hiện field `dob`/`gender`/`bio` không tồn tại ở
+backend nên đã bỏ hẳn khỏi trang, chỉ còn `full_name`/`phone`).
 
 ## Đăng nhập / Đăng ký
 
@@ -526,7 +523,8 @@ trang đều dùng backend thật ngay**:
   `nong-trai-chi-tiet.html` (farms + seasons + logs + certifications — riêng `batches`
   trên chính trang này VẪN dùng `store.js`, xem mục riêng bên dưới), `mau-quy-trinh.html`
   (toàn bộ — mẫu quy trình qua `api.workflowTemplates.*`, dropdown chọn vật tư trong bước
-  mẫu qua `api.supplies.*` từ trước).
+  mẫu qua `api.supplies.*` từ trước), `ho-so.html` (toàn bộ, 2026-09-12 — xem mục riêng
+  bên dưới).
 - **Vẫn dùng `store.js`**: mọi trang còn lại, cộng thêm 1 collection
   trên `nong-trai-chi-tiet.html`/`js/lo-hang.js`: `batches` (lô hàng, toàn bộ CRUD) — backend
   ĐÃ CÓ `batches` (xem mục "Các bảng nghiệp vụ" bên dưới) nhưng 2 trang này CHƯA chuyển,
@@ -561,6 +559,38 @@ trang đều dùng backend thật ngay**:
   `sealedAt` (mô phỏng client-side cũ của `js/chain.js`), chỉ có `verification_status` (luôn
   `'pending'` — anchoring blockchain thật chưa code)/`tx_hash`/`anchored_at` — xem
   `agrichain-api/CLAUDE.md` mục "Giai đoạn 3".
+- **`ho-so.html`/`js/ho-so.js` ĐÃ CHUYỂN SANG API** (2026-09-12) — **vá 1 bug thật nghiêm
+  trọng**: trang từng đọc `store.getSession()` (phiên `localStorage` GIẢ LẬP, tồn tại độc lập
+  với phiên đăng nhập API thật kể từ khi `dang-nhap.html` chuyển hẳn sang API) nên có thể hiện
+  đúng dữ liệu rác cũ còn sót trong `localStorage` của MỘT NGƯỜI KHÁC — không phải người đang
+  đăng nhập — dù sidebar/topbar (đã dùng API từ trước) vẫn hiện đúng tên thật; bất kỳ ai bấm
+  vào "Hồ sơ" đều có thể thấy thông tin cá nhân của người khác. Giờ đọc `AgriChain.api.getUser()`
+  (đã có sẵn trong storage, không gọi lại API) làm dữ liệu ban đầu.
+  - **Lưu họ tên/SĐT qua `api.auth.updateMe()` (`PATCH /auth/me`, endpoint MỚI thêm ở
+    `agrichain-api`)** — KHÔNG dùng `PATCH /users/{id}` (`api.users.update()`): route đó yêu
+    cầu quyền `users.edit`, mà theo seed mặc định vai trò `manager` chỉ có `users.view`,
+    `farmer` không có gì cả — dùng nhầm sẽ khiến phần lớn nhân viên không phải `admin` nhận
+    403 ngay khi tự lưu hồ sơ MÌNH. Xem `agrichain-api/CLAUDE.md` mục "Tự sửa hồ sơ —
+    PATCH /auth/me" để biết đầy đủ lý do + cách route mới chặn tự nâng quyền.
+  - **Đổi mật khẩu qua `api.auth.changePassword()` (`POST /auth/change-password`, đã có sẵn
+    từ trước, KHÔNG phải endpoint mới)** — khác `POST /users/{id}/reset-password` (dành cho
+    admin đặt lại mật khẩu NGƯỜI KHÁC, không cần mật khẩu cũ). Form "Bảo mật" thêm ô "Mật khẩu
+    hiện tại" (`profile-current-password`) — trước đó KHÔNG có, vì `store.changePassword()` cũ
+    không đòi mật khẩu cũ; `ChangePasswordRequest` thật thì bắt buộc `old_password`.
+  - `api.auth.changePassword()` (`js/api.js`) giờ tự `saveSession()` ngay với `TokenPair` trả
+    về — backend thu hồi HẾT refresh token cũ khi đổi mật khẩu, không lưu lại cặp token mới
+    thì lần làm mới token tiếp theo của phiên hiện tại sẽ thất bại, tự đăng xuất oan ngay sau
+    khi vừa đổi mật khẩu thành công.
+  - `api.auth.updateMe()` sau khi lưu thành công tự cập nhật lại `agrichain.user` (giữ nguyên
+    mảng `permissions` cũ — route này không đổi được vai trò nên permissions chắc chắn không
+    đổi) — để sidebar/topbar hiện tên mới NGAY, không cần đăng nhập lại, cùng bài học đã rút ra
+    ở transfer-admin (`tai-khoan.html`).
+  - **3 field `dob`/`gender`/`bio`** (Ngày sinh/Giới tính/Giới thiệu) đã **BỎ HẲN** khỏi cả
+    `ho-so.html` lẫn `js/ho-so.js` — `UserOut`/`MeUpdate` thật của backend không có 3 field
+    này, chỉ có `full_name`/`phone`; đây từng là field CHỈ tồn tại ở `store.js`, không tự bịa
+    ra chỗ lưu nào khác. Vai trò hiển thị (`data-profile-role`) đọc thẳng `user.role_name`
+    (VD "Quản trị viên", "Nông dân") từ `UserOut` thật — không cần bảng tra tên riêng như hồi
+    còn `store.js` (chỉ có đúng 2 giá trị `'org'`/`'customer'` cố định).
 
 ### `js/api-config.js`
 

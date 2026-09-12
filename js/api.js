@@ -385,9 +385,38 @@
     });
   }
 
+  // PATCH /auth/me — tự sửa hồ sơ CHÍNH mình (full_name/phone), dùng ở
+  // ho-so.html. KHÁC users.update(id, data) (PATCH /users/{id}, dành cho
+  // quản trị sửa NGƯỜI KHÁC, yêu cầu quyền users.edit) — route này không
+  // yêu cầu quyền gì ngoài đăng nhập, xem CLAUDE.md phía agrichain-api mục
+  // "Tự sửa hồ sơ — PATCH /auth/me". Response là UserOut PHẲNG, không có
+  // mảng permissions như MeResponse của me() ở trên — giữ nguyên permissions
+  // đã lưu trước đó (route này không đổi được vai trò nên permissions chắc
+  // chắn không đổi) rồi lưu lại NGAY, để sidebar/topbar (data-session-name...)
+  // hiện tên mới mà không cần đăng nhập lại — cùng bài học đã rút ra ở
+  // transfer-admin (tai-khoan.html): không được để agrichain.user lệch với
+  // dữ liệu thật trên server sau khi sửa thành công.
+  function updateMe(payload) {
+    return request('PATCH', '/auth/me', { body: payload }).then(function (user) {
+      var existing = getUser() || {};
+      user.permissions = existing.permissions || [];
+      saveUser(user);
+      return user;
+    });
+  }
+
+  // POST /auth/change-password trả về 1 cặp token MỚI (backend thu hồi hết
+  // token cũ khi đổi mật khẩu) — PHẢI lưu lại ngay bằng saveSession(), nếu
+  // không lần làm mới token tiếp theo của phiên hiện tại sẽ dùng refresh
+  // token cũ đã bị thu hồi, tự đăng xuất oan ngay sau khi vừa đổi mật khẩu
+  // thành công. Không có user trong response nên saveSession() chỉ ghi đè
+  // 2 token, giữ nguyên agrichain.user đang có.
   function changePassword(oldPassword, newPassword) {
     return request('POST', '/auth/change-password', {
       body: { old_password: oldPassword, new_password: newPassword }
+    }).then(function (data) {
+      saveSession(data);
+      return data;
     });
   }
 
@@ -698,6 +727,7 @@
       login: login,
       logout: logout,
       me: me,
+      updateMe: updateMe,
       changePassword: changePassword,
       registerCustomer: registerCustomer,
       registerBusiness: registerBusiness
