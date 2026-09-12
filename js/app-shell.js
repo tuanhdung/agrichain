@@ -362,18 +362,40 @@
     var list = document.getElementById('nav-thuong-mai');
     var section = list && list.closest('.app-nav__section');
     if (!section) return;
-    section.hidden = !!(api && api.isBusiness() && !api.isDistributor());
+    // platform_admin (2026-09-13) LUÔN thấy nhóm này — đứng trên mọi Đơn vị
+    // nên không có khái niệm is_distributor áp dụng, coi như luôn hợp lệ.
+    // requireDistributor() (js/api.js) đã bỏ qua platform_admin y hệt, 2 lớp
+    // (ẩn menu + chặn URL) phải khớp nhau, xem CLAUDE.md.
+    section.hidden = !!(api && api.isBusiness() && !api.isPlatformAdmin() && !api.isDistributor());
+  }
+
+  // Ẩn mục "Quản lý Tài khoản" (tai-khoan.html) khỏi sidebar cho platform_admin
+  // (2026-09-13, xem CLAUDE.md mục "Quản trị hệ thống (platform_admin)") —
+  // tài khoản này không thuộc Đơn vị nào nên không có người dùng nào của
+  // "Đơn vị mình" để quản lý (khác business, luôn có đúng 1 Đơn vị). Chọn
+  // bằng href thay vì id vì mục này không có id riêng, cùng cấu trúc
+  // <a class="app-nav__link" href="tai-khoan.html"> lặp lại y hệt ở cả 16
+  // trang app-shell. Gán `hidden` TƯỜNG MINH cả 2 chiều, cùng bài học đã rút
+  // ra ở updateDistributorOnlyNav().
+  function updatePlatformAdminOnlyNav() {
+    var link = document.querySelector('.app-nav__link[href="tai-khoan.html"]');
+    var item = link && link.closest('li');
+    if (!item) return;
+    item.hidden = !!(api && api.isPlatformAdmin());
   }
 
   // Bug bfcache (cùng mẫu đã vá nhiều lần trong dự án — xem js/api.js mục
   // requireAuth()/requireBusiness()/requireDistributor(), js/header.js,
   // agriverse-3d.html): đăng xuất xong bấm Back có thể khôi phục trang từ
   // bfcache thay vì tải lại thật, sidebar vẫn hiện/ẩn nhóm "Thương mại điện
-  // tử" theo phiên CŨ. 'pageshow' báo lại MỌI lần trang hiển thị, kể cả khôi
-  // phục từ bfcache (`event.persisted === true`) — gọi lại
-  // updateDistributorOnlyNav() để vẽ đúng theo trạng thái đăng nhập THẬT.
+  // tử"/mục "Quản lý Tài khoản" theo phiên CŨ. 'pageshow' báo lại MỌI lần
+  // trang hiển thị, kể cả khôi phục từ bfcache (`event.persisted === true`)
+  // — gọi lại cả 2 hàm để vẽ đúng theo trạng thái đăng nhập THẬT.
   global.addEventListener('pageshow', function (event) {
-    if (event.persisted) updateDistributorOnlyNav();
+    if (event.persisted) {
+      updateDistributorOnlyNav();
+      updatePlatformAdminOnlyNav();
+    }
   });
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -387,6 +409,7 @@
     setupZeroDefaultInputs();
     setupLogout();
     updateDistributorOnlyNav();
+    updatePlatformAdminOnlyNav();
   });
 
   global.AgriChain = global.AgriChain || {};

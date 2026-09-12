@@ -537,6 +537,15 @@
   width: min(460px, 100vw);
 }
 
+/* Modal "Thêm/Sửa nông trại" cần rộng hơn hẳn mức chung 920px của .modal —
+   bên trong có khối bản đồ vẽ ranh giới thửa đất (Leaflet) + danh sách toạ
+   độ nhập tay, chật chội rõ rệt ở khổ hẹp. Modifier RIÊNG, không đổi .modal
+   dùng chung cho mọi modal khác trong dự án (user-modal, product-modal,
+   season-view-modal...). */
+.modal--wide {
+  width: min(1500px, 95vw);
+}
+
 /* Ẩn khỏi mắt nhưng vẫn đọc được bằng trình đọc màn hình */
 .sr-only {
   position: absolute;

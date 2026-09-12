@@ -107,18 +107,25 @@
   }
 
   /* --- Sau khi đăng nhập: về đâu ---------------------------------------------
-     accountType: 'customer' | 'business' | null/undefined (chưa biết — coi
-     như 'business' để giữ đúng hành vi mặc định cũ, tránh phá vỡ luồng hiện
-     có ở những nơi gọi redirectTarget() mà chưa kịp truyền account_type). */
+     accountType: 'customer' | 'business' | 'platform_admin' | null/undefined
+     (chưa biết — coi như 'business' để giữ đúng hành vi mặc định cũ, tránh
+     phá vỡ luồng hiện có ở những nơi gọi redirectTarget() mà chưa kịp truyền
+     account_type). 'platform_admin' (2026-09-13, đổi hướng thiết kế — xem
+     CLAUDE.md mục "Quản trị hệ thống (platform_admin)") dùng CHUNG khu quản
+     trị 16 trang app-shell với 'business' thay vì có đích/trang riêng — cố
+     tình KHÔNG liệt kê nhánh riêng cho 'platform_admin' ở cả 2 hàm dưới,
+     rơi thẳng vào nhánh mặc định 'nong-trai.html' giống 'business' hệt
+     nhau. */
 
   function defaultTargetFor(accountType) {
     // index.html chỉ là trang giới thiệu, không nằm trong app-shell nên
-    // không hợp lý làm đích đến sau khi đăng nhập cho CẢ 2 loại tài khoản.
-    // agriverse-3d.html (không phải ecommerce.html) — đúng trang thương mại
-    // điện tử ĐANG DÙNG THẬT của dự án từ 2026-09-08 (menu header/footer
+    // không hợp lý làm đích đến sau khi đăng nhập cho bất kỳ loại tài khoản
+    // nào. agriverse-3d.html (không phải ecommerce.html) — đúng trang thương
+    // mại điện tử ĐANG DÙNG THẬT của dự án từ 2026-09-08 (menu header/footer
     // "E-commerce" đã trỏ sang đây, xem CLAUDE.md); ecommerce.html giờ mồ
     // côi, không còn nơi nào trỏ tới (2026-09-11).
-    return accountType === 'customer' ? 'agriverse-3d.html' : 'nong-trai.html';
+    if (accountType === 'customer') return 'agriverse-3d.html';
+    return 'nong-trai.html'; // 'business', 'platform_admin', hoặc chưa rõ accountType
   }
 
   function redirectTarget(accountType) {
@@ -131,8 +138,11 @@
       // Bản vá (2026-09-11): tài khoản 'customer' không có quyền gì ở khu
       // quản trị (RBAC backend trả 403 khi tải dữ liệu — đã thấy tận mắt khi
       // ?redirect= trỏ vào nong-trai.html) — dù link khớp regex an toàn ở
-      // trên, vẫn phải bỏ qua nếu trỏ vào 1 trong 15 trang app-shell, dùng
-      // mặc định theo account_type thay vào đó.
+      // trên, vẫn phải bỏ qua nếu trỏ vào 1 trong 16 trang app-shell, dùng
+      // mặc định theo account_type thay vào đó. 'platform_admin' KHÔNG bị
+      // chặn ở đây (khác 2026-09-13 lúc đầu có 1 trang riêng cho nó, đã đổi
+      // hướng) — tài khoản này giờ dùng chung 16 trang app-shell hợp lệ như
+      // 'business', ?redirect= trỏ vào đó là bình thường.
       var page = target.split('?')[0];
       if (accountType === 'customer' && ADMIN_SHELL_PAGES.indexOf(page) !== -1) {
         return defaultTargetFor(accountType);

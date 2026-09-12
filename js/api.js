@@ -148,9 +148,11 @@
   }
 
   // Đọc đồng bộ từ agrichain.user đã lưu (UserOut, xem /auth/me) — KHÔNG gọi
-  // API. account_type: 'customer' (khách hàng, không thuộc Đơn vị nào) hay
-  // 'business' (nông hộ/doanh nghiệp, luôn có organization_id) — xác nhận
-  // đúng 2 giá trị này qua app/schemas/enums.py (AccountType) của
+  // API. account_type: 'customer' (khách hàng, không thuộc Đơn vị nào),
+  // 'business' (nông hộ/doanh nghiệp, luôn có organization_id), hoặc
+  // 'platform_admin' (Quản trị hệ thống, đứng trên mọi Đơn vị, organization_id
+  // luôn NULL — CHECK ràng buộc DB, xem migrations/010_platform_admin_accounts.sql)
+  // — xác nhận đúng 3 giá trị này qua app/schemas/enums.py (AccountType) của
   // agrichain-api, không phải suy đoán.
   function getAccountType() {
     var user = getUser();
@@ -159,6 +161,10 @@
 
   function isBusiness() {
     return getAccountType() === 'business';
+  }
+
+  function isPlatformAdmin() {
+    return getAccountType() === 'platform_admin';
   }
 
   function getOrganizationId() {
@@ -663,6 +669,55 @@
     }
   };
 
+  /* --- system.* — 7 route CHỈ ĐỌC cho platform_admin, nhìn xuyên mọi Đơn vị -
+     GET /system/farms|seasons|logs|certifications|supplies|workflow-templates|
+     batches — backend chặn cứng bằng require_platform_admin (account_type
+     khác đều 403), KHÔNG dùng cơ chế permission thông thường nên không có
+     create/update/remove nào ở đây (đúng nghĩa READ-ONLY, không phải chỉ
+     thiếu quyền). Mỗi bản ghi trả về kèm `organization_name` (field PHẲNG,
+     KHÔNG có ở *Out thường) để phân biệt vì mã nông trại/mùa vụ... có thể
+     TRÙNG giữa các Đơn vị khác nhau (org-scoped từ đầu). Response vẫn đúng
+     khuôn `Page` chung `{ items, total, page, page_size }` như farms/seasons/
+     batches... nhưng KHÔNG có `q` tìm kiếm — chỉ `page`/`page_size`, xác nhận
+     qua router thật (app/routers/system.py), không suy đoán. */
+  var system = {
+    farms: {
+      list: function (params) {
+        return request('GET', '/system/farms', { query: params });
+      }
+    },
+    seasons: {
+      list: function (params) {
+        return request('GET', '/system/seasons', { query: params });
+      }
+    },
+    logs: {
+      list: function (params) {
+        return request('GET', '/system/logs', { query: params });
+      }
+    },
+    certifications: {
+      list: function (params) {
+        return request('GET', '/system/certifications', { query: params });
+      }
+    },
+    supplies: {
+      list: function (params) {
+        return request('GET', '/system/supplies', { query: params });
+      }
+    },
+    workflowTemplates: {
+      list: function (params) {
+        return request('GET', '/system/workflow-templates', { query: params });
+      }
+    },
+    batches: {
+      list: function (params) {
+        return request('GET', '/system/batches', { query: params });
+      }
+    }
+  };
+
   /* --- Bảo vệ trang cần đăng nhập --------------------------------------------
      Gọi ở đầu <head> bằng script THƯỜNG (không defer) để chuyển hướng trước
      khi nội dung trang kịp vẽ ra. */
@@ -690,7 +745,12 @@
   // Chặn trang dành riêng cho tài khoản 'business' (nông hộ/doanh nghiệp) —
   // account_type='customer' bị đá sang agriverse-3d.html (trang thương mại
   // điện tử ĐANG DÙNG THẬT của dự án, KHÔNG phải ecommerce.html — trang đó
-  // giờ mồ côi, không còn nơi nào trỏ tới, xem CLAUDE.md). Gọi SAU
+  // giờ mồ côi, không còn nơi nào trỏ tới, xem CLAUDE.md). 'platform_admin'
+  // (2026-09-13, đổi hướng thiết kế — xem CLAUDE.md mục "Quản trị hệ thống
+  // (platform_admin)"): dùng CHUNG giao diện 16 trang app-shell với
+  // 'business' thay vì có 1 trang riêng — coi là HỢP LỆ ở đây, KHÔNG bị đá
+  // đi, chỉ khác nguồn dữ liệu (mỗi trang tự gọi api.system.* thay vì
+  // api.farms.*... khi isPlatformAdmin(), xem js/nong-trai.js). Gọi SAU
   // requireAuth() ở đầu <head>: giả định trang ĐÃ đăng nhập rồi mới tới
   // lượt kiểm account_type — nếu gọi khi chưa đăng nhập (auth chưa chạy,
   // hoặc gọi nhầm thứ tự), !isLoggedIn() sớm return true luôn, để
@@ -701,7 +761,7 @@
   function requireBusiness() {
     pageRequiresBusiness = true;
     if (!isLoggedIn()) return true;
-    if (!isBusiness()) {
+    if (!isBusiness() && !isPlatformAdmin()) {
       global.location.href = 'agriverse-3d.html';
       return false;
     }
@@ -714,17 +774,23 @@
   // requireBusiness(): người bị chặn ở đây vẫn là account_type='business'
   // hợp lệ (không phải 'customer'), chỉ là Đơn vị của họ không được bán hàng
   // qua sàn — đá về nong-trai.html (khu quản trị chung), KHÔNG phải
-  // agriverse-3d.html (đích dành riêng cho 'customer'). Gọi SAU
+  // agriverse-3d.html (đích dành riêng cho 'customer'). 'platform_admin'
+  // (2026-09-13) LUÔN qua được, bỏ qua hoàn toàn điều kiện is_distributor —
+  // đứng trên mọi Đơn vị nên coi như luôn "nhà phân phối", phải luôn thấy đủ
+  // menu Thương mại điện tử bất kể Đơn vị nào đang active (không có khái
+  // niệm "Đơn vị đang active" với tài khoản này). Gọi SAU
   // requireAuth()/requireBusiness() ở đầu <head>: giả định trang ĐÃ đăng
-  // nhập và ĐÃ là business rồi mới tới lượt kiểm organization_is_distributor
-  // — nếu gọi khi chưa đăng nhập hoặc là 'customer', !isLoggedIn() hoặc
-  // !isBusiness() sớm return true luôn, để 2 hàm kia (đã gọi trước) tự xử lý
-  // ca của mình, requireDistributor() không giẫm lên việc đó.
+  // nhập và ĐÃ qua requireBusiness() rồi mới tới lượt kiểm
+  // organization_is_distributor — nếu gọi khi chưa đăng nhập hoặc là
+  // 'customer', !isLoggedIn() hoặc !isBusiness() sớm return true luôn, để 2
+  // hàm kia (đã gọi trước) tự xử lý ca của mình, requireDistributor() không
+  // giẫm lên việc đó.
   var pageRequiresDistributor = false;
 
   function requireDistributor() {
     pageRequiresDistributor = true;
-    if (!isLoggedIn() || !isBusiness()) return true;
+    if (!isLoggedIn() || isPlatformAdmin()) return true;
+    if (!isBusiness()) return true;
     if (!isDistributor()) {
       global.location.href = 'nong-trai.html';
       return false;
@@ -759,15 +825,21 @@
   // phân phối) đăng nhập TRÊN CÙNG trình duyệt, rồi bấm Back → bfcache khôi
   // phục lại trang của A, phiên hiện tại (B) vẫn còn access token HỢP LỆ và
   // vẫn là 'business' (requireAuth()/requireBusiness() không bắt được ca
-  // này) nhưng sai Đơn vị. Cả 3 điều kiện xét ĐỘC LẬP nhau, không gộp
-  // else-if, vì mỗi điều kiện đá về 1 đích khác nhau.
+  // này) nhưng sai Đơn vị. Cả 3 điều kiện xét ĐỘC LẬP nhau trong cùng 1
+  // listener, không gộp else-if, vì mỗi điều kiện đá về 1 đích khác nhau.
+  // 'platform_admin' (2026-09-13) không xuất hiện trong cả 2 nhánh dưới:
+  // requireBusiness() coi platform_admin hợp lệ (!isBusiness() &&
+  // !isPlatformAdmin() mới đá đi), requireDistributor() luôn bỏ qua
+  // platform_admin ngay từ đầu (điều kiện isBusiness() bên trong hàm chặn
+  // trước khi tới isDistributor()) — không có ca bfcache nào cần vá riêng
+  // cho platform_admin ở 2 hàm này.
   global.addEventListener('pageshow', function (event) {
     if (!event.persisted) return;
     if (pageRequiresAuth && !isLoggedIn()) {
       redirectToLogin();
       return;
     }
-    if (pageRequiresBusiness && isLoggedIn() && !isBusiness()) {
+    if (pageRequiresBusiness && isLoggedIn() && !isBusiness() && !isPlatformAdmin()) {
       global.location.href = 'agriverse-3d.html';
       return;
     }
@@ -789,6 +861,7 @@
     isBusiness: isBusiness,
     getOrganizationId: getOrganizationId,
     isDistributor: isDistributor,
+    isPlatformAdmin: isPlatformAdmin,
     requireBusiness: requireBusiness,
     requireDistributor: requireDistributor,
     isRemembered: isRemembered,
@@ -810,6 +883,7 @@
     supplies: supplies,
     certifications: certifications,
     workflowTemplates: workflowTemplates,
-    batches: batches
+    batches: batches,
+    system: system
   };
 })(window);

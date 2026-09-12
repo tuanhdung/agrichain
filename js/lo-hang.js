@@ -34,6 +34,17 @@
 
   var api = global.AgriChain.api;
 
+  // platform_admin (2026-09-13, xem CLAUDE.md mục "Quản trị hệ thống
+  // (platform_admin)") dùng CHUNG trang này với business — chỉ khác nguồn
+  // dữ liệu (api.system.batches.list() thay vì api.batches.list(), nhìn
+  // xuyên MỌI Đơn vị kèm organization_name) và ẩn hết thao tác ghi. Bộ lọc
+  // Nông trại/Mùa vụ CŨNG ẩn ở chế độ này — api.system.batches.list() không
+  // hỗ trợ lọc farm_id/season_id (xác nhận qua router thật, chỉ page/
+  // page_size), và tự lọc theo Nông trại lại cần gọi api.farms.list()/
+  // api.seasons.list() thường (yêu cầu permission platform_admin không có,
+  // sẽ 403) nên không tận dụng lại được cơ chế cascading sẵn có.
+  var isPlatformAdminMode = api.isPlatformAdmin();
+
   var BATCH_STATUSES = [
     { key: 'planning',   label: 'Đang lập kế hoạch', badge: 'badge--neutral' },
     { key: 'planted',    label: 'Đang xuống giống',  badge: 'badge--info' },
@@ -126,6 +137,10 @@
      hệt, chỉ khác nút sửa/xoá: ở đây điều hướng về đúng mùa vụ đó thay vì mở
      modal (trang này không có form thêm/sửa lô hàng). */
   function filteredBatches() {
+    if (isPlatformAdminMode) {
+      // Không lọc farm_id/season_id được — bộ lọc đã ẩn hẳn ở chế độ này.
+      return api.system.batches.list({ page_size: 100 }).then(function (data) { return data.items || []; });
+    }
     var farmId = farmFilterSelect.value;
     var seasonId = seasonFilterSelect.value;
     return api.batches.list({
@@ -150,6 +165,17 @@
     card.appendChild(header);
 
     var rows = el('div', 'batch-card__rows');
+
+    // "Đơn vị sở hữu" (organization_name) CHỈ hiện với platform_admin — field
+    // PHẲNG riêng của api.system.batches.list(), không có ở api.batches.list()
+    // thường (business chỉ thấy đúng 1 Đơn vị của chính mình).
+    if (isPlatformAdminMode) {
+      var orgRow = el('div', 'batch-card__row');
+      orgRow.appendChild(el('span', 'batch-card__row-label', 'Đơn vị sở hữu'));
+      orgRow.appendChild(el('span', null, batch.organization_name || '—'));
+      rows.appendChild(orgRow);
+    }
+
     var rowDefs = [
       ['Diện tích', formatArea(batch.area)],
       ['Ngày bắt đầu', formatDate(batch.start_date)],
@@ -191,20 +217,26 @@
     // farm_code/season_code LUÔN có (BatchOut không cho null) — season còn
     // batch sống thì backend chặn xoá, nên không còn ca "mồ côi" phải xử lý
     // riêng như hồi còn store.js (xem ghi chú đầu file).
-    var url = editUrl(batch);
-    var edit = el('a', 'icon-btn batch-card__action--edit');
-    edit.href = url;
-    edit.setAttribute('aria-label', 'Sửa lô hàng ' + batch.code);
-    edit.setAttribute('data-tooltip', 'Chỉnh sửa');
-    edit.appendChild(svgIcon('icon-pencil'));
-    actions.appendChild(edit);
+    // platform_admin (2026-09-13): ẩn hẳn — KHÔNG chỉ vì read-only, mà vì
+    // đích đến (nong-trai-chi-tiet.html) KHÔNG được chuyển đổi ở lần này,
+    // gọi api.farms.*/api.seasons.* thường (yêu cầu permission platform_admin
+    // không có) sẽ 403 ngay khi mở.
+    if (!isPlatformAdminMode) {
+      var url = editUrl(batch);
+      var edit = el('a', 'icon-btn batch-card__action--edit');
+      edit.href = url;
+      edit.setAttribute('aria-label', 'Sửa lô hàng ' + batch.code);
+      edit.setAttribute('data-tooltip', 'Chỉnh sửa');
+      edit.appendChild(svgIcon('icon-pencil'));
+      actions.appendChild(edit);
 
-    var del = el('a', 'icon-btn batch-card__action--delete');
-    del.href = url;
-    del.setAttribute('aria-label', 'Xoá lô hàng ' + batch.code);
-    del.setAttribute('data-tooltip', 'Xoá (mở trang mùa vụ)');
-    del.appendChild(svgIcon('icon-trash'));
-    actions.appendChild(del);
+      var del = el('a', 'icon-btn batch-card__action--delete');
+      del.href = url;
+      del.setAttribute('aria-label', 'Xoá lô hàng ' + batch.code);
+      del.setAttribute('data-tooltip', 'Xoá (mở trang mùa vụ)');
+      del.appendChild(svgIcon('icon-trash'));
+      actions.appendChild(del);
+    }
 
     card.appendChild(actions);
 
@@ -269,14 +301,22 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    fillFarmFilter();
-    render();
-    // Điền sẵn select Mùa vụ với TẤT CẢ mùa vụ (allowEmptyParent) — không có
-    // dòng này thì nó chỉ có mỗi option "Tất cả" tĩnh trong HTML, đứng im
-    // cho tới khi người dùng đụng vào select Nông trại.
-    seasonCascade.refresh();
+    if (isPlatformAdminMode) {
+      // Bộ lọc Nông trại/Mùa vụ không dùng được ở chế độ này (xem ghi chú
+      // đầu file) — ẩn hẳn khối "Bộ lọc" thay vì để 2 select trống trơn/gọi
+      // api.farms.list() rồi 403.
+      var filterCard = document.querySelector('.filter-card');
+      if (filterCard) filterCard.hidden = true;
+    } else {
+      fillFarmFilter();
+      // Điền sẵn select Mùa vụ với TẤT CẢ mùa vụ (allowEmptyParent) — không
+      // có dòng này thì nó chỉ có mỗi option "Tất cả" tĩnh trong HTML, đứng
+      // im cho tới khi người dùng đụng vào select Nông trại.
+      seasonCascade.refresh();
+      seasonFilterSelect.addEventListener('change', render);
+    }
 
-    seasonFilterSelect.addEventListener('change', render);
+    render();
 
     document.querySelectorAll('[data-close-qr]').forEach(function (button) {
       button.addEventListener('click', closeQrModal);

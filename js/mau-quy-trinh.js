@@ -29,6 +29,13 @@
   var PAGE_SIZE = 12;
   var SEARCH_DEBOUNCE_MS = 300;
 
+  // platform_admin (2026-09-13, xem CLAUDE.md mục "Quản trị hệ thống
+  // (platform_admin)") dùng CHUNG trang này với business — chỉ khác nguồn
+  // dữ liệu (api.system.workflowTemplates.list() thay vì
+  // api.workflowTemplates.list(), nhìn xuyên MỌI Đơn vị kèm
+  // organization_name) và ẩn hết thao tác ghi.
+  var isPlatformAdminMode = api.isPlatformAdmin();
+
   // Vật tư — tải 1 lần lúc trang khởi động, dùng chung cho mọi bước quy
   // trình mở trong modal (giống cách js/nong-trai-chi-tiet.js làm).
   var availableSupplies = [];
@@ -98,6 +105,13 @@
     header.appendChild(el('p', 'card__subtitle', stepCount + ' bước thực hiện'));
     card.appendChild(header);
 
+    // "Đơn vị sở hữu" (organization_name) CHỈ hiện với platform_admin — field
+    // PHẲNG riêng của api.system.workflowTemplates.list(), không có ở
+    // api.workflowTemplates.list() thường.
+    if (isPlatformAdminMode) {
+      card.appendChild(el('p', 'card__subtitle', 'Đơn vị sở hữu: ' + (template.organization_name || '—')));
+    }
+
     var body = el('div', 'card__body', template.description || 'Chưa có mô tả.');
     card.appendChild(body);
 
@@ -166,11 +180,14 @@
 
   function loadTemplates() {
     setListView('loading');
-    api.workflowTemplates.list({
-      q: listState.q || undefined,
-      page: listState.page,
-      page_size: PAGE_SIZE
-    }).then(function (data) {
+    // platform_admin: GET /system/workflow-templates không có tham số tìm
+    // kiếm `q` (xác nhận qua router thật trước khi viết) — ô tìm kiếm đã vô
+    // hiệu hoá ở DOMContentLoaded cho chế độ này.
+    var request = isPlatformAdminMode
+      ? api.system.workflowTemplates.list({ page: listState.page, page_size: PAGE_SIZE })
+      : api.workflowTemplates.list({ q: listState.q || undefined, page: listState.page, page_size: PAGE_SIZE });
+
+    request.then(function (data) {
       renderTemplates(data);
     }).catch(function (err) {
       errorMessageNode.textContent = err.message;
@@ -532,7 +549,21 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     applyPermissionGates();
-    loadSupplyOptions();
+
+    // platform_admin: GET /system/workflow-templates không có tham số tìm
+    // kiếm — vô hiệu hoá ô tìm kiếm thay vì để nó trông như hoạt động mà
+    // thực ra không lọc được gì (xem loadTemplates()). Cũng bỏ luôn
+    // loadSupplyOptions() (api.supplies.list() thường, yêu cầu permission
+    // platform_admin không có) — chỉ dùng cho modal Thêm/Sửa, vốn đã ẩn hẳn
+    // (nút "Tạo quy trình mới"/"Sửa" bị applyPermissionGates()/hasPermission()
+    // ẩn tự động) nên gọi cũng vô ích, chỉ tổ hiện toast lỗi 403 thừa.
+    if (isPlatformAdminMode) {
+      searchInput.disabled = true;
+      searchInput.placeholder = 'Không hỗ trợ tìm kiếm ở chế độ Quản trị hệ thống';
+    } else {
+      loadSupplyOptions();
+    }
+
     loadTemplates();
 
     searchInput.addEventListener('input', handleSearchInput);

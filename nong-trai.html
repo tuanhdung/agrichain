@@ -29,11 +29,22 @@
       gap: var(--space-4);
     }
     @media (min-width: 860px) {
-      .map-layout { grid-template-columns: 300px 1fr; }
+      /* Tỉ lệ theo fr (không phải cột trái cố định + "1fr" nuốt hết phần còn
+         lại) — bản đồ trước đó chiếm gần 70% bề rộng modal rộng (.modal--wide,
+         xem app-shell.css) vì cột trái chỉ cố định tối đa 380px rồi nhường
+         100% phần dư cho bản đồ. Đổi sang 55fr/45fr để danh sách toạ độ LUÔN
+         chiếm hơn 1 nửa (52-55%), bản đồ dưới 1 nửa (45-48%), giữ đúng tỉ lệ
+         này ở mọi bề rộng modal — 2 số px trong minmax() chỉ là sàn tối thiểu
+         phòng khi modal hẹp sát breakpoint 860px, không phải giá trị cố định. */
+      .map-layout { grid-template-columns: minmax(320px, 55fr) minmax(320px, 45fr); }
     }
 
     .map-canvas {
-      height: 360px;
+      /* Bản đồ vẫn rộng ra đáng kể khi modal rộng (dù giờ chỉ chiếm ~45% cột
+         phải thay vì gần 70% như trước, xem .map-layout ở trên) nên vẫn tăng
+         chiều cao theo tỉ lệ để không thành 1 dải ngang mỏng dẹt mất cân đối;
+         giữ đúng 360px cũ làm sàn. */
+      height: clamp(360px, 32vw, 480px);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-md);
       /* Leaflet dựng lớp riêng bên trong; không để bo góc bị tràn ra ngoài */
@@ -169,7 +180,7 @@
     }
   </style>
   <script src="js/api-config.js?v=1"></script>
-  <script src="js/api.js?v=14"></script>
+  <script src="js/api.js?v=16"></script>
   <script>
     // Trang mặc định sau đăng nhập, đã chuyển sang backend thật — chặn
     // ngay trong <head> (không defer) để tránh chớp nội dung trước khi
@@ -433,7 +444,7 @@
   </main>
 
   <!-- Modal: Thêm nông trại mới -->
-  <dialog class="modal" id="farm-modal" aria-labelledby="farm-modal-title">
+  <dialog class="modal modal--wide" id="farm-modal" aria-labelledby="farm-modal-title">
     <form class="modal__form" id="farm-form" novalidate>
       <div class="modal__header">
         <svg class="icon"><use href="icons/sprite.svg#icon-seedling"></use></svg>
@@ -628,8 +639,8 @@
   <script src="js/map-layers.js?v=1" defer></script>
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=12" defer></script>
-  <script src="js/app-shell.js?v=12" defer></script>
+  <script src="js/app-shell.js?v=13" defer></script>
   <script src="js/location-select.js?v=1" defer></script>
-  <script src="js/nong-trai.js?v=20" defer></script>
+  <script src="js/nong-trai.js?v=21" defer></script>
 </body>
 </html>

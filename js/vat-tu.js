@@ -14,6 +14,12 @@
   var PAGE_SIZE = 50;
   var SEARCH_DEBOUNCE_MS = 300;
 
+  // platform_admin (2026-09-13, xem CLAUDE.md mục "Quản trị hệ thống
+  // (platform_admin)") dùng CHUNG trang này với business — chỉ khác nguồn
+  // dữ liệu (api.system.supplies.list() thay vì api.supplies.list(), nhìn
+  // xuyên MỌI Đơn vị kèm organization_name) và ẩn hết thao tác ghi.
+  var isPlatformAdminMode = api.isPlatformAdmin();
+
   /* --- Danh mục loại vật tư ------------------------------------------------
      `key` khớp enum `type` của backend thật (SupplyCreate/SupplyOut) — ĐỪNG
      đổi khi đã có dữ liệu, nhãn hiển thị thì sửa thoải mái. */
@@ -147,6 +153,14 @@
     var type = typeOf(material.type);
     var tr = el('tr');
 
+    // Cột "Đơn vị sở hữu" (organization_name) CHỈ hiện với platform_admin —
+    // đặt tên khác cột "Đơn vị" (đơn vị TÍNH, VD kg/Lít) đã có sẵn ở bảng
+    // này để tránh trùng nhãn 2 khái niệm khác nhau. Field PHẲNG riêng của
+    // api.system.supplies.list(), không có ở api.supplies.list() thường.
+    if (isPlatformAdminMode) {
+      tr.appendChild(el('td', null, material.organization_name || '—'));
+    }
+
     tr.appendChild(el('td', 'table__code', material.code));
 
     var typeCell = el('td');
@@ -242,11 +256,14 @@
 
   function loadSupplies() {
     setListView('loading');
-    api.supplies.list({
-      q: listState.q || undefined,
-      page: listState.page,
-      page_size: PAGE_SIZE
-    }).then(function (data) {
+    // platform_admin: GET /system/supplies không có tham số tìm kiếm `q`
+    // (xác nhận qua router thật trước khi viết) — ô tìm kiếm đã vô hiệu hoá
+    // ở DOMContentLoaded cho chế độ này.
+    var request = isPlatformAdminMode
+      ? api.system.supplies.list({ page: listState.page, page_size: PAGE_SIZE })
+      : api.supplies.list({ q: listState.q || undefined, page: listState.page, page_size: PAGE_SIZE });
+
+    request.then(function (data) {
       renderList(data);
     }).catch(function (err) {
       errorMessageNode.textContent = err.message;
@@ -491,6 +508,23 @@
   document.addEventListener('DOMContentLoaded', function () {
     applyPermissionGates();
     fillSelects();
+
+    if (isPlatformAdminMode) {
+      // Chèn cột "Đơn vị sở hữu" làm cột ĐẦU (không sửa HTML tĩnh — bảng này
+      // dùng chung với business, chỉ platform_admin mới cần cột này) —
+      // khớp đúng vị trí <td> được prepend trong row() ở trên.
+      var headRow = document.querySelector('.table thead tr');
+      if (headRow) {
+        var orgHeader = el('th', null, 'Đơn vị sở hữu');
+        orgHeader.scope = 'col';
+        headRow.insertBefore(orgHeader, headRow.firstChild);
+      }
+      // GET /system/supplies không có tham số tìm kiếm — vô hiệu hoá ô tìm
+      // kiếm thay vì để nó trông như hoạt động mà thực ra không lọc được gì.
+      searchInput.disabled = true;
+      searchInput.placeholder = 'Không hỗ trợ tìm kiếm ở chế độ Quản trị hệ thống';
+    }
+
     loadSupplies();
 
     searchInput.addEventListener('input', handleSearchInput);

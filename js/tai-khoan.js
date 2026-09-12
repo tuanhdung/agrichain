@@ -1034,6 +1034,29 @@
   /* --- Khởi động -------------------------------------------------------------- */
 
   document.addEventListener('DOMContentLoaded', function () {
+    // platform_admin (2026-09-13, xem CLAUDE.md mục "Quản trị hệ thống
+    // (platform_admin)") không thuộc Đơn vị nào nên không có người dùng của
+    // "Đơn vị mình" để quản lý — mục sidebar dẫn tới trang này đã ẩn (xem
+    // js/app-shell.js), nhưng gõ thẳng URL vẫn phải không vỡ trang thay vì
+    // chạy tiếp loadUsers()/GET /roles... rồi hứng một loạt lỗi 403 (role
+    // platform_admin không có permission nào). Thay hẳn nội dung chính bằng
+    // 1 thông báo, KHÔNG chặn cứng bằng redirect (theo đúng yêu cầu, ưu tiên
+    // "không vỡ trang" hơn là điều hướng đẹp ở đây).
+    if (api.isPlatformAdmin()) {
+      var content = document.querySelector('.app-content');
+      if (content) {
+        content.textContent = '';
+        var notice = el('div', 'empty-state');
+        notice.appendChild(svgIcon('icon-user', 'icon icon--lg'));
+        notice.appendChild(el('p', 'empty-state__title', 'Không áp dụng cho tài khoản Quản trị hệ thống'));
+        notice.appendChild(el('p', 'empty-state__desc',
+          'Quản lý Tài khoản quản lý người dùng trong PHẠM VI 1 Đơn vị — tài khoản Quản trị hệ ' +
+          'thống không thuộc Đơn vị nào nên không có gì để quản lý ở đây.'));
+        content.appendChild(notice);
+      }
+      return;
+    }
+
     // Modal Thêm người dùng và Đặt lại mật khẩu đều có ô mật khẩu dùng
     // js/password-field.js — phải gọi 2 hàm này thì nút hiện/ẩn và danh sách
     // điều kiện mật khẩu mới hoạt động (trang này trước đó thiếu, khiến ô

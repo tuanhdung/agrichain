@@ -78,7 +78,9 @@ js/
                            # tab dùng chung, hộp thoại xác nhận AgriChain.confirm...). Từ 2026-09-12
                            # còn ẩn hẳn nhóm menu "Thương mại điện tử" khỏi Đơn vị không phải nhà
                            # phân phối (updateDistributorOnlyNav()) — xem mục
-                           # "AgriChain.api.requireDistributor()"
+                           # "AgriChain.api.requireDistributor()". Từ 2026-09-13 còn ẩn mục "Quản
+                           # lý Tài khoản" khỏi platform_admin (updatePlatformAdminOnlyNav()) — xem
+                           # mục "Quản trị hệ thống (platform_admin)"
   map-layers.js           # 3 lớp nền bản đồ Leaflet dùng chung (vệ tinh/địa hình/mặc định) —
                            # AgriChain.addMapBaseLayers(map), dùng ở cả nong-trai.js lẫn nong-trai-chi-tiet.js
   location-select.js      # Cơ chế "2 select phụ thuộc nhau" dùng chung — AgriChain.setupCascadingSelect(),
@@ -90,7 +92,9 @@ js/
                            # file tự khai báo lại, lệch nhãn/icon — xem SCHEMA-EXPORT.md). Nạp SAU
                            # store.js, TRƯỚC 2 file trên.
   nong-trai.js            # Logic riêng cho nong-trai.html (danh sách + thêm/sửa/xoá nông trại) —
-                          # ĐÃ CHUYỂN SANG BACKEND THẬT qua api.farms.* — xem mục "Kết nối backend"
+                          # ĐÃ CHUYỂN SANG BACKEND THẬT qua api.farms.* — xem mục "Kết nối backend".
+                          # Với platform_admin: đổi sang api.system.farms.* — xem mục "Quản trị hệ
+                          # thống (platform_admin)"
   nong-trai-chi-tiet.js   # Logic riêng cho nong-trai-chi-tiet.html (trang xem chi tiết 1 nông trại,
                           # gồm cả chứng nhận/mùa vụ/nhật ký/lô hàng con của nó, và checklist "Quy
                           # trình mùa vụ" áp dụng từ workflowTemplates — xem mục riêng bên dưới).
@@ -98,16 +102,20 @@ js/
                           # SANG API HẾT (batches xong 2026-09-12, giai đoạn 3 hoàn tất) — xem mục
                           # "Kết nối backend"
   vat-tu.js               # Logic riêng cho vat-tu.html — ĐÃ CHUYỂN SANG BACKEND THẬT qua
-                          # api.supplies.*
+                          # api.supplies.*. Với platform_admin: đổi sang api.system.supplies.* —
+                          # xem mục "Quản trị hệ thống (platform_admin)"
   mau-quy-trinh.js         # Logic riêng cho mau-quy-trinh.html — ĐÃ CHUYỂN SANG BACKEND THẬT qua
                            # api.workflowTemplates.* (danh sách + tìm kiếm/phân trang + thêm/sửa/xoá
                            # mẫu quy trình mùa vụ), KHÔNG khoá ownerId, theo đúng quy ước "Hoạt động
-                           # sản xuất" như farms/supplies — xem mục "Kết nối backend"
+                           # sản xuất" như farms/supplies — xem mục "Kết nối backend". Với
+                           # platform_admin: đổi sang api.system.workflowTemplates.* — xem mục
+                           # "Quản trị hệ thống (platform_admin)"
   lo-hang.js               # Logic riêng cho lo-hang.html (danh sách lô hàng, lọc theo nông trại/mùa
                            # vụ + QR — thêm/sửa/xoá vẫn ở nong-trai-chi-tiet.html, nút sửa/xoá ở đây
                            # chỉ điều hướng qua đó). ĐÃ CHUYỂN SANG BACKEND THẬT (2026-09-12) qua
                            # api.batches.list(). Khối "Xác thực blockchain" đã BỎ HẲN — xem mục
-                           # "Kết nối backend"
+                           # "Kết nối backend". Với platform_admin: đổi sang api.system.batches.*,
+                           # ẨN bộ lọc + nút sửa/xoá — xem mục "Quản trị hệ thống (platform_admin)"
   tai-khoan.js            # Logic riêng cho tai-khoan.html — ĐÃ CHUYỂN SANG BACKEND THẬT qua
                           # js/api.js (GET/POST/PATCH/DELETE /users, /roles, /permissions),
                           # không còn dùng store.js/collection "orgUsers" nữa — xem mục
@@ -224,6 +232,13 @@ truy-xuat.html            # Trang truy xuất nguồn gốc CÔNG KHAI (không c
                           # "Truy xuất nguồn gốc" trên thẻ lô hàng (nong-trai-chi-tiet.js). Dùng lại
                           # .site-header như index.html/styleguide.html vì đây là trang công khai,
                           # không phải khu vực quản trị.
+quan-tri-he-thong.html    # Dashboard CHỈ ĐỌC dành riêng cho account_type='platform_admin' (Quản
+                          # trị hệ thống) — 7 bảng dữ liệu (Nông trại/Mùa vụ/Nhật ký/Chứng nhận/
+                          # Vật tư/Mẫu quy trình/Lô hàng) của MỌI Đơn vị qua GET /system/*. KHÔNG
+                          # dùng chung layout sidebar/topbar của 16 trang app-shell (chỉ mượn vài
+                          # class CSS thuần tuý từ css/app-shell.css: .tabs/.async-state/
+                          # .empty-state/.pagination/.page-header/.toast) — xem mục "Quản trị hệ
+                          # thống (platform_admin)".
 blog.html                 # Trang Blog CÔNG KHAI (không cần đăng nhập, không dùng app-shell) — dùng
                           # lại .site-header/.site-footer như index.html (mục "Blog" ở menu gắn
                           # .site-header__link--active). Danh sách bài viết nạp qua fetch()
@@ -454,6 +469,123 @@ phân phối. Gọi 1 lần trong `DOMContentLoaded` (sau `setupLogout()`).
 **Không đụng gì tới dữ liệu `shops`/`products`/`orders`** (vẫn ở `store.js`, chưa migrate)
 — lần sửa này CHỈ ẩn/chặn ở tầng giao diện theo `organization_is_distributor`, không đổi
 cách các collection thương mại điện tử đó được đọc/ghi.
+
+### Quản trị hệ thống (`platform_admin`) — dùng CHUNG khu quản trị, không có trang riêng (2026-09-13)
+
+Backend thêm `account_type` thứ 3 — **`platform_admin`** (`app/schemas/enums.py`, migration
+`010_platform_admin_accounts.sql`) — bên cạnh `customer`/`business`: đứng TRÊN mọi Đơn vị,
+`organization_id` LUÔN `NULL` (CHECK ràng buộc DB, cùng điều kiện với `customer` nhưng khác
+mục đích — không mua hàng, chỉ dùng để XEM dữ liệu MỌI Đơn vị qua 7 route
+**`GET /system/farms|seasons|logs|certifications|supplies|workflow-templates|batches`**
+(router `app/routers/system.py`, chặn cứng bằng dependency `require_platform_admin` —
+account_type khác đều 403, **KHÔNG dùng cơ chế permission thông thường** nên role
+`platform_admin` không có mã quyền nào cả — `hasPermission(code)` luôn trả `false` với
+account_type này, đúng ý "read-only mọi nơi"). Không tự đăng ký được (`dang-ky.html` chỉ có
+2 tab `customer`/`business`), không seed sẵn — tạo thủ công qua
+`migrations/seed_platform_admin.py` (mặc định `sysadmin@agrichain.vn`, mật khẩu random in
+ra 1 lần khi chạy script, không lưu ở đâu khác).
+
+**⚠️ Quyết định thiết kế đã ĐỔI HƯỚNG 1 lần (2026-09-13, cùng ngày)**: lần đầu triển khai
+platform_admin có 1 trang dashboard RIÊNG (`quan-tri-he-thong.html` + `js/quan-tri-he-thong.js`,
+7 tab tự dựng) và bị **chặn hẳn** khỏi 16 trang app-shell (`requireBusiness()` đá đi,
+`requireDistributor()` không áp dụng vì không phải business). Đã **BỎ HẲN hướng đó, xoá 2
+file trên** — hướng CHỐT: platform_admin dùng **CHUNG giao diện** 16 trang app-shell với
+`business`, chỉ khác NGUỒN DỮ LIỆU (gọi `api.system.*` thay vì `api.farms.*`/`api.supplies.*`/
+... — xem chi tiết bên dưới). Lý do đổi hướng: tận dụng lại toàn bộ UI/UX đã có (tìm kiếm,
+phân trang, card...) thay vì xây một bộ UI hoàn toàn mới chỉ để hiển thị lại đúng dữ liệu đó;
+chỉ 4 trang danh sách chính (farms/supplies/workflow-templates/batches) có route
+`/system/*` tương ứng nên chỉ 4 trang này cần đổi nguồn dữ liệu.
+
+**`AgriChain.api.isPlatformAdmin()`** (`js/api.js`) — đọc đồng bộ
+`getAccountType() === 'platform_admin'`, không gọi API, cùng mẫu `isBusiness()`/
+`isDistributor()`. Đây là API DUY NHẤT còn lại liên quan tới platform_admin trong `js/api.js`
+— **không có `requirePlatformAdmin()`** (đã xoá cùng đợt đổi hướng, không còn trang riêng
+nào cần guard kiểu đó).
+
+**`requireBusiness()`/`requireDistributor()` (`js/api.js`) đều đã sửa để platform_admin qua
+được, không bị đá đi:**
+- `requireBusiness()` (gắn ở cả 16 trang app-shell): `!isBusiness() && !isPlatformAdmin()`
+  mới đá sang `agriverse-3d.html` — trước đó (bản đổi-hướng-tạm-thời) từng có nhánh đá
+  platform_admin sang 1 trang riêng, đã bỏ.
+- `requireDistributor()` (gắn ở 7 trang `thuong-mai-*.html`): `isPlatformAdmin()` LUÔN qua
+  được ngay từ điều kiện đầu (`if (!isLoggedIn() || isPlatformAdmin()) return true;`), bỏ
+  qua HOÀN TOÀN điều kiện `organization_is_distributor` — đứng trên mọi Đơn vị nên không có
+  khái niệm "Đơn vị đang active" để kiểm is_distributor, coi như luôn hợp lệ. Phải LUÔN thấy
+  đủ menu Thương mại điện tử bất kể thực tế bên dưới platform_admin không có Đơn vị nào.
+- `updateDistributorOnlyNav()` (`js/app-shell.js`, ẩn/hiện nhóm menu sidebar "Thương mại
+  điện tử") áp lại đúng logic: `isBusiness() && !isPlatformAdmin() && !isDistributor()` mới
+  ẩn — 2 lớp (ẩn menu + chặn URL) phải khớp nhau.
+- `defaultTargetFor()`/`redirectTarget()` (`js/auth.js`): **cố tình KHÔNG liệt kê nhánh
+  riêng nào cho `platform_admin`** — rơi thẳng vào nhánh mặc định `nong-trai.html` giống hệt
+  `business` (khớp đúng hướng "dùng chung giao diện"). `ADMIN_SHELL_PAGES` guard trong
+  `redirectTarget()` cũng chỉ còn chặn `customer` như nguyên bản — platform_admin dùng
+  `?redirect=` vào 1 trong 16 trang là bình thường, không còn bị chặn.
+
+**`AgriChain.api.system.*`** (`js/api.js`) — 7 hàm `list(params)` bọc mỏng quanh
+`GET /system/...` (farms/seasons/logs/certifications/supplies/workflowTemplates/batches),
+cùng khuôn `{ items, total, page, page_size }` (`Page[T]`) như `api.farms.list()`... nhưng
+**KHÔNG có tham số tìm kiếm `q`, không lọc được `farm_id`/`season_id`** — xác nhận qua router
+thật trước khi viết (chỉ `page`/`page_size`), không suy đoán như các domain khác. Mỗi bản
+ghi trả về kèm field PHẲNG **`organization_name`** (chỉ có ở `*SystemOut`, KHÔNG có ở `*Out`
+thường dùng cho `api.farms.list()`... của tài khoản `business`) — CÁCH DUY NHẤT phân biệt
+bản ghi giữa các Đơn vị trong danh sách gộp này, vì mã (nông trại, mùa vụ, lô hàng...) chỉ
+duy nhất trong phạm vi 1 Đơn vị, có thể TRÙNG giữa các Đơn vị khác nhau (org-scoped từ đầu,
+xem mục "Trang `tai-khoan.html`").
+
+**Chỉ 4 trang danh sách chính đổi nguồn dữ liệu theo `AgriChain.api.isPlatformAdmin()`** —
+`js/nong-trai.js`, `js/vat-tu.js`, `js/mau-quy-trinh.js`, `js/lo-hang.js` (biến module-scope
+`isPlatformAdminMode`, tính 1 lần lúc tải trang):
+- Gọi `api.system.<domain>.list({ page, page_size })` thay vì `api.<domain>.list({ q, page,
+  page_size })` — KHÔNG gửi `q` (route system không hỗ trợ). Ô tìm kiếm bị **vô hiệu hoá**
+  (`disabled = true` + đổi placeholder giải thích) ở chế độ này thay vì để nó trông như hoạt
+  động mà thực ra không lọc được gì.
+- Thêm dòng/cột **"Đơn vị sở hữu"** (đọc `organization_name`) — CHỈ hiện khi
+  `isPlatformAdminMode`. Đặt tên "Đơn vị **sở hữu**", không phải "Đơn vị" trơn, vì
+  `vat-tu.html` đã có sẵn 1 cột tên "Đơn vị" cho **đơn vị TÍNH** (kg/Lít/...) — trùng nhãn 2
+  khái niệm khác nhau sẽ gây hiểu lầm. `vat-tu.js` chèn `<th>` này bằng JS
+  (`headRow.insertBefore(...)`) thay vì sửa HTML tĩnh, vì bảng dùng chung với `business`.
+  `nong-trai.js`/`mau-quy-trinh.js` (dạng card) thêm 1 dòng thông tin; `lo-hang.js` (dạng
+  card) thêm 1 hàng trong `.batch-card__rows`.
+- **Ẩn nút Thêm/Sửa/Xoá**: phần lớn ĐÃ TỰ ĐỘNG đúng nhờ hạ tầng permission có sẵn —
+  `hasPermission(code)` luôn `false` với platform_admin (role không có permission nào), nên
+  mọi nút gắn `data-requires-permission`/`api.hasPermission(...)` (nút "Thêm...", nút Sửa/Xoá
+  trong `nong-trai.js`/`vat-tu.js`/`mau-quy-trinh.js`) tự ẩn, KHÔNG cần sửa thêm.
+  **Ngoại lệ phải sửa tay: `lo-hang.js`** — nút Sửa/Xoá ở đây vốn là `<a>` điều hướng thẳng
+  sang `nong-trai-chi-tiet.html` (không qua `hasPermission()` nào cả, vì CRUD lô hàng thật
+  sự nằm ở trang đó) — đã bọc thêm `if (!isPlatformAdminMode)` quanh việc dựng 2 nút này.
+- **Tránh dẫn vào ngõ cụt 403**: `nong-trai-chi-tiet.html` (trang chi tiết nông trại,
+  `lo-hang.js` cũng điều hướng sửa/xoá lô hàng về đây) **KHÔNG được chuyển đổi** ở lần đổi
+  hướng này (ngoài phạm vi) — gọi `api.farms.get()`/`api.seasons.*` thường sẽ 403 ngay khi
+  platform_admin lỡ vào được. `nong-trai.js`'s `farmCard()` vì vậy dựng thẻ dạng `<div>`
+  KHÔNG điều hướng (thay vì `<a href="nong-trai-chi-tiet.html?ma=...">`) khi
+  `isPlatformAdminMode`, kèm ẩn luôn nút "Xem chi tiết" (vốn không có sự kiện riêng, chỉ ăn
+  theo việc cả thẻ là `<a>`) — nút chết nếu không ẩn. `mau-quy-trinh.js`'s `templateCard()`
+  không có vấn đề này (nút Sửa mở modal TRONG TRANG, không điều hướng) — ẩn nút Sửa qua
+  `hasPermission()` cũng đồng nghĩa platform_admin không xem được `steps[]` chi tiết của mẫu
+  quy trình, chỉ thấy tên/mô tả/số bước — chấp nhận được, ngoài phạm vi xây thêm 1 modal
+  xem-only chỉ để lộ dữ liệu này.
+- **`lo-hang.js` còn ẩn hẳn khối "Bộ lọc" (Nông trại/Mùa vụ)** ở chế độ platform_admin —
+  `api.system.batches.list()` không lọc được `farm_id`/`season_id`, và tự dựng lại cơ chế lọc
+  (gọi `api.farms.list()`/`api.seasons.list()` thường để đổ vào 2 select) sẽ 403 ngay từ bước
+  đổ dữ liệu cho chính bộ lọc đó — ẩn hẳn thay vì để 2 select trống/lỗi.
+
+**7 trang `thuong-mai-*.html` — KHÔNG sửa gì thêm lần này**: platform_admin vào được nhờ mục
+1+2 ở trên (`requireBusiness()`/`requireDistributor()` đều cho qua), nhưng dữ liệu
+`shops`/`products`/`orders` vẫn ở `store.js`/localStorage theo phiên của CHÍNH platform_admin
+(không có Đơn vị nào) nên các trang này sẽ luôn trống với tài khoản này — biết trước, chấp
+nhận được, KHÔNG nằm trong phạm vi lần đổi hướng này (câu hỏi "dữ liệu TMĐT theo Đơn vị nào
+với platform_admin" để lại quyết định sau).
+
+**`tai-khoan.html` (Quản lý Tài khoản) — ẩn khỏi sidebar, không vỡ trang nếu gõ thẳng URL**:
+`updatePlatformAdminOnlyNav()` (`js/app-shell.js`, cùng mẫu `updateDistributorOnlyNav()`,
+gọi ở `DOMContentLoaded` VÀ listener `pageshow` chống bfcache) ẩn mục sidebar dẫn tới trang
+này (chọn qua `a[href="tai-khoan.html"]`, không có id riêng, lặp lại y hệt ở cả 16 trang
+app-shell) khi `api.isPlatformAdmin()` — tài khoản này không thuộc Đơn vị nào nên không có
+người dùng "của Đơn vị mình" để quản lý. Gõ thẳng URL vẫn KHÔNG vỡ trang dù không chặn cứng
+bằng redirect (theo đúng yêu cầu, ưu tiên đơn giản/an toàn hơn điều hướng đẹp ở đây):
+`js/tai-khoan.js`'s `DOMContentLoaded` kiểm `api.isPlatformAdmin()` NGAY ĐẦU, nếu đúng thì
+thay hẳn `.app-content` bằng 1 `.empty-state` báo "Không áp dụng cho tài khoản Quản trị hệ
+thống" rồi `return` sớm — không chạy `loadUsers()`/`GET /roles`... (sẽ 403 hàng loạt).
 
 ### Trang thương mại điện tử chính thức: `agriverse-3d.html` (KHÔNG phải `ecommerce.html`, 2026-09-11)
 

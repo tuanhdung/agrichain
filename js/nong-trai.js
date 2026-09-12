@@ -16,6 +16,15 @@
   var PAGE_SIZE = 12;
   var SEARCH_DEBOUNCE_MS = 300;
 
+  // platform_admin (2026-09-13, xem CLAUDE.md mục "Quản trị hệ thống
+  // (platform_admin)") dùng CHUNG trang này với business — chỉ khác nguồn
+  // dữ liệu (api.system.farms.list() thay vì api.farms.list(), nhìn xuyên
+  // MỌI Đơn vị kèm organization_name) và ẩn hết thao tác ghi (đúng tinh thần
+  // read-only, backend cũng không cấp permission nào cho role này). Tính 1
+  // lần lúc tải trang — account_type không đổi giữa các lần thao tác trên
+  // cùng 1 lượt tải trang.
+  var isPlatformAdminMode = api.isPlatformAdmin();
+
   /* --- 34 tỉnh/thành sau sáp nhập đơn vị hành chính 2025 -------------------
      Chỉ còn 2 cấp: Tỉnh/Thành phố -> Phường/Xã (không còn cấp Quận/Huyện).
      API AgriChain định dùng cho việc này (GET /1.0/commons/provinces,
@@ -124,8 +133,15 @@
     // Cả thẻ là 1 liên kết tới trang chi tiết — bấm vào phần thông tin (chỗ
     // nào không phải nút sửa/xoá) sẽ mở nong-trai-chi-tiet.html. 2 nút thao
     // tác bên dưới tự chặn sự kiện nổi bọt lên <a> để không bị điều hướng.
-    var card = el('a', 'card card--hover');
-    card.href = 'nong-trai-chi-tiet.html?ma=' + encodeURIComponent(farm.code);
+    // platform_admin (2026-09-13): nong-trai-chi-tiet.html KHÔNG được chuyển
+    // đổi ở lần này (ngoài phạm vi, xem CLAUDE.md), gọi api.farms.get()/
+    // list() thường — vốn yêu cầu permission mà role platform_admin không
+    // có — sẽ 403 ngay khi mở. Dựng thẻ dạng <div> KHÔNG điều hướng thay vì
+    // <a>, tránh dẫn vào ngõ cụt đó.
+    var card = el(isPlatformAdminMode ? 'div' : 'a', 'card' + (isPlatformAdminMode ? '' : ' card--hover'));
+    if (!isPlatformAdminMode) {
+      card.href = 'nong-trai-chi-tiet.html?ma=' + encodeURIComponent(farm.code);
+    }
 
     var header = el('div', 'card__header');
     header.appendChild(el('h2', 'data-card__title', farm.name));
@@ -133,6 +149,17 @@
     card.appendChild(header);
 
     var rows = el('div', 'data-card__rows');
+
+    // Cột/thông tin "Đơn vị" CHỈ hiện với platform_admin — organization_name
+    // là field PHẲNG riêng của api.system.farms.list() (KHÔNG có ở
+    // api.farms.list() thường của business, vốn chỉ thấy đúng 1 Đơn vị của
+    // chính mình nên không cần) — cách DUY NHẤT phân biệt bản ghi giữa các
+    // Đơn vị trong danh sách gộp này, vì mã nông trại chỉ duy nhất TOÀN HỆ
+    // THỐNG (không trùng được, khác mùa vụ/lô hàng) nhưng vẫn hiện cho nhất
+    // quán với 3 trang kia.
+    if (isPlatformAdminMode) {
+      rows.appendChild(iconRow('icon-factory', 'Đơn vị sở hữu: ' + (farm.organization_name || '—')));
+    }
 
     var place = [farm.ward, farm.province].filter(Boolean).join(', ');
     rows.appendChild(iconRow('icon-map-pin', farm.address || place, farm.address ? place : ''));
@@ -159,6 +186,10 @@
     viewButton.type = 'button';
     viewButton.setAttribute('aria-label', 'Xem chi tiết ' + farm.name);
     viewButton.setAttribute('data-tooltip', 'Xem chi tiết');
+    // Nút này vốn không có sự kiện riêng, chỉ "ăn theo" việc cả thẻ là <a> —
+    // platform_admin không có <a> đó (xem ghi chú ở đầu hàm), bấm vào sẽ
+    // không làm gì cả nên ẩn hẳn, tránh nút chết.
+    if (isPlatformAdminMode) viewButton.hidden = true;
     viewButton.appendChild(svgIcon('icon-eye'));
     actions.appendChild(viewButton);
 
@@ -256,11 +287,16 @@
 
   function loadFarms() {
     setListView('loading');
-    api.farms.list({
-      q: listState.q || undefined,
-      page: listState.page,
-      page_size: PAGE_SIZE
-    }).then(function (data) {
+    // platform_admin: GET /system/farms nhìn xuyên MỌI Đơn vị, nhưng KHÔNG
+    // có tham số tìm kiếm `q` (xác nhận qua router thật app/routers/
+    // system.py trước khi viết, không suy đoán) — searchInput đã bị vô hiệu
+    // hoá ở DOMContentLoaded cho chế độ này nên listState.q luôn rỗng, không
+    // gửi `q` lên cũng không sao.
+    var request = isPlatformAdminMode
+      ? api.system.farms.list({ page: listState.page, page_size: PAGE_SIZE })
+      : api.farms.list({ q: listState.q || undefined, page: listState.page, page_size: PAGE_SIZE });
+
+    request.then(function (data) {
       renderFarms(data);
     }).catch(function (err) {
       errorMessageNode.textContent = err.message;
@@ -1051,6 +1087,15 @@
     applyPermissionGates();
     fillProvinces();
     setupShapeControls();
+
+    // platform_admin: GET /system/farms không có tham số tìm kiếm — vô hiệu
+    // hoá ô tìm kiếm thay vì để nó trông như hoạt động mà thực ra không lọc
+    // được gì (xem loadFarms()).
+    if (isPlatformAdminMode) {
+      searchInput.disabled = true;
+      searchInput.placeholder = 'Không hỗ trợ tìm kiếm ở chế độ Quản trị hệ thống';
+    }
+
     loadFarms();
 
     searchInput.addEventListener('input', handleSearchInput);
