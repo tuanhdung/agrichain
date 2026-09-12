@@ -7,7 +7,7 @@
     "title": "Blockchain trong Truy xuất nguồn gốc Nông nghiệp",
     "author": "Nguyễn Văn A",
     "excerpt": "Khám phá cách công nghệ Blockchain đang thay đổi cách chúng ta theo dõi hành trình của nông sản từ nông trại đến bàn ăn.",
-    "cover": "images/blog/post-1.jpg",
+    "cover": "images/blog/post-blockchain-truy-xuat.png",
     "tags": ["Công nghệ", "Agrichain", "NongNghiepSo"],
     "body": [
       { "type": "paragraph", "text": "Công nghệ blockchain đang tạo ra một cuộc cách mạng trong lĩnh vực nông nghiệp, đặc biệt là trong việc truy xuất nguồn gốc sản phẩm. Với tính chất phi tập trung và bất biến, blockchain cho phép ghi lại mọi bước trong chuỗi cung ứng một cách minh bạch và an toàn." },
@@ -32,7 +32,7 @@
     "title": "Ứng dụng AI để tối ưu năng suất cây trồng",
     "author": "Trần Thị B",
     "excerpt": "Trí tuệ nhân tạo (AI) giúp nhà nông dự báo rủi ro thiên tai và tối ưu hóa lượng phân bón, nước tưới cần thiết.",
-    "cover": "images/blog/post-2.jpg",
+    "cover": "images/blog/post-ung-dung-ai.jpg",
     "tags": ["Kỹ thuật", "Agrichain", "NongNghiepSo"],
     "body": [
       { "type": "paragraph", "text": "Trí tuệ nhân tạo (AI) không còn là khái niệm xa vời với ngành nông nghiệp. Tại Agrichain, chúng tôi sử dụng AI để giúp nhà nông quản lý farm một cách thông minh và hiệu quả hơn." },
@@ -57,7 +57,7 @@
     "title": "Tương lai của Nông nghiệp bền vững (ESG)",
     "author": "Lê Văn C",
     "excerpt": "ESG đang trở thành tiêu chuẩn vàng cho nông sản xuất khẩu. Hãy cùng tìm hiểu cách AgriChain hỗ trợ doanh nghiệp đạt chuẩn quốc tế.",
-    "cover": "images/blog/post-3.jpg",
+    "cover": "images/blog/post-tuong-lai-esg.jpg",
     "tags": ["ESG", "Agrichain", "NongNghiepSo"],
     "body": [
       { "type": "paragraph", "text": "ESG (Môi trường - Xã hội - Quản trị) đang trở thành yêu cầu bắt buộc đối với các sản phẩm nông sản khi bước chân vào các thị trường khó tính như EU, Mỹ, Nhật Bản." },

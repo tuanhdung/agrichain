@@ -338,6 +338,44 @@
     });
   }
 
+  // Ẩn hẳn nhóm menu "Thương mại điện tử" (7 mục) khỏi Đơn vị KHÔNG phải nhà
+  // phân phối (2026-09-12) — chỉ "Đơn vị mặc định" (organization_is_distributor
+  // === true, xem AgriChain.api.isDistributor()) mới được bán hàng qua sàn.
+  // Đây là lớp ẩn ở GIAO DIỆN, đi kèm requireDistributor() (js/api.js) chặn
+  // truy cập trực tiếp bằng URL ở đúng 7 trang thuong-mai-*.html — 2 lớp độc
+  // lập nhau, thiếu 1 trong 2 vẫn còn hở. #nav-thuong-mai là <ul> CỐ ĐỊNH
+  // (id giống hệt nhau trên cả 16 trang app-shell, xem CLAUDE.md) — tìm lên
+  // đúng khối .app-nav__section cha để ẩn luôn cả nút bấm mở nhóm, không chỉ
+  // ẩn danh sách bên trong (ẩn mỗi <ul> vẫn để lộ tiêu đề "Thương mại điện
+  // tử" trống trơn phía trên). Không áp cho 'customer' (không thấy sidebar
+  // này bao giờ, đã bị requireBusiness() đá đi trước khi tới bước này) —
+  // chỉ business không-phải-phân-phối mới cần ẩn thêm.
+  //
+  // LUÔN gán `hidden` tường minh cả 2 chiều (không chỉ set true rồi bỏ qua
+  // nhánh false) — cùng bài học đã rút ra ở renderAccountArea()
+  // (agriverse-3d.html)/renderHeaderAccountArea() (js/header.js): hàm này
+  // còn được gọi lại từ listener 'pageshow' bên dưới khi khôi phục từ
+  // bfcache, lúc đó DOM có thể đang ẩn/hiện sai theo phiên CŨ trước khi rời
+  // trang — nếu chỉ set true có điều kiện, gọi lại từ pageshow sẽ không bao
+  // giờ hiện LẠI nhóm menu cho đúng chủ tài khoản phân phối.
+  function updateDistributorOnlyNav() {
+    var list = document.getElementById('nav-thuong-mai');
+    var section = list && list.closest('.app-nav__section');
+    if (!section) return;
+    section.hidden = !!(api && api.isBusiness() && !api.isDistributor());
+  }
+
+  // Bug bfcache (cùng mẫu đã vá nhiều lần trong dự án — xem js/api.js mục
+  // requireAuth()/requireBusiness()/requireDistributor(), js/header.js,
+  // agriverse-3d.html): đăng xuất xong bấm Back có thể khôi phục trang từ
+  // bfcache thay vì tải lại thật, sidebar vẫn hiện/ẩn nhóm "Thương mại điện
+  // tử" theo phiên CŨ. 'pageshow' báo lại MỌI lần trang hiển thị, kể cả khôi
+  // phục từ bfcache (`event.persisted === true`) — gọi lại
+  // updateDistributorOnlyNav() để vẽ đúng theo trạng thái đăng nhập THẬT.
+  global.addEventListener('pageshow', function (event) {
+    if (event.persisted) updateDistributorOnlyNav();
+  });
+
   document.addEventListener('DOMContentLoaded', function () {
     var session = requireSession();
     if (!session) return; // đang chuyển hướng, khỏi dựng gì thêm
@@ -348,6 +386,7 @@
     setupTabs();
     setupZeroDefaultInputs();
     setupLogout();
+    updateDistributorOnlyNav();
   });
 
   global.AgriChain = global.AgriChain || {};

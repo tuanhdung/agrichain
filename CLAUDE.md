@@ -39,8 +39,9 @@ js/
                           # trang chưa dùng API). Sửa domain backend khi deploy chỉ sửa file này.
   api.js                 # Lớp gọi backend thật (FastAPI) — token/refresh/lỗi/hàm nghiệp vụ
                           # (api.auth.*/api.users.*/api.roles.*/api.permissions.*/api.farms.*/
-                          # api.seasons.*/api.logs.*/api.supplies.*/api.certifications.*). Nạp SAU
-                          # api-config.js, KHÔNG defer, ở MỌI trang — xem mục "Kết nối backend"
+                          # api.seasons.*/api.logs.*/api.supplies.*/api.certifications.*/
+                          # api.workflowTemplates.*/api.batches.*). Nạp SAU api-config.js, KHÔNG
+                          # defer, ở MỌI trang — xem mục "Kết nối backend"
   header.js              # Xử lý tương tác cho .site-header (toggle menu mobile, cuộn anchor) +
                           # renderHeaderAccountArea() (2026-09-12): thay 2 nút "Đăng Nhập"/"Bắt
                           # Đầu Ngay" ở .site-header__actions bằng 1 nút theo account_type + nút
@@ -48,13 +49,22 @@ js/
                           # .site-header (index.html, blog.html, blog-chi-tiet.html,
                           # styleguide.html, truy-xuat.html), xem mục "Đăng nhập/Đăng ký" bên dưới
   contact-form.js        # Validate + hiện thông báo thành công cho form ở section Liên Hệ
-  chain.js               # Sổ cái băm nối chuỗi (hash chain) bằng Web Crypto API — chạy trong trình duyệt
+  chain.js               # Sổ cái băm nối chuỗi (hash chain) bằng Web Crypto API — chạy trong trình duyệt.
+                          # ⚠️ MỒ CÔI TOÀN DỰ ÁN kể từ 2026-09-12 (rà lại lúc chuyển batches CRUD
+                          # sang API): chỉ còn được gọi TỪ BÊN TRONG js/store.js
+                          # (sha256()/append()/verify(), dùng cho registerUser()/changePassword()/
+                          # sealBatch() mô phỏng cũ), nhưng KHÔNG còn trang nào gọi 3 hàm store.js
+                          # đó nữa (auth.js/ho-so.js đã qua API, sealBatch() đã bỏ hẳn khỏi
+                          # nong-trai-chi-tiet.js/lo-hang.js) — 2 file vẫn còn nạp ở mọi trang,
+                          # chưa xoá, để lại cho một đợt dọn dẹp sau (chỉ báo cáo, không tự ý xoá).
   store.js               # Lớp lưu trữ qua localStorage (users, farms, supplies, batches, events, ledger,
                           # orgUsers, shops, products, orders, shippingAddresses, inventoryImports,
                           # workflowTemplates, phiên đăng nhập) — mọi trang đọc/ghi dữ liệu qua đây,
-                          # không gọi thẳng localStorage. `orgUsers`/`workflowTemplates` giờ MỒ CÔI
-                          # (không còn trang nào đọc/ghi, đã chuyển hẳn sang API) — chưa xoá khỏi
-                          # COLLECTIONS, để lại cho một đợt dọn dẹp sau (xem mục "Kết nối backend").
+                          # không gọi thẳng localStorage. `orgUsers`/`workflowTemplates`/`batches`
+                          # giờ MỒ CÔI (không còn trang nào đọc/ghi, đã chuyển hẳn sang API —
+                          # `batches` xong 2026-09-12, hoàn tất giai đoạn 3) — chưa xoá khỏi
+                          # COLLECTIONS (kể cả hàm `sealBatch()` mô phỏng blockchain, đã bỏ hẳn
+                          # phía frontend), để lại cho một đợt dọn dẹp sau (xem "Kết nối backend").
   password-field.js      # Nút hiện/ẩn mật khẩu (data-password-toggle) + danh sách điều kiện mật khẩu
                           # (data-password-rules="<id ô mật khẩu>") dùng chung — tách từ js/auth.js để
                           # js/tai-khoan.js dùng lại được, không chép lại 2 hàm này.
@@ -65,7 +75,10 @@ js/
                           # "Đăng nhập/Đăng ký" bên dưới)
   app-shell.js            # Tương tác khung quản trị (nút hamburger: trượt overlay dưới 960px, thu gọn
                            # hẳn sidebar từ 960px — xem mục "Sidebar" bên dưới; thu gọn/xổ nhóm menu,
-                           # tab dùng chung, hộp thoại xác nhận AgriChain.confirm...)
+                           # tab dùng chung, hộp thoại xác nhận AgriChain.confirm...). Từ 2026-09-12
+                           # còn ẩn hẳn nhóm menu "Thương mại điện tử" khỏi Đơn vị không phải nhà
+                           # phân phối (updateDistributorOnlyNav()) — xem mục
+                           # "AgriChain.api.requireDistributor()"
   map-layers.js           # 3 lớp nền bản đồ Leaflet dùng chung (vệ tinh/địa hình/mặc định) —
                            # AgriChain.addMapBaseLayers(map), dùng ở cả nong-trai.js lẫn nong-trai-chi-tiet.js
   location-select.js      # Cơ chế "2 select phụ thuộc nhau" dùng chung — AgriChain.setupCascadingSelect(),
@@ -81,8 +94,8 @@ js/
   nong-trai-chi-tiet.js   # Logic riêng cho nong-trai-chi-tiet.html (trang xem chi tiết 1 nông trại,
                           # gồm cả chứng nhận/mùa vụ/nhật ký/lô hàng con của nó, và checklist "Quy
                           # trình mùa vụ" áp dụng từ workflowTemplates — xem mục riêng bên dưới).
-                          # farms/seasons/logs/certifications ĐÃ CHUYỂN SANG API; riêng
-                          # workflowTemplates và batches VẪN dùng store.js (giai đoạn 3) — xem mục
+                          # farms/seasons/logs/certifications/workflowTemplates/batches ĐÃ CHUYỂN
+                          # SANG API HẾT (batches xong 2026-09-12, giai đoạn 3 hoàn tất) — xem mục
                           # "Kết nối backend"
   vat-tu.js               # Logic riêng cho vat-tu.html — ĐÃ CHUYỂN SANG BACKEND THẬT qua
                           # api.supplies.*
@@ -90,9 +103,11 @@ js/
                            # api.workflowTemplates.* (danh sách + tìm kiếm/phân trang + thêm/sửa/xoá
                            # mẫu quy trình mùa vụ), KHÔNG khoá ownerId, theo đúng quy ước "Hoạt động
                            # sản xuất" như farms/supplies — xem mục "Kết nối backend"
-  lo-hang.js               # Logic riêng cho lo-hang.html (danh sách TẤT CẢ lô hàng, lọc theo nông trại/
-                           # mùa vụ, QR + xác thực blockchain tại chỗ — thêm/sửa/xoá vẫn ở
-                           # nong-trai-chi-tiet.html, nút sửa/xoá ở đây chỉ điều hướng qua đó)
+  lo-hang.js               # Logic riêng cho lo-hang.html (danh sách lô hàng, lọc theo nông trại/mùa
+                           # vụ + QR — thêm/sửa/xoá vẫn ở nong-trai-chi-tiet.html, nút sửa/xoá ở đây
+                           # chỉ điều hướng qua đó). ĐÃ CHUYỂN SANG BACKEND THẬT (2026-09-12) qua
+                           # api.batches.list(). Khối "Xác thực blockchain" đã BỎ HẲN — xem mục
+                           # "Kết nối backend"
   tai-khoan.js            # Logic riêng cho tai-khoan.html — ĐÃ CHUYỂN SANG BACKEND THẬT qua
                           # js/api.js (GET/POST/PATCH/DELETE /users, /roles, /permissions),
                           # không còn dùng store.js/collection "orgUsers" nữa — xem mục
@@ -141,6 +156,10 @@ js/
                            # bên dưới)
 icons/
   sprite.svg              # SVG sprite dùng chung, tham chiếu bằng <use href="icons/sprite.svg#icon-...">
+  exabyte-icon-only-transparent.png  # Logo THẬT của công ty Exabyte (chỉ phần biểu tượng kim
+                          # cương xanh/cam, nền trong suốt, KHÔNG có chữ "EXABYTE.VN") — thay
+                          # cho logo giả lập "A" trên nền vuông xanh trước đây, xem mục "Logo
+                          # công ty" bên dưới
 images/
   blog/                   # Ảnh bìa bài viết Blog (post-1.jpg, post-2.jpg, post-3.jpg, hero.jpg...) —
                           # hiện chỉ có .gitkeep giữ chỗ thư mục, CHƯA có ảnh thật, nền
@@ -382,6 +401,60 @@ có sẵn ở cả 10 trang, đúng thứ tự/vị trí như 6 trang gốc — 
 "10 trang còn lại" nữa, cả 16 trang giờ dùng chung đúng 1 khuôn `<script>` (`api-config.js`
 → `api.js` → `requireAuth()` → `requireBusiness()`, không `defer`).
 
+### `AgriChain.api.requireDistributor()` — chặn 7 trang `thuong-mai-*.html` khỏi Đơn vị không phân phối (2026-09-12)
+
+Backend giờ expose thêm **`organization_is_distributor`** qua `GET /auth/me` (field PHẲNG,
+cùng cấp với `user`/`permissions` trong `MeResponse`, KHÔNG lồng trong `user`) —
+`true` cho "Đơn vị mặc định" (công ty vận hành AgriChain), `false` cho Đơn vị khác (nông
+trại tự đăng ký qua `POST /auth/register/business`), `null` cho tài khoản `customer`
+(không thuộc Đơn vị nào). `me()`/`updateMe()` (`js/api.js`) đều phải tự gắn field này vào
+`agrichain.user` trước khi lưu — CÙNG LOẠI lỗi đã gặp với `permissions` (`GET /auth/me` trả
+về object bọc ngoài, không phải `user` phẳng): thiếu bước gắn thì `getUser().
+organization_is_distributor` luôn đọc ra `undefined`. `updateMe()` (response là `UserOut`
+phẳng, không có field này) phải giữ nguyên giá trị đã lưu trước đó — route đó không đổi
+được Đơn vị nên chắc chắn không đổi.
+
+**`AgriChain.api.isDistributor()`** — đọc đồng bộ `getUser().organization_is_distributor
+=== true` (so sánh CHẶT, không chỉ truthy, vì `null`/`false`/`undefined` đều phải ra
+`false`), không gọi API.
+
+**`AgriChain.api.requireDistributor()`** — đúng mẫu `requireBusiness()`, gắn vào `<head>`
+của **7 trang `thuong-mai-*.html`** (Tổng quan/Sản phẩm/Đơn hàng/Vận chuyển/Nhập hàng/Máy
+tính tiền/Thiết lập Shop), **NGAY SAU** `requireAuth()`/`requireBusiness()` đã có sẵn —
+KHÔNG áp cho 9 trang admin còn lại (`nong-trai`, `nong-trai-chi-tiet`, `vat-tu`,
+`mau-quy-trinh`, `lo-hang`, `tai-khoan`, `ho-so`, `goi-phan-mem`, `lich-su-mua-goi`). Khác
+`requireBusiness()` (chặn `customer`): người bị `requireDistributor()` chặn vẫn là
+`account_type='business'` hợp lệ, chỉ là Đơn vị của họ không phải nhà phân phối — đá về
+`nong-trai.html` (khu quản trị chung), KHÔNG phải `agriverse-3d.html` (đích riêng cho
+`customer`). Tự kiểm `!isLoggedIn() || !isBusiness()` trước rồi mới xét
+`isDistributor()` — nếu gọi khi chưa đăng nhập hoặc đang là `customer`, nhường việc xử lý
+lại cho `requireAuth()`/`requireBusiness()` (đã gọi trước đó), không giẫm lên nhau.
+
+**Listener `pageshow` chống bfcache** (xem mục "Kết nối backend" → `js/api.js`) áp THÊM
+đúng mẫu cho `requireDistributor()`: Đơn vị phân phối A xem xong 1 trang `thuong-mai-*.html`,
+đăng xuất, tài khoản business B (Đơn vị KHÔNG phải phân phối) đăng nhập cùng trình duyệt,
+bấm Back → bfcache khôi phục lại trang của A với phiên B (vẫn hợp lệ, `requireAuth()`/
+`requireBusiness()` không bắt được ca này) nhưng sai Đơn vị — `requireDistributor()` bắt
+đúng ca này. 3 điều kiện (`requireAuth`/`requireBusiness`/`requireDistributor`) xét ĐỘC
+LẬP nhau trong cùng 1 listener, không gộp `else if`, vì mỗi điều kiện đá về 1 đích khác
+nhau.
+
+**Ẩn nhóm menu sidebar "Thương mại điện tử" (`js/app-shell.js`)** — lớp thứ 2, độc lập với
+`requireDistributor()` (thiếu 1 trong 2 vẫn còn hở: ẩn menu không chặn được URL gõ trực
+tiếp, và chặn URL không tự ẩn menu). `updateDistributorOnlyNav()` tìm `#nav-thuong-mai`
+(id CỐ ĐỊNH, giống hệt nhau trên cả 16 trang app-shell) rồi lên tới `.app-nav__section`
+cha để ẩn CẢ nút bấm mở nhóm lẫn danh sách bên trong (ẩn mỗi `<ul>` vẫn để lộ tiêu đề nhóm
+trống trơn). Gán `hidden` TƯỜNG MINH cả 2 chiều (`section.hidden = !!(...)`, không chỉ set
+`true` có điều kiện) — cùng bài học đã rút ra ở `renderAccountArea()`
+(`agriverse-3d.html`)/`renderHeaderAccountArea()` (`js/header.js`): hàm này còn được gọi
+lại từ 1 listener `pageshow` RIÊNG trong `js/app-shell.js` khi khôi phục từ bfcache, nếu
+chỉ set `true` có điều kiện thì gọi lại sẽ không bao giờ HIỆN LẠI đúng cho chủ tài khoản
+phân phối. Gọi 1 lần trong `DOMContentLoaded` (sau `setupLogout()`).
+
+**Không đụng gì tới dữ liệu `shops`/`products`/`orders`** (vẫn ở `store.js`, chưa migrate)
+— lần sửa này CHỈ ẩn/chặn ở tầng giao diện theo `organization_is_distributor`, không đổi
+cách các collection thương mại điện tử đó được đọc/ghi.
+
 ### Trang thương mại điện tử chính thức: `agriverse-3d.html` (KHÔNG phải `ecommerce.html`, 2026-09-11)
 
 Toàn bộ luồng điều hướng tài khoản `customer` (`defaultTargetFor()`/`redirectTarget()` ở
@@ -520,22 +593,22 @@ trang đều dùng backend thật ngay**:
 - **Đã chuyển sang API**: `dang-nhap.html` (chỉ đăng nhập), `dang-ky.html` (đăng ký,
   2026-09-11 — cả 2 luồng `customer`/`business`, xem mục "Đăng nhập/Đăng ký" phía trên),
   `tai-khoan.html` (toàn bộ), `nong-trai.html` (farms), `vat-tu.html` (supplies),
-  `nong-trai-chi-tiet.html` (farms + seasons + logs + certifications — riêng `batches`
-  trên chính trang này VẪN dùng `store.js`, xem mục riêng bên dưới), `mau-quy-trinh.html`
-  (toàn bộ — mẫu quy trình qua `api.workflowTemplates.*`, dropdown chọn vật tư trong bước
-  mẫu qua `api.supplies.*` từ trước), `ho-so.html` (toàn bộ, 2026-09-12 — xem mục riêng
-  bên dưới).
-- **Vẫn dùng `store.js`**: mọi trang còn lại, cộng thêm 1 collection
-  trên `nong-trai-chi-tiet.html`/`js/lo-hang.js`: `batches` (lô hàng, toàn bộ CRUD) — backend
-  ĐÃ CÓ `batches` (xem mục "Các bảng nghiệp vụ" bên dưới) nhưng 2 trang này CHƯA chuyển,
-  chờ giai đoạn 3. `js/truy-xuat.js` là NGOẠI LỆ: chỉ 2 hàm ĐỌC (`api.batches.get()`/
-  `getByCode()`) đã sang API, xem mục ngay dưới — không phải toàn bộ CRUD `batches`.
-  Collection `workflowTemplates` trong `store.js` giờ **MỒ CÔI** (không còn trang nào
-  đọc/ghi) kể từ khi `mau-quy-trinh.html` chuyển sang API — cùng tình trạng với `orgUsers`
-  (xem mục "Đăng nhập/Đăng ký"), chưa xoá khỏi `COLLECTIONS` vì ngoài phạm vi lần chuyển đổi
-  này. Mẫu quy trình đã tạo trước lúc migrate (lưu trong `localStorage`, id dạng
-  `store.newId()` không phải UUID) sẽ KHÔNG tự chuyển lên backend — biến mất khỏi danh sách
-  sau khi migrate, người dùng tự tạo lại qua giao diện mới nếu cần.
+  `nong-trai-chi-tiet.html` (toàn bộ — farms + seasons + logs + certifications + batches,
+  `batches` xong 2026-09-12, xem mục riêng bên dưới), `mau-quy-trinh.html` (toàn bộ — mẫu
+  quy trình qua `api.workflowTemplates.*`, dropdown chọn vật tư trong bước mẫu qua
+  `api.supplies.*` từ trước), `ho-so.html` (toàn bộ), `lo-hang.html` (toàn bộ, 2026-09-12
+  — danh sách lô hàng qua `api.batches.list()`, xem mục riêng bên dưới).
+- **Vẫn dùng `store.js`**: mọi trang còn lại. **Giai đoạn 3 ĐÃ HOÀN TẤT** (2026-09-12) —
+  `batches` (lô hàng) là collection CUỐI CÙNG chuyển sang API, không còn domain nghiệp vụ
+  nào ở `store.js` nữa (chỉ còn các collection thương mại điện tử `shops`/`products`/
+  `orders`/`shippingAddresses`/`inventoryImports` và hồ sơ `users` của `ho-so.html`/CHÍNH
+  tài khoản — xem mục riêng, chưa nằm trong phạm vi "Hoạt động sản xuất"). Collection
+  `workflowTemplates` trong `store.js` giờ **MỒ CÔI** (không còn trang nào đọc/ghi) kể từ
+  khi `mau-quy-trinh.html` chuyển sang API — cùng tình trạng với `orgUsers` (xem mục "Đăng
+  nhập/Đăng ký"), chưa xoá khỏi `COLLECTIONS` vì ngoài phạm vi lần chuyển đổi này. Mẫu quy
+  trình đã tạo trước lúc migrate (lưu trong `localStorage`, id dạng `store.newId()` không
+  phải UUID) sẽ KHÔNG tự chuyển lên backend — biến mất khỏi danh sách sau khi migrate,
+  người dùng tự tạo lại qua giao diện mới nếu cần.
 - **`truy-xuat.html`/`js/truy-xuat.js`** (trang truy xuất công khai, quét mã QR, không đăng
   nhập) **ĐÃ CHUYỂN tra cứu lô hàng sang API** (2026-09-12, vá lỗi: trước đó đọc
   `store.list('batches')`, chỉ ai dùng ĐÚNG trình duyệt đã tạo ra lô hàng mới xem được, khách
@@ -549,8 +622,9 @@ trang đều dùng backend thật ngay**:
   public-read riêng — **`GET /batches/by-code/{code}`** (tra CHÍNH XÁC theo mã, không phân
   biệt hoa/thường, bỏ qua lọc theo Đơn vị — cùng ngoại lệ công khai với `GET /batches/{id}`,
   xem `app/routers/batches.py::get_batch_by_code` phía `agrichain-api`) — gọi qua
-  `api.batches.getByCode()` (`js/api.js`, chỉ có 2 hàm `get`/`getByCode`, KHÔNG có
-  `create`/`update`/`remove` vì batches CRUD phía admin vẫn ở `store.js`, xem trên).
+  `api.batches.getByCode()` (`js/api.js`) — trang này chỉ dùng 2 hàm ĐỌC (`get`/`getByCode`,
+  cả 2 đều `{ auth: false }`) trong số 6 hàm CRUD đầy đủ của `api.batches.*`, vì đây là trang
+  công khai không có phiên đăng nhập để gửi kèm cho `create`/`update`/`remove`/`list`.
   Danh sách chứng nhận trên trang này vẫn đọc `store.js` — không phải vì `certifications`
   chưa có ở backend (đã có, xem `nong-trai-chi-tiet.html`), mà vì endpoint đó vẫn yêu cầu
   đăng nhập và trang công khai này không có phiên nào để gửi kèm — NGOÀI PHẠM VI lần sửa
@@ -591,6 +665,44 @@ trang đều dùng backend thật ngay**:
     ra chỗ lưu nào khác. Vai trò hiển thị (`data-profile-role`) đọc thẳng `user.role_name`
     (VD "Quản trị viên", "Nông dân") từ `UserOut` thật — không cần bảng tra tên riêng như hồi
     còn `store.js` (chỉ có đúng 2 giá trị `'org'`/`'customer'` cố định).
+- **`batches` (lô hàng) CRUD ĐÃ CHUYỂN SANG API** (2026-09-12, hoàn tất giai đoạn 3) —
+  `nong-trai-chi-tiet.js` (tạo/sửa/xoá lô hàng trong tab "Lô hàng" của modal xem mùa vụ,
+  cơ chế liên kết batch với bước quy trình `completeWorkflowStep()`/`linkBatchToStep()`)
+  và `lo-hang.js` (danh sách + lọc `farm_id`/`season_id`) đều dùng chung `api.batches.*`
+  (`list`/`get`/`getByCode`/`create`/`update`/`remove`, khuôn CRUD chuẩn giống
+  farms/seasons). Field gửi lên đổi tên sang snake_case khớp `BatchCreate`/`BatchUpdate`
+  thật (`startDate` -> `start_date`, `harvestDate` -> `harvest_date`,
+  `actualHarvestDate` -> `actual_harvest_date`, `expectedYield` -> `expected_yield`);
+  response giữ nguyên snake_case, đọc thẳng. **KHÔNG gửi `farm_id` lúc tạo** — backend tự
+  điền từ `season_id` (`BatchCreate` không có field này, xem `create_batch()` phía
+  `agrichain-api`).
+  - `lo-hang.js` đọc THẲNG `farm_code`/`farm_name`/`season_code`/`season_name` có sẵn
+    trong `BatchOut` (join sống ở backend) để dựng link sửa/xoá — không còn tự gọi
+    `api.farms.get()`/`api.seasons.get()` + cache riêng cho từng lô hàng như hồi còn
+    `store.js`. Nhánh "lô hàng mồ côi" (nông trại/mùa vụ đã bị xoá) cũng bỏ theo — backend
+    chặn xoá 1 mùa vụ còn lô hàng sống (`batch_repo.count_by_season()`), nên tình huống đó
+    không còn xảy ra được qua API thật.
+  - **Khối "Xác thực blockchain" (nút niêm phong, hiển thị hash/khối, khoá sửa/xoá khi đã
+    niêm phong) đã BỎ HẲN khỏi CẢ HAI trang** — cùng quyết định đã áp dụng cho
+    `truy-xuat.html`: `BatchOut` thật KHÔNG có `sealed`/`hash`/`blockIndex`/`sealedAt` (mô
+    phỏng client-side cũ của `js/chain.js`/`store.sealBatch()`), chỉ có
+    `verification_status`/`tx_hash`/`anchored_at` (luôn `'pending'`/`null` — anchoring thật
+    CHƯA code). Hiện `verification_status` ra sẽ làm sai lệch những lô đã "niêm phong" bằng
+    cơ chế mô phỏng cũ (mọi lô đều hiện "chưa xác thực" như nhau, kể cả lô cũ từng bấm nút
+    niêm phong) — ẩn hẳn trung thực hơn. Sửa/xoá vì vậy LUÔN dùng được, không còn khái niệm
+    "đã niêm phong thì khoá sửa/xoá". Sẽ hiện lại khi backend có anchoring thật, xem
+    `agrichain-api/CLAUDE.md` mục "Giai đoạn 3".
+  - `js/nong-trai-chi-tiet.js`/`js/lo-hang.js` không còn gọi `js/store.js`/`js/chain.js` ở
+    đâu nữa — 2 thẻ `<script>` đó vẫn còn nạp ở cả 2 trang (cùng cách xử lý mọi trang khác
+    trong dự án đã hết phụ thuộc, để lại cho một đợt dọn dẹp sau, ngoài phạm vi lần sửa này).
+  - Ma trận phân quyền `tai-khoan.html` thêm hàng "Lô hàng" (`batches.*`) vào
+    `PREFIX_ORDER`/`PREFIX_LABELS`/`PREFIX_ICONS` — đủ **9 hàng x 4 cột = 36 mã quyền**,
+    hoàn tất việc bị hoãn lại từ B4 (xem mục "Trang `tai-khoan.html`" bên dưới).
+  - **Vá hồi quy (2026-09-12, cùng ngày)**: `js/thuong-mai-san-pham.js` (dropdown "gắn lô
+    hàng thật vào biến thể sản phẩm") từng đọc `store.list('batches')`, rỗng trơn với mọi lô
+    hàng tạo sau lần migrate CRUD ở trên — đã đổi sang `api.batches.list()`, xem mục
+    "Thương mại điện tử — sản phẩm" bên dưới để biết đầy đủ (kèm lưu ý về quyền
+    `batches.view` mà vai trò `manager`/`farmer` CHƯA có).
 
 ### `js/api-config.js`
 
@@ -683,9 +795,11 @@ vì vậy không còn đường nào để chạy tới nữa, đã gỡ hẳn. 
 chặn chính — `requireAuth()` ở `<head>` đã làm việc đó trước khi hàm này kịp chạy).
 `setupLogout()` giờ luôn gọi thẳng `api.auth.logout()`, không còn nhánh `else` gọi
 `store.clearSession()`. `js/app-shell.js` không còn phụ thuộc `js/store.js` (biến `store` đã
-gỡ khỏi file) — `js/store.js` vẫn được nạp ở cả 16 trang vì các collection khác
-(`batches`, `shops`, `products`, `orders`...) vẫn cần nó, chỉ riêng phần phiên đăng nhập của
-khung app-shell là không dùng tới nữa.
+gỡ khỏi file) — `js/store.js` vẫn được nạp ở cả 16 trang vì các collection thương mại điện
+tử (`shops`, `products`, `orders`, `shippingAddresses`, `inventoryImports`) vẫn cần nó (xem
+7 trang `thuong-mai-*`), chỉ riêng phần phiên đăng nhập của khung app-shell là không dùng
+tới nữa — `batches` KHÔNG còn nằm trong nhóm lý do này nữa (đã chuyển hẳn sang API,
+2026-09-12, xem mục "Kết nối backend").
 
 ### Chuyển hướng sau khi đăng nhập (`redirectTarget()` trong `js/auth.js`)
 
@@ -722,10 +836,11 @@ giả định):
 - **Permission KHÔNG có `id` số** — chỉ có `code` (chuỗi, VD `"farms.view"`), `name`
   (chuỗi hiển thị, VD `"Xem nông trại"`), `group_name`. Toàn bộ thao tác chọn/lưu quyền
   trong `js/tai-khoan.js` làm việc trực tiếp trên `code`, không có khái niệm id quyền.
-- Đúng **32 mã quyền**, dạng `"<nhóm số nhiều>.<hành động>"` — 4 hành động
-  `add`/`edit`/`view`/`delete` x 8 nhóm nghiệp vụ `certifications`/`farms`/`logs`/`roles`/
-  `seasons`/`supplies`/`users`/`workflow_templates`. Danh sách đầy đủ:
+- Đúng **36 mã quyền**, dạng `"<nhóm số nhiều>.<hành động>"` — 4 hành động
+  `add`/`edit`/`view`/`delete` x 9 nhóm nghiệp vụ `batches`/`certifications`/`farms`/`logs`/
+  `roles`/`seasons`/`supplies`/`users`/`workflow_templates`. Danh sách đầy đủ:
   ```
+  batches.add / batches.delete / batches.edit / batches.view
   certifications.add / certifications.delete / certifications.edit / certifications.view
   farms.add / farms.delete / farms.edit / farms.view
   logs.add / logs.delete / logs.edit / logs.view
@@ -736,37 +851,31 @@ giả định):
   workflow_templates.add / workflow_templates.delete / workflow_templates.edit / workflow_templates.view
   ```
   Nhóm `workflow_templates` xác nhận qua `GET /permissions` thật lúc chuyển
-  `mau-quy-trinh.html` sang API (2026-09-08) — thêm SAU 7 nhóm gốc, dùng ở
-  `js/mau-quy-trinh.js` (nút sửa/xoá mỗi thẻ mẫu + nút "Tạo quy trình mới").
-  **ĐÃ thêm vào ma trận phân quyền của `tai-khoan.html` (2026-09-11)** — `js/tai-khoan.js`
-  giờ hiện đúng 8 hàng (`PREFIX_ORDER`, xem bên dưới), quyền `workflow_templates.*`
-  của 1 vai trò sửa được qua giao diện như 7 nhóm còn lại.
-  Quy ước đặt tên này áp dụng cho MỌI phân hệ sẽ chuyển sang API sau này — trang mới nào
-  gọi `AgriChain.api.hasPermission(code)` thì dùng đúng mẫu `"<nhóm số nhiều>.<add|edit|
+  `mau-quy-trinh.html` sang API (2026-09-08); nhóm `batches` (`group_name` "Lô hàng") có
+  từ backend migration 005 nhưng chỉ thêm vào ma trận này khi `batches` CRUD chuyển sang
+  API (2026-09-12, xem mục "Kết nối backend") — trước đó CỐ TÌNH chưa thêm vì chưa có
+  trang nào thật sự cần gán quyền `batches.*` qua giao diện.
+  **`js/tai-khoan.js` giờ hiện đúng 9 hàng** (`PREFIX_ORDER`, xem bên dưới), quyền
+  `batches.*`/`workflow_templates.*` của 1 vai trò đều sửa được qua giao diện như các nhóm
+  gốc. Quy ước đặt tên này áp dụng cho MỌI phân hệ sẽ chuyển sang API sau này — trang mới
+  nào gọi `AgriChain.api.hasPermission(code)` thì dùng đúng mẫu `"<nhóm số nhiều>.<add|edit|
   view|delete>"` ngay từ đầu, không suy đoán số ít/số nhiều hay từ đồng nghĩa khác.
-- ⚠️ **Phát hiện thêm (2026-09-11, gọi thật `GET /permissions`): backend giờ CÒN CÓ 1 nhóm
-  quyền thứ 9 — `batches.add/edit/view/delete` (`group_name` "Lô hàng")** — KHÔNG có trong
-  32 mã kể trên, và KHÔNG có hàng tương ứng trong ma trận `tai-khoan.html`. Cố tình CHƯA
-  thêm: `batches` (lô hàng) phía frontend vẫn dùng `store.js`, chưa chuyển sang API (xem mục
-  "Kết nối backend" — batches chờ giai đoạn 3), nên hiện chưa có trang nào thật sự cần gán
-  quyền `batches.*` qua giao diện. Khi `batches` chuyển sang API, nhớ thêm hàng thứ 9 vào
-  `PREFIX_ORDER`/`PREFIX_LABELS`/`PREFIX_ICONS`, đúng mẫu đã làm với `workflow_templates`.
 - `GET /permissions` trả về **đã nhóm sẵn** theo `group_name`, nhưng `roles.*` và `users.*`
   bị gộp chung vào 1 group_name duy nhất là `"Quản lý đơn vị"` (8 quyền/nhóm thay vì 4) —
   nếu ma trận phân quyền hiển thị thẳng theo `group_name` thì 1 ô (nhóm x hành động) sẽ chứa
   2 mã quyền (`roles.view` và `users.view` cùng rơi vào ô "Xem" của "Quản lý đơn vị"), phá
   vỡ giả định "1 checkbox = 1 mã quyền". `js/tai-khoan.js` vì vậy **bỏ qua `group_name`**,
   tự nhóm lại theo TIỀN TỐ mã quyền (phần trước dấu `.` đầu tiên — `PREFIX_ORDER`/
-  `PREFIX_LABELS`/`PREFIX_ICONS`) để luôn ra đúng 8 hàng, mỗi hàng 1 mã quyền/hành động
-  (Nông trại, Chứng nhận, Mùa vụ, Vật tư, Nhật ký, Mẫu quy trình, Vai trò, Người dùng).
+  `PREFIX_LABELS`/`PREFIX_ICONS`) để luôn ra đúng 9 hàng, mỗi hàng 1 mã quyền/hành động
+  (Lô hàng, Nông trại, Chứng nhận, Mùa vụ, Vật tư, Nhật ký, Mẫu quy trình, Vai trò,
+  Người dùng).
 - `role.permissions` (cả trong `GET /roles` lẫn body gửi lên `PATCH /roles/{id}`) là **mảng
   chuỗi mã quyền thuần** (`["farms.view", "farms.add", ...]`), không phải mảng object/id.
 - `PATCH /roles/{id}` nhận field **`permissions`** (không phải `permission_ids` như suy đoán
   ban đầu) — THAY THẾ TOÀN BỘ danh sách quyền hiện có. `handlePermissionSave()` vẫn phải tự
-  GHÉP LẠI các mã quyền nằm ngoài lưới 8×4 đang hiển thị (nhóm lạ/hành động lạ mà backend
-  thêm sau này, VD `batches.*` — xem ghi chú ở trên) với các mã quyền vừa tick trong lưới
-  trước khi gửi lên, tránh vô tình xoá mất quyền không hiển thị trên giao diện này — xem
-  biến `managedCodes`.
+  GHÉP LẠI các mã quyền nằm ngoài lưới 9×4 đang hiển thị (nhóm lạ/hành động lạ mà backend
+  thêm sau này) với các mã quyền vừa tick trong lưới trước khi gửi lên, tránh vô tình xoá
+  mất quyền không hiển thị trên giao diện này — xem biến `managedCodes`.
 - `UserCreate` yêu cầu `email`, `password`, `full_name`, `role_id` (bắt buộc), `phone` (tuỳ
   chọn). `UserUpdate` chỉ nhận `full_name`, `phone`, `role_id`, `is_active` — không có
   `email`/`password`, nên form Sửa là modal RIÊNG với form Thêm, không dùng chung.
@@ -883,14 +992,12 @@ xoá mềm). `js/api.js` bọc thêm `api.farms.*`/`api.seasons.*`/`api.logs.*`/
   cho tới khi backend sửa xong**. Có banner "Thử lại cập nhật trạng thái bước"
   (`[data-process-retry-notice]`) phòng trường hợp nhật ký tạo được nhưng PATCH mùa vụ lỗi —
   không để trạng thái nửa vời trong im lặng.
-- **`batches` (lô hàng) CHƯA migrate CRUD** (tạo/sửa/xoá/danh sách trên `nong-trai-chi-tiet.html`/
-  `js/lo-hang.js`) — giai đoạn 3, vẫn ở `store.js`. Riêng 2 hàm ĐỌC công khai
-  (`GET /batches/{id}`, `GET /batches/by-code/{code}`) đã có ở backend và đã nối vào
-  `js/truy-xuat.js` (2026-09-12) — xem mục "Kết nối backend" ở trên. Backend cũng CỐ TÌNH
-  không có field `sealed`/`hash`/`blockIndex`/`sealedAt` (mô phỏng client-side cũ của
-  `js/chain.js`) — khi migrate CRUD, nút "Xác thực blockchain" phải viết lại theo
-  `verification_status`/`tx_hash`/`anchored_at` thật, không migrate y nguyên (xem
-  `agrichain-api/CLAUDE.md` mục "Giai đoạn 3").
+- **`batches` (lô hàng) CRUD ĐÃ CHUYỂN SANG API** (2026-09-12, hoàn tất giai đoạn 3) —
+  `nong-trai-chi-tiet.js` (tạo/sửa/xoá) và `lo-hang.js` (danh sách + lọc) đều qua
+  `api.batches.*`, xem mục "Kết nối backend" ở trên để biết đầy đủ chi tiết. Nút "Xác thực
+  blockchain" đã BỎ HẲN (không viết lại theo `verification_status`/`tx_hash`/`anchored_at`
+  thật) — quyết định ẩn hẳn thay vì hiện trạng thái luôn `'pending'`, cùng lý do đã áp dụng
+  cho `truy-xuat.html`, xem `agrichain-api/CLAUDE.md` mục "Giai đoạn 3".
 - **`workflowTemplates` (mẫu quy trình) ĐÃ CHUYỂN SANG API** (`mau-quy-trinh.html`, 2026-09-08)
   qua `api.workflowTemplates.*` — xem mục "Mẫu quy trình mùa vụ" bên dưới. Trên
   `nong-trai-chi-tiet.html`, khi áp dụng 1 mẫu cho mùa vụ, mẫu giờ đọc qua
@@ -1052,6 +1159,48 @@ frontend không đụng tới token nữa) trước khi lên production.**
 - Form: `.field` (bọc label + input + lỗi), `.label`, `.input`, `.textarea`, `.select`
   (dùng chung style, trạng thái `:disabled` và `[aria-invalid="true"]`), `.field__error`,
   `.checkbox`/`.checkbox__input`/`.checkbox__label`, `.radio`/`.radio__input`/`.radio__label`.
+
+## Logo công ty (2026-09-12)
+
+`.site-header__logo-mark`/`.site-footer__logo-mark` (`css/components.css`) và
+`.app-topbar__brand-mark` (`css/app-shell.css`) trước đây là 1 `<span>` giả lập (nền
+`--color-primary` hình vuông bo góc + chữ "A" trắng) — đã đổi hẳn sang `<img
+src="icons/exabyte-icon-only-transparent.png">` (logo THẬT của công ty Exabyte, chỉ phần
+biểu tượng kim cương xanh/cam, nền trong suốt, không có chữ "EXABYTE.VN"). Cả 3 class giờ
+chỉ còn `width`/`height: var(--space-8)` + `object-fit: contain` (đã bỏ hẳn
+`background`/`color`/`font-size`/`border-radius`/`display: inline-flex`+`align-items`+
+`justify-content` — những khai báo đó chỉ có ý nghĩa khi phần tử là `<span>` chứa chữ căn
+giữa, không cần cho `<img>`). Nhờ nền ảnh trong suốt, logo hiển thị đúng trên cả nền trắng
+(`.site-header`) lẫn nền tối (`.site-footer`, `.app-topbar`) mà không cần khung nền riêng.
+Chữ "AgriChain" đứng cạnh (`.site-header__logo-text`, hoặc `<span>` không class ở
+`.site-footer__logo`/`.app-topbar__brand`) **giữ nguyên** — đây là đổi ICON nhận diện,
+không đổi tên thương hiệu sản phẩm hiển thị.
+
+Đã thay ở **24 vị trí** trên 21 file: 5 `.site-header__logo-mark` (`index.html`,
+`blog.html`, `blog-chi-tiet.html`, `styleguide.html`, `truy-xuat.html`), 3
+`.site-footer__logo-mark` (`index.html`, `blog.html`, `blog-chi-tiet.html`), và 16
+`.app-topbar__brand-mark` (đủ 16 trang `ADMIN_SHELL_PAGES`, xem mục
+"`AgriChain.api.requireBusiness()`").
+
+**`dang-nhap.html`/`dang-ky.html` ĐÃ ĐỒNG BỘ THEO** (cùng ngày) — 2 trang này dùng
+`.auth-brand__mark-box` (`css/auth.css`), khác hẳn cấu trúc "span chữ A" ở trên: đây là 1
+`<span>` khung tròn bo góc (`--space-12`, nền `--overlay-white-subtle`) BỌC NGOÀI 1
+`<svg class="icon icon--lg"><use href="icons/sprite.svg#icon-leaf">`. Icon lá này thuần
+trang trí (không animation, không state động) nên đổi trực tiếp: giữ nguyên khung
+`.auth-brand__mark-box`, chỉ đổi phần tử BÊN TRONG từ `<svg>` sang
+`<img class="icon icon--lg" src="icons/exabyte-icon-only-transparent.png" alt="">` (tái
+dùng đúng class `.icon`/`.icon--lg` có sẵn để giữ nguyên kích thước 32px — 2 class này chỉ
+khai báo `width`/`height`/`flex-shrink`, không có gì riêng cho `<svg>` nên áp lên `<img>`
+vẫn đúng). Thêm 1 rule mới `.auth-brand__mark-box img { object-fit: contain }` (scoped
+riêng, không áp lên `.icon`/`.icon--lg` toàn cục) để logo không bị méo bên trong khung
+tròn. `icon-leaf` vẫn còn dùng nguyên ở nơi khác (`nong-trai.html`, `vat-tu.html`,
+`dang-ky.html` — dòng khác, `styleguide.html`) nên KHÔNG mồ côi khỏi `icons/sprite.svg`,
+không cần dọn gì thêm ở sprite.
+
+**Chỉ còn ngoại lệ DUY NHẤT**: logo "AgriVerse" ở `agriverse-3d.html` (khối gradient
+xanh-cam + icon `fa-cube` của Font Awesome, dựng bằng Tailwind thuần, không dùng chung
+class nào với các class logo AgriChain ở trên) — đây là nhận diện RIÊNG của sub-brand
+AgriVerse, khác hệ thiết kế site-wide/app-shell/auth, cố tình để nguyên.
 
 ## Khi thêm token hoặc component mới
 
@@ -1256,7 +1405,8 @@ Collection `shops` (`store.js`) chỉ có **1 bản ghi cho mỗi Đơn vị đ�
 `ownerId = session.id` (không phải id tổ chức thật — dự án chưa có khái niệm đó). Trang tự
 lọc `store.list('shops')` để tìm bản ghi khớp `ownerId`, không có hàm riêng trong `store.js`
 cho việc này (theo đúng quy ước: `store.js` chỉ generic insert/update/list, lọc theo nghiệp
-vụ nằm ở JS riêng của trang, giống cách `lo-hang.js` tự lọc `batches` theo farm/season).
+vụ nằm ở JS riêng của trang, giống cách `js/thuong-mai-san-pham.js` tự lọc `products` theo
+`ownerId` — xem mục riêng bên dưới).
 
 Modal "Khởi tạo/Chỉnh sửa cửa hàng" chia 4 tab (Tổng quan, Liên hệ & Social, Địa chỉ & Pháp
 lý, Vận hành & Chính sách) — các trường bắt buộc nằm rải trên nhiều tab khác nhau, nên
@@ -1290,11 +1440,30 @@ riêng trong `store.js` — đúng quy ước "store.js chỉ generic, lọc ngh
 
 Mỗi sản phẩm có mảng `variants` (biến thể: size/quy cách đóng gói khác nhau, mỗi cái có giá/
 tồn kho/mã vạch/trọng lượng/kích thước riêng) — **mỗi biến thể có thể gắn với 1 lô hàng thật**
-trong collection `batches` qua `variant.batchId` (select trong modal liệt kê
-`store.list('batches')`, hiển thị `batch.code` — mã lô đã tự mang thông tin nông trại+mùa vụ
-nhờ định dạng `<mã nông trại>-<mã mùa vụ>-NNN`, xem `js/nong-trai-chi-tiet.js`). Đây là điểm
-nối giữa "Hoạt động sản xuất" và "Thương mại điện tử": sản phẩm rao bán có thể truy xuất
-ngược về đúng lô hàng đã ghi nhận trên blockchain.
+qua `variant.batchId` (select trong modal, xem `batchOptions()`/`loadBatches()`) — mã lô đã
+tự mang thông tin nông trại+mùa vụ nhờ định dạng `<mã nông trại>-<mã mùa vụ>-NNN`, xem
+`js/nong-trai-chi-tiet.js`. Đây là điểm nối giữa "Hoạt động sản xuất" và "Thương mại điện
+tử": sản phẩm rao bán có thể truy xuất ngược về đúng lô hàng đã ghi nhận trên blockchain.
+
+**Lô hàng ĐÃ CHUYỂN SANG API (2026-09-12) — vá hồi quy**: dropdown chọn lô hàng từng đọc
+`store.list('batches')` (collection MỒ CÔI kể từ khi `batches` CRUD chuyển hẳn sang API,
+xem mục "Kết nối backend") nên rỗng trơn với mọi lô hàng tạo sau thời điểm migrate đó — vá
+bằng `loadBatches()` (gọi `api.batches.list({ page_size: 100 })` MỘT LẦN lúc trang khởi
+động, cùng mẫu `availableSupplies`/`loadSupplyOptions()` ở `js/nong-trai-chi-tiet.js`, không
+tải lại mỗi lần mở modal). Nhãn option giờ có thêm `farm_name`/`season_name` (đọc thẳng từ
+`BatchOut`, không gọi thêm request nào) cho dễ phân biệt các lô cùng sản phẩm — trước đó chỉ
+hiện `batch.code`.
+
+⚠️ **`GET /batches` yêu cầu quyền `batches.view`** — theo seed mặc định
+(`002_seed_roles_permissions.sql`, xem mục "Trang `tai-khoan.html`"), vai trò `manager` và
+`farmer` (2 vai trò business KHÔNG phải admin duy nhất tồn tại) đều **KHÔNG có** quyền này
+(nhóm `batches.*` được thêm ở migration 005, sau khi 002 đã seed xong `manager`/`farmer`,
+và chưa từng được bổ sung ngược lại). Nghĩa là 1 người dùng giữ vai trò `manager`/`farmer`
+mở `thuong-mai-san-pham.html` sẽ nhận 403 khi `loadBatches()` chạy — dropdown chọn lô hàng
+sẽ trống (đã bắt lỗi qua `.catch()`, chỉ hiện toast, không làm vỡ trang). **CHƯA tự ý cấp
+quyền `batches.view` cho 2 vai trò này** (ngoài phạm vi lần vá này, cần quyết định có chủ
+đích) — dự án cũng chưa có vai trò riêng cho nhân sự "Thương mại điện tử", chỉ có
+`admin`/`manager`/`farmer` dùng chung cho mọi phân hệ nghiệp vụ.
 
 Modal thêm/sửa không dùng `<dialog>` full-page như bản tham khảo (dự án không có router) —
 vẫn theo đúng quy ước "modal trên cùng trang danh sách" như mọi form khác trong app. Layout

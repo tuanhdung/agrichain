@@ -4,13 +4,17 @@
    Đơn vị đang đăng nhập (ownerId = session.id, cùng quy ước với "shops" —
    xem js/thuong-mai-tong-quan.js). Mỗi sản phẩm có thể có nhiều "biến thể"
    (size/quy cách đóng gói khác nhau), mỗi biến thể tuỳ chọn gắn với 1 lô
-   hàng thật trong collection "batches" để truy xuất nguồn gốc.
-   Nạp SAU js/store.js, js/app-shell.js.
+   hàng thật để truy xuất nguồn gốc — lô hàng ĐÃ CHUYỂN SANG API (2026-09-12,
+   vá hồi quy sau lần migrate batches CRUD ở nong-trai-chi-tiet.js/lo-hang.js:
+   dropdown này từng đọc store.list('batches'), rỗng trơn với mọi lô hàng tạo
+   sau lần migrate đó), xem loadBatches()/batchOptions() bên dưới.
+   Nạp SAU js/api-config.js, js/api.js, js/store.js, js/app-shell.js.
    ========================================================================== */
 
 (function (global) {
   'use strict';
 
+  var api = global.AgriChain.api;
   var store = global.AgriChain.store;
   var session = store.getSession();
 
@@ -265,14 +269,32 @@
   var variantsEmpty = document.querySelector('[data-variants-empty]');
   var variantCount = 0; // chỉ dùng để đánh số #1, #2... hiển thị, không phải id thật
 
+  // Lô hàng ĐÃ CHUYỂN SANG API (2026-09-12, vá hồi quy sau lần migrate batches
+  // CRUD) — tải 1 lần lúc trang khởi động (loadBatches(), xem cuối file) thay
+  // vì đọc store.js, cùng mẫu đã áp dụng cho availableSupplies ở
+  // js/nong-trai-chi-tiet.js. Không tải lại mỗi lần mở modal.
+  var allBatches = [];
+
+  function loadBatches() {
+    return api.batches.list({ page_size: 100 }).then(function (data) {
+      allBatches = data.items || [];
+    }).catch(function (err) {
+      global.AgriChain.toast('Không tải được danh sách lô hàng: ' + err.message);
+    });
+  }
+
   function batchOptions(selectedBatchId) {
     var select = el('select', 'select');
     var emptyOption = el('option', null, '— Chưa chọn lô sản xuất —');
     emptyOption.value = '';
     select.appendChild(emptyOption);
 
-    store.list('batches').forEach(function (batch) {
-      var option = el('option', null, batch.code);
+    allBatches.forEach(function (batch) {
+      // Nhãn kèm nông trại + mùa vụ cho dễ chọn — batch.code đã tự mang mã
+      // (không phải TÊN) nông trại/mùa vụ trong định dạng của nó, xem
+      // js/nong-trai-chi-tiet.js.
+      var label = batch.code + ' — ' + batch.farm_name + ', ' + batch.season_name;
+      var option = el('option', null, label);
       option.value = batch.id;
       if (batch.id === selectedBatchId) option.selected = true;
       select.appendChild(option);
@@ -572,6 +594,7 @@
 
     fillFilterOptions();
     fillFormSelects();
+    loadBatches();
     render();
 
     [searchInput, categoryFilter, statusFilter, sortSelect].forEach(function (input) {

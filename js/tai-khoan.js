@@ -7,14 +7,13 @@
    được XÁC NHẬN THẬT qua /openapi.json + dữ liệu thật của backend (không
    còn là giả định) — xem mục riêng về trang này trong CLAUDE.md.
 
-   32 mã quyền hiển thị trong ma trận, dạng "<nhóm số nhiều>.<hành động>" (4
-   hành động add/edit/view/delete x 8 nhóm nghiệp vụ: certifications, farms,
-   logs, roles, seasons, supplies, users, workflow_templates — hàng
-   workflow_templates thêm 2026-09-11) — permission KHÔNG có id số, chỉ có
+   36 mã quyền hiển thị trong ma trận, dạng "<nhóm số nhiều>.<hành động>" (4
+   hành động add/edit/view/delete x 9 nhóm nghiệp vụ: batches, certifications,
+   farms, logs, roles, seasons, supplies, users, workflow_templates — hàng
+   workflow_templates thêm 2026-09-11, hàng batches thêm 2026-09-12 khi
+   batches CRUD chuyển sang API) — permission KHÔNG có id số, chỉ có
    `code` (chuỗi) — role.permissions và PATCH /roles/{id} đều làm việc
-   trực tiếp trên mảng chuỗi mã quyền này, không phải mảng id. Backend còn có
-   thêm 4 mã "batches.*" (group_name "Lô hàng") CHƯA đưa vào ma trận này —
-   xem ghi chú ở PREFIX_ORDER.
+   trực tiếp trên mảng chuỗi mã quyền này, không phải mảng id.
 
    Vai trò is_system=true (VD "Quản trị Đơn vị" tự tạo lúc đăng ký business,
    xem POST /auth/register/business) — modal Phân quyền mở READ-ONLY cho vai
@@ -47,15 +46,13 @@
   // hàng tương ứng, khiến quyền workflow_templates.* của 1 vai trò không sửa
   // được qua giao diện, xem CLAUDE.md).
   //
-  // ⚠️ ĐÃ PHÁT HIỆN THÊM (2026-09-11, gọi thật GET /permissions): backend giờ
-  // CÒN CÓ 1 nhóm quyền "batches" (batches.add/edit/view/delete, group_name
-  // "Lô hàng") ngoài 8 nhóm dưới đây — CHƯA thêm vào PREFIX_ORDER vì
-  // `batches` (lô hàng) phía frontend vẫn dùng store.js, chưa chuyển sang
-  // API (xem CLAUDE.md mục "Kết nối backend") nên chưa có trang nào thật sự
-  // cần gán quyền này qua giao diện — để lại cho đợt chuyển `batches` sang
-  // API (giai đoạn 3), ngoài phạm vi lần sửa này.
-  var PREFIX_ORDER = ['farms', 'certifications', 'seasons', 'supplies', 'logs', 'workflow_templates', 'roles', 'users'];
+  // "batches" (nhóm quyền "Lô hàng") thêm 2026-09-12 — batches CRUD vừa
+  // chuyển sang API (nong-trai-chi-tiet.html/lo-hang.js), trước đó nhóm này
+  // đã có ở backend từ migration 005 nhưng chưa có hàng ở ma trận này vì
+  // chưa trang nào thật sự cần gán quyền qua giao diện, xem CLAUDE.md.
+  var PREFIX_ORDER = ['batches', 'farms', 'certifications', 'seasons', 'supplies', 'logs', 'workflow_templates', 'roles', 'users'];
   var PREFIX_LABELS = {
+    batches: 'Lô hàng',
     farms: 'Nông trại',
     certifications: 'Chứng nhận',
     seasons: 'Mùa vụ',
@@ -66,6 +63,7 @@
     users: 'Người dùng'
   };
   var PREFIX_ICONS = {
+    batches: 'icon-warehouse',
     farms: 'icon-seedling',
     certifications: 'icon-qr-code',
     seasons: 'icon-calendar',
@@ -606,7 +604,7 @@
   var currentRole = null;
   // Mã quyền (code) của MỌI quyền đã render thành checkbox trong bảng — quyền
   // của vai trò hiện tại mà KHÔNG nằm trong tập này (nhóm/hành động lạ ngoài
-  // 8 phân hệ x 4 hành động đang hiển thị) sẽ được giữ nguyên khi lưu, xem
+  // 9 phân hệ x 4 hành động đang hiển thị) sẽ được giữ nguyên khi lưu, xem
   // handlePermissionSave().
   var managedCodes = null;
 
@@ -799,10 +797,10 @@
       if (checkbox.checked) checkedCodes.push(checkbox.dataset.code);
     });
 
-    // Giữ nguyên các quyền của vai trò này nằm NGOÀI 8 phân hệ x 4 hành
-    // động đang hiển thị (nhóm lạ/hành động lạ, VD "batches.*" — xem ghi chú
-    // ở PREFIX_ORDER) — không được vô tình xoá mất khi lưu, xem ghi chú ở
-    // khai báo managedCodes phía trên.
+    // Giữ nguyên các quyền của vai trò này nằm NGOÀI 9 phân hệ x 4 hành
+    // động đang hiển thị (nhóm lạ/hành động lạ mà backend thêm sau này, chưa
+    // kịp đưa vào PREFIX_ORDER) — không được vô tình xoá mất khi lưu, xem ghi
+    // chú ở khai báo managedCodes phía trên.
     var keptCodes = (currentRole.permissions || [])
       .filter(function (code) { return !managedCodes[code]; });
 

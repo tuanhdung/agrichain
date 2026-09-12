@@ -282,12 +282,23 @@
   var shapeLayer = null;    // đường/đa giác nối các điểm
   var markerLayer = null;   // các chấm đánh số
   var points = [];          // [{ lat, lng }] theo đúng thứ tự người dùng nhấp
+  var pendingRows = [];     // [{ lat, lng }] (string) — dòng nháp thêm qua "Thêm điểm",
+                             // CHƯA thuộc `points`/chưa vẽ lên bản đồ tới khi bấm "Hiển thị"
+  var guideLine = null;     // đường nét đứt tạm nối điểm cuối tới con trỏ — chỉ để
+                             // gợi ý trực quan, KHÔNG tính vào points/diện tích
+  var boundaryClosed = false; // true khi đã bấm lại điểm đầu tiên để khép kín — chỉ
+                               // lúc này mới tô vùng + tính diện tích thật
+  var firstMarker = null;   // tham chiếu marker điểm số 1 — dùng để làm nổi bật khi
+                             // chuột lại gần, khỏi phải vẽ lại toàn bộ marker mỗi mousemove
+  var CLOSE_HIT_RADIUS_PX = 14; // bán kính (px) quanh điểm đầu để tính là "bấm lại điểm đầu"
 
   var coordList = document.querySelector('[data-coord-list]');
   var coordEmpty = document.querySelector('[data-coord-empty]');
   var areaBox = document.querySelector('[data-area-box]');
   var areaValue = document.querySelector('[data-area-value]');
+  var applyAreaButton = document.querySelector('[data-apply-area]');
   var boundaryError = document.querySelector('[data-boundary-error]');
+  var manualCoordError = document.querySelector('[data-manual-coord-error]');
 
   /* --- Diện tích trên mặt cầu ----------------------------------------------
      Không dùng công thức phẳng: ở vĩ độ Việt Nam, 1 độ kinh tuyến ngắn hơn
@@ -330,8 +341,9 @@
       shapeLayer = null;
     }
 
+    firstMarker = null;
     points.forEach(function (point, index) {
-      L.marker([point.lat, point.lng], {
+      var marker = L.marker([point.lat, point.lng], {
         icon: L.divIcon({
           className: '',
           html: '<span style="display:flex;align-items:center;justify-content:center;' +
@@ -342,27 +354,218 @@
           iconAnchor: [12, 12]
         })
       }).addTo(markerLayer);
+      if (index === 0) firstMarker = marker;
     });
 
     var latlngs = points.map(function (p) { return [p.lat, p.lng]; });
 
-    if (points.length === 2) {
-      shapeLayer = L.polyline(latlngs, { color: '#1F8F58', weight: 3 }).addTo(map);
-    } else if (points.length >= 3) {
+    // Đang vẽ (chưa khép kín) -> đường MỞ, không tô nền. Chỉ khi đã bấm lại
+    // điểm đầu tiên (boundaryClosed) mới tô thành vùng khép kín thật.
+    if (boundaryClosed && points.length >= 3) {
       shapeLayer = L.polygon(latlngs, {
         color: '#1F8F58', weight: 3, fillColor: '#2EA86B', fillOpacity: 0.25
       }).addTo(map);
+    } else if (points.length >= 2) {
+      shapeLayer = L.polyline(latlngs, { color: '#1F8F58', weight: 3 }).addTo(map);
     }
 
     renderCoordList();
     renderArea();
-    if (points.length >= 3) boundaryError.hidden = true;
+    if (boundaryClosed) boundaryError.hidden = true;
+  }
+
+  /* --- Đường nét đứt bám theo con trỏ khi đang vẽ ---------------------------
+     Nối từ điểm CUỐI CÙNG đã đặt tới vị trí chuột hiện tại — chỉ là gợi ý
+     trực quan (khớp hành vi vẽ polygon chuẩn của Leaflet), không phải ranh
+     giới thật nên không đưa vào `points`/`geodesicArea()`. */
+  function clearGuideLine() {
+    if (guideLine) {
+      map.removeLayer(guideLine);
+      guideLine = null;
+    }
+  }
+
+  function updateGuideLine(latlng) {
+    if (!map || !points.length) {
+      clearGuideLine();
+      return;
+    }
+    var last = points[points.length - 1];
+    var latlngs = [[last.lat, last.lng], [latlng.lat, latlng.lng]];
+
+    if (guideLine) {
+      guideLine.setLatLngs(latlngs);
+    } else {
+      guideLine = L.polyline(latlngs, {
+        color: '#1F8F58', weight: 2, dashArray: '6, 6', interactive: false
+      }).addTo(map);
+    }
+  }
+
+  /* --- Khép kín ranh giới bằng cách bấm lại điểm đầu tiên -------------------
+     Đúng hành vi chuẩn của Leaflet.draw: khi đang vẽ và có >=3 điểm, chuột
+     lại gần điểm số 1 (trong bán kính CLOSE_HIT_RADIUS_PX) thì điểm đó nổi
+     bật lên; bấm vào đúng lúc đó mới khép kín — không tự động khép khi đủ
+     3 điểm như trước nữa. */
+  function isNearFirstPoint(latlng) {
+    if (boundaryClosed || points.length < 3) return false;
+    var a = map.latLngToContainerPoint([points[0].lat, points[0].lng]);
+    var b = map.latLngToContainerPoint(latlng);
+    return a.distanceTo(b) <= CLOSE_HIT_RADIUS_PX;
+  }
+
+  function setFirstMarkerHighlight(active) {
+    if (!firstMarker) return;
+    var el = firstMarker.getElement();
+    var dot = el && el.querySelector('span');
+    if (!dot) return;
+    dot.style.background = active ? '#F59E0B' : '#1F8F58';
+    dot.style.boxShadow = active
+      ? '0 0 0 5px rgba(245,158,11,.35), 0 1px 3px rgba(0,0,0,.3)'
+      : '0 1px 3px rgba(0,0,0,.3)';
+    dot.style.transform = active ? 'scale(1.3)' : '';
+  }
+
+  function closeBoundary() {
+    boundaryClosed = true;
+    clearGuideLine();
+    refreshShape(); // vẽ lại thành vùng tô nền + reset highlight về trạng thái bình thường
+  }
+
+  /* --- Nhập ranh giới bằng toạ độ thủ công (cách 2, song song với bấm bản
+     đồ) — nút "Hiển thị" đọc TRỰC TIẾP giá trị đang có trong từng ô input
+     của danh sách (không qua state trung gian, trừ dòng nháp — xem
+     buildCoordRow()), validate rồi mới thay thế hẳn `points` + khép kín
+     NGAY (khác luồng bấm bản đồ phải bấm lại điểm đầu): người dùng gõ tay
+     nghĩa là đã biết đủ toàn bộ ranh giới, không cần thao tác khép thêm. */
+  function applyManualCoordinates() {
+    var rows = coordList.querySelectorAll('.coord-item');
+    var parsed = [];
+    var firstInvalid = null;
+    var errorMessage = '';
+
+    rows.forEach(function (row) {
+      var latInput = row.querySelector('[data-coord-field="lat"]');
+      var lngInput = row.querySelector('[data-coord-field="lng"]');
+      latInput.removeAttribute('aria-invalid');
+      lngInput.removeAttribute('aria-invalid');
+
+      var latText = latInput.value.trim();
+      var lngText = lngInput.value.trim();
+      if (!latText && !lngText) return; // dòng bỏ trống hoàn toàn -> bỏ qua, không tính là lỗi
+
+      var lat = Number(latText);
+      var lng = Number(lngText);
+      var rowError = '';
+      var badInput = null;
+
+      if (!latText || !lngText) {
+        rowError = 'Nhập đủ cả vĩ độ và kinh độ.';
+        badInput = !latText ? latInput : lngInput;
+      } else if (!isFinite(lat) || !isFinite(lng)) {
+        rowError = 'Toạ độ phải là số hợp lệ.';
+        badInput = !isFinite(lat) ? latInput : lngInput;
+      } else if (lat < -90 || lat > 90) {
+        rowError = 'Vĩ độ phải trong khoảng -90 đến 90.';
+        badInput = latInput;
+      } else if (lng < -180 || lng > 180) {
+        rowError = 'Kinh độ phải trong khoảng -180 đến 180.';
+        badInput = lngInput;
+      }
+
+      if (rowError) {
+        badInput.setAttribute('aria-invalid', 'true');
+        if (!firstInvalid) {
+          firstInvalid = badInput;
+          errorMessage = rowError;
+        }
+        return;
+      }
+
+      parsed.push({ lat: lat, lng: lng });
+    });
+
+    if (errorMessage) {
+      manualCoordError.hidden = false;
+      manualCoordError.textContent = errorMessage;
+      if (firstInvalid) firstInvalid.focus();
+      return;
+    }
+
+    if (parsed.length < 3) {
+      manualCoordError.hidden = false;
+      manualCoordError.textContent = 'Cần ít nhất 3 điểm có đủ toạ độ để hiển thị ranh giới.';
+      return;
+    }
+
+    manualCoordError.hidden = true;
+    points = parsed;
+    pendingRows = [];
+    boundaryClosed = true;
+    refreshShape();
+
+    var bounds = L.latLngBounds(points.map(function (p) { return [p.lat, p.lng]; }));
+    map.fitBounds(bounds, { padding: [24, 24] });
+
+    global.AgriChain.toast('Đã hiển thị ranh giới từ toạ độ đã nhập.');
+  }
+
+  /* --- 1 dòng toạ độ trong danh sách — dùng chung cho điểm đã có (từ bấm
+     bản đồ hoặc đã "Hiển thị" trước đó) LẪN dòng nháp mới thêm qua "Thêm
+     điểm" (isPending=true, chưa có trong `points`, chưa vẽ lên bản đồ). */
+  function buildCoordRow(displayIndex, latValue, lngValue, pendingIndex, onRemove) {
+    var isPending = pendingIndex !== null;
+    var item = el('li', 'coord-item' + (isPending ? ' coord-item--pending' : ''));
+    item.appendChild(el('span', 'coord-item__index', String(displayIndex)));
+
+    var latInput = el('input', 'input coord-item__input');
+    latInput.type = 'number';
+    latInput.step = 'any';
+    latInput.placeholder = 'Vĩ độ';
+    latInput.setAttribute('aria-label', 'Vĩ độ điểm ' + displayIndex);
+    latInput.dataset.coordField = 'lat';
+    if (latValue !== '' && latValue != null) latInput.value = latValue;
+
+    var lngInput = el('input', 'input coord-item__input');
+    lngInput.type = 'number';
+    lngInput.step = 'any';
+    lngInput.placeholder = 'Kinh độ';
+    lngInput.setAttribute('aria-label', 'Kinh độ điểm ' + displayIndex);
+    lngInput.dataset.coordField = 'lng';
+    if (lngValue !== '' && lngValue != null) lngInput.value = lngValue;
+
+    // Dòng nháp chưa thuộc `points` — gõ tới đâu lưu tạm tới đó vào đúng
+    // phần tử `pendingRows` (theo index cố định tại thời điểm tạo dòng,
+    // không tính ngược từ độ dài points — tránh sai lệch nếu points đổi
+    // giữa lúc tạo dòng và lúc gõ), để 1 lần refreshShape() khác (VD bấm
+    // thêm điểm trên bản đồ) không làm mất nội dung đang gõ dở.
+    if (isPending) {
+      latInput.addEventListener('input', function () {
+        pendingRows[pendingIndex].lat = latInput.value;
+      });
+      lngInput.addEventListener('input', function () {
+        pendingRows[pendingIndex].lng = lngInput.value;
+      });
+    }
+
+    item.appendChild(latInput);
+    item.appendChild(lngInput);
+
+    var remove = el('button', 'icon-btn icon-btn--danger');
+    remove.type = 'button';
+    remove.setAttribute('aria-label', 'Xoá điểm ' + displayIndex);
+    remove.setAttribute('data-tooltip', 'Xoá điểm');
+    remove.appendChild(svgIcon('icon-trash'));
+    remove.addEventListener('click', onRemove);
+    item.appendChild(remove);
+
+    return item;
   }
 
   function renderCoordList() {
     coordList.textContent = '';
 
-    if (!points.length) {
+    if (!points.length && !pendingRows.length) {
       coordList.hidden = true;
       coordEmpty.hidden = false;
       return;
@@ -372,23 +575,25 @@
     coordList.hidden = false;
 
     points.forEach(function (point, index) {
-      var item = el('li', 'coord-item');
-      item.appendChild(el('span', 'coord-item__index', String(index + 1)));
-      item.appendChild(el('span', 'coord-item__value',
-        point.lat.toFixed(5) + ', ' + point.lng.toFixed(5)));
-
-      var remove = el('button', 'icon-btn icon-btn--danger');
-      remove.type = 'button';
-      remove.setAttribute('aria-label', 'Xoá điểm ' + (index + 1));
-      remove.setAttribute('data-tooltip', 'Xoá điểm');
-      remove.appendChild(svgIcon('icon-trash'));
-      remove.addEventListener('click', function () {
+      coordList.appendChild(buildCoordRow(index + 1, point.lat, point.lng, null, function () {
         points.splice(index, 1);
+        // Xoá bất kỳ điểm nào (kể cả điểm đầu tiên) làm mất căn cứ đã khép
+        // kín trước đó — mở lại về trạng thái đang vẽ, giống "Lùi 1 điểm".
+        boundaryClosed = false;
         refreshShape();
-      });
-      item.appendChild(remove);
+      }));
+    });
 
-      coordList.appendChild(item);
+    pendingRows.forEach(function (row, pendingIndex) {
+      coordList.appendChild(buildCoordRow(
+        points.length + pendingIndex + 1, row.lat, row.lng, pendingIndex,
+        function () {
+          // Dòng nháp chưa thuộc ranh giới thật — xoá chỉ cần bỏ khỏi
+          // pendingRows, không đụng gì tới points/bản đồ.
+          pendingRows.splice(pendingIndex, 1);
+          renderCoordList();
+        }
+      ));
     });
   }
 
@@ -398,7 +603,15 @@
       return;
     }
     areaBox.hidden = false;
-    areaValue.textContent = formatHectares(hectares(geodesicArea(points)));
+    applyAreaButton.disabled = !boundaryClosed;
+
+    if (boundaryClosed) {
+      areaBox.classList.remove('map-area--pending');
+      areaValue.textContent = formatHectares(hectares(geodesicArea(points)));
+    } else {
+      areaBox.classList.add('map-area--pending');
+      areaValue.textContent = 'Chưa khép kín';
+    }
   }
 
   /* --- Về vị trí của tôi -----------------------------------------------------
@@ -481,22 +694,48 @@
     map.addControl(new LocateControl());
 
     map.on('click', function (event) {
+      if (boundaryClosed) return; // đã khép kín — sửa qua "Lùi 1 điểm" hoặc xoá điểm trong danh sách
+
+      if (isNearFirstPoint(event.latlng)) {
+        closeBoundary();
+        return;
+      }
+
       points.push({
         lat: Number(event.latlng.lat.toFixed(6)),
         lng: Number(event.latlng.lng.toFixed(6))
       });
       refreshShape();
     });
+
+    // Đường nét đứt gợi ý + làm nổi bật điểm đầu tiên khi chuột lại gần —
+    // cả 2 chỉ có ý nghĩa lúc đang vẽ (chưa khép kín).
+    map.on('mousemove', function (event) {
+      if (boundaryClosed) return;
+      updateGuideLine(event.latlng);
+      setFirstMarkerHighlight(isNearFirstPoint(event.latlng));
+    });
   }
 
   function resetShape() {
     points = [];
+    pendingRows = [];
+    boundaryClosed = false;
+    manualCoordError.hidden = true;
+    clearGuideLine();
     if (map) refreshShape();
   }
 
   function setupShapeControls() {
     document.querySelector('[data-undo-point]').addEventListener('click', function () {
-      points.pop();
+      // Đã khép kín thì lần bấm "Lùi 1 điểm" đầu tiên chỉ mở lại ranh giới
+      // (không xoá điểm nào) — khớp đúng cách hiểu "lùi lại thao tác vừa
+      // làm", vì khép kín không phải là một điểm được thêm vào `points`.
+      if (boundaryClosed) {
+        boundaryClosed = false;
+      } else {
+        points.pop();
+      }
       refreshShape();
     });
 
@@ -510,6 +749,13 @@
       document.getElementById('farm-area').value = value.toFixed(4);
       global.AgriChain.toast('Đã điền diện tích từ ranh giới.');
     });
+
+    document.querySelector('[data-add-manual-point]').addEventListener('click', function () {
+      pendingRows.push({ lat: '', lng: '' });
+      renderCoordList();
+    });
+
+    document.querySelector('[data-apply-manual-points]').addEventListener('click', applyManualCoordinates);
   }
 
   /* --- Modal --------------------------------------------------------------- */
@@ -569,6 +815,11 @@
     boundaryError.hidden = true; // clearErrors() cố tình bỏ qua nó — tự ẩn lại ở đây
     editingFarmId = farm ? farm.id : null;
     points = farm && farm.polygon ? farm.polygon.slice() : [];
+    // Ranh giới đã lưu từ trước (sửa nông trại có sẵn) coi như đã khép kín —
+    // hiện luôn dạng vùng tô nền + diện tích, không bắt vẽ/khép lại từ đầu.
+    boundaryClosed = points.length >= 3;
+    pendingRows = []; // dòng nháp toạ độ thủ công của lần mở modal trước không mang sang
+    manualCoordError.hidden = true;
 
     if (farm) {
       modalTitle.textContent = 'Cập nhật nông trại';
@@ -698,9 +949,11 @@
 
     // Ranh giới không phải input nên không đưa vào `problems` (không
     // .focus() được) — kiểm riêng, ưu tiên các lỗi field ở trên trước.
-    // `polygon` BẮT BUỘC — tối thiểu 3 điểm mới được lưu (khớp constraint
-    // NOT NULL trong migration 003 của backend, không có ngoại lệ).
-    var boundaryValid = points.length >= 3;
+    // `polygon` BẮT BUỘC (khớp constraint NOT NULL trong migration 003 của
+    // backend) — nhưng giờ không chỉ cần đủ 3 điểm, phải đã bấm lại điểm
+    // đầu tiên để KHÉP KÍN thật sự mới coi là hợp lệ (đường mở dù đủ điểm
+    // vẫn chưa phải 1 ranh giới hoàn chỉnh).
+    var boundaryValid = boundaryClosed;
     boundaryError.hidden = boundaryValid;
 
     if (problems.length) {
@@ -821,6 +1074,12 @@
     document.querySelectorAll('[data-close-farm-form]').forEach(function (button) {
       button.addEventListener('click', closeModal);
     });
+
+    // Sự kiện 'close' gốc của <dialog> chạy dù đóng bằng cách nào (nút Huỷ,
+    // Lưu thành công, phím Esc, bấm ra ngoài backdrop) — dọn đường nét đứt
+    // gợi ý ở đúng 1 chỗ thay vì lặp lại clearGuideLine() ở từng nơi gọi
+    // closeModal().
+    modal.addEventListener('close', clearGuideLine);
 
     form.addEventListener('submit', handleSubmit);
   });

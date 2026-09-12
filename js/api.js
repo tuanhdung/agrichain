@@ -166,6 +166,18 @@
     return user ? (user.organization_id || null) : null;
   }
 
+  // organization_is_distributor (MeResponse, xem me() bên dưới): true = Đơn vị
+  // phân phối (công ty vận hành AgriChain — "Đơn vị mặc định"), false = Đơn vị
+  // khác (nông trại tự đăng ký qua register/business), null = tài khoản
+  // 'customer' (không thuộc Đơn vị nào, khái niệm này không áp dụng). Đọc đồng
+  // bộ từ agrichain.user đã lưu, KHÔNG gọi API — dùng để ẩn/chặn nhóm menu
+  // "Thương mại điện tử" khỏi Đơn vị không phải nhà phân phối. So sánh CHẶT
+  // (=== true), không chỉ truthy — null/false/undefined đều phải ra false.
+  function isDistributor() {
+    var user = getUser();
+    return !!(user && user.organization_is_distributor === true);
+  }
+
   // Kiểm tra quyền trong mảng quyền đã lưu của user (từ /auth/me) — dùng để
   // ẩn/hiện nút trên giao diện. Đã xác nhận qua /openapi.json + dữ liệu thật
   // của GET /permissions, /roles: mảng quyền luôn là chuỗi mã quyền
@@ -372,14 +384,19 @@
     });
   }
 
-  // GET /auth/me trả về { user: UserOut, permissions: string[] } (xác nhận qua
-  // /openapi.json thật, khuôn "MeResponse") — KHÔNG phải bản user phẳng. Phải
-  // gắn permissions vào user trước khi lưu, nếu không mọi field của user
-  // (full_name, email, role_id...) sẽ đọc ra undefined ở mọi nơi dùng getUser().
+  // GET /auth/me trả về { user: UserOut, permissions: string[],
+  // organization_is_distributor: bool|null } (xác nhận qua /openapi.json thật,
+  // khuôn "MeResponse") — KHÔNG phải bản user phẳng, và
+  // organization_is_distributor nằm PHẲNG cùng cấp với user, KHÔNG lồng bên
+  // trong (UserOut dùng chung nhiều endpoint khác không cần field này). Phải
+  // gắn permissions/organization_is_distributor vào user trước khi lưu, nếu
+  // không mọi field của user (full_name, email, role_id...) sẽ đọc ra
+  // undefined ở mọi nơi dùng getUser().
   function me() {
     return request('GET', '/auth/me').then(function (data) {
       var user = data.user;
       user.permissions = data.permissions || [];
+      user.organization_is_distributor = data.organization_is_distributor;
       saveUser(user);
       return user;
     });
@@ -390,16 +407,18 @@
   // quản trị sửa NGƯỜI KHÁC, yêu cầu quyền users.edit) — route này không
   // yêu cầu quyền gì ngoài đăng nhập, xem CLAUDE.md phía agrichain-api mục
   // "Tự sửa hồ sơ — PATCH /auth/me". Response là UserOut PHẲNG, không có
-  // mảng permissions như MeResponse của me() ở trên — giữ nguyên permissions
-  // đã lưu trước đó (route này không đổi được vai trò nên permissions chắc
-  // chắn không đổi) rồi lưu lại NGAY, để sidebar/topbar (data-session-name...)
-  // hiện tên mới mà không cần đăng nhập lại — cùng bài học đã rút ra ở
-  // transfer-admin (tai-khoan.html): không được để agrichain.user lệch với
-  // dữ liệu thật trên server sau khi sửa thành công.
+  // mảng permissions/organization_is_distributor như MeResponse của me() ở
+  // trên — giữ nguyên 2 field đó từ bản đã lưu trước đó (route này không đổi
+  // được vai trò hay Đơn vị nên cả 2 chắc chắn không đổi) rồi lưu lại NGAY,
+  // để sidebar/topbar (data-session-name...) hiện tên mới mà không cần đăng
+  // nhập lại — cùng bài học đã rút ra ở transfer-admin (tai-khoan.html):
+  // không được để agrichain.user lệch với dữ liệu thật trên server sau khi
+  // sửa thành công.
   function updateMe(payload) {
     return request('PATCH', '/auth/me', { body: payload }).then(function (user) {
       var existing = getUser() || {};
       user.permissions = existing.permissions || [];
+      user.organization_is_distributor = existing.organization_is_distributor;
       saveUser(user);
       return user;
     });
@@ -614,11 +633,13 @@
     }
   };
 
-  // Chỉ 2 hàm ĐỌC — batches CHƯA migrate CRUD sang API (nong-trai-chi-tiet.js/
-  // lo-hang.js vẫn tạo/sửa/xoá qua store.js, giai đoạn 3 chưa làm tới, xem
-  // CLAUDE.md mục "Kết nối backend"). Thêm 2 hàm này CHỈ để phục vụ
-  // truy-xuat.js (trang công khai) tra cứu 1 lô hàng theo mã QR.
+  // ĐÃ CHUYỂN TOÀN BỘ CRUD sang API (2026-09-12) — nong-trai-chi-tiet.js
+  // (tạo/sửa/xoá trong tab "Lô hàng") và lo-hang.js (danh sách + lọc) đều
+  // dùng chung khối này. Khuôn CRUD chuẩn giống farms/seasons ở trên.
   var batches = {
+    list: function (params) {
+      return request('GET', '/batches', { query: params });
+    },
     // options tuỳ chọn { auth: false } — dùng ở truy-xuat.js, cùng lý do với
     // farms.get()/seasons.get() ở trên.
     get: function (id, options) {
@@ -630,6 +651,15 @@
     // chỉ áp dụng được cho trang ĐÃ đăng nhập.
     getByCode: function (code, options) {
       return request('GET', '/batches/by-code/' + encodeURIComponent(code), options);
+    },
+    create: function (data) {
+      return request('POST', '/batches', { body: data });
+    },
+    update: function (id, data) {
+      return request('PATCH', '/batches/' + id, { body: data });
+    },
+    remove: function (id) {
+      return request('DELETE', '/batches/' + id);
     }
   };
 
@@ -678,6 +708,30 @@
     return true;
   }
 
+  // Chặn 7 trang "Thương mại điện tử" (thuong-mai-*.html) khỏi Đơn vị KHÔNG
+  // phải nhà phân phối (organization_is_distributor !== true) — dùng riêng
+  // cho nhóm 7 trang này, KHÔNG áp cho 9 trang admin còn lại. Khác
+  // requireBusiness(): người bị chặn ở đây vẫn là account_type='business'
+  // hợp lệ (không phải 'customer'), chỉ là Đơn vị của họ không được bán hàng
+  // qua sàn — đá về nong-trai.html (khu quản trị chung), KHÔNG phải
+  // agriverse-3d.html (đích dành riêng cho 'customer'). Gọi SAU
+  // requireAuth()/requireBusiness() ở đầu <head>: giả định trang ĐÃ đăng
+  // nhập và ĐÃ là business rồi mới tới lượt kiểm organization_is_distributor
+  // — nếu gọi khi chưa đăng nhập hoặc là 'customer', !isLoggedIn() hoặc
+  // !isBusiness() sớm return true luôn, để 2 hàm kia (đã gọi trước) tự xử lý
+  // ca của mình, requireDistributor() không giẫm lên việc đó.
+  var pageRequiresDistributor = false;
+
+  function requireDistributor() {
+    pageRequiresDistributor = true;
+    if (!isLoggedIn() || !isBusiness()) return true;
+    if (!isDistributor()) {
+      global.location.href = 'nong-trai.html';
+      return false;
+    }
+    return true;
+  }
+
   // Bug bảo mật đã vá (2026-09-08): đăng xuất xong bấm nút Back của trình
   // duyệt có thể hiện lại trang cần đăng nhập (VD nong-trai.html) kèm dữ
   // liệu cũ, dù access token đã bị xoá — do trình duyệt khôi phục trang từ
@@ -698,6 +752,15 @@
   // mất đăng nhập thì về trang đăng nhập; còn đăng nhập nhưng sai loại tài
   // khoản thì về agriverse-3d.html (không phải ecommerce.html, xem ghi chú
   // ở requireBusiness()).
+  //
+  // Áp THÊM đúng mẫu này cho requireDistributor() (2026-09-12): kịch bản
+  // tương tự — tài khoản của Đơn vị phân phối A xem xong 1 trang
+  // thuong-mai-*.html, đăng xuất, tài khoản business B (Đơn vị KHÔNG phải
+  // phân phối) đăng nhập TRÊN CÙNG trình duyệt, rồi bấm Back → bfcache khôi
+  // phục lại trang của A, phiên hiện tại (B) vẫn còn access token HỢP LỆ và
+  // vẫn là 'business' (requireAuth()/requireBusiness() không bắt được ca
+  // này) nhưng sai Đơn vị. Cả 3 điều kiện xét ĐỘC LẬP nhau, không gộp
+  // else-if, vì mỗi điều kiện đá về 1 đích khác nhau.
   global.addEventListener('pageshow', function (event) {
     if (!event.persisted) return;
     if (pageRequiresAuth && !isLoggedIn()) {
@@ -706,6 +769,10 @@
     }
     if (pageRequiresBusiness && isLoggedIn() && !isBusiness()) {
       global.location.href = 'agriverse-3d.html';
+      return;
+    }
+    if (pageRequiresDistributor && isLoggedIn() && isBusiness() && !isDistributor()) {
+      global.location.href = 'nong-trai.html';
     }
   });
 
@@ -721,7 +788,9 @@
     getAccountType: getAccountType,
     isBusiness: isBusiness,
     getOrganizationId: getOrganizationId,
+    isDistributor: isDistributor,
     requireBusiness: requireBusiness,
+    requireDistributor: requireDistributor,
     isRemembered: isRemembered,
     auth: {
       login: login,

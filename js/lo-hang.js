@@ -1,19 +1,31 @@
 /* ==========================================================================
    AgriChain — Trang Quản lý Lô hàng (lo-hang.html)
-   Liệt kê TẤT CẢ lô hàng của mọi nông trại/mùa vụ, lọc theo Nông trại/Mùa
-   vụ (2 select phụ thuộc nhau, xem js/location-select.js). Trang này CHỈ
-   xem + lọc + truy xuất QR + xác thực blockchain — thêm/sửa/xoá lô hàng vẫn
-   làm ở tab "Lô hàng" trong modal xem chi tiết mùa vụ
-   (nong-trai-chi-tiet.html), nút sửa/xoá ở đây chỉ điều hướng về đúng chỗ
-   đó. `batches` VẪN ở store.js (giai đoạn 3, không đổi trong lần vá này).
+   Liệt kê lô hàng của mọi nông trại/mùa vụ, lọc theo Nông trại/Mùa vụ (2
+   select phụ thuộc nhau, xem js/location-select.js). Trang này CHỈ xem +
+   lọc + truy xuất QR — thêm/sửa/xoá lô hàng vẫn làm ở tab "Lô hàng" trong
+   modal xem chi tiết mùa vụ (nong-trai-chi-tiet.html), nút sửa/xoá ở đây
+   chỉ điều hướng về đúng chỗ đó.
 
-   farms/seasons ĐÃ CHUYỂN SANG API (nong-trai.js/nong-trai-chi-tiet.js
-   không còn ghi vào store.js nữa) — mọi chỗ tra cứu tên nông trại/mùa vụ
-   cho batch hoặc điền bộ lọc đều phải qua api.farms.get()/api.seasons.get(), xem
-   getFarmCached()/getSeasonCached() bên dưới. VÁ PHẠM VI HẸP: chỉ đổi phần
-   tra cứu farms/seasons, không đụng luồng batches/QR/xác thực blockchain.
+   ĐÃ CHUYỂN SANG BACKEND THẬT (2026-09-12) qua api.batches.list() — lọc
+   farm_id/season_id ngay ở server (không tự lọc lại ở client như hồi còn
+   store.js). farm_code/farm_name/season_code/season_name đọc THẲNG từ
+   BatchOut (join sẵn ở backend) — không còn gọi riêng
+   api.farms.get()/api.seasons.get() cho từng lô hàng như trước (batch nào
+   cũng có sẵn 2 cặp field này, không còn khái niệm "lô hàng mồ côi": season
+   còn batch sống thì backend chặn xoá season, xem batch_repo.count_by_season()
+   phía agrichain-api — batch hiện trong danh sách LUÔN có farm/season còn
+   tồn tại).
 
-   Nạp SAU js/api-config.js, js/api.js, js/store.js, js/app-shell.js và
+   Khối "Xác thực blockchain" (nút niêm phong + hiển thị hash/khối) đã BỎ
+   HẲN — cùng lý do với nong-trai-chi-tiet.js: backend batches không có
+   sealed/hash/blockIndex, chỉ có verification_status luôn 'pending' (chưa
+   anchoring thật), hiện ra sẽ sai lệch so với dữ liệu cũ đã niêm phong bằng
+   cơ chế mô phỏng, tệ hơn là ẩn hẳn. File này không còn gọi js/chain.js hay
+   js/store.js ở đâu nữa — 2 thẻ <script> đó vẫn còn nạp trong lo-hang.html
+   (cùng cách xử lý các trang khác đã hết phụ thuộc trong dự án — để lại cho
+   một đợt dọn dẹp sau, ngoài phạm vi lần sửa này).
+
+   Nạp SAU js/api-config.js, js/api.js, js/app-shell.js và
    js/location-select.js.
    ========================================================================== */
 
@@ -21,30 +33,6 @@
   'use strict';
 
   var api = global.AgriChain.api;
-  var store = global.AgriChain.store;
-
-  // Cache theo id — nhiều lô hàng thường trỏ tới CÙNG 1 nông trại/mùa vụ,
-  // tránh gọi lại api.farms.get()/api.seasons.get() nhiều lần cho cùng 1 id
-  // trong cùng 1 lượt render(). Lỗi (VD đã bị xoá) trả về null thay vì làm
-  // hỏng cả danh sách — batchCard() đã có sẵn nhánh xử lý "farm/season null"
-  // (lô hàng mồ côi).
-  var farmCache = {};
-  function getFarmCached(id) {
-    if (!id) return Promise.resolve(null);
-    if (!farmCache[id]) {
-      farmCache[id] = api.farms.get(id).catch(function () { return null; });
-    }
-    return farmCache[id];
-  }
-
-  var seasonCache = {};
-  function getSeasonCached(id) {
-    if (!id) return Promise.resolve(null);
-    if (!seasonCache[id]) {
-      seasonCache[id] = api.seasons.get(id).catch(function () { return null; });
-    }
-    return seasonCache[id];
-  }
 
   var BATCH_STATUSES = [
     { key: 'planning',   label: 'Đang lập kế hoạch', badge: 'badge--neutral' },
@@ -140,22 +128,19 @@
   function filteredBatches() {
     var farmId = farmFilterSelect.value;
     var seasonId = seasonFilterSelect.value;
-    return store.list('batches').filter(function (batch) {
-      if (farmId && batch.farmId !== farmId) return false;
-      if (seasonId && batch.seasonId !== seasonId) return false;
-      return true;
-    });
+    return api.batches.list({
+      farm_id: farmId || undefined,
+      season_id: seasonId || undefined,
+      page_size: 100
+    }).then(function (data) { return data.items || []; });
   }
 
-  function editUrl(farm, season) {
-    if (!farm || !season) return null;
-    return 'nong-trai-chi-tiet.html?ma=' + encodeURIComponent(farm.code) +
-      '&season=' + encodeURIComponent(season.code) + '#lo-hang';
+  function editUrl(batch) {
+    return 'nong-trai-chi-tiet.html?ma=' + encodeURIComponent(batch.farm_code) +
+      '&season=' + encodeURIComponent(batch.season_code) + '#lo-hang';
   }
 
-  // farm/season: đã resolve sẵn qua getFarmCached()/getSeasonCached() TRƯỚC
-  // khi gọi hàm này (xem render()) — batchCard() không tự gọi API, chỉ vẽ.
-  function batchCard(batch, farm, season) {
+  function batchCard(batch) {
     var status = statusOf(BATCH_STATUSES, batch.status);
     var card = el('article', 'card batch-card');
 
@@ -167,9 +152,9 @@
     var rows = el('div', 'batch-card__rows');
     var rowDefs = [
       ['Diện tích', formatArea(batch.area)],
-      ['Ngày bắt đầu', formatDate(batch.startDate)],
-      ['Ngày thu hoạch', formatDate(batch.harvestDate)],
-      ['Ngày thu hoạch thực tế', formatDate(batch.actualHarvestDate)]
+      ['Ngày bắt đầu', formatDate(batch.start_date)],
+      ['Ngày thu hoạch', formatDate(batch.harvest_date)],
+      ['Ngày thu hoạch thực tế', formatDate(batch.actual_harvest_date)]
     ];
     rowDefs.forEach(function (pair) {
       var row = el('div', 'batch-card__row');
@@ -177,18 +162,11 @@
       row.appendChild(el('span', null, pair[1]));
       rows.appendChild(row);
     });
-    if (batch.sealed) {
-      var sealedRow = el('div', 'batch-card__row');
-      sealedRow.appendChild(el('span', 'batch-card__row-label', 'Đã xác thực blockchain'));
-      sealedRow.appendChild(el('span', null,
-        global.AgriChain.chain.shorten(batch.hash) + ' · khối #' + batch.blockIndex));
-      rows.appendChild(sealedRow);
-    }
     card.appendChild(rows);
 
     var yieldBox = el('div', 'batch-card__yield');
     yieldBox.appendChild(el('strong', 'batch-card__yield-value',
-      (batch.expectedYield || 0) + ' ' + (batch.unit || '')));
+      (batch.expected_yield || 0) + ' ' + (batch.unit || '')));
     yieldBox.appendChild(el('span', 'batch-card__yield-label', 'Sản lượng dự kiến'));
     card.appendChild(yieldBox);
 
@@ -199,6 +177,7 @@
       card.appendChild(noteBox);
     }
 
+    // Khối "Xác thực blockchain" đã BỎ HẲN — xem ghi chú đầu file.
     var actions = el('div', 'batch-card__actions');
 
     var qrButton = el('button', 'icon-btn');
@@ -209,50 +188,23 @@
     qrButton.addEventListener('click', function () { openQrModal(batch); });
     actions.appendChild(qrButton);
 
-    if (batch.sealed) {
-      var sealedIndicator = el('span', 'icon-btn batch-sealed-indicator');
-      sealedIndicator.setAttribute('aria-label', 'Đã xác thực blockchain');
-      sealedIndicator.setAttribute('data-tooltip', 'Đã xác thực blockchain');
-      sealedIndicator.appendChild(svgIcon('icon-check-circle'));
-      actions.appendChild(sealedIndicator);
-    } else {
-      var sealButton = el('button', 'icon-btn');
-      sealButton.type = 'button';
-      sealButton.setAttribute('aria-label', 'Xác thực blockchain lô hàng ' + batch.code);
-      sealButton.setAttribute('data-tooltip', 'Xác thực blockchain');
-      sealButton.appendChild(svgIcon('icon-blockchain'));
-      sealButton.addEventListener('click', function () { sealBatchRecord(batch); });
-      actions.appendChild(sealButton);
+    // farm_code/season_code LUÔN có (BatchOut không cho null) — season còn
+    // batch sống thì backend chặn xoá, nên không còn ca "mồ côi" phải xử lý
+    // riêng như hồi còn store.js (xem ghi chú đầu file).
+    var url = editUrl(batch);
+    var edit = el('a', 'icon-btn batch-card__action--edit');
+    edit.href = url;
+    edit.setAttribute('aria-label', 'Sửa lô hàng ' + batch.code);
+    edit.setAttribute('data-tooltip', 'Chỉnh sửa');
+    edit.appendChild(svgIcon('icon-pencil'));
+    actions.appendChild(edit);
 
-      var url = editUrl(farm, season);
-      if (url) {
-        var edit = el('a', 'icon-btn batch-card__action--edit');
-        edit.href = url;
-        edit.setAttribute('aria-label', 'Sửa lô hàng ' + batch.code);
-        edit.setAttribute('data-tooltip', 'Chỉnh sửa');
-        edit.appendChild(svgIcon('icon-pencil'));
-        actions.appendChild(edit);
-
-        var del = el('a', 'icon-btn batch-card__action--delete');
-        del.href = url;
-        del.setAttribute('aria-label', 'Xoá lô hàng ' + batch.code);
-        del.setAttribute('data-tooltip', 'Xoá (mở trang mùa vụ)');
-        del.appendChild(svgIcon('icon-trash'));
-        actions.appendChild(del);
-      } else {
-        // Nông trại hoặc mùa vụ của lô hàng này đã bị xoá — không còn trang
-        // nào để điều hướng tới (không sửa được nữa), nhưng vẫn phải xoá
-        // được để dọn rác dữ liệu mồ côi, nên xoá thẳng tại đây thay vì
-        // điều hướng đi đâu cả.
-        var orphanDelete = el('button', 'icon-btn batch-card__action--delete');
-        orphanDelete.type = 'button';
-        orphanDelete.setAttribute('aria-label', 'Xoá lô hàng ' + batch.code);
-        orphanDelete.setAttribute('data-tooltip', 'Xoá (nông trại/mùa vụ đã bị xoá)');
-        orphanDelete.appendChild(svgIcon('icon-trash'));
-        orphanDelete.addEventListener('click', function () { deleteOrphanBatch(batch); });
-        actions.appendChild(orphanDelete);
-      }
-    }
+    var del = el('a', 'icon-btn batch-card__action--delete');
+    del.href = url;
+    del.setAttribute('aria-label', 'Xoá lô hàng ' + batch.code);
+    del.setAttribute('data-tooltip', 'Xoá (mở trang mùa vụ)');
+    del.appendChild(svgIcon('icon-trash'));
+    actions.appendChild(del);
 
     card.appendChild(actions);
 
@@ -260,60 +212,23 @@
   }
 
   function render() {
-    var batches = filteredBatches();
-    batchCountNode.textContent = batches.length;
+    filteredBatches().then(function (batches) {
+      batchCountNode.textContent = batches.length;
 
-    batchListNode.textContent = '';
-    if (!batches.length) {
-      batchListNode.hidden = true;
-      batchEmptyNode.hidden = false;
-      return;
-    }
+      batchListNode.textContent = '';
+      if (!batches.length) {
+        batchListNode.hidden = true;
+        batchEmptyNode.hidden = false;
+        return;
+      }
 
-    // Resolve TRƯỚC farm/season của từng lô hàng (qua cache, xem
-    // getFarmCached()/getSeasonCached()) rồi mới vẽ 1 lượt — tránh vẽ
-    // xong rồi phải quay lại sửa link sửa/xoá khi promise trả về sau.
-    Promise.all(batches.map(function (batch) {
-      return Promise.all([getFarmCached(batch.farmId), getSeasonCached(batch.seasonId)])
-        .then(function (results) {
-          return { batch: batch, farm: results[0], season: results[1] };
-        });
-    })).then(function (rows) {
       batchEmptyNode.hidden = true;
       batchListNode.hidden = false;
-      rows.forEach(function (row) {
-        batchListNode.appendChild(batchCard(row.batch, row.farm, row.season));
+      batches.forEach(function (batch) {
+        batchListNode.appendChild(batchCard(batch));
       });
-    });
-  }
-
-  function deleteOrphanBatch(batch) {
-    global.AgriChain.confirm(
-      'Nông trại/mùa vụ của lô hàng "' + batch.code + '" không còn tồn tại. ' +
-      'Xoá lô hàng mồ côi này? Hành động này không thể hoàn tác.'
-    ).then(function (confirmed) {
-      if (!confirmed) return;
-      store.remove('batches', batch.id);
-      render();
-      global.AgriChain.toast('Đã xoá lô hàng.');
-    });
-  }
-
-  /* --- Xác thực blockchain --------------------------------------------------
-     Giống hệt sealBatchRecord() ở nong-trai-chi-tiet.js — 2 trang không nạp
-     chéo JS của nhau nên khai báo lại. */
-  function sealBatchRecord(batch) {
-    global.AgriChain.confirm(
-      'Xác thực dữ liệu lô hàng "' + batch.code + '" lên blockchain? ' +
-      'Sau khi xác thực, lô hàng này sẽ không thể sửa hoặc xoá nữa.'
-    ).then(function (confirmed) {
-      if (!confirmed) return;
-      store.sealBatch(batch.id).then(function () {
-        render();
-        global.AgriChain.toast('Đã xác thực lô hàng lên blockchain.');
-      }).catch(function (err) {
-        global.AgriChain.toast(err.message || 'Không xác thực được — thử lại sau.');
-      });
+    }).catch(function (err) {
+      global.AgriChain.toast('Không tải được danh sách lô hàng: ' + err.message);
     });
   }
 

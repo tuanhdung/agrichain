@@ -69,6 +69,10 @@
   background: var(--overlay-white-subtle);
 }
 
+.auth-brand__mark-box img {
+  object-fit: contain;
+}
+
 .auth-brand__eyebrow {
   align-self: flex-start;
   padding: var(--space-1) var(--space-4);

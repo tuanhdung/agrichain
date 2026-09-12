@@ -90,7 +90,7 @@
          requireBusiness() — đúng ý, đây là trang công khai, khách 'customer'
          phải vào được. -->
     <script src="js/api-config.js?v=1"></script>
-    <script src="js/api.js?v=12"></script>
+    <script src="js/api.js?v=14"></script>
 </head>
 <body class="text-slate-800 bg-[#fbfbfa] min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
 
@@ -721,51 +721,62 @@
 
     <!-- Modal 2: High Precision Scannable QR Code Modal -->
     <div id="qr-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden" onclick="closeQRModal()">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl border border-emerald-100 relative text-center" onclick="event.stopPropagation()">
-            
-            <button onclick="closeQRModal()" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition">
+        <div class="bg-white rounded-3xl max-w-md w-full max-h-[90vh] shadow-2xl border border-emerald-100 relative flex flex-col" onclick="event.stopPropagation()">
+
+            <button onclick="closeQRModal()" class="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
-            <!-- Header -->
-            <div class="space-y-1">
-                <span class="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full uppercase tracking-wider">
-                    <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Mã Truy Xuất Chuẩn 100%
-                </span>
-                <h3 id="qr-modal-title" class="text-xl font-extrabold text-slate-900 pt-2">Nhật Ký Dưa Lưới Tiến Phát</h3>
-                <p class="text-xs text-slate-500">Mở Camera điện thoại hoặc ứng dụng Zalo quét trực tiếp</p>
-            </div>
-
-            <!-- Scannable QR Display Card -->
-            <div class="p-5 bg-[#f2f4ee] border-2 border-emerald-200/80 rounded-3xl space-y-4 shadow-inner flex flex-col items-center">
-                <div class="bg-white p-3.5 rounded-2xl shadow-md border border-slate-200 flex justify-center items-center overflow-hidden">
-                    <canvas id="qr-canvas" class="w-[240px] h-[240px] block rounded-lg"></canvas>
+            <!-- Phần cuộn được: header + QR + link — co giãn theo max-h-[90vh] của modal,
+                 min-h-0 bắt buộc để overflow-y-auto có tác dụng bên trong flex-col cha -->
+            <div class="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 pb-0 space-y-5 text-center">
+                <!-- Header -->
+                <div class="space-y-1">
+                    <span class="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full uppercase tracking-wider">
+                        <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Mã Truy Xuất Chuẩn 100%
+                    </span>
+                    <h3 id="qr-modal-title" class="text-xl font-extrabold text-slate-900 pt-2">Nhật Ký Dưa Lưới Tiến Phát</h3>
+                    <p class="text-xs text-slate-500">Mở Camera điện thoại hoặc ứng dụng Zalo quét trực tiếp</p>
                 </div>
 
-                <div class="px-6 py-2 bg-[#e2e8f0] rounded-xl text-[#0b1a78] font-mono font-black text-base tracking-wider border border-slate-300 shadow-sm flex items-center justify-center space-x-2">
-                    <i class="fa-solid fa-fingerprint text-brand-700 text-sm"></i>
-                    <span id="qr-modal-id-label">ID Lô: 9b0e26ae</span>
+                <!-- Scannable QR Display Card -->
+                <div class="p-5 bg-[#f2f4ee] border-2 border-emerald-200/80 rounded-3xl space-y-4 shadow-inner flex flex-col items-center">
+                    <div class="bg-white p-3.5 rounded-2xl shadow-md border border-slate-200 flex justify-center items-center overflow-hidden">
+                        <canvas id="qr-canvas" class="w-[240px] h-[240px] block rounded-lg"></canvas>
+                    </div>
+
+                    <div class="px-6 py-2 bg-[#e2e8f0] rounded-xl text-[#0b1a78] font-mono font-black text-base tracking-wider border border-slate-300 shadow-sm flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-fingerprint text-brand-700 text-sm"></i>
+                        <span id="qr-modal-id-label">ID Lô: 9b0e26ae</span>
+                    </div>
+
+                    <div class="text-xs text-slate-600 font-medium">
+                        Mã lô sản phẩm: <span id="qr-modal-batch-label" class="font-bold text-slate-800 font-mono text-sm">V3-V2-2026</span>
+                    </div>
                 </div>
 
-                <div class="text-xs text-slate-600 font-medium">
-                    Mã lô sản phẩm: <span id="qr-modal-batch-label" class="font-bold text-slate-800 font-mono text-sm">V3-V2-2026</span>
+                <!-- URL Input & Copy -->
+                <div class="text-left space-y-1.5">
+                    <label class="text-[11px] font-bold text-slate-600 flex items-center justify-between">
+                        <span><i class="fa-solid fa-link text-brand-600 mr-1"></i> Liên kết mã QR thực tế:</span>
+                        <button onclick="copyQRLink()" class="text-brand-700 hover:underline text-[10px] font-bold">Sao chép link</button>
+                    </label>
+                    <input id="custom-qr-url-input" type="text" readonly
+                        value="https://agrichain.com.vn/qr/9b0e26ae?zarsrc=1303&utm_source=zalo&utm_medium=zalo"
+                        class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 font-mono focus:outline-none">
                 </div>
             </div>
 
-            <!-- URL Input & Copy -->
-            <div class="text-left space-y-1.5">
-                <label class="text-[11px] font-bold text-slate-600 flex items-center justify-between">
-                    <span><i class="fa-solid fa-link text-brand-600 mr-1"></i> Liên kết mã QR thực tế:</span>
-                    <button onclick="copyQRLink()" class="text-brand-700 hover:underline text-[10px] font-bold">Sao chép link</button>
-                </label>
-                <input id="custom-qr-url-input" type="text" readonly
-                    value="https://agrichain.com.vn/qr/9b0e26ae?zarsrc=1303&utm_source=zalo&utm_medium=zalo" 
-                    class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 font-mono focus:outline-none">
-            </div>
+            <!-- Phần cố định dưới đáy — luôn bấm được dù nội dung phía trên bị cuộn -->
+            <div class="p-6 sm:p-8 pt-5 space-y-5 text-center">
+                <a id="qr-modal-trace-link" href="https://agrichain.com.vn/qr/9b0e26ae?batch=V3-V2-2026&zarsrc=1303&utm_source=zalo&utm_medium=zalo" target="_blank" rel="noopener" class="w-full py-3 bg-white hover:bg-brand-50 text-brand-700 font-bold text-sm rounded-2xl shadow-sm border-2 border-brand-600 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-magnifying-glass"></i> Xem Trang Truy Xuất
+                </a>
 
-            <button onclick="closeQRModal()" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm rounded-2xl shadow-md transition">
-                Đóng Bảng Mã QR
-            </button>
+                <button onclick="closeQRModal()" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm rounded-2xl shadow-md transition">
+                    Đóng Bảng Mã QR
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1024,6 +1035,7 @@
 
             const url = `https://agrichain.com.vn/qr/${product.qrId}?batch=${product.batch}&zarsrc=1303&utm_source=zalo&utm_medium=zalo`;
             document.getElementById('custom-qr-url-input').value = url;
+            document.getElementById('qr-modal-trace-link').href = url;
 
             // Generate high precision QR Code using QRious
             new QRious({

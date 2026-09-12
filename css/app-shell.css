@@ -195,16 +195,10 @@
 }
 
 .app-topbar__brand-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-block;
   width: var(--space-8);
   height: var(--space-8);
-  border-radius: var(--radius-md);
-  background: var(--color-primary);
-  color: var(--color-text-inverse);
-  font-size: var(--text-base);
-  line-height: 1;
+  object-fit: contain;
 }
 
 .app-topbar__org {

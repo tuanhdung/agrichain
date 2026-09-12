@@ -310,17 +310,10 @@ a.card {
 }
 
 .site-header__logo-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-block;
   width: var(--space-8);
   height: var(--space-8);
-  border-radius: var(--radius-md);
-  background: var(--color-primary);
-  color: var(--color-text-inverse);
-  font-size: var(--text-base);
-  font-weight: 700;
-  line-height: 1;
+  object-fit: contain;
 }
 
 .site-header__toggle {
@@ -903,17 +896,10 @@ td.table-empty {
 }
 
 .site-footer__logo-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-block;
   width: var(--space-8);
   height: var(--space-8);
-  border-radius: var(--radius-md);
-  background: var(--color-primary);
-  color: var(--color-text-inverse);
-  font-size: var(--text-base);
-  font-weight: 700;
-  line-height: 1;
+  object-fit: contain;
 }
 
 .site-footer__desc {
