@@ -1,21 +1,38 @@
 /* ==========================================================================
    AgriChain — Trang truy xuất nguồn gốc công khai (truy-xuat.html?ma=...)
-   Đọc mã lô hàng từ query string (?ma=), tìm trong AgriChain.store rồi hiện
-   thông tin lô hàng/nông trại/mùa vụ + trạng thái xác thực blockchain.
-   Trang KHÔNG cần đăng nhập — dành cho người quét mã QR từ nong-trai-chi-tiet.js,
-   nên không nạp js/app-shell.js (không có requireSession()). Nạp SAU
-   js/api-config.js, js/api.js, js/chain.js và js/store.js.
+   Đọc mã lô hàng từ query string (?ma=), tra qua API rồi hiện thông tin lô
+   hàng/nông trại/mùa vụ. Trang KHÔNG cần đăng nhập — dành cho người quét mã
+   QR từ nong-trai-chi-tiet.js, nên không nạp js/app-shell.js (không có
+   requireSession()). Nạp SAU js/api-config.js, js/api.js, js/chain.js và
+   js/store.js.
 
-   farms/seasons ĐÃ CHUYỂN SANG API — backend đã mở public-read riêng cho
-   GET /farms/{id} và GET /seasons/{id} (không cần Authorization header,
-   đúng cho trang công khai này, xem CLAUDE.md phía backend). Tra cứu qua
-   getFarmSafe()/getSeasonSafe() bên dưới, cùng mẫu getFarmCached()/
-   getSeasonCached() ở js/lo-hang.js — không cache ở đây vì trang chỉ tra
-   đúng 1 lô hàng/1 lượt tải, không lặp lại nhiều lần như danh sách.
-   `batches` và `certifications` VẪN ở store.js: backend chỉ mở công khai
-   đúng 2 route farms/seasons kể trên, certifications vẫn yêu cầu đăng nhập
-   nên trang khách không gọi được. VÁ PHẠM VI HẸP: chỉ đổi phần tra cứu
-   farm/season, không đụng luồng batch/QR/xác thực blockchain/certifications.
+   batches/farms/seasons ĐÃ CHUYỂN SANG API — backend mở public-read riêng
+   cho GET /batches/by-code/{code}, GET /farms/{id} và GET /seasons/{id}
+   (không cần Authorization header, đúng cho trang công khai này, xem
+   CLAUDE.md phía backend). Đây chính là điểm đã sửa (trước đây đọc
+   store.list('batches'), chỉ thấy đúng lô hàng do CHÍNH trình duyệt tạo ra
+   — khách quét QR bằng máy khác luôn ra "không tìm thấy" dù dữ liệu đã có
+   trong database).
+
+   GET /batches (danh sách, có q=<mã>) yêu cầu đăng nhập — KHÔNG dùng được ở
+   đây, khác mẫu loadFarmByCode() ở js/nong-trai-chi-tiet.js (trang ĐÃ đăng
+   nhập). Vì vậy backend có riêng route công khai GET /batches/by-code/{code}
+   tra CHÍNH XÁC theo mã (không phân biệt hoa/thường) — xem
+   api.batches.getByCode() trong js/api.js.
+
+   Tra cứu farm/season qua getFarmSafe()/getSeasonSafe() bên dưới, cùng mẫu
+   getFarmCached()/getSeasonCached() ở js/lo-hang.js — không cache ở đây vì
+   trang chỉ tra đúng 1 lô hàng/1 lượt tải, không lặp lại nhiều lần như danh
+   sách. `certifications` VẪN đọc store.js: backend chỉ mở công khai đúng 3
+   route batches/farms/seasons kể trên, certifications vẫn yêu cầu đăng nhập
+   nên trang khách không gọi được — NGOÀI PHẠM VI lần sửa này.
+
+   Khối "Xác thực blockchain" (trace-verify) đã TẠM ẨN (`hidden` trong HTML):
+   response BatchOut thật của backend KHÔNG có field sealed/hash/blockIndex/
+   sealedAt (đó là mô phỏng client-side cũ của js/chain.js + store.js), chỉ
+   có verification_status (luôn 'pending' — anchoring blockchain thật CHƯA
+   code)/tx_hash/anchored_at. Hiện lại khối này khi backend làm xong anchoring
+   thật (xem agrichain-api/CLAUDE.md mục "Giai đoạn 3", mục 3).
    ========================================================================== */
 
 (function (global) {
@@ -66,16 +83,6 @@
     return parts[2] + '/' + parts[1] + '/' + parts[0];
   }
 
-  // "2026-08-12T08:15:53.000Z" -> "12/08/2026 15:15" (giờ địa phương)
-  function formatDateTime(iso) {
-    if (!iso) return '—';
-    var d = new Date(iso);
-    if (isNaN(d.getTime())) return '—';
-    function pad(n) { return n < 10 ? '0' + n : String(n); }
-    return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() +
-      ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
-  }
-
   function formatArea(value) {
     var num = Number(value);
     if (!num) return '0 ha';
@@ -94,36 +101,35 @@
       'Không tìm thấy lô hàng có mã "' + code + '"';
   }
 
+  // Lỗi mạng/máy chủ (khác "không tìm thấy" — batch có thể vẫn tồn tại,
+  // chỉ là chưa gọi được API) — dùng chung khối .empty-card nhưng đổi tiêu
+  // đề để không đánh lừa người dùng rằng lô hàng không có thật.
+  function showLoadError() {
+    notFoundNode.hidden = false;
+    detailNode.hidden = true;
+    notFoundNode.querySelector('[data-not-found-title]').textContent =
+      'Không thể tải thông tin lô hàng lúc này';
+  }
+
   function showBatch(batch) {
     notFoundNode.hidden = true;
     detailNode.hidden = false;
 
     fillField('[data-trace-code]', batch.code);
-    fillField('[data-trace-start]', formatDate(batch.startDate));
+    fillField('[data-trace-start]', formatDate(batch.start_date));
     fillField('[data-trace-area]', formatArea(batch.area));
-    fillField('[data-trace-harvest]', formatDate(batch.harvestDate));
-    fillField('[data-trace-actual-harvest]', formatDate(batch.actualHarvestDate));
-    fillField('[data-trace-yield]', (batch.expectedYield || 0) + ' ' + (batch.unit || ''));
+    fillField('[data-trace-harvest]', formatDate(batch.harvest_date));
+    fillField('[data-trace-actual-harvest]', formatDate(batch.actual_harvest_date));
+    fillField('[data-trace-yield]', (batch.expected_yield || 0) + ' ' + (batch.unit || ''));
 
     document.querySelector('[data-trace-status]').textContent =
       BATCH_STATUS_LABELS[batch.status] || batch.status || '—';
 
-    var verifyNode = document.querySelector('[data-trace-verify]');
-    var verifyTitle = document.querySelector('[data-trace-verify-title]');
-    var verifyDesc = document.querySelector('[data-trace-verify-desc]');
+    // Khối "Xác thực blockchain" (.trace-verify) TẠM ẨN — xem ghi chú đầu
+    // file: backend chưa có sealed/hash/blockIndex/sealedAt, không có gì
+    // thật để hiện.
 
-    if (batch.sealed) {
-      verifyNode.classList.add('trace-verify--ok');
-      verifyTitle.textContent = 'Đã xác thực trên blockchain';
-      verifyDesc.textContent = 'Mã băm: ' + global.AgriChain.chain.shorten(batch.hash, 10) +
-        ' · Khối #' + batch.blockIndex + ' · Niêm phong lúc ' + formatDateTime(batch.sealedAt);
-    } else {
-      verifyNode.classList.add('trace-verify--pending');
-      verifyTitle.textContent = 'Chưa xác thực trên blockchain';
-      verifyDesc.textContent = 'Dữ liệu lô hàng này chưa được niêm phong lên sổ cái.';
-    }
-
-    Promise.all([getFarmSafe(batch.farmId), getSeasonSafe(batch.seasonId)])
+    Promise.all([getFarmSafe(batch.farm_id), getSeasonSafe(batch.season_id)])
       .then(function (results) {
         var farm = results[0];
         var season = results[1];
@@ -148,16 +154,22 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    var code = new URLSearchParams(global.location.search).get('ma') || '';
-    var batch = store.list('batches').find(function (item) {
-      return item.code.toLowerCase() === code.trim().toLowerCase();
-    });
+    var code = (new URLSearchParams(global.location.search).get('ma') || '').trim();
 
-    if (!batch) {
+    if (!code) {
       showNotFound(code);
       return;
     }
 
-    showBatch(batch);
+    // { auth: false } — trang công khai, không gắn Authorization header dù
+    // trình duyệt đang có sẵn token (VD người quản trị tự quét QR bằng máy
+    // đã đăng nhập), cùng lý do với getFarmSafe()/getSeasonSafe() ở trên.
+    api.batches.getByCode(code, { auth: false }).then(showBatch).catch(function (err) {
+      if (err && err.status === 404) {
+        showNotFound(code);
+      } else {
+        showLoadError();
+      }
+    });
   });
 })(window);

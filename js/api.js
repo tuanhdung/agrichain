@@ -585,6 +585,25 @@
     }
   };
 
+  // Chỉ 2 hàm ĐỌC — batches CHƯA migrate CRUD sang API (nong-trai-chi-tiet.js/
+  // lo-hang.js vẫn tạo/sửa/xoá qua store.js, giai đoạn 3 chưa làm tới, xem
+  // CLAUDE.md mục "Kết nối backend"). Thêm 2 hàm này CHỈ để phục vụ
+  // truy-xuat.js (trang công khai) tra cứu 1 lô hàng theo mã QR.
+  var batches = {
+    // options tuỳ chọn { auth: false } — dùng ở truy-xuat.js, cùng lý do với
+    // farms.get()/seasons.get() ở trên.
+    get: function (id, options) {
+      return request('GET', '/batches/' + id, options);
+    },
+    // GET /batches (danh sách, có q=code) yêu cầu đăng nhập — KHÔNG dùng
+    // được ở trang công khai. Route riêng này (public-read, xem CLAUDE.md
+    // phía backend) tra CHÍNH XÁC theo mã, thay cho mẫu loadFarmByCode() vốn
+    // chỉ áp dụng được cho trang ĐÃ đăng nhập.
+    getByCode: function (code, options) {
+      return request('GET', '/batches/by-code/' + encodeURIComponent(code), options);
+    }
+  };
+
   /* --- Bảo vệ trang cần đăng nhập --------------------------------------------
      Gọi ở đầu <head> bằng script THƯỜNG (không defer) để chuyển hướng trước
      khi nội dung trang kịp vẽ ra. */
@@ -691,6 +710,7 @@
     logs: logs,
     supplies: supplies,
     certifications: certifications,
-    workflowTemplates: workflowTemplates
+    workflowTemplates: workflowTemplates,
+    batches: batches
   };
 })(window);

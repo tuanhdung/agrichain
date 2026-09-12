@@ -96,7 +96,9 @@ js/
                           # — collection "users" của store.js, vẫn giả lập, chưa chuyển sang API —
                           # + đổi mật khẩu. Mở từ menu tài khoản ở topbar, không phải mục sidebar)
   truy-xuat.js            # Logic riêng cho truy-xuat.html (trang truy xuất công khai — KHÔNG nạp
-                          # js/app-shell.js, trang này không cần đăng nhập)
+                          # js/app-shell.js, trang này không cần đăng nhập). Tra lô hàng qua
+                          # api.batches.getByCode() (route public GET /batches/by-code/{code}),
+                          # KHÔNG còn đọc store.list('batches') — xem mục "Kết nối backend"
   blog.js                 # Logic riêng cho blog.html (fetch() data/blog-posts.json rồi dựng từng
                           # .post-card vào lưới — trang công khai, không nạp app-shell.js)
   blog-chi-tiet.js        # Logic riêng cho blog-chi-tiet.html (đọc ?slug= trên URL, fetch() CÙNG
@@ -464,22 +466,40 @@ trang đều dùng backend thật ngay**:
   trên chính trang này VẪN dùng `store.js`, xem mục riêng bên dưới), `mau-quy-trinh.html`
   (toàn bộ — mẫu quy trình qua `api.workflowTemplates.*`, dropdown chọn vật tư trong bước
   mẫu qua `api.supplies.*` từ trước).
-- **Vẫn dùng `store.js`**: mọi trang còn lại (kể cả `ho-so.html`), cộng thêm
-  1 collection trên `nong-trai-chi-tiet.html`/`js/lo-hang.js`/`js/truy-xuat.js`: `batches`
-  (lô hàng) — chưa có ở backend, chờ giai đoạn 3. Collection `workflowTemplates` trong
-  `store.js` giờ **MỒ CÔI** (không còn trang nào đọc/ghi) kể từ khi `mau-quy-trinh.html`
-  chuyển sang API — cùng tình trạng với `orgUsers` (xem mục "Đăng nhập/Đăng ký"), chưa xoá
-  khỏi `COLLECTIONS` vì ngoài phạm vi lần chuyển đổi này. Mẫu quy trình đã tạo trước lúc
-  migrate (lưu trong `localStorage`, id dạng `store.newId()` không phải UUID) sẽ KHÔNG tự
-  chuyển lên backend — biến mất khỏi danh sách sau khi migrate, người dùng tự tạo lại qua
-  giao diện mới nếu cần.
+- **Vẫn dùng `store.js`**: mọi trang còn lại, cộng thêm 1 collection
+  trên `nong-trai-chi-tiet.html`/`js/lo-hang.js`: `batches` (lô hàng, toàn bộ CRUD) — backend
+  ĐÃ CÓ `batches` (xem mục "Các bảng nghiệp vụ" bên dưới) nhưng 2 trang này CHƯA chuyển,
+  chờ giai đoạn 3. `js/truy-xuat.js` là NGOẠI LỆ: chỉ 2 hàm ĐỌC (`api.batches.get()`/
+  `getByCode()`) đã sang API, xem mục ngay dưới — không phải toàn bộ CRUD `batches`.
+  Collection `workflowTemplates` trong `store.js` giờ **MỒ CÔI** (không còn trang nào
+  đọc/ghi) kể từ khi `mau-quy-trinh.html` chuyển sang API — cùng tình trạng với `orgUsers`
+  (xem mục "Đăng nhập/Đăng ký"), chưa xoá khỏi `COLLECTIONS` vì ngoài phạm vi lần chuyển đổi
+  này. Mẫu quy trình đã tạo trước lúc migrate (lưu trong `localStorage`, id dạng
+  `store.newId()` không phải UUID) sẽ KHÔNG tự chuyển lên backend — biến mất khỏi danh sách
+  sau khi migrate, người dùng tự tạo lại qua giao diện mới nếu cần.
 - **`truy-xuat.html`/`js/truy-xuat.js`** (trang truy xuất công khai, quét mã QR, không đăng
-  nhập): tra cứu farm/season của lô hàng qua `api.farms.get()`/`api.seasons.get()` — backend
-  đã mở riêng 2 route này thành **public-read** (`GET /farms/{id}`, `GET /seasons/{id}`
-  không cần Bearer token) đúng cho trang công khai này, xem `getFarmSafe()`/`getSeasonSafe()`
-  trong `js/truy-xuat.js`. Danh sách chứng nhận trên trang này vẫn đọc `store.js` — không
-  phải vì `certifications` chưa có ở backend (đã có, xem `nong-trai-chi-tiet.html`), mà vì
-  endpoint đó vẫn yêu cầu đăng nhập và trang công khai này không có phiên nào để gửi kèm.
+  nhập) **ĐÃ CHUYỂN tra cứu lô hàng sang API** (2026-09-12, vá lỗi: trước đó đọc
+  `store.list('batches')`, chỉ ai dùng ĐÚNG trình duyệt đã tạo ra lô hàng mới xem được, khách
+  quét QR bằng máy khác luôn ra "không tìm thấy" dù dữ liệu đã có trong database). Tra
+  farm/season qua `api.farms.get()`/`api.seasons.get()` — backend mở riêng 2 route này thành
+  **public-read** (`GET /farms/{id}`, `GET /seasons/{id}`, không cần Bearer token), xem
+  `getFarmSafe()`/`getSeasonSafe()` trong `js/truy-xuat.js`. Riêng lô hàng: `GET /batches`
+  (danh sách, có `q=<mã>`) **yêu cầu đăng nhập** — khác farms/seasons, KHÔNG dùng được ở
+  trang công khai này, nên mẫu `loadFarmByCode()` (gọi `q=` rồi tự so khớp client, xem
+  `js/nong-trai-chi-tiet.js`) không áp dụng được cho batches. Backend vì vậy có thêm 1 route
+  public-read riêng — **`GET /batches/by-code/{code}`** (tra CHÍNH XÁC theo mã, không phân
+  biệt hoa/thường, bỏ qua lọc theo Đơn vị — cùng ngoại lệ công khai với `GET /batches/{id}`,
+  xem `app/routers/batches.py::get_batch_by_code` phía `agrichain-api`) — gọi qua
+  `api.batches.getByCode()` (`js/api.js`, chỉ có 2 hàm `get`/`getByCode`, KHÔNG có
+  `create`/`update`/`remove` vì batches CRUD phía admin vẫn ở `store.js`, xem trên).
+  Danh sách chứng nhận trên trang này vẫn đọc `store.js` — không phải vì `certifications`
+  chưa có ở backend (đã có, xem `nong-trai-chi-tiet.html`), mà vì endpoint đó vẫn yêu cầu
+  đăng nhập và trang công khai này không có phiên nào để gửi kèm — NGOÀI PHẠM VI lần sửa
+  batches này. Khối "Xác thực blockchain" trên trang cũng đã **TẠM ẨN** (`hidden` trong
+  HTML): response `BatchOut` thật của backend KHÔNG có field `sealed`/`hash`/`blockIndex`/
+  `sealedAt` (mô phỏng client-side cũ của `js/chain.js`), chỉ có `verification_status` (luôn
+  `'pending'` — anchoring blockchain thật chưa code)/`tx_hash`/`anchored_at` — xem
+  `agrichain-api/CLAUDE.md` mục "Giai đoạn 3".
 
 ### `js/api-config.js`
 
@@ -772,7 +792,14 @@ xoá mềm). `js/api.js` bọc thêm `api.farms.*`/`api.seasons.*`/`api.logs.*`/
   cho tới khi backend sửa xong**. Có banner "Thử lại cập nhật trạng thái bước"
   (`[data-process-retry-notice]`) phòng trường hợp nhật ký tạo được nhưng PATCH mùa vụ lỗi —
   không để trạng thái nửa vời trong im lặng.
-- **`batches` (lô hàng) CHƯA migrate** — giai đoạn 3, vẫn ở `store.js`.
+- **`batches` (lô hàng) CHƯA migrate CRUD** (tạo/sửa/xoá/danh sách trên `nong-trai-chi-tiet.html`/
+  `js/lo-hang.js`) — giai đoạn 3, vẫn ở `store.js`. Riêng 2 hàm ĐỌC công khai
+  (`GET /batches/{id}`, `GET /batches/by-code/{code}`) đã có ở backend và đã nối vào
+  `js/truy-xuat.js` (2026-09-12) — xem mục "Kết nối backend" ở trên. Backend cũng CỐ TÌNH
+  không có field `sealed`/`hash`/`blockIndex`/`sealedAt` (mô phỏng client-side cũ của
+  `js/chain.js`) — khi migrate CRUD, nút "Xác thực blockchain" phải viết lại theo
+  `verification_status`/`tx_hash`/`anchored_at` thật, không migrate y nguyên (xem
+  `agrichain-api/CLAUDE.md` mục "Giai đoạn 3").
 - **`workflowTemplates` (mẫu quy trình) ĐÃ CHUYỂN SANG API** (`mau-quy-trinh.html`, 2026-09-08)
   qua `api.workflowTemplates.*` — xem mục "Mẫu quy trình mùa vụ" bên dưới. Trên
   `nong-trai-chi-tiet.html`, khi áp dụng 1 mẫu cho mùa vụ, mẫu giờ đọc qua
@@ -986,9 +1013,10 @@ chương trình khuyến mãi thật (tab "Khuyến mãi" luôn rỗng vì chưa
 `products`), ảnh sản phẩm/cửa hàng thật nếu Đơn vị chưa từng tự tải lên qua khu quản trị.
 
 Trang truy xuất nguồn gốc (`truy-xuat.html`) đã có ở mức cơ bản: xem 1 lô hàng qua mã QR
-(hoặc `?ma=...` trực tiếp), thấy trạng thái xác thực blockchain + thông tin nông trại/mùa
-vụ liên quan. Chưa có: liệt kê nhiều lô hàng, tìm kiếm theo mã tự nhập tay trên trang, xác
-thực lại (verify) hash ngay tại trang này thay vì chỉ đọc `batch.hash` đã lưu sẵn.
+(hoặc `?ma=...` trực tiếp, tra thật qua API — xem mục "Kết nối backend"), thấy thông tin
+nông trại/mùa vụ liên quan. Khối "Xác thực blockchain" đang TẠM ẨN (backend chưa có anchoring
+thật, xem mục trên) — sẽ hiện lại khi có. Chưa có: liệt kê nhiều lô hàng, tìm kiếm theo mã
+tự nhập tay trên trang.
 
 ## Hero — video giới thiệu (`index.html`)
 
