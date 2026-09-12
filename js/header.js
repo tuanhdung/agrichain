@@ -2,7 +2,71 @@ if ('scrollRestoration' in history) {
   history.scrollRestoration = 'manual';
 }
 
+/* --- Khu vực tài khoản ở .site-header__actions -----------------------------
+   Các trang công khai dùng chung .site-header (index.html, blog.html,
+   blog-chi-tiet.html, styleguide.html, truy-xuat.html) mặc định luôn hiện 2
+   nút "Đăng Nhập"/"Bắt Đầu Ngay" ngay trong HTML, không phân biệt đã đăng
+   nhập hay chưa — cùng vấn đề đã sửa cho agriverse-3d.html (B5,
+   renderAccountArea()), nhưng làm THEO ĐÚNG hệ .site-header/.btn của trang
+   giới thiệu (không dùng Tailwind/avatar dropdown như bên đó).
+
+   headerActionsDefaultHtml chụp lại đúng HTML gốc (2 nút) của
+   .site-header__actions ngay LẦN GỌI ĐẦU — dùng để khôi phục lại y nguyên
+   khi phát hiện chưa/không còn đăng nhập, khỏi phải chép tay markup 2 nút
+   đó thành chuỗi JS (HTML trong trang vẫn là nguồn duy nhất cho trạng thái
+   "chưa đăng nhập"). */
+var headerActionsDefaultHtml = null;
+
+function renderHeaderAccountArea() {
+  var actionsNode = document.querySelector('.site-header__actions');
+  if (!actionsNode) return;
+
+  if (headerActionsDefaultHtml === null) {
+    headerActionsDefaultHtml = actionsNode.innerHTML;
+  }
+
+  var api = window.AgriChain && window.AgriChain.api;
+  if (!api || !api.isLoggedIn()) {
+    actionsNode.innerHTML = headerActionsDefaultHtml;
+    return;
+  }
+
+  var isBusiness = api.isBusiness();
+  var target = isBusiness ? 'nong-trai.html' : 'agriverse-3d.html';
+  var label = isBusiness ? 'Vào Trang Quản Lý' : 'Vào Mua Sắm';
+
+  // target/label đều là chuỗi tĩnh (không có dữ liệu người dùng) nên ghép
+  // thẳng vào innerHTML an toàn — khác fullName/email ở agriverse-3d.html,
+  // không cần tách qua textContent.
+  actionsNode.innerHTML =
+    '<a class="btn btn--primary btn--sm" href="' + target + '">' + label + '</a>' +
+    '<button type="button" class="btn btn--outline btn--sm" data-header-logout>Đăng Xuất</button>';
+
+  var logoutButton = actionsNode.querySelector('[data-header-logout]');
+  if (logoutButton) {
+    logoutButton.addEventListener('click', function () {
+      api.auth.logout().then(function () {
+        window.location.reload();
+      });
+    });
+  }
+}
+
+// Bug bfcache (cùng mẫu đã vá ở js/api.js cho requireAuth()/requireBusiness()
+// và ở agriverse-3d.html cho renderAccountArea()): đăng xuất xong bấm Back
+// có thể khôi phục trang từ bfcache thay vì tải lại thật — JS không chạy
+// lại nên header vẫn hiện nút cũ dù access token đã bị xoá thật (bug hiển
+// thị thuần tuý, mọi gọi API vẫn bị chặn đúng vì token đã mất). 'pageshow'
+// báo lại MỌI lần trang hiển thị, kể cả khôi phục từ bfcache
+// (event.persisted === true, không có ở lần tải trang bình thường) — gọi
+// lại renderHeaderAccountArea() để vẽ đúng theo trạng thái đăng nhập THẬT.
+window.addEventListener('pageshow', function (event) {
+  if (event.persisted) renderHeaderAccountArea();
+});
+
 document.addEventListener('DOMContentLoaded', function () {
+  renderHeaderAccountArea();
+
   var toggle = document.querySelector('.site-header__toggle');
   var panel = document.getElementById('site-header-panel');
 

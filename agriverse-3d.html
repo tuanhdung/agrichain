@@ -98,18 +98,34 @@
     <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-emerald-100 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
-                <!-- Logo & Slogan (No 3D on badges) -->
-                <div class="flex items-center space-x-3 cursor-pointer" onclick="window.scrollTo({top:0, behavior:'smooth'})">
-                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-700 via-emerald-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
-                        <i class="fa-solid fa-cube text-2xl"></i>
-                    </div>
-                    <div>
-                        <div class="flex items-center space-x-2">
-                            <span class="text-2xl font-black bg-gradient-to-r from-brand-800 via-emerald-600 to-amber-600 bg-clip-text text-transparent tracking-tight">AgriVerse</span>
-                            <span class="px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 font-extrabold text-[10px] tracking-wider uppercase">VR360 Live</span>
+                <!-- Logo & Slogan (No 3D on badges) + link về trang giới thiệu -->
+                <div class="flex items-center space-x-3 sm:space-x-4">
+                    <div class="flex items-center space-x-3 cursor-pointer" onclick="window.scrollTo({top:0, behavior:'smooth'})">
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-700 via-emerald-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+                            <i class="fa-solid fa-cube text-2xl"></i>
                         </div>
-                        <p class="text-xs text-slate-500 font-medium">Sàn Dưa Lưới Tiến Phát • Siêu Thị VR360 • Quét Mã QR Chuẩn 100%</p>
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-2xl font-black bg-gradient-to-r from-brand-800 via-emerald-600 to-amber-600 bg-clip-text text-transparent tracking-tight">AgriVerse</span>
+                                <span class="px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 font-extrabold text-[10px] tracking-wider uppercase">VR360 Live</span>
+                            </div>
+                            <p class="text-xs text-slate-500 font-medium">Sàn Dưa Lưới Tiến Phát • Siêu Thị VR360 • Quét Mã QR Chuẩn 100%</p>
+                        </div>
                     </div>
+
+                    <!-- Về trang giới thiệu công ty AgriChain (index.html) — điểm quay về
+                         DUY NHẤT cho khách vào thẳng trang này (VD từ đích đăng nhập
+                         customer, xem redirectTarget() trong js/auth.js) mà không qua
+                         index.html trước, không có lịch sử trình duyệt để bấm Back. Hiện
+                         với MỌI người dùng bất kể đã đăng nhập hay account_type nào — khác
+                         "Khu Quản Lý" trong #account-area (chỉ hiện cho business), đây là
+                         điều hướng chung, không phải chức năng theo vai trò. Icon luôn hiện
+                         (kể cả màn hình nhỏ nhất), chữ chỉ hiện từ sm — cùng mẫu nút "Trợ Lý
+                         AI Tiến Phát" ngay trong div "Nav Actions" bên dưới. -->
+                    <a href="index.html" class="flex items-center space-x-1.5 pl-3 sm:pl-4 border-l border-slate-200 text-slate-500 hover:text-brand-700 font-semibold text-xs transition flex-shrink-0" aria-label="Về trang giới thiệu AgriChain">
+                        <i class="fa-solid fa-arrow-left-long"></i>
+                        <span class="hidden sm:inline">Về AgriChain</span>
+                    </a>
                 </div>
 
                 <!-- Global Search Bar -->

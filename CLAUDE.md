@@ -41,7 +41,12 @@ js/
                           # (api.auth.*/api.users.*/api.roles.*/api.permissions.*/api.farms.*/
                           # api.seasons.*/api.logs.*/api.supplies.*/api.certifications.*). Nạp SAU
                           # api-config.js, KHÔNG defer, ở MỌI trang — xem mục "Kết nối backend"
-  header.js              # Xử lý tương tác cho .site-header (toggle menu mobile, cuộn anchor)
+  header.js              # Xử lý tương tác cho .site-header (toggle menu mobile, cuộn anchor) +
+                          # renderHeaderAccountArea() (2026-09-12): thay 2 nút "Đăng Nhập"/"Bắt
+                          # Đầu Ngay" ở .site-header__actions bằng 1 nút theo account_type + nút
+                          # "Đăng Xuất" khi đã đăng nhập — dùng ở mọi trang công khai nạp
+                          # .site-header (index.html, blog.html, blog-chi-tiet.html,
+                          # styleguide.html, truy-xuat.html), xem mục "Đăng nhập/Đăng ký" bên dưới
   contact-form.js        # Validate + hiện thông báo thành công cho form ở section Liên Hệ
   chain.js               # Sổ cái băm nối chuỗi (hash chain) bằng Web Crypto API — chạy trong trình duyệt
   store.js               # Lớp lưu trữ qua localStorage (users, farms, supplies, batches, events, ledger,
@@ -451,6 +456,62 @@ toàn cục của `js/api.js` — 2 cơ chế độc lập, cùng mẫu `event.p
 `renderAccountArea()` để vẽ lại đúng theo trạng thái đăng nhập THẬT, không cần tải lại cả
 trang. Đây cũng chính là lý do `renderAccountArea()` phải LUÔN tự vẽ lại cả 2 nhánh thay vì
 early-return — nếu không, gọi lại từ `pageshow` sẽ vô tác dụng ở đúng ca cần vá nhất.
+
+**⚠️ Lỗ hổng UX đã vá (2026-09-12) — không có đường quay lại `index.html`**: trang này là
+đích đến DUY NHẤT sau đăng nhập/đăng ký cho tài khoản `customer` (xem `redirectTarget()`
+trong `js/auth.js`) nhưng trước đó KHÔNG có bất kỳ liên kết nào trỏ về `index.html` (trang
+giới thiệu công ty — Tính Năng/Quy Trình/Lợi Ích/Liên Hệ). Khách đăng nhập từ 1 tab mới
+(không xuất phát từ `index.html`) sẽ bị kẹt hoàn toàn: không có lịch sử trình duyệt để bấm
+Back, không có link nào trên trang để tới được phần giới thiệu/liên hệ công ty. Đã vá bằng
+1 link `<a href="index.html">` mới ("Về AgriChain", icon `fa-arrow-left-long`) đặt CẠNH khối
+logo "AgriVerse" (bọc chung 1 flex container mới, ngăn cách bằng `border-l`) — **KHÔNG** đổi
+`onclick` cuộn-lên-đầu-trang sẵn có của chính logo (giữ nguyên hành vi cũ, tránh vừa cuộn vừa
+điều hướng cùng lúc trên cùng 1 phần tử). Icon LUÔN hiện kể cả màn hình nhỏ nhất, chữ "Về
+AgriChain" chỉ hiện từ `sm:` — cùng mẫu `hidden sm:inline` đã dùng cho nút "Trợ Lý AI Tiến
+Phát" trong file này, đảm bảo khách trên di động cũng bấm được, không riêng desktop. Link
+này hiện với **MỌI người dùng, bất kể đã đăng nhập hay `account_type` nào** — khác nút "Khu
+Quản Lý" trong `#account-area` (chỉ hiện cho `business`), đây là điều hướng chung về trang
+chủ công ty, không phải chức năng theo vai trò, nên đặt CỐ ĐỊNH trong HTML (không qua
+`renderAccountArea()`).
+
+### Khu vực tài khoản ở `.site-header__actions` (2026-09-12)
+
+Cùng vấn đề đã vá cho `agriverse-3d.html` ở trên, nhưng lộ ra ở NHÓM trang khác: mọi trang
+công khai dùng chung `.site-header` (`index.html`, `blog.html`, `blog-chi-tiet.html`,
+`styleguide.html`, `truy-xuat.html`) đều nạp sẵn `js/api-config.js`/`js/api.js` từ trước
+(không phải vá thêm như `agriverse-3d.html`), nhưng chưa trang nào ĐỌC trạng thái đó để đổi
+`.site-header__actions` — luôn tĩnh 2 nút "Đăng Nhập"/"Bắt Đầu Ngay" dù khách đã đăng nhập.
+Vá trong `js/header.js` (`renderHeaderAccountArea()`) — dùng chung 1 chỗ cho cả 5 trang thay
+vì vá riêng từng trang, vì cả 5 đều nạp `js/header.js` và có cùng hệt markup
+`.site-header__actions`. **Làm theo đúng hệ `.site-header`/`.btn` của trang giới thiệu —
+không copy cách Tailwind + avatar dropdown của `agriverse-3d.html`.**
+
+Khác `agriverse-3d.html` (giữ nguyên 2 nút khi chưa đăng nhập + thêm avatar/dropdown khi đã
+đăng nhập), `.site-header__actions` ở đây đơn giản hơn: **thay hẳn 2 nút cũ bằng 1 nút duy
+nhất** trỏ theo `account_type` (`AgriChain.api.isBusiness()`) — `business` → `nong-trai.html`
+("Vào Trang Quản Lý"), `customer` → `agriverse-3d.html` ("Vào Mua Sắm", KHÔNG phải
+`ecommerce.html` — xem mục "Trang thương mại điện tử chính thức") — kèm 1 nút "Đăng Xuất"
+nhỏ cạnh đó (`AgriChain.api.auth.logout()` rồi `location.reload()`, không điều hướng đi đâu
+— đăng xuất ở trang công khai không bắt buộc phải rời trang).
+
+`headerActionsDefaultHtml` chụp lại đúng HTML gốc (2 nút "Đăng Nhập"/"Bắt Đầu Ngay") của
+`.site-header__actions` ngay LẦN GỌI ĐẦU của `renderHeaderAccountArea()`, dùng để khôi phục
+lại y nguyên khi chưa/không còn đăng nhập — khỏi phải chép tay markup 2 nút đó thành chuỗi
+JS (HTML trong trang vẫn là nguồn duy nhất cho trạng thái "chưa đăng nhập"). Nhãn nút
+("Vào Trang Quản Lý"/"Vào Mua Sắm") là chuỗi tĩnh, không có dữ liệu người dùng, nên ghép
+thẳng vào `innerHTML` an toàn — khác `fullName`/`email` ở `agriverse-3d.html`, không cần
+tách qua `textContent`.
+
+Cùng mẫu bfcache đã vá ở `agriverse-3d.html`/`js/api.js`: `js/header.js` có 1 listener
+`pageshow` RIÊNG (file này không nạp `js/auth.js`/`js/app-shell.js` ở các trang công khai
+này, không dùng chung listener toàn cục nào khác), gọi lại `renderHeaderAccountArea()` khi
+`event.persisted === true` để tránh hiện lại nút cũ sau khi đăng xuất rồi bấm Back.
+
+Đã rà `.site-footer__links` ở cả `index.html`/`blog.html`/`blog-chi-tiet.html` — KHÔNG có
+nút "Bắt Đầu Ngay"/liên kết đăng nhập nào tương tự trong footer (chỉ có anchor nội bộ,
+"E-commerce", "Blog", thông tin liên hệ), nên không cần đồng bộ gì thêm ở đó. `styleguide.html`
+và `truy-xuat.html` không có `<footer>` (`truy-xuat.html` chỉ có `.site-header`, xem cấu trúc
+thư mục) nên không có gì để rà ở 2 trang này.
 
 ## Kết nối backend
 
