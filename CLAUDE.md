@@ -364,27 +364,19 @@ nhập cùng trình duyệt, bấm Back → bfcache khôi phục lại trang qu�
 (vẫn hợp lệ, `requireAuth()` không bắt được) nhưng sai `account_type` → `requireBusiness()`
 bắt đúng ca này.
 
-**Đã gắn `AgriChain.api.requireBusiness()` vào `<head>` của ĐỦ 16 trang `ADMIN_SHELL_PAGES`**
-(không còn "chưa trang nào gọi" như ghi chú cũ). 2 cách gắn khác nhau tuỳ trạng thái sẵn có
-của từng trang — **phát hiện khi rà lại**: chỉ 6/16 trang (`nong-trai`, `nong-trai-chi-tiet`,
-`vat-tu`, `mau-quy-trinh`, `lo-hang`, `tai-khoan` — đúng nhóm đã migrate farms/supplies/...
-sang API) sẵn có `AgriChain.api.requireAuth()` trong `<head>`; **10 trang còn lại
-(`ho-so`, `goi-phan-mem`, `lich-su-mua-goi`, và 7 trang `thuong-mai-*`) KHÔNG hề gọi
-`requireAuth()`** — các trang này nạp `js/api.js` chỉ để dùng `hasPermission()`/hiển thị
-user, còn việc "chưa đăng nhập thì đá về `dang-nhap.html`" vẫn hoàn toàn dựa vào
-`requireSession()` (`js/app-shell.js`, chạy SAU `DOMContentLoaded` — xem mục "Cầu nối tạm
-với js/app-shell.js" ngay dưới), không chạy sớm trong `<head>` như `requireAuth()`.
-- 6 trang có `requireAuth()`: thêm `AgriChain.api.requireBusiness();` ngay dòng sau, cùng
-  1 khối `<script>`.
-- 10 trang còn lại: thêm khối `<script>` MỚI, chỉ có `AgriChain.api.requireBusiness();`
-  (không thêm `requireAuth()` — đó là khoảng trống riêng, có chủ đích để lại đúng theo cơ
-  chế `requireSession()` đang dùng, KHÔNG nằm trong phạm vi lần sửa này). Vẫn đủ chặn đúng
-  kịch bản "khách hàng đã đăng nhập cố vào khu quản trị" vì `requireBusiness()` tự kiểm
-  `isLoggedIn()` trước — không phụ thuộc `requireAuth()` đã chạy hay chưa. Kịch bản còn hở
-  (khách CHƯA đăng nhập gõ thẳng URL 10 trang này vẫn thấy chớp nội dung trước khi
-  `requireSession()` kịp chạy) là hạn chế ĐÃ CÓ TỪ TRƯỚC, không phải lỗi mới, và không phải
-  mục tiêu của lần sửa `requireBusiness()` này (mục tiêu là phân biệt loại tài khoản, không
-  phải làm lại toàn bộ cơ chế "đã đăng nhập hay chưa").
+**Đã gắn CẢ `AgriChain.api.requireAuth()` LẪN `requireBusiness()` vào `<head>` của ĐỦ 16
+trang `ADMIN_SHELL_PAGES`** (2026-09-12 — vá nốt lỗ hổng để lại từ B3, xem lịch sử ngay
+dưới). Ban đầu (B3) chỉ 6/16 trang (`nong-trai`, `nong-trai-chi-tiet`, `vat-tu`,
+`mau-quy-trinh`, `lo-hang`, `tai-khoan` — đúng nhóm đã migrate farms/supplies/... sang API)
+có sẵn `requireAuth()`; B3 chỉ thêm `requireBusiness()` cho 10 trang còn lại
+(`ho-so`, `goi-phan-mem`, `lich-su-mua-goi`, và 7 trang `thuong-mai-*`) mà KHÔNG thêm
+`requireAuth()`, để lại lỗ hổng: khách CHƯA đăng nhập gõ thẳng URL 1 trong 10 trang này vẫn
+thấy chớp khung sidebar/topbar trước khi `requireSession()` (`js/app-shell.js`, chạy SAU
+`DOMContentLoaded`) kịp đá đi — chặn muộn hơn hẳn 6 trang kia. Đã vá bằng cách thêm
+`AgriChain.api.requireAuth();` ngay trước `requireBusiness();` trong cùng khối `<script>`
+có sẵn ở cả 10 trang, đúng thứ tự/vị trí như 6 trang gốc — không còn phân biệt "6 trang" vs
+"10 trang còn lại" nữa, cả 16 trang giờ dùng chung đúng 1 khuôn `<script>` (`api-config.js`
+→ `api.js` → `requireAuth()` → `requireBusiness()`, không `defer`).
 
 ### Trang thương mại điện tử chính thức: `agriverse-3d.html` (KHÔNG phải `ecommerce.html`, 2026-09-11)
 
@@ -565,14 +557,24 @@ hướng — script `defer` chạy quá trễ cho việc đó).
   quanh `request()`, không tự suy luận gì thêm — validate/điều hướng dữ liệu là việc của
   từng trang, đúng quy ước "store.js/api.js chỉ generic" đã áp dụng cho `store.js`.
 
-### Cầu nối tạm với `js/app-shell.js`
+### `js/app-shell.js` đã bỏ hẳn nhánh dự phòng `store.js` (2026-09-12)
 
 `requireSession()`/`setupLogout()` (dùng chung cho mọi trang có khung app-shell — sidebar/
-topbar) đã sửa để **ưu tiên phiên API nếu có**, rơi xuống `store.js` nếu không — nếu không
-làm vậy thì `tai-khoan.html` (đăng nhập qua API, không còn ghi phiên vào `store.js`) sẽ bị
-chính `requireSession()` cũ đá ngược về `dang-nhap.html` ngay sau khi đăng nhập thành công
-(vì `store.getSession()` luôn rỗng). Đây là cầu nối TẠM cho tới khi mọi trang cùng chuyển
-sang API — gỡ nhánh `store` đi khi đó.
+topbar) từng có nhánh dự phòng đọc `store.getSession()`/`store.clearSession()` khi chưa có
+phiên API — gọi là "cầu nối TẠM cho tới khi mọi trang cùng chuyển sang API". Điều kiện đó
+giờ ĐÃ ĐỦ: `dang-nhap.html`/`dang-ky.html` đăng nhập/đăng ký HOÀN TOÀN qua `js/api.js` (không
+còn trang nào ghi phiên vào `store.js` nữa), và cả 16/16 trang `ADMIN_SHELL_PAGES` đều đã gọi
+`AgriChain.api.requireAuth()` ngay trong `<head>` (xem mục "`AgriChain.api.requireBusiness()`
+— áp dụng cho ĐỦ 16 trang" phía trên) — nhánh `store` trong `requireSession()`/`setupLogout()`
+vì vậy không còn đường nào để chạy tới nữa, đã gỡ hẳn. `requireSession()` giờ chỉ còn: đọc
+`apiUser` để trả về cho `fillSession()` (tên/tổ chức hiển thị ở sidebar/avatar), và 1 lệnh
+`location.replace('dang-nhap.html?redirect=...')` giữ lại làm lớp phòng hờ (không phải cơ chế
+chặn chính — `requireAuth()` ở `<head>` đã làm việc đó trước khi hàm này kịp chạy).
+`setupLogout()` giờ luôn gọi thẳng `api.auth.logout()`, không còn nhánh `else` gọi
+`store.clearSession()`. `js/app-shell.js` không còn phụ thuộc `js/store.js` (biến `store` đã
+gỡ khỏi file) — `js/store.js` vẫn được nạp ở cả 16 trang vì các collection khác
+(`batches`, `shops`, `products`, `orders`...) vẫn cần nó, chỉ riêng phần phiên đăng nhập của
+khung app-shell là không dùng tới nữa.
 
 ### Chuyển hướng sau khi đăng nhập (`redirectTarget()` trong `js/auth.js`)
 

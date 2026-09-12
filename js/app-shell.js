@@ -1,13 +1,11 @@
 /* ==========================================================================
    AgriChain — Khung app quản trị
    Đóng/mở sidebar, hiển thị người dùng trên topbar, toast dùng chung.
-   Nạp SAU js/store.js.
    ========================================================================== */
 
 (function (global) {
   'use strict';
 
-  var store = global.AgriChain && global.AgriChain.store;
   var api = global.AgriChain && global.AgriChain.api;
 
   /* --- Chữ viết tắt cho avatar: "tổ chức tess" -> "TT" --------------------- */
@@ -23,11 +21,15 @@
      Chưa đăng nhập thì đá về trang đăng nhập, kèm ?redirect= để quay lại đúng
      trang đang muốn vào sau khi đăng nhập xong.
 
-     Ưu tiên phiên API (js/api.js) nếu có — trang đã chuyển sang backend thật
-     (hiện chỉ tai-khoan.html) đăng nhập qua đó, không còn ghi phiên vào
-     store.js nữa. Trang nào chưa chuyển vẫn rơi xuống nhánh store.js như cũ.
-     Đây là cầu nối tạm thời cho tới khi mọi trang cùng chuyển sang API — xem
-     mục "Kết nối backend" trong CLAUDE.md. */
+     ĐÃ GỠ nhánh dự phòng đọc phiên qua store.js (từng là "cầu nối tạm" — xem
+     lịch sử ở mục "Kết nối backend" trong CLAUDE.md): dang-nhap.html/
+     dang-ky.html giờ đăng nhập/đăng ký HOÀN TOÀN qua js/api.js, không còn
+     trang nào ghi phiên vào store.js nữa nên `store.getSession()` luôn rỗng
+     — và cả 16 trang dùng app-shell.js đều đã gọi `AgriChain.api.
+     requireAuth()` ngay trong <head>, nên tới lúc hàm này chạy (sau
+     DOMContentLoaded) trang chưa đăng nhập đã bị chuyển hướng từ trước. Lệnh
+     redirect dưới đây chỉ còn là lớp phòng hờ (VD token bị xoá giữa lúc
+     <head> chạy và DOMContentLoaded), không còn là cơ chế chặn chính. */
   function requireSession() {
     var apiUser = api && api.isLoggedIn() && api.getUser();
     if (apiUser) {
@@ -38,9 +40,6 @@
         type: 'org'
       };
     }
-
-    var session = store && store.getSession();
-    if (session) return session;
 
     var here = global.location.pathname.split('/').pop() + global.location.search;
     global.location.replace('dang-nhap.html?redirect=' + encodeURIComponent(here));
@@ -66,14 +65,9 @@
   function setupLogout() {
     document.querySelectorAll('[data-logout]').forEach(function (button) {
       button.addEventListener('click', function () {
-        if (api && api.isLoggedIn()) {
-          api.auth.logout().then(function () {
-            global.location.href = 'dang-nhap.html';
-          });
-          return;
-        }
-        store.clearSession();
-        global.location.href = 'dang-nhap.html';
+        api.auth.logout().then(function () {
+          global.location.href = 'dang-nhap.html';
+        });
       });
     });
   }

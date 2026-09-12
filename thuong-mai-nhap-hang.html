@@ -58,13 +58,12 @@
   <script src="js/api-config.js?v=1"></script>
   <script src="js/api.js?v=10"></script>
   <script>
-    // Chặn tài khoản 'customer' vào khu quản trị — ngay trong <head> (không
-    // defer) để tránh chớp nội dung trước khi chuyển hướng. LƯU Ý: trang này
-    // CHƯA gọi AgriChain.api.requireAuth() (khác 6 trang farms/supplies/...
-    // đã migrate hẳn — xem CLAUDE.md mục "Cầu nối tạm với js/app-shell.js"),
-    // vẫn dựa vào requireSession() (js/app-shell.js, chạy sau
-    // DOMContentLoaded) để chặn khách CHƯA đăng nhập — ngoài phạm vi lần sửa
-    // này, chỉ thêm đúng phần chặn theo account_type được yêu cầu.
+    // Trang khu quản trị — chặn ngay trong <head> (không defer) để tránh
+    // chớp nội dung trước khi chuyển hướng nếu chưa đăng nhập qua API.
+    AgriChain.api.requireAuth();
+    // Khu quản trị — tài khoản 'customer' không có quyền gì ở đây (xem
+    // ADMIN_SHELL_PAGES trong js/auth.js), đá thẳng sang agriverse-3d.html
+    // trước khi trang kịp vẽ ra, không để lọt vào rồi mới nhận lỗi 403.
     AgriChain.api.requireBusiness();
   </script>
 </head>
@@ -350,7 +349,7 @@
 
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=12" defer></script>
-  <script src="js/app-shell.js?v=10" defer></script>
+  <script src="js/app-shell.js?v=11" defer></script>
   <script src="js/thuong-mai-nhap-hang.js?v=1" defer></script>
 </body>
 </html>
