@@ -29,11 +29,14 @@
   var PAGE_SIZE = 12;
   var SEARCH_DEBOUNCE_MS = 300;
 
-  // platform_admin (2026-09-13, xem CLAUDE.md mục "Quản trị hệ thống
-  // (platform_admin)") dùng CHUNG trang này với business — chỉ khác nguồn
-  // dữ liệu (api.system.workflowTemplates.list() thay vì
-  // api.workflowTemplates.list(), nhìn xuyên MỌI Đơn vị kèm
-  // organization_name) và ẩn hết thao tác ghi.
+  // platform_admin (xem CLAUDE.md mục "Quản trị hệ thống (platform_admin)")
+  // dùng CHUNG trang này với business — chỉ khác nguồn dữ liệu
+  // (api.system.workflowTemplates.list() thay vì api.workflowTemplates.list(),
+  // nhìn xuyên MỌI Đơn vị kèm organization_name) và ẩn hết thao tác ghi. Bấm
+  // vào 1 mẫu vẫn mở được modal (đổi tiêu đề "Xem chi tiết mẫu quy trình",
+  // khoá hết input kể cả từng bước, ẩn nút Lưu/"Thêm bước mới" — xem
+  // setTemplateModalReadOnly()/stepCard()) — cách duy nhất để xem đủ
+  // steps[], vì danh sách chỉ hiện tên/mô tả/số bước.
   var isPlatformAdminMode = api.isPlatformAdmin();
 
   // Vật tư — tải 1 lần lúc trang khởi động, dùng chung cho mọi bước quy
@@ -117,12 +120,17 @@
 
     var footer = el('div', 'card__footer');
 
+    // platform_admin: nút này LUÔN hiện (đổi hẳn sang icon con mắt) và mở
+    // ĐÚNG modal Thêm/Sửa nhưng ở chế độ chỉ xem (openModal() tự khoá input +
+    // ẩn nút Lưu khi isPlatformAdminMode) — cách duy nhất để xem đủ steps[]
+    // của 1 mẫu quy trình, vì danh sách chỉ hiện tên/mô tả/số bước. Business
+    // vẫn theo đúng quyền workflow_templates.edit như cũ.
     var editButton = el('button', 'icon-btn');
     editButton.type = 'button';
-    editButton.setAttribute('aria-label', 'Sửa ' + template.name);
-    editButton.setAttribute('data-tooltip', 'Sửa');
-    if (!api.hasPermission('workflow_templates.edit')) editButton.hidden = true;
-    editButton.appendChild(svgIcon('icon-pencil'));
+    editButton.setAttribute('aria-label', (isPlatformAdminMode ? 'Xem chi tiết ' : 'Sửa ') + template.name);
+    editButton.setAttribute('data-tooltip', isPlatformAdminMode ? 'Xem chi tiết' : 'Sửa');
+    if (!isPlatformAdminMode && !api.hasPermission('workflow_templates.edit')) editButton.hidden = true;
+    editButton.appendChild(svgIcon(isPlatformAdminMode ? 'icon-eye' : 'icon-pencil'));
     editButton.addEventListener('click', function () { openModal(template); });
     footer.appendChild(editButton);
 
@@ -273,6 +281,12 @@
     downButton.setAttribute('aria-label', 'Di chuyển bước xuống dưới');
     downButton.appendChild(svgIcon('icon-chevron-down'));
     downButton.addEventListener('click', function () { moveStep(card, 'down'); });
+    // platform_admin: modal chỉ để XEM — sắp xếp lại/xoá bước cũng là thao
+    // tác ghi (dù chưa bấm Lưu), ẩn hẳn cùng với các input bên dưới.
+    if (isPlatformAdminMode) {
+      upButton.hidden = true;
+      downButton.hidden = true;
+    }
     reorder.appendChild(upButton);
     reorder.appendChild(downButton);
     side.appendChild(reorder);
@@ -309,6 +323,7 @@
       renumberSteps();
       if (!stepsList.children.length) addStep();
     });
+    if (isPlatformAdminMode) removeButton.hidden = true;
     topRow.appendChild(removeButton);
     body.appendChild(topRow);
 
@@ -363,12 +378,27 @@
       if (supply.id === data.supply_id) option.selected = true;
       supplySelect.appendChild(option);
     });
+    // platform_admin không tải availableSupplies (GET /supplies đòi quyền
+    // supplies.view mà platform_admin không có, xem DOMContentLoaded) — nếu
+    // bước có supply_id thì vẫn thêm 1 option riêng để không âm thầm hiện
+    // "— Không chỉ định —" sai sự thật.
+    if (data.supply_id && !availableSupplies.some(function (s) { return s.id === data.supply_id; })) {
+      var unknownOption = el('option', null, 'Vật tư đã chỉ định (không tải được tên)');
+      unknownOption.value = data.supply_id;
+      unknownOption.selected = true;
+      supplySelect.appendChild(unknownOption);
+    }
     supplyField.appendChild(supplySelect);
     body.appendChild(supplyField);
 
     supplyInput.addEventListener('change', function () {
       supplyField.hidden = !supplyInput.checked;
     });
+
+    // platform_admin: khoá toàn bộ input/select của bước — chỉ xem, không sửa.
+    if (isPlatformAdminMode) {
+      body.querySelectorAll('input, select').forEach(function (node) { node.disabled = true; });
+    }
 
     card.appendChild(body);
     return card;
@@ -414,15 +444,26 @@
   var submitButton = form.querySelector('button[type="submit"]');
 
   var editingTemplateId = null;
+  var addStepButton = document.querySelector('[data-add-step]');
+
+  // platform_admin: khoá 2 field cấp mẫu (tên/mô tả) + ẩn nút "Thêm bước
+  // mới"/Lưu — từng bước đã tự khoá bên trong stepCard() khi isPlatformAdminMode.
+  function setTemplateModalReadOnly(readOnly) {
+    document.getElementById('template-name').disabled = readOnly;
+    document.getElementById('template-description').disabled = readOnly;
+    if (addStepButton) addStepButton.hidden = readOnly;
+    submitButton.hidden = readOnly;
+  }
 
   function openModal(template) {
     form.reset();
     clearErrors();
     editingTemplateId = template ? template.id : null;
     resetSteps();
+    setTemplateModalReadOnly(isPlatformAdminMode);
 
     if (template) {
-      modalTitle.textContent = 'Sửa mẫu quy trình';
+      modalTitle.textContent = isPlatformAdminMode ? 'Xem chi tiết mẫu quy trình' : 'Sửa mẫu quy trình';
       submitLabel.textContent = 'Lưu thay đổi';
       document.getElementById('template-name').value = template.name || '';
       document.getElementById('template-description').value = template.description || '';

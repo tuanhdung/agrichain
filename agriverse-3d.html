@@ -118,8 +118,8 @@
                          customer, xem redirectTarget() trong js/auth.js) mà không qua
                          index.html trước, không có lịch sử trình duyệt để bấm Back. Hiện
                          với MỌI người dùng bất kể đã đăng nhập hay account_type nào — khác
-                         "Khu Quản Lý" trong #account-area (chỉ hiện cho business), đây là
-                         điều hướng chung, không phải chức năng theo vai trò. Icon luôn hiện
+                         "Khu Quản Lý" trong #account-area (chỉ hiện cho business/platform_admin),
+                         đây là điều hướng chung, không phải chức năng theo vai trò. Icon luôn hiện
                          (kể cả màn hình nhỏ nhất), chữ chỉ hiện từ sm — cùng mẫu nút "Trợ Lý
                          AI Tiến Phát" ngay trong div "Nav Actions" bên dưới. -->
                     <a href="index.html" class="flex items-center space-x-1.5 pl-3 sm:pl-4 border-l border-slate-200 text-slate-500 hover:text-brand-700 font-semibold text-xs transition flex-shrink-0" aria-label="Về trang giới thiệu AgriChain">
@@ -1164,7 +1164,13 @@
             const user = api.getUser() || {};
             const fullName = user.full_name || 'Tài khoản';
             const initials = fullName.trim().split(/\s+/).map(w => w[0]).slice(-2).join('').toUpperCase() || '?';
-            const isBusiness = api.isBusiness();
+            // "Khu Quản Lý" dẫn về khu quản trị chung (nong-trai.html) — dùng
+            // được bởi CẢ business LẪN platform_admin (từ 2026-09-13, xem
+            // CLAUDE.md mục "Quản trị hệ thống (platform_admin)", dùng chung
+            // giao diện app-shell với business). Thiếu isPlatformAdmin() ở đây
+            // từng khiến platform_admin đăng nhập xong không có đường nào quay
+            // lại khu quản trị từ trang này, chỉ còn "Đăng Xuất" — bug đã vá.
+            const canManage = api.isBusiness() || api.isPlatformAdmin();
 
             // Khung HTML tĩnh (do mình viết, an toàn) — fullName/email của người
             // dùng gán riêng qua textContent bên dưới, KHÔNG nội suy thẳng vào
@@ -1180,7 +1186,7 @@
                         <p id="account-menu-panel-name" class="text-xs font-bold text-slate-900 truncate"></p>
                         <p id="account-menu-panel-email" class="text-[11px] text-slate-400 truncate"></p>
                     </div>
-                    ${isBusiness ? `
+                    ${canManage ? `
                     <a href="nong-trai.html" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">
                         <i class="fa-solid fa-gauge w-4"></i>
                         <span class="ml-2">Khu Quản Lý</span>

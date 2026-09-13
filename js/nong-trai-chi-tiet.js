@@ -23,6 +23,18 @@
    trang khác đã hết phụ thuộc store.js/chain.js trong dự án — để lại cho
    một đợt dọn dẹp sau, ngoài phạm vi lần sửa này).
 
+   platform_admin (xem CLAUDE.md mục "Quản trị hệ thống (platform_admin)")
+   xem trang này READ-ONLY, mở qua ?id=<UUID thật> (nút "Xem chi tiết" ở
+   nong-trai.html) thay vì ?ma=<mã> — mã nông trại chỉ duy nhất trong phạm
+   vi 1 Đơn vị, không đủ để xác định 1 bản ghi khi xem xuyên Đơn vị.
+   loadFarmById() tra qua GET /farms/{id} (public-read, không lọc theo Đơn
+   vị), còn 4 danh sách con (chứng nhận/mùa vụ/nhật ký/lô hàng) đổi hẳn
+   sang api.system.* (nhìn xuyên mọi Đơn vị) rồi tự lọc lại theo farm_id/
+   season_id ở client — GET /system/* không có tham số lọc này, xem
+   fetchAllSystemPages(). Mọi nút Thêm/Sửa/Xoá (kể cả "Áp dụng mẫu quy
+   trình"/"Ghi nhật ký & hoàn thành"/xem ảnh-tệp đính kèm) đều ẩn ở chế độ
+   này — biến isPlatformAdminMode.
+
    Nạp SAU js/api-config.js, js/api.js, js/app-shell.js, js/map-layers.js
    và js/enums.js (ACTIVITY_TYPES dùng chung).
    ========================================================================== */
@@ -31,6 +43,18 @@
   'use strict';
 
   var api = global.AgriChain.api;
+
+  // platform_admin (xem CLAUDE.md mục "Quản trị hệ thống (platform_admin)")
+  // được xem trang chi tiết này READ-ONLY, mở từ nút "Xem chi tiết" ở
+  // nong-trai.html qua ?id=<UUID thật> thay vì ?ma=<mã> — mã nông trại chỉ
+  // duy nhất trong phạm vi 1 Đơn vị, không đủ để xác định 1 bản ghi khi xem
+  // xuyên Đơn vị. Tính 1 lần lúc tải trang, dùng để: (1) route.load theo
+  // ?id=/api.farms.get() thay vì ?ma=/api.farms.list({q}) org-scoped, (2)
+  // đổi nguồn dữ liệu 4 danh sách con (chứng nhận/mùa vụ/nhật ký/lô hàng)
+  // sang api.system.* (tự lọc lại ở client vì /system/* không có tham số
+  // farm_id/season_id, xem fetchAllSystemPages()), (3) ẩn mọi nút Thêm/
+  // Sửa/Xoá trong mọi tab.
+  var isPlatformAdminMode = api.isPlatformAdmin();
 
   var CERT_STATUSES = [
     { key: 'active',    label: 'Hoạt động',    badge: 'badge--success' },
@@ -201,13 +225,34 @@
     });
   }
 
-  function showNotFound(code) {
+  function showNotFound(message) {
     farmLoadingNode.hidden = true;
     notFoundNode.hidden = false;
     detailNode.hidden = true;
     breadcrumbNode.textContent = 'Không tìm thấy';
-    notFoundNode.querySelector('[data-not-found-title]').textContent =
-      'Không tìm thấy nông trại có mã "' + code + '"';
+    notFoundNode.querySelector('[data-not-found-title]').textContent = message;
+  }
+
+  // 7 route /system/* (dùng cho platform_admin) KHÔNG có tham số lọc theo
+  // farm_id/season_id (chỉ page/page_size, xác nhận qua /openapi.json thật —
+  // xem mục "system.*" trong js/api.js) — phải tự tải HẾT các trang rồi lọc
+  // lại ở client. MAX_SYSTEM_PAGES chặn vòng lặp nếu dữ liệu toàn hệ thống
+  // vượt quá quy mô demo hiện tại (50 trang x 100 bản ghi = 5000).
+  var MAX_SYSTEM_PAGES = 50;
+
+  function fetchAllSystemPages(listFn) {
+    var all = [];
+    function loadPage(page) {
+      return listFn({ page: page, page_size: 100 }).then(function (data) {
+        all = all.concat(data.items || []);
+        var total = data.total || 0;
+        if (all.length < total && page < MAX_SYSTEM_PAGES) {
+          return loadPage(page + 1);
+        }
+        return all;
+      });
+    }
+    return loadPage(1);
   }
 
   function showFarm(farm) {
@@ -253,14 +298,31 @@
       })[0];
 
       if (!farm) {
-        showNotFound(code);
+        showNotFound('Không tìm thấy nông trại có mã "' + code + '"');
         return;
       }
 
       showFarm(farm);
       maybeOpenSeasonFromQuery(farm);
     }).catch(function (err) {
-      showNotFound(code);
+      showNotFound('Không tìm thấy nông trại có mã "' + code + '"');
+      notFoundNode.querySelector('[data-not-found-title]').textContent =
+        'Không tải được thông tin nông trại: ' + err.message;
+    });
+  }
+
+  // Dùng cho platform_admin (?id=<UUID thật>, xem nong-trai.js) — GET
+  // /farms/{id} là route public-read, không lọc theo Đơn vị (xem CLAUDE.md
+  // mục "Kết nối backend"), nên tìm được nông trại của BẤT KỲ Đơn vị nào,
+  // khác api.farms.list({ q }) org-scoped chỉ thấy Đơn vị của chính người
+  // gọi. Không gọi maybeOpenSeasonFromQuery() ở đây — tham số `season` chỉ
+  // dùng bởi luồng business (link sửa/xoá từ lo-hang.html), không phát sinh
+  // từ nút "Xem chi tiết" của platform_admin.
+  function loadFarmById(id) {
+    api.farms.get(id).then(function (farm) {
+      showFarm(farm);
+    }).catch(function (err) {
+      showNotFound('Không tìm thấy nông trại với ID đã cho.');
       notFoundNode.querySelector('[data-not-found-title]').textContent =
         'Không tải được thông tin nông trại: ' + err.message;
     });
@@ -333,7 +395,13 @@
     rows.appendChild(fieldRow('icon-calendar', 'Ngày hết hạn', formatDate(cert.expiry_date)));
 
     var fileValue;
-    if (cert.file_name) {
+    if (cert.file_name && isPlatformAdminMode) {
+      // GET /certifications/{id} lọc theo Đơn vị của người gọi — platform_
+      // admin (không thuộc Đơn vị nào) sẽ luôn nhận 404 khi bấm xem tệp của
+      // chứng nhận thuộc Đơn vị khác. Hiện tên tệp dạng tĩnh (không bấm
+      // được) trung thực hơn là để nút dẫn tới lỗi.
+      fileValue = el('span', 'badge badge--info', cert.file_name);
+    } else if (cert.file_name) {
       // Danh sách chỉ có metadata tệp, không có nội dung — bấm mới tải chi
       // tiết (api.certifications.get()) rồi mở file_url, không tải trước
       // cho toàn bộ danh sách (tốn băng thông vô ích).
@@ -392,7 +460,19 @@
   function renderCertifications() {
     if (!currentFarm) return;
     certListNode.textContent = '';
-    api.certifications.list({ farm_id: currentFarm.id, page_size: 100 }).then(function (data) {
+
+    // platform_admin: GET /certifications org-scoped 403 với dữ liệu của
+    // Đơn vị khác — đọc GET /system/certifications (nhìn xuyên mọi Đơn vị)
+    // rồi tự lọc lại theo farm_id ở client, vì route đó không có tham số lọc
+    // (xem fetchAllSystemPages()).
+    var request = isPlatformAdminMode
+      ? fetchAllSystemPages(api.system.certifications.list).then(function (items) {
+          var certs = items.filter(function (item) { return item.farm_id === currentFarm.id; });
+          return { items: certs, total: certs.length };
+        })
+      : api.certifications.list({ farm_id: currentFarm.id, page_size: 100 });
+
+    request.then(function (data) {
       var certs = data.items || [];
       certCountNode.textContent = data.total || certs.length;
 
@@ -734,7 +814,18 @@
 
   function renderSeasons() {
     if (!currentFarm) return;
-    api.seasons.list({ farm_id: currentFarm.id, page_size: 100 }).then(function (data) {
+
+    // platform_admin: cùng lý do với renderCertifications() — GET /seasons
+    // org-scoped 403 với dữ liệu Đơn vị khác, đọc GET /system/seasons rồi tự
+    // lọc theo farm_id ở client.
+    var request = isPlatformAdminMode
+      ? fetchAllSystemPages(api.system.seasons.list).then(function (items) {
+          var seasons = items.filter(function (item) { return item.farm_id === currentFarm.id; });
+          return { items: seasons, total: seasons.length };
+        })
+      : api.seasons.list({ farm_id: currentFarm.id, page_size: 100 });
+
+    request.then(function (data) {
       var seasons = data.items || [];
       seasonsTotal = data.total || seasons.length;
       seasonCountNode.textContent = seasonsTotal;
@@ -1338,26 +1429,35 @@
     if (log.images && log.images.length) {
       body.appendChild(logSectionLabel('icon-image', 'Hình ảnh hiện trường (' + log.images.length + ')'));
       var imagesHost = el('div', 'log-item__images');
-      var viewImagesBtn = el('button', 'btn btn--outline btn--sm', 'Xem ảnh');
-      viewImagesBtn.type = 'button';
-      viewImagesBtn.addEventListener('click', function () {
-        viewImagesBtn.disabled = true;
-        viewImagesBtn.textContent = 'Đang tải...';
-        api.logs.get(log.id).then(function (detail) {
-          imagesHost.textContent = '';
-          (detail.images || []).forEach(function (image) {
-            var img = document.createElement('img');
-            img.src = image.url;
-            img.alt = image.name || '';
-            imagesHost.appendChild(img);
+
+      if (isPlatformAdminMode) {
+        // GET /logs/{id} (chi tiết, có nội dung ảnh) lọc theo Đơn vị của
+        // người gọi — platform_admin sẽ luôn nhận 404 với nhật ký thuộc
+        // Đơn vị khác. Hiện ghi chú tĩnh thay vì 1 nút dẫn tới lỗi.
+        imagesHost.appendChild(el('p', 'log-item__images-note',
+          'Không xem được nội dung ảnh ở chế độ Quản trị hệ thống.'));
+      } else {
+        var viewImagesBtn = el('button', 'btn btn--outline btn--sm', 'Xem ảnh');
+        viewImagesBtn.type = 'button';
+        viewImagesBtn.addEventListener('click', function () {
+          viewImagesBtn.disabled = true;
+          viewImagesBtn.textContent = 'Đang tải...';
+          api.logs.get(log.id).then(function (detail) {
+            imagesHost.textContent = '';
+            (detail.images || []).forEach(function (image) {
+              var img = document.createElement('img');
+              img.src = image.url;
+              img.alt = image.name || '';
+              imagesHost.appendChild(img);
+            });
+          }).catch(function (err) {
+            global.AgriChain.toast(err.message);
+            viewImagesBtn.disabled = false;
+            viewImagesBtn.textContent = 'Xem ảnh';
           });
-        }).catch(function (err) {
-          global.AgriChain.toast(err.message);
-          viewImagesBtn.disabled = false;
-          viewImagesBtn.textContent = 'Xem ảnh';
         });
-      });
-      imagesHost.appendChild(viewImagesBtn);
+        imagesHost.appendChild(viewImagesBtn);
+      }
       body.appendChild(imagesHost);
     }
 
@@ -1391,7 +1491,18 @@
     if (!currentViewedSeason) return;
 
     logListNode.textContent = '';
-    api.logs.list({ season_id: currentViewedSeason.id, page_size: 100 }).then(function (data) {
+
+    // platform_admin: cùng lý do với renderCertifications()/renderSeasons()
+    // — GET /logs org-scoped 403 với dữ liệu Đơn vị khác, đọc GET
+    // /system/logs rồi tự lọc theo season_id ở client.
+    var request = isPlatformAdminMode
+      ? fetchAllSystemPages(api.system.logs.list).then(function (items) {
+          var logs = items.filter(function (item) { return item.season_id === currentViewedSeason.id; });
+          return { items: logs, total: logs.length };
+        })
+      : api.logs.list({ season_id: currentViewedSeason.id, page_size: 100 });
+
+    request.then(function (data) {
       var logs = (data.items || []).sort(function (a, b) {
         // Mới thực hiện gần đây nhất lên đầu
         return String(b.performed_at).localeCompare(String(a.performed_at));
@@ -1631,8 +1742,20 @@
 
   function loadBatches() {
     if (!currentViewedSeason) return;
-    api.batches.list({ season_id: currentViewedSeason.id, page_size: 100 }).then(function (data) {
-      currentSeasonBatches = data.items || [];
+
+    // platform_admin: cùng lý do với renderCertifications()/renderSeasons()/
+    // renderSeasonLogs() — GET /batches org-scoped 403 với dữ liệu Đơn vị
+    // khác, đọc GET /system/batches rồi tự lọc theo season_id ở client.
+    var request = isPlatformAdminMode
+      ? fetchAllSystemPages(api.system.batches.list).then(function (items) {
+          return items.filter(function (item) { return item.season_id === currentViewedSeason.id; });
+        })
+      : api.batches.list({ season_id: currentViewedSeason.id, page_size: 100 }).then(function (data) {
+          return data.items || [];
+        });
+
+    request.then(function (items) {
+      currentSeasonBatches = items;
       renderBatches();
     }).catch(function (err) {
       global.AgriChain.toast('Không tải được danh sách lô hàng: ' + err.message);
@@ -1685,7 +1808,9 @@
     // verification_status/tx_hash/anchored_at (luôn 'pending'/null, anchoring
     // thật CHƯA code) — hiện field đó ra sẽ làm sai lệch những lô đã niêm
     // phong bằng cơ chế mô phỏng cũ, tệ hơn là ẩn hẳn. Sửa/xoá vì vậy LUÔN
-    // hiện được (không còn khái niệm "đã niêm phong thì khoá sửa/xoá").
+    // hiện được với business (không còn khái niệm "đã niêm phong thì khoá
+    // sửa/xoá") — riêng platform_admin vẫn ẩn 2 nút này (xem ngay dưới), vì
+    // lý do khác hẳn: chỉ được XEM, không phải vì niêm phong.
     var actions = el('div', 'batch-card__actions');
 
     var qrButton = el('button', 'icon-btn');
@@ -1696,21 +1821,27 @@
     qrButton.addEventListener('click', function () { openQrModal(batch); });
     actions.appendChild(qrButton);
 
-    var edit = el('button', 'icon-btn batch-card__action--edit');
-    edit.type = 'button';
-    edit.setAttribute('aria-label', 'Sửa lô hàng ' + batch.code);
-    edit.setAttribute('data-tooltip', 'Chỉnh sửa');
-    edit.appendChild(svgIcon('icon-pencil'));
-    edit.addEventListener('click', function () { openBatchModal(batch); });
-    actions.appendChild(edit);
+    // Nút Sửa/Xoá không qua data-requires-permission nào cả (khác cert/
+    // season/log — batches chưa được gắn quyền qua giao diện này) — platform_
+    // admin bọc tay bằng isPlatformAdminMode, cùng mẫu đã áp dụng ở
+    // lo-hang.js.
+    if (!isPlatformAdminMode) {
+      var edit = el('button', 'icon-btn batch-card__action--edit');
+      edit.type = 'button';
+      edit.setAttribute('aria-label', 'Sửa lô hàng ' + batch.code);
+      edit.setAttribute('data-tooltip', 'Chỉnh sửa');
+      edit.appendChild(svgIcon('icon-pencil'));
+      edit.addEventListener('click', function () { openBatchModal(batch); });
+      actions.appendChild(edit);
 
-    var del = el('button', 'icon-btn batch-card__action--delete');
-    del.type = 'button';
-    del.setAttribute('aria-label', 'Xoá lô hàng ' + batch.code);
-    del.setAttribute('data-tooltip', 'Xoá');
-    del.appendChild(svgIcon('icon-trash'));
-    del.addEventListener('click', function () { deleteBatch(batch); });
-    actions.appendChild(del);
+      var del = el('button', 'icon-btn batch-card__action--delete');
+      del.type = 'button';
+      del.setAttribute('aria-label', 'Xoá lô hàng ' + batch.code);
+      del.setAttribute('data-tooltip', 'Xoá');
+      del.appendChild(svgIcon('icon-trash'));
+      del.addEventListener('click', function () { deleteBatch(batch); });
+      actions.appendChild(del);
+    }
 
     card.appendChild(actions);
 
@@ -2156,7 +2287,7 @@
       doneNote.appendChild(svgIcon('icon-check-circle'));
       doneNote.appendChild(el('span', null, 'Đã ghi nhật ký & hoàn thành'));
       card.appendChild(doneNote);
-    } else if (isCurrent) {
+    } else if (isCurrent && !isPlatformAdminMode) {
       var completeBtn = el('button', 'btn btn--primary btn--sm');
       completeBtn.type = 'button';
       completeBtn.appendChild(svgIcon('icon-check-circle'));
@@ -2196,8 +2327,14 @@
     if (!currentViewedSeason.workflow_steps) {
       processEmptyNode.hidden = false;
       processDetailNode.hidden = true;
-      fillProcessTemplateSelect();
-      processApplyBtn.disabled = true;
+      // platform_admin: khối "Áp dụng mẫu quy trình"/"Tạo quy trình rỗng" đã
+      // ẩn hẳn (xem DOMContentLoaded) — bỏ luôn việc gọi
+      // api.workflowTemplates.list() (yêu cầu quyền workflow_templates.view
+      // mà platform_admin không có, sẽ 403 vô ích).
+      if (!isPlatformAdminMode) {
+        fillProcessTemplateSelect();
+        processApplyBtn.disabled = true;
+      }
       return;
     }
 
@@ -2555,10 +2692,34 @@
     fillActivityTypes();
     fillBatchUnits();
     fillBatchStatuses();
-    loadSupplyOptions(); // dùng chung cho dropdown vật tư ở form nhật ký + form tuỳ biến bước quy trình
+    // platform_admin: dropdown vật tư chỉ dùng cho form nhật ký/tuỳ biến
+    // bước quy trình — cả 2 đều ẩn hẳn ở chế độ này, và GET /supplies đòi
+    // quyền supplies.view mà platform_admin không có (403 vô ích nếu gọi).
+    if (!isPlatformAdminMode) loadSupplyOptions();
 
-    var code = new URLSearchParams(global.location.search).get('ma') || '';
-    loadFarmByCode(code);
+    // platform_admin mở trang này qua ?id=<UUID thật> (nút "Xem chi tiết" ở
+    // nong-trai.html) — mã nông trại có thể trùng giữa các Đơn vị nên không
+    // đủ để xác định 1 bản ghi khi xem xuyên Đơn vị, xem loadFarmById().
+    // Luồng business bình thường giữ nguyên ?ma=<mã>.
+    var farmId = new URLSearchParams(global.location.search).get('id');
+    if (farmId) {
+      loadFarmById(farmId);
+    } else {
+      var code = new URLSearchParams(global.location.search).get('ma') || '';
+      loadFarmByCode(code);
+    }
+
+    // platform_admin: ẩn hẳn các nút ghi KHÔNG đi qua data-requires-permission
+    // (khác nút "Thêm chứng nhận/mùa vụ/nhật ký" — đã tự ẩn nhờ
+    // applyPermissionGates(), vì platform_admin không có permission nào cả).
+    if (isPlatformAdminMode) {
+      document.querySelectorAll('[data-open-batch-form], [data-process-customize-btn]')
+        .forEach(function (node) { node.hidden = true; });
+      var processApplyBox = document.querySelector('.process-apply');
+      if (processApplyBox) processApplyBox.hidden = true;
+      var processApplyHint = document.querySelector('.process-apply__hint');
+      if (processApplyHint) processApplyHint.hidden = true;
+    }
 
     document.querySelectorAll('[data-open-cert-form]').forEach(function (button) {
       button.addEventListener('click', function () { openCertModal(); });

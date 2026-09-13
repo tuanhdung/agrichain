@@ -559,17 +559,14 @@ xem mục "Trang `tai-khoan.html`").
   **Ngoại lệ phải sửa tay: `lo-hang.js`** — nút Sửa/Xoá ở đây vốn là `<a>` điều hướng thẳng
   sang `nong-trai-chi-tiet.html` (không qua `hasPermission()` nào cả, vì CRUD lô hàng thật
   sự nằm ở trang đó) — đã bọc thêm `if (!isPlatformAdminMode)` quanh việc dựng 2 nút này.
-- **Tránh dẫn vào ngõ cụt 403**: `nong-trai-chi-tiet.html` (trang chi tiết nông trại,
-  `lo-hang.js` cũng điều hướng sửa/xoá lô hàng về đây) **KHÔNG được chuyển đổi** ở lần đổi
-  hướng này (ngoài phạm vi) — gọi `api.farms.get()`/`api.seasons.*` thường sẽ 403 ngay khi
-  platform_admin lỡ vào được. `nong-trai.js`'s `farmCard()` vì vậy dựng thẻ dạng `<div>`
-  KHÔNG điều hướng (thay vì `<a href="nong-trai-chi-tiet.html?ma=...">`) khi
-  `isPlatformAdminMode`, kèm ẩn luôn nút "Xem chi tiết" (vốn không có sự kiện riêng, chỉ ăn
-  theo việc cả thẻ là `<a>`) — nút chết nếu không ẩn. `mau-quy-trinh.js`'s `templateCard()`
-  không có vấn đề này (nút Sửa mở modal TRONG TRANG, không điều hướng) — ẩn nút Sửa qua
-  `hasPermission()` cũng đồng nghĩa platform_admin không xem được `steps[]` chi tiết của mẫu
-  quy trình, chỉ thấy tên/mô tả/số bước — chấp nhận được, ngoài phạm vi xây thêm 1 modal
-  xem-only chỉ để lộ dữ liệu này.
+- **`nong-trai-chi-tiet.html` giờ ĐÃ hỗ trợ platform_admin** (xem mục riêng
+  "Trang chi tiết nông trại (`nong-trai-chi-tiet.html`) cho platform_admin" ngay bên dưới) —
+  `nong-trai.js`'s `farmCard()` dựng thẻ `<a>` trỏ `?id=<UUID thật>` (thay vì `?ma=<mã>` như
+  business) khi `isPlatformAdminMode`, và nút "Xem chi tiết" (vốn không có sự kiện riêng, chỉ
+  ăn theo việc cả thẻ là `<a>`) giờ LUÔN hiện, không còn bị ẩn như bản đổi-hướng-ban-đầu.
+  `mau-quy-trinh.js`'s `templateCard()`/`vat-tu.js`'s `row()` cũng đổi hướng tương tự — nút
+  Sửa đổi hẳn sang icon con mắt + LUÔN hiện cho platform_admin, mở ĐÚNG modal Thêm/Sửa nhưng
+  ở chế độ chỉ xem (xem mục riêng) — không còn ẩn hẳn qua `hasPermission()` như trước.
 - **`lo-hang.js` còn ẩn hẳn khối "Bộ lọc" (Nông trại/Mùa vụ)** ở chế độ platform_admin —
   `api.system.batches.list()` không lọc được `farm_id`/`season_id`, và tự dựng lại cơ chế lọc
   (gọi `api.farms.list()`/`api.seasons.list()` thường để đổ vào 2 select) sẽ 403 ngay từ bước
@@ -592,6 +589,88 @@ bằng redirect (theo đúng yêu cầu, ưu tiên đơn giản/an toàn hơn đ
 `js/tai-khoan.js`'s `DOMContentLoaded` kiểm `api.isPlatformAdmin()` NGAY ĐẦU, nếu đúng thì
 thay hẳn `.app-content` bằng 1 `.empty-state` báo "Không áp dụng cho tài khoản Quản trị hệ
 thống" rồi `return` sớm — không chạy `loadUsers()`/`GET /roles`... (sẽ 403 hàng loạt).
+
+**Trang chi tiết nông trại (`nong-trai-chi-tiet.html`) cho platform_admin**: bản đổi-hướng
+ban đầu (đoạn trên) cố tình chặn hẳn platform_admin khỏi trang này ("ngõ cụt 403", vì gọi
+`api.farms.get()`/`api.seasons.*` thường sẽ 403 với dữ liệu của Đơn vị khác) — đã bổ sung
+thêm để platform_admin xem được ĐẦY ĐỦ (Thông tin/Chứng nhận/Timeline mùa vụ/Lô hàng/Quy
+trình mùa vụ), vẫn READ-ONLY tuyệt đối, không phải qua trang riêng nào khác.
+
+- **`?id=<UUID thật>` thay cho `?ma=<mã>`**: mã nông trại chỉ duy nhất trong phạm vi 1 Đơn vị
+  (org-scoped), có thể TRÙNG giữa các Đơn vị khác nhau — không đủ để xác định 1 bản ghi khi
+  xem xuyên Đơn vị. `nong-trai.js`'s `farmCard()` dựng link `nong-trai-chi-tiet.html?id=<farm.id>`
+  khi `isPlatformAdminMode` (thay vì `?ma=<farm.code>` như business). `js/nong-trai-chi-tiet.js`
+  đọc query string: có `id` thì gọi `loadFarmById()` (qua `api.farms.get(id)`, route
+  **public-read**, không lọc theo Đơn vị — cùng route `truy-xuat.html` đã dùng cho khách chưa
+  đăng nhập); có `ma` (không có `id`) thì giữ nguyên `loadFarmByCode()` cũ (org-scoped, business).
+  2 luồng độc lập, không đụng nhau.
+- **4 danh sách con (chứng nhận/mùa vụ/nhật ký/lô hàng) đổi nguồn dữ liệu theo
+  `isPlatformAdminMode`** (biến module-scope, tính 1 lần lúc tải trang, cùng mẫu 4 trang danh
+  sách chính ở trên) — `renderCertifications()`/`renderSeasons()`/`renderSeasonLogs()`/
+  `loadBatches()` gọi `api.system.certifications.list()`/`api.system.seasons.list()`/
+  `api.system.logs.list()`/`api.system.batches.list()` thay vì
+  `api.certifications.list({ farm_id })`/... thường (org-scoped, sẽ 403 với dữ liệu Đơn vị
+  khác). **`GET /system/*` không có tham số lọc theo `farm_id`/`season_id`** (chỉ
+  `page`/`page_size`, xác nhận qua `/openapi.json` thật, cùng hạn chế đã ghi nhận ở 4 trang
+  danh sách chính) — `fetchAllSystemPages(listFn)` (hàm dùng chung mới, trong
+  `js/nong-trai-chi-tiet.js`) tự tải HẾT các trang (đệ quy tăng `page` tới khi
+  `items.length >= total`, chặn ở `MAX_SYSTEM_PAGES = 50` trang phòng dữ liệu toàn hệ thống
+  quá lớn) rồi mới lọc lại theo `farm_id`/`season_id` ở CLIENT. Đánh đổi chấp nhận được ở quy
+  mô demo hiện tại (vài trăm bản ghi) — sẽ cần tính lại nếu dữ liệu thật lớn hơn nhiều (xem
+  "Nợ kỹ thuật đã biết" nếu cần ghi nhận thêm).
+- **Ẩn TOÀN BỘ nút Thêm/Sửa/Xoá trong mọi tab** khi `isPlatformAdminMode`:
+  - Nút "Thêm chứng nhận"/"Thêm mùa vụ"/"Thêm nhật ký" đã tự ẩn nhờ `data-requires-permission`
+    có sẵn (`certifications.add`/`seasons.add`/`logs.add`) — `hasPermission()` luôn `false` với
+    platform_admin, KHÔNG cần sửa gì thêm. Cùng lý do, nút Sửa/Xoá chứng nhận và Sửa/Xoá mùa vụ
+    (trong `certCard()`/`seasonCard()`) cũng tự ẩn.
+  - **Phải sửa tay** (không đi qua `data-requires-permission` nào): nút "Thêm lô hàng mới"
+    (`[data-open-batch-form]`, ẩn ở `DOMContentLoaded`) và nút Sửa/Xoá trong `batchCard()` (bọc
+    `if (!isPlatformAdminMode)`, cùng mẫu đã áp dụng ở `lo-hang.js`) — batches chưa được gắn
+    quyền qua giao diện này (xem mục "Trang `tai-khoan.html`").
+  - Khối "Áp dụng mẫu quy trình" (select + nút "Áp dụng", "Tạo quy trình rỗng") và nút "Tuỳ
+    biến bước quy trình" ẩn hẳn ở `DOMContentLoaded` (`.process-apply`/`.process-apply__hint`/
+    `[data-process-customize-btn]`) — `renderSeasonProcess()` cũng bỏ luôn việc gọi
+    `fillProcessTemplateSelect()` (tức `api.workflowTemplates.list()`, đòi quyền
+    `workflow_templates.view` platform_admin không có, 403 vô ích nếu gọi). Nút "Ghi nhật ký &
+    hoàn thành" của bước "tới lượt" (`processStepViewCard()`) cũng ẩn — bước đó hiện y hệt các
+    bước "Chờ đến lượt thực hiện" khác.
+  - `loadSupplyOptions()` (dropdown vật tư dùng chung cho form nhật ký/tuỳ biến bước quy
+    trình) bỏ qua hẳn khi `isPlatformAdminMode` — cả 2 form đó đều ẩn, và `GET /supplies` đòi
+    quyền `supplies.view` platform_admin không có.
+- **Xem tệp/ảnh đính kèm của Đơn vị khác — 404, đã ẩn nút thay vì để lỗi**: `GET
+  /certifications/{id}` và `GET /logs/{id}` (2 route "chi tiết", có nội dung tệp/ảnh thật) lọc
+  theo `organization_id` của người gọi (xác nhận qua `agrichain-api/app/routers/
+  certifications.py`/`logs.py`) — platform_admin (`organization_id` luôn `NULL`) sẽ LUÔN nhận
+  404 khi bấm xem tệp/ảnh của 1 bản ghi thuộc Đơn vị khác, kể cả khi bản ghi đó CÓ tồn tại thật
+  (khác 404 nghĩa "không tìm thấy"). Vì `GET /system/certifications`/`GET /system/logs` (danh
+  sách) cũng chỉ trả METADATA (`file_name`/`file_mime`/`file_size`, không có `file_url`; ảnh
+  cũng vậy) — không có cách nào khác để lấy nội dung thật cho platform_admin ở thời điểm này.
+  `certCard()` hiện tên tệp dạng `<span>` tĩnh (không bấm được) thay vì `<button>` khi
+  `isPlatformAdminMode`; `logItem()` hiện ghi chú tĩnh "Không xem được nội dung ảnh ở chế độ
+  Quản trị hệ thống" thay vì nút "Xem ảnh" — ẩn hẳn trung thực hơn để nút dẫn tới lỗi, cùng
+  triết lý đã áp dụng cho khối "Xác thực blockchain" (xem mục "Kết nối backend").
+
+**`vat-tu.html`/`mau-quy-trinh.js` — bấm vào 1 dòng/thẻ vẫn mở được modal, nhưng ở CHẾ ĐỘ CHỈ
+XEM**: khác các trang danh sách khác (nút Sửa ẩn HẲN qua `hasPermission()`), 2 trang này giữ
+nút Sửa LUÔN HIỆN cho platform_admin (đổi icon bút chì thành icon con mắt, nhãn/tooltip đổi
+thành "Xem chi tiết") vì đây là CÁCH DUY NHẤT xem được dữ liệu không có sẵn trên bảng/thẻ tóm
+tắt (`mau-quy-trinh.html`: `steps[]` đầy đủ của 1 mẫu quy trình, danh sách chỉ hiện tên/mô
+tả/số bước; `vat-tu.html`: không có field nào bị giấu nhưng vẫn dùng chung khuôn cho nhất
+quán).
+
+- `js/vat-tu.js`'s `setModalReadOnly(readOnly)` khoá toàn bộ `input`/`select`/`textarea` của
+  modal + ẩn nút Lưu; `openEdit()` gọi hàm này với `isPlatformAdminMode`, đổi tiêu đề modal
+  thành "Xem chi tiết vật tư" khi đúng. `openCreate()` luôn gọi với `false` (nút "Thêm vật tư
+  mới" đã ẩn hẳn qua `data-requires-permission="supplies.add"` nên platform_admin không bao
+  giờ chạm được nhánh này, nhưng vẫn reset đúng trạng thái phòng hờ).
+- `js/mau-quy-trinh.js`'s `setTemplateModalReadOnly(readOnly)` khoá 2 field cấp mẫu (tên/mô
+  tả) + ẩn nút "Thêm bước mới"/Lưu; `stepCard()` tự khoá luôn mọi input/select CỦA TỪNG BƯỚC
+  (kể cả nút lên/xuống/xoá bước — sắp xếp lại cũng là 1 thao tác ghi dù chưa bấm Lưu) khi
+  `isPlatformAdminMode`, không cần `openModal()` lặp lại việc đó cho từng bước. Vì
+  `loadSupplyOptions()` cũng bỏ qua ở chế độ này (đòi quyền `supplies.view`), dropdown "Chỉ
+  định vật tư cụ thể" của 1 bước ĐÃ gắn `supply_id` sẽ không có tên thật để hiện — `stepCard()`
+  tự thêm 1 `<option>` dự phòng "Vật tư đã chỉ định (không tải được tên)" thay vì âm thầm hiện
+  "— Không chỉ định —" sai sự thật.
 
 ### Trang thương mại điện tử chính thức: `agriverse-3d.html` (KHÔNG phải `ecommerce.html`, 2026-09-11)
 
@@ -640,8 +719,13 @@ chưa đăng nhập hay tài khoản `customer` đều phải vào được bìn
 đúng: hiện avatar chữ cái đầu + tên (`user.full_name`, đọc qua `AgriChain.api.getUser()`)
 kèm dropdown (`toggleAccountMenu()`, tự đóng khi bấm ra ngoài — nghe `click` ở `document`,
 không dùng thư viện ngoài cho 1 dropdown nhỏ) gồm:
-- **"Khu Quản Lý"** → `nong-trai.html` — CHỈ hiện nếu `AgriChain.api.isBusiness()` đúng
-  (tài khoản `business` vừa mua hàng vừa quản trị Đơn vị cần đường quay lại khu quản trị).
+- **"Khu Quản Lý"** → `nong-trai.html` — hiện nếu `AgriChain.api.isBusiness()` **HOẶC**
+  `AgriChain.api.isPlatformAdmin()` đúng (biến `canManage`) — tài khoản `business` vừa mua
+  hàng vừa quản trị Đơn vị cần đường quay lại khu quản trị; `platform_admin` cũng dùng CHUNG
+  khu quản trị đó (xem mục "Quản trị hệ thống (platform_admin)"). **Bug đã vá**: điều kiện ban
+  đầu chỉ kiểm `isBusiness()` — `platform_admin` đăng nhập xong bị lọt vào trang này (đích mặc
+  định khi `?redirect=` không áp dụng, xem `defaultTargetFor()`) nhưng không có cách nào quay
+  lại `nong-trai.html`, chỉ còn "Đăng Xuất" trong menu tài khoản.
 - **"Đăng Xuất"** (`handleAccountLogout()`) → `AgriChain.api.auth.logout()` rồi tải lại
   chính `agriverse-3d.html` (không phải `dang-nhap.html` — đăng xuất ở trang công khai
   không bắt buộc phải rời khỏi nó).
@@ -696,11 +780,15 @@ không copy cách Tailwind + avatar dropdown của `agriverse-3d.html`.**
 
 Khác `agriverse-3d.html` (giữ nguyên 2 nút khi chưa đăng nhập + thêm avatar/dropdown khi đã
 đăng nhập), `.site-header__actions` ở đây đơn giản hơn: **thay hẳn 2 nút cũ bằng 1 nút duy
-nhất** trỏ theo `account_type` (`AgriChain.api.isBusiness()`) — `business` → `nong-trai.html`
-("Vào Trang Quản Lý"), `customer` → `agriverse-3d.html` ("Vào Mua Sắm", KHÔNG phải
-`ecommerce.html` — xem mục "Trang thương mại điện tử chính thức") — kèm 1 nút "Đăng Xuất"
-nhỏ cạnh đó (`AgriChain.api.auth.logout()` rồi `location.reload()`, không điều hướng đi đâu
-— đăng xuất ở trang công khai không bắt buộc phải rời trang).
+nhất** trỏ theo `account_type` (biến `canManage = AgriChain.api.isBusiness() ||
+AgriChain.api.isPlatformAdmin()`, CÙNG mẫu/CÙNG lần vá bug với "Khu Quản Lý" ở
+`agriverse-3d.html` phía trên — điều kiện ban đầu chỉ kiểm `isBusiness()` khiến
+`platform_admin` rơi vào nhánh `else` sai, hiện "Vào Mua Sắm" trỏ `agriverse-3d.html` thay vì
+"Vào Trang Quản Lý" trỏ khu quản trị) — `canManage` → `nong-trai.html` ("Vào Trang Quản Lý"),
+`customer` → `agriverse-3d.html` ("Vào Mua Sắm", KHÔNG phải `ecommerce.html` — xem mục "Trang
+thương mại điện tử chính thức") — kèm 1 nút "Đăng Xuất" nhỏ cạnh đó
+(`AgriChain.api.auth.logout()` rồi `location.reload()`, không điều hướng đi đâu — đăng xuất ở
+trang công khai không bắt buộc phải rời trang).
 
 `headerActionsDefaultHtml` chụp lại đúng HTML gốc (2 nút "Đăng Nhập"/"Bắt Đầu Ngay") của
 `.site-header__actions` ngay LẦN GỌI ĐẦU của `renderHeaderAccountArea()`, dùng để khôi phục

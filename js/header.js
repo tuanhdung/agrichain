@@ -31,9 +31,15 @@ function renderHeaderAccountArea() {
     return;
   }
 
-  var isBusiness = api.isBusiness();
-  var target = isBusiness ? 'nong-trai.html' : 'agriverse-3d.html';
-  var label = isBusiness ? 'Vào Trang Quản Lý' : 'Vào Mua Sắm';
+  // "Vào Trang Quản Lý" dẫn về khu quản trị chung (nong-trai.html) — dùng
+  // được bởi CẢ business LẪN platform_admin (dùng chung giao diện app-shell
+  // với business, xem CLAUDE.md mục "Quản trị hệ thống (platform_admin)").
+  // Chỉ kiểm isBusiness() từng khiến platform_admin rơi vào nhánh else
+  // (target 'agriverse-3d.html', nhãn "Vào Mua Sắm") — sai account_type,
+  // cùng loại bug đã vá ở agriverse-3d.html's renderAccountArea().
+  var canManage = api.isBusiness() || api.isPlatformAdmin();
+  var target = canManage ? 'nong-trai.html' : 'agriverse-3d.html';
+  var label = canManage ? 'Vào Trang Quản Lý' : 'Vào Mua Sắm';
 
   // target/label đều là chuỗi tĩnh (không có dữ liệu người dùng) nên ghép
   // thẳng vào innerHTML an toàn — khác fullName/email ở agriverse-3d.html,

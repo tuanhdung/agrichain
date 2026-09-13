@@ -14,10 +14,12 @@
   var PAGE_SIZE = 50;
   var SEARCH_DEBOUNCE_MS = 300;
 
-  // platform_admin (2026-09-13, xem CLAUDE.md mục "Quản trị hệ thống
-  // (platform_admin)") dùng CHUNG trang này với business — chỉ khác nguồn
-  // dữ liệu (api.system.supplies.list() thay vì api.supplies.list(), nhìn
-  // xuyên MỌI Đơn vị kèm organization_name) và ẩn hết thao tác ghi.
+  // platform_admin (xem CLAUDE.md mục "Quản trị hệ thống (platform_admin)")
+  // dùng CHUNG trang này với business — chỉ khác nguồn dữ liệu
+  // (api.system.supplies.list() thay vì api.supplies.list(), nhìn xuyên MỌI
+  // Đơn vị kèm organization_name) và ẩn hết thao tác ghi. Bấm vào 1 dòng vẫn
+  // mở được modal (đổi tiêu đề "Xem chi tiết vật tư", khoá hết input, ẩn nút
+  // Lưu — setModalReadOnly()) thay vì hoàn toàn không xem được gì.
   var isPlatformAdminMode = api.isPlatformAdmin();
 
   /* --- Danh mục loại vật tư ------------------------------------------------
@@ -184,12 +186,16 @@
     var actions = el('td');
     var wrap = el('div', 'table__actions');
 
+    // platform_admin: nút này LUÔN hiện (đổi hẳn sang icon con mắt) và mở
+    // ĐÚNG modal Sửa nhưng ở chế độ chỉ xem (setModalReadOnly(), xem
+    // openEdit()) — cách duy nhất để xem đủ thông tin 1 vật tư ngoài các cột
+    // đã có sẵn trên bảng. Business vẫn theo đúng quyền supplies.edit như cũ.
     var edit = el('button', 'icon-btn');
     edit.type = 'button';
-    edit.setAttribute('aria-label', 'Sửa ' + material.name);
-    edit.setAttribute('data-tooltip', 'Chỉnh sửa');
-    if (!api.hasPermission('supplies.edit')) edit.hidden = true;
-    edit.appendChild(svgIcon('icon-pencil'));
+    edit.setAttribute('aria-label', (isPlatformAdminMode ? 'Xem chi tiết ' : 'Sửa ') + material.name);
+    edit.setAttribute('data-tooltip', isPlatformAdminMode ? 'Xem chi tiết' : 'Chỉnh sửa');
+    if (!isPlatformAdminMode && !api.hasPermission('supplies.edit')) edit.hidden = true;
+    edit.appendChild(svgIcon(isPlatformAdminMode ? 'icon-eye' : 'icon-pencil'));
     edit.addEventListener('click', function () { openEdit(material.id); });
 
     var del = el('button', 'icon-btn icon-btn--danger');
@@ -325,10 +331,21 @@
     });
   }
 
+  // platform_admin: khoá toàn bộ input/select/textarea của modal + ẩn nút
+  // Lưu — dùng chung modal Thêm/Sửa (openEdit()) làm modal "Xem chi tiết"
+  // thay vì dựng modal riêng, vì cùng bộ field hiển thị y hệt.
+  function setModalReadOnly(readOnly) {
+    form.querySelectorAll('input, select, textarea').forEach(function (node) {
+      node.disabled = readOnly;
+    });
+    form.querySelector('button[type="submit"]').hidden = readOnly;
+  }
+
   function openCreate() {
     editingId = null;
     form.reset();
     clearErrors();
+    setModalReadOnly(false);
     modalTitle.textContent = 'Thêm vật tư mới';
     submitLabel.textContent = 'Lưu vật tư';
     modal.showModal();
@@ -342,7 +359,8 @@
     editingId = id;
     form.reset();
     clearErrors();
-    modalTitle.textContent = 'Sửa vật tư';
+    setModalReadOnly(isPlatformAdminMode);
+    modalTitle.textContent = isPlatformAdminMode ? 'Xem chi tiết vật tư' : 'Sửa vật tư';
     submitLabel.textContent = 'Lưu thay đổi';
 
     document.getElementById('material-code').value = material.code || '';

@@ -217,10 +217,12 @@
     // farm_code/season_code LUÔN có (BatchOut không cho null) — season còn
     // batch sống thì backend chặn xoá, nên không còn ca "mồ côi" phải xử lý
     // riêng như hồi còn store.js (xem ghi chú đầu file).
-    // platform_admin (2026-09-13): ẩn hẳn — KHÔNG chỉ vì read-only, mà vì
-    // đích đến (nong-trai-chi-tiet.html) KHÔNG được chuyển đổi ở lần này,
-    // gọi api.farms.*/api.seasons.* thường (yêu cầu permission platform_admin
-    // không có) sẽ 403 ngay khi mở.
+    // platform_admin: ẩn hẳn — đây là 2 nút SỬA/XOÁ (điều hướng qua
+    // nong-trai-chi-tiet.html để mở modal Sửa/Xoá lô hàng), platform_admin
+    // chỉ được XEM (nong-trai-chi-tiet.html đã hỗ trợ ?id= cho chế độ này,
+    // nhưng tự ẩn hết nút ghi khi mở qua đường đó — xem CLAUDE.md mục
+    // "Quản trị hệ thống (platform_admin)"), không có lý do điều hướng qua
+    // đây để sửa/xoá.
     if (!isPlatformAdminMode) {
       var url = editUrl(batch);
       var edit = el('a', 'icon-btn batch-card__action--edit');

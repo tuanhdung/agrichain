@@ -133,15 +133,19 @@
     // Cả thẻ là 1 liên kết tới trang chi tiết — bấm vào phần thông tin (chỗ
     // nào không phải nút sửa/xoá) sẽ mở nong-trai-chi-tiet.html. 2 nút thao
     // tác bên dưới tự chặn sự kiện nổi bọt lên <a> để không bị điều hướng.
-    // platform_admin (2026-09-13): nong-trai-chi-tiet.html KHÔNG được chuyển
-    // đổi ở lần này (ngoài phạm vi, xem CLAUDE.md), gọi api.farms.get()/
-    // list() thường — vốn yêu cầu permission mà role platform_admin không
-    // có — sẽ 403 ngay khi mở. Dựng thẻ dạng <div> KHÔNG điều hướng thay vì
-    // <a>, tránh dẫn vào ngõ cụt đó.
-    var card = el(isPlatformAdminMode ? 'div' : 'a', 'card' + (isPlatformAdminMode ? '' : ' card--hover'));
-    if (!isPlatformAdminMode) {
-      card.href = 'nong-trai-chi-tiet.html?ma=' + encodeURIComponent(farm.code);
-    }
+    // platform_admin: dùng ?id=<UUID thật> thay vì ?ma=<mã> — mã nông trại
+    // chỉ duy nhất trong phạm vi 1 Đơn vị (org-scoped), có thể TRÙNG giữa
+    // các Đơn vị khác nhau, nên không đủ để xác định 1 bản ghi khi xem
+    // xuyên Đơn vị. nong-trai-chi-tiet.js đọc ?id= để tra qua GET
+    // /farms/{id} (public-read, không lọc theo Đơn vị) thay vì
+    // api.farms.list({ q }) thường (org-scoped, sẽ không thấy nông trại
+    // của Đơn vị khác) — trang chi tiết tự chuyển các tab con (chứng nhận/
+    // mùa vụ/lô hàng/quy trình) sang api.system.* khi phát hiện ?id=, và ẩn
+    // hết nút ghi (xem CLAUDE.md mục "Quản trị hệ thống (platform_admin)").
+    var card = el('a', 'card card--hover');
+    card.href = isPlatformAdminMode
+      ? 'nong-trai-chi-tiet.html?id=' + encodeURIComponent(farm.id)
+      : 'nong-trai-chi-tiet.html?ma=' + encodeURIComponent(farm.code);
 
     var header = el('div', 'card__header');
     header.appendChild(el('h2', 'data-card__title', farm.name));
@@ -181,15 +185,12 @@
 
     // Không cần bắt sự kiện riêng: nút này nằm trong <a> nên bấm vào cũng tự
     // điều hướng như bấm vào chỗ khác trên thẻ — chỉ thêm cho quen mắt và có
-    // aria-label/tooltip rõ ràng, giống 2 nút sửa/xoá bên cạnh.
+    // aria-label/tooltip rõ ràng, giống 2 nút sửa/xoá bên cạnh. Đúng với cả
+    // 2 chế độ vì thẻ giờ LUÔN là <a> (xem ghi chú ở đầu hàm).
     var viewButton = el('button', 'icon-btn');
     viewButton.type = 'button';
     viewButton.setAttribute('aria-label', 'Xem chi tiết ' + farm.name);
     viewButton.setAttribute('data-tooltip', 'Xem chi tiết');
-    // Nút này vốn không có sự kiện riêng, chỉ "ăn theo" việc cả thẻ là <a> —
-    // platform_admin không có <a> đó (xem ghi chú ở đầu hàm), bấm vào sẽ
-    // không làm gì cả nên ẩn hẳn, tránh nút chết.
-    if (isPlatformAdminMode) viewButton.hidden = true;
     viewButton.appendChild(svgIcon('icon-eye'));
     actions.appendChild(viewButton);
 
