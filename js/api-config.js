@@ -7,4 +7,4 @@
    ========================================================================== */
 
 window.AgriChain = window.AgriChain || {};
-window.AgriChain.API_BASE_URL = 'http://127.0.0.1:8000';
+window.AgriChain.API_BASE_URL = 'https://agrichain-api-4mhf.onrender.com';
