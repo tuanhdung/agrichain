@@ -1,0 +1,15 @@
+/* Port nguyên văn phần .filter-card/.filter-card__title trong khối <style>
+   của lo-hang.html gốc — CSS chỉ dùng riêng cho trang này (khớp quy ước "CSS
+   chỉ dùng riêng cho 1 trang thì để trong <style> của chính trang đó"), tách
+   thành file .css riêng vì component React không có "thẻ trang" để nhúng
+   inline, cùng mẫu pages/tai-khoan/permission-table.css. Phần CSS của modal
+   QR trong file gốc CHƯA port — modal QR chưa có ở bản React này, xem
+   app/CLAUDE.md mục "Trang /lo-hang". */
+.filter-card {
+  margin-bottom: var(--space-6);
+}
+.filter-card__title {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  margin-bottom: var(--space-4);
+}

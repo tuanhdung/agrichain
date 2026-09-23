@@ -1,0 +1,100 @@
+/* Port NGUYÊN VĂN khối <style> riêng của mau-quy-trinh.html gốc — CSS chỉ
+   dùng riêng cho trang này, không phải component tái sử dụng (đúng quy ước
+   dự án ở CLAUDE.md gốc mục "Quy ước CSS": trang tĩnh để trong thẻ <style>
+   của chính nó; bản React tương đương là 1 file CSS import riêng bởi đúng
+   trang này, không đưa vào css/components.css dùng chung). */
+
+/* --- 1 bước trong "Các bước thực hiện": cột trái (số thứ tự + nút sắp
+   xếp) + thẻ nội dung bên phải ------------------------------------------ */
+.workflow-step {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+.workflow-step:last-child {
+  margin-bottom: 0;
+}
+
+.workflow-step__side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  padding-top: var(--space-2);
+}
+.workflow-step__number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-weight: 700;
+}
+.workflow-step__reorder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.workflow-step__chevron-up {
+  transform: rotate(180deg);
+}
+
+.workflow-step__body {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-4);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.workflow-step__top {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+.workflow-step__top .form-grid {
+  flex: 1;
+}
+.workflow-step__remove {
+  flex-shrink: 0;
+  margin-top: var(--space-8);
+}
+.workflow-step__instruction-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+.workflow-step__instruction-row .field {
+  flex: 1;
+}
+.workflow-step__qr {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding-bottom: var(--space-3);
+}
+.workflow-step__flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
+}
+.workflow-step__supply-field {
+  margin-top: var(--space-4);
+}
+
+/* --- Tiêu đề "Các bước thực hiện" + nút thêm bước ----------------------- */
+.steps-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.steps-header__title {
+  font-size: var(--text-base);
+  font-weight: 700;
+}

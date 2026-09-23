@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/app-shell.css" />
   <script src="js/api-config.js?v=1"></script>
+  <script src="js/app-config.js?v=1"></script>
   <script src="js/api.js?v=17"></script>
   <script>
     // Trang khu quản trị — chặn ngay trong <head> (không defer) để tránh
@@ -49,25 +50,29 @@
           </button>
           <ul class="app-nav__list" role="list" id="nav-san-xuat">
             <li>
-              <a class="app-nav__link" href="nong-trai.html">
+              <!-- Trỏ sang app/ (SPA React/Vite) — href gán động lúc tải trang bởi js/app-config.js (đọc AgriChain.APP_SPA_URL, tự nhận diện dev/prod qua location.hostname), xem app/CLAUDE.md mục "Giả định host". href="#" chỉ là fallback tĩnh phòng script chưa kịp chạy/lỗi. -->
+              <a class="app-nav__link" href="#" data-app-link="nong-trai">
                 <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-seedling"></use></svg>
                 Nông trại
               </a>
             </li>
             <li>
-              <a class="app-nav__link" href="vat-tu.html">
+              <!-- Trỏ sang app/ (SPA React/Vite) — href gán động lúc tải trang bởi js/app-config.js (đọc AgriChain.APP_SPA_URL, tự nhận diện dev/prod qua location.hostname), xem app/CLAUDE.md mục "Giả định host". href="#" chỉ là fallback tĩnh phòng script chưa kịp chạy/lỗi. -->
+              <a class="app-nav__link" href="#" data-app-link="vat-tu">
                 <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-tractor"></use></svg>
                 Vật tư
               </a>
             </li>
             <li>
-              <a class="app-nav__link" href="mau-quy-trinh.html">
+              <!-- Trỏ sang app/ (SPA React/Vite) — href gán động lúc tải trang bởi js/app-config.js (đọc AgriChain.APP_SPA_URL, tự nhận diện dev/prod qua location.hostname), xem app/CLAUDE.md mục "Giả định host". href="#" chỉ là fallback tĩnh phòng script chưa kịp chạy/lỗi. -->
+              <a class="app-nav__link" href="#" data-app-link="mau-quy-trinh">
                 <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-workflow"></use></svg>
                 Mẫu quy trình
               </a>
             </li>
             <li>
-              <a class="app-nav__link" href="lo-hang.html">
+              <!-- Trỏ sang app/ (SPA React/Vite) — href gán động lúc tải trang bởi js/app-config.js (đọc AgriChain.APP_SPA_URL, tự nhận diện dev/prod qua location.hostname), xem app/CLAUDE.md mục "Giả định host". href="#" chỉ là fallback tĩnh phòng script chưa kịp chạy/lỗi. -->
+              <a class="app-nav__link" href="#" data-app-link="lo-hang">
                 <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-warehouse"></use></svg>
                 Quản lý lô hàng
               </a>
@@ -133,19 +138,22 @@
           </button>
           <ul class="app-nav__list" role="list" id="nav-quan-ly-don-vi">
             <li>
-              <a class="app-nav__link" href="tai-khoan.html">
+              <!-- Trỏ sang app/ (SPA React/Vite) — href gán động lúc tải trang bởi js/app-config.js (đọc AgriChain.APP_SPA_URL, tự nhận diện dev/prod qua location.hostname), xem app/CLAUDE.md mục "Giả định host". href="#" chỉ là fallback tĩnh phòng script chưa kịp chạy/lỗi. -->
+              <a class="app-nav__link" href="#" data-app-link="tai-khoan">
                 <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-user"></use></svg>
                 Quản lý Tài khoản
               </a>
             </li>
             <li>
-              <a class="app-nav__link" href="goi-phan-mem.html" aria-current="page">
+              <!-- Trỏ sang app/ (SPA React/Vite) — href gán động lúc tải trang bởi js/app-config.js (đọc AgriChain.APP_SPA_URL, tự nhận diện dev/prod qua location.hostname), xem app/CLAUDE.md mục "Giả định host". href="#" chỉ là fallback tĩnh phòng script chưa kịp chạy/lỗi. -->
+              <a class="app-nav__link" href="#" data-app-link="goi-phan-mem">
                 <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-box"></use></svg>
                 Gói Phần mềm
               </a>
             </li>
             <li>
-              <a class="app-nav__link" href="lich-su-mua-goi.html">
+              <!-- Trỏ sang app/ (SPA React/Vite) — href gán động lúc tải trang bởi js/app-config.js (đọc AgriChain.APP_SPA_URL, tự nhận diện dev/prod qua location.hostname), xem app/CLAUDE.md mục "Giả định host". href="#" chỉ là fallback tĩnh phòng script chưa kịp chạy/lỗi. -->
+              <a class="app-nav__link" href="#" data-app-link="lich-su-mua-goi">
                 <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-file-text"></use></svg>
                 Lịch sử mua Gói
               </a>
@@ -189,7 +197,8 @@
       </button>
       <div class="user-menu__panel" hidden>
         <p class="user-menu__greeting">Xin chào, <strong data-session-name></strong></p>
-        <a class="user-menu__item" href="ho-so.html">
+        <!-- Trỏ sang app/ (SPA React/Vite) — href gán động lúc tải trang bởi js/app-config.js (đọc AgriChain.APP_SPA_URL, tự nhận diện dev/prod qua location.hostname), xem app/CLAUDE.md mục "Giả định host". href="#" chỉ là fallback tĩnh phòng script chưa kịp chạy/lỗi. -->
+        <a class="user-menu__item" href="#" data-app-link="ho-so">
           <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-user"></use></svg>
           Hồ sơ
         </a>
@@ -247,6 +256,6 @@
 
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=12" defer></script>
-  <script src="js/app-shell.js?v=14" defer></script>
+  <script src="js/app-shell.js?v=15" defer></script>
 </body>
 </html>

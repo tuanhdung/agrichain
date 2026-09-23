@@ -373,16 +373,18 @@
     section.hidden = !!(api && !api.isPlatformAdmin());
   }
 
-  // Ẩn mục "Quản lý Tài khoản" (tai-khoan.html) khỏi sidebar cho platform_admin
-  // (2026-09-13, xem CLAUDE.md mục "Quản trị hệ thống (platform_admin)") —
-  // tài khoản này không thuộc Đơn vị nào nên không có người dùng nào của
-  // "Đơn vị mình" để quản lý (khác business, luôn có đúng 1 Đơn vị). Chọn
-  // bằng href thay vì id vì mục này không có id riêng, cùng cấu trúc
-  // <a class="app-nav__link" href="tai-khoan.html"> lặp lại y hệt ở cả 16
+  // Ẩn mục "Quản lý Tài khoản" khỏi sidebar cho platform_admin (2026-09-13,
+  // xem CLAUDE.md mục "Quản trị hệ thống (platform_admin)") — tài khoản này
+  // không thuộc Đơn vị nào nên không có người dùng nào của "Đơn vị mình" để
+  // quản lý (khác business, luôn có đúng 1 Đơn vị). Chọn bằng
+  // data-app-link="tai-khoan" (KHÔNG còn href="tai-khoan.html" — mục này đã
+  // chuyển sang trỏ sang SPA /tai-khoan qua js/app-config.js, cùng cơ chế
+  // "Vật tư"/"Mẫu quy trình"/"Nông trại", xem CLAUDE.md gốc), cùng cấu trúc
+  // <a class="app-nav__link" data-app-link="tai-khoan"> lặp lại y hệt ở cả 16
   // trang app-shell. Gán `hidden` TƯỜNG MINH cả 2 chiều, cùng bài học đã rút
   // ra ở updateDistributorOnlyNav().
   function updatePlatformAdminOnlyNav() {
-    var link = document.querySelector('.app-nav__link[href="tai-khoan.html"]');
+    var link = document.querySelector('.app-nav__link[data-app-link="tai-khoan"]');
     var item = link && link.closest('li');
     if (!item) return;
     item.hidden = !!(api && api.isPlatformAdmin());

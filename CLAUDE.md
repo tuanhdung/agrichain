@@ -37,6 +37,15 @@ css/
 js/
   api-config.js          # window.AgriChain.API_BASE_URL — nạp TRƯỚC api.js, ở MỌI trang (kể cả
                           # trang chưa dùng API). Sửa domain backend khi deploy chỉ sửa file này.
+  app-config.js          # window.AgriChain.APP_SPA_URL (2026-09-22) — domain/port của app/ (SPA
+                          # React + Vite, xem app/CLAUDE.md), tự nhận diện dev/prod qua
+                          # location.hostname (site tĩnh này không có build step nên không thể
+                          # "build ra 2 bản" như app/.env/.env.production). Còn tự gắn href cho
+                          # MỌI link đánh dấu data-app-link="<route>" lúc DOMContentLoaded (hiện
+                          # chỉ 1 mục sidebar "Vật tư", data-app-link="vat-tu") — thêm route SPA
+                          # mới thì chỉ cần thêm data-app-link tương ứng trong HTML, không sửa file
+                          # này. Nạp SAU api-config.js, CHỈ ở 16 trang app-shell (nơi có sidebar) —
+                          # không nạp ở trang công khai.
   api.js                 # Lớp gọi backend thật (FastAPI) — token/refresh/lỗi/hàm nghiệp vụ
                           # (api.auth.*/api.users.*/api.roles.*/api.permissions.*/api.farms.*/
                           # api.seasons.*/api.logs.*/api.supplies.*/api.certifications.*/

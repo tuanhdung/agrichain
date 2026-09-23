@@ -1,0 +1,73 @@
+/* Port nguyên văn khối <style> của tai-khoan.html gốc (phần liên quan tới
+   .permission-person/.permission-table) — CSS chỉ dùng riêng cho trang này,
+   không phải component tái sử dụng, khớp quy ước "CSS chỉ dùng riêng cho 1
+   trang thì để trong <style> của chính trang đó" (CLAUDE.md gốc mục "Quy ước
+   CSS") — chỉ khác chỗ đặt (file .css riêng thay vì thẻ <style> inline, vì
+   component React không có "thẻ trang" để nhúng inline, cùng mẫu
+   pages/mau-quy-trinh/workflow-step.css). */
+
+.permission-person {
+  display: flex;
+  flex-shrink: 0; /* .modal[open] là flex column — khỏi bị co lại nhường chỗ cho .modal__body */
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border);
+}
+.permission-person__name {
+  font-weight: 700;
+}
+.permission-person__email {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* table-layout: fixed + width cố định cho từng cột — auto layout mặc định
+   của bảng để trình duyệt tự tính bề rộng cột theo nội dung, cột "Phân hệ"
+   (icon + chữ) rộng hơn hẳn 4 cột quyền (chỉ 1 icon/checkbox) khiến bề rộng
+   4 cột đó không thật sự bằng nhau giữa dòng header và dòng dữ liệu — icon
+   tiêu đề và checkbox bên dưới vì vậy lệch nhau dù cả hai đều đã
+   text-align: center. Ép width cố định cho chắc ăn. */
+.permission-table {
+  table-layout: fixed;
+}
+.permission-table th,
+.permission-table td {
+  width: 15%;
+  text-align: center;
+  vertical-align: middle; /* .table mặc định vertical-align: top — icon/checkbox lệch trên nếu để nguyên */
+}
+.permission-table th:first-child,
+.permission-table td:first-child {
+  width: 40%;
+  text-align: left;
+}
+.permission-table td .checkbox__input {
+  display: block;
+  margin: 0 auto; /* input tự canh giữa theo chiều ngang trong ô, không dựa vào text-align của ô cha */
+}
+.permission-table th .icon {
+  display: block;
+  margin: 0 auto; /* icon header dùng CHUNG cách canh giữa với checkbox ở trên — text-align: center
+                      một mình không đủ (span .sr-only đứng cạnh icon vẫn kéo lệch dù đã absolute) */
+}
+.permission-table__module {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+}
+.permission-table th .icon--view { color: var(--color-info); }
+.permission-table th .icon--add { color: var(--color-primary); }
+.permission-table th .icon--edit { color: var(--color-warning); }
+.permission-table th .icon--delete { color: var(--color-danger); }
+
+/* Tooltip mặc định hiện PHÍA TRÊN phần tử — nhưng hàng tiêu đề của bảng này
+   nằm sát mép trên của .modal__body (overflow-y: auto), không đủ chỗ phía
+   trên nên tooltip bị cắt mất/không thấy được. Đảo xuống dưới cho riêng mấy
+   ô tiêu đề này. */
+.permission-table th[data-tooltip]::after {
+  top: calc(100% + var(--space-1));
+  bottom: auto;
+}

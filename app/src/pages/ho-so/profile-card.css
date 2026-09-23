@@ -1,0 +1,57 @@
+/* Port nguyên văn khối <style> của ho-so.html gốc (.profile-layout/
+   .profile-card*) — CSS chỉ dùng riêng cho trang này, tách thành file .css
+   riêng vì component React không có "thẻ trang" để nhúng inline, cùng mẫu
+   pages/tai-khoan/permission-table.css. */
+.profile-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+  align-items: start;
+}
+@media (min-width: 768px) {
+  .profile-layout {
+    grid-template-columns: 320px 1fr;
+  }
+}
+
+.profile-card {
+  text-align: center;
+}
+.profile-card__avatar {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+}
+.profile-card__avatar .avatar {
+  width: var(--space-24);
+  height: var(--space-24);
+  font-size: var(--text-2xl);
+}
+.profile-card__name {
+  font-size: var(--text-xl);
+}
+.profile-card__email {
+  margin-bottom: var(--space-3);
+  color: var(--color-text-muted);
+}
+.profile-card__divider {
+  margin: var(--space-5) 0;
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+.profile-card__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  text-align: left;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+.profile-card__row:first-of-type {
+  margin-top: 0;
+}
+.profile-card__row .icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}

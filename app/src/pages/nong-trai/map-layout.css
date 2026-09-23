@@ -1,0 +1,159 @@
+/* Port NGUYÊN VĂN khối <style> riêng của nong-trai.html gốc — CSS chỉ dùng
+   riêng cho trang này (khối vẽ ranh giới), không phải component tái sử
+   dụng, xem quy ước ở css/pages/mau-quy-trinh/workflow-step.css. */
+
+.map-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+@media (min-width: 860px) {
+  /* Tỉ lệ theo fr (không phải cột trái cố định + "1fr" nuốt hết phần còn
+     lại) — bản đồ trước đó chiếm gần 70% bề rộng modal rộng (.modal--wide,
+     xem app-shell.css) vì cột trái chỉ cố định tối đa 380px rồi nhường
+     100% phần dư cho bản đồ. Đổi sang 55fr/45fr để danh sách toạ độ LUÔN
+     chiếm hơn 1 nửa (52-55%), bản đồ dưới 1 nửa (45-48%), giữ đúng tỉ lệ
+     này ở mọi bề rộng modal — 2 số px trong minmax() chỉ là sàn tối thiểu
+     phòng khi modal hẹp sát breakpoint 860px, không phải giá trị cố định. */
+  .map-layout { grid-template-columns: minmax(320px, 55fr) minmax(320px, 45fr); }
+}
+
+.map-canvas {
+  /* Bản đồ vẫn rộng ra đáng kể khi modal rộng (dù giờ chỉ chiếm ~45% cột
+     phải thay vì gần 70% như trước, xem .map-layout ở trên) nên vẫn tăng
+     chiều cao theo tỉ lệ để không thành 1 dải ngang mỏng dẹt mất cân đối;
+     giữ đúng 360px cũ làm sàn. */
+  height: clamp(360px, 32vw, 480px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  /* Leaflet dựng lớp riêng bên trong; không để bo góc bị tràn ra ngoài */
+  overflow: hidden;
+  z-index: 0;
+}
+
+.map-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.map-side__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.map-side__title {
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.coord-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-height: 180px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.coord-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  font-size: var(--text-xs);
+}
+
+.coord-item__index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--space-6);
+  height: var(--space-6);
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-weight: 700;
+}
+
+/* Toạ độ nhập/sửa trực tiếp trong danh sách (thay cho span chữ tĩnh cũ) —
+   ghép thêm .input để thừa hưởng style focus/aria-invalid có sẵn, chỉ
+   override kích thước cho vừa 1 dòng trong .coord-item. */
+.coord-item__input {
+  width: auto;
+  min-width: 0;
+  flex: 1;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+/* Dòng vừa thêm qua "Thêm điểm", CHƯA áp dụng vào bản đồ (phải bấm "Hiển
+   thị" mới tính) — viền đứt để phân biệt với điểm đã có thật. */
+.coord-item--pending {
+  border: 1px dashed var(--color-border);
+}
+
+.coord-empty {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.map-area {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-primary-subtle);
+}
+
+.map-area__label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.map-area__value {
+  font-size: var(--text-lg);
+  color: var(--color-primary-active);
+}
+
+/* Chưa khép kín ranh giới — chưa có diện tích thật, tránh hiện số "0 ha"
+   gây hiểu lầm là đã tính xong. */
+.map-area--pending {
+  background: var(--color-bg-subtle);
+}
+
+.map-area--pending .map-area__value {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-style: italic;
+}
+
+/* Nút "Về vị trí của tôi" — control tự thêm vào Leaflet, chỉ định kiểu
+   icon/màu ở đây, khung nút (viền, đổ bóng, nền trắng) do .leaflet-bar
+   của Leaflet lo sẵn. */
+.map-locate-control a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  color: var(--color-primary);
+}
+.map-locate-control a:hover {
+  background: var(--color-bg-subtle);
+}
