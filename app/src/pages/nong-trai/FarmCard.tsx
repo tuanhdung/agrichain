@@ -1,8 +1,8 @@
 // Port farmCard() (js/nong-trai.js gốc) — markup/class giữ NGUYÊN
 // (.card.card--hover, .data-card__header/__title/__code/__rows/__row/
 // __row-label/__actions, .icon-btn/.icon-btn--danger).
+import { Link } from 'react-router-dom';
 import { Icon } from '../../icons';
-import { mainSiteUrl } from '../../api/config';
 import type { Farm, FarmSystemRow } from '../../api';
 import { formatArea, formatDate } from './format';
 
@@ -33,11 +33,11 @@ export function FarmCard({ farm, isPlatformAdminMode, canEdit, canDelete, onOpen
   // platform_admin: dùng ?id=<UUID thật> thay vì ?ma=<mã> — mã nông trại chỉ
   // duy nhất trong phạm vi 1 Đơn vị (org-scoped), có thể TRÙNG giữa các Đơn
   // vị khác nhau, không đủ để xác định 1 bản ghi khi xem xuyên Đơn vị.
-  // nong-trai-chi-tiet.html (CHƯA migrate — mainSiteUrl()) tự đọc ?id= để
-  // tra qua GET /farms/{id} (public-read) thay vì api.farms.list({ q }).
+  // /nong-trai-chi-tiet (route SPA, đã migrate) tự đọc ?id= để tra qua
+  // GET /farms/{id} (public-read) thay vì api.farms.list({ q }).
   const href = isPlatformAdminMode
-    ? mainSiteUrl(`nong-trai-chi-tiet.html?id=${encodeURIComponent(farm.id)}`)
-    : mainSiteUrl(`nong-trai-chi-tiet.html?ma=${encodeURIComponent(farm.code)}`);
+    ? `/nong-trai-chi-tiet?id=${encodeURIComponent(farm.id)}`
+    : `/nong-trai-chi-tiet?ma=${encodeURIComponent(farm.code)}`;
 
   const place = [farm.ward, farm.province].filter(Boolean).join(', ');
 
@@ -47,7 +47,7 @@ export function FarmCard({ farm, isPlatformAdminMode, canEdit, canDelete, onOpen
   }
 
   return (
-    <a className="card card--hover" href={href}>
+    <Link className="card card--hover" to={href}>
       <div className="card__header">
         <h2 className="data-card__title">{farm.name}</h2>
         <p className="data-card__code">{farm.code}</p>
@@ -63,7 +63,7 @@ export function FarmCard({ farm, isPlatformAdminMode, canEdit, canDelete, onOpen
       </div>
 
       <div className="data-card__actions">
-        {/* Không cần bắt sự kiện riêng: nút này nằm trong <a> nên bấm vào
+        {/* Không cần bắt sự kiện riêng: nút này nằm trong <Link> nên bấm vào
             cũng tự điều hướng như bấm vào chỗ khác trên thẻ — chỉ thêm cho
             quen mắt, khớp bản gốc (LUÔN hiện, không gate theo quyền/chế độ). */}
         <button type="button" className="icon-btn" aria-label={`Xem chi tiết ${farm.name}`} data-tooltip="Xem chi tiết">
@@ -100,6 +100,6 @@ export function FarmCard({ farm, isPlatformAdminMode, canEdit, canDelete, onOpen
           </button>
         )}
       </div>
-    </a>
+    </Link>
   );
 }

@@ -787,20 +787,27 @@
   // (mồ côi, xem CLAUDE.md, cùng cách xử lý orgUsers/workflowTemplates/
   // js/chain.js — KHÔNG xoá hàm `isDistributor()`/migration/cột DB, chỉ
   // ngừng gọi). Người bị chặn ở đây vẫn là account_type='business' hợp lệ
-  // (không phải 'customer') — đá về nong-trai.html (khu quản trị chung),
-  // KHÔNG phải agriverse-3d.html (đích dành riêng cho 'customer'). Gọi SAU
+  // (không phải 'customer') — đá về khu quản trị chung, KHÔNG phải
+  // agriverse-3d.html (đích dành riêng cho 'customer'). Gọi SAU
   // requireAuth()/requireBusiness() ở đầu <head>: giả định trang ĐÃ đăng
   // nhập rồi mới tới lượt kiểm — nếu gọi khi chưa đăng nhập hoặc là
   // 'customer', !isLoggedIn() hoặc !isBusiness() sớm return true luôn, để 2
   // hàm kia (đã gọi trước) tự xử lý ca của mình, requireDistributor() không
   // giẫm lên việc đó.
+  //
+  // /nong-trai giờ là route SPA (đã xoá nong-trai.html tĩnh cùng 8 trang
+  // "Hoạt động sản xuất" khác, xem CLAUDE.md mục "Kết nối backend") — dùng
+  // AgriChain.APP_SPA_URL (js/app-config.js, đã nạp trước api.js ở cả 7 trang
+  // thuong-mai-*) thay vì href tương đối cũ. Người bị đá sẽ cần đăng nhập lại
+  // 1 lần nữa trên SPA (2 origin không chia sẻ được localStorage, xem
+  // app/CLAUDE.md mục "Giả định host") — nợ kỹ thuật đã biết.
   var pageRequiresDistributor = false;
 
   function requireDistributor() {
     pageRequiresDistributor = true;
     if (!isLoggedIn() || isPlatformAdmin()) return true;
     if (!isBusiness()) return true;
-    global.location.href = 'nong-trai.html';
+    global.location.href = (global.AgriChain.APP_SPA_URL || '') + '/nong-trai';
     return false;
   }
 
@@ -848,7 +855,7 @@
       return;
     }
     if (pageRequiresDistributor && isLoggedIn() && isBusiness()) {
-      global.location.href = 'nong-trai.html';
+      global.location.href = (global.AgriChain.APP_SPA_URL || '') + '/nong-trai';
     }
   });
 

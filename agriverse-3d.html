@@ -80,8 +80,12 @@
          chạy — xem <script> cuối trang. Trang này vẫn KHÔNG gọi requireAuth()/
          requireBusiness() — đúng ý, đây là trang công khai, khách 'customer'
          phải vào được. -->
-    <script src="js/api-config.js?v=1"></script>
-    <script src="js/api.js?v=17"></script>
+    <script src="js/api-config.js?v=2"></script>
+    <!-- Cần AgriChain.APP_SPA_URL cho mục "Khu Quản Lý" (data-app-link bên
+         dưới) — trỏ sang SPA thay vì nong-trai.html (đã xoá, xem CLAUDE.md
+         gốc mục "Kết nối backend"). -->
+    <script src="js/app-config.js?v=2"></script>
+    <script src="js/api.js?v=18"></script>
 </head>
 <body class="text-slate-800 bg-[#fbfbfa] min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
 
@@ -968,13 +972,17 @@
             const user = api.getUser() || {};
             const fullName = user.full_name || 'Tài khoản';
             const initials = fullName.trim().split(/\s+/).map(w => w[0]).slice(-2).join('').toUpperCase() || '?';
-            // "Khu Quản Lý" dẫn về khu quản trị chung (nong-trai.html) — dùng
-            // được bởi CẢ business LẪN platform_admin (từ 2026-09-13, xem
-            // CLAUDE.md mục "Quản trị hệ thống (platform_admin)", dùng chung
-            // giao diện app-shell với business). Thiếu isPlatformAdmin() ở đây
-            // từng khiến platform_admin đăng nhập xong không có đường nào quay
-            // lại khu quản trị từ trang này, chỉ còn "Đăng Xuất" — bug đã vá.
+            // "Khu Quản Lý" dẫn về khu quản trị chung — dùng được bởi CẢ
+            // business LẪN platform_admin (từ 2026-09-13, xem CLAUDE.md mục
+            // "Quản trị hệ thống (platform_admin)", dùng chung giao diện
+            // app-shell với business). Thiếu isPlatformAdmin() ở đây từng
+            // khiến platform_admin đăng nhập xong không có đường nào quay lại
+            // khu quản trị từ trang này, chỉ còn "Đăng Xuất" — bug đã vá.
             const canManage = api.isBusiness() || api.isPlatformAdmin();
+            // /nong-trai giờ là route SPA (đã xoá nong-trai.html tĩnh, xem
+            // CLAUDE.md gốc mục "Kết nối backend") — dùng AgriChain.APP_SPA_URL
+            // (js/app-config.js, nạp ở <head>) thay vì href tương đối cũ.
+            const manageUrl = (window.AgriChain && window.AgriChain.APP_SPA_URL ? window.AgriChain.APP_SPA_URL : '') + '/nong-trai';
 
             // Khung HTML tĩnh (do mình viết, an toàn) — fullName/email của người
             // dùng gán riêng qua textContent bên dưới, KHÔNG nội suy thẳng vào
@@ -991,7 +999,7 @@
                         <p id="account-menu-panel-email" class="text-[11px] text-slate-400 truncate"></p>
                     </div>
                     ${canManage ? `
-                    <a href="nong-trai.html" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">
+                    <a href="${manageUrl}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">
                         <i class="fa-solid fa-gauge w-4"></i>
                         <span class="ml-2">Khu Quản Lý</span>
                     </a>

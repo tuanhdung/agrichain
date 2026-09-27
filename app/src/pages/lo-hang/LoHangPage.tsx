@@ -3,8 +3,10 @@
 // -> Mùa vụ (2 select phụ thuộc, useCascadingSelect với allowEmptyParent —
 // "chưa chọn nông trại" = "mọi nông trại", KHÁC hẳn Tỉnh/Thành -> Phường/Xã
 // ở /nong-trai). KHÔNG có modal thêm/sửa lô hàng ở trang này — CRUD thật vẫn
-// ở nong-trai-chi-tiet.html (CHƯA migrate), nút Sửa/Xoá trên mỗi thẻ chỉ
-// ĐIỀU HƯỚNG sang đó qua mainSiteUrl(). Chế độ chỉ-xem cho platform_admin:
+// ở /nong-trai-chi-tiet (route SPA, đã migrate), nút Sửa/Xoá trên mỗi thẻ chỉ
+// ĐIỀU HƯỚNG sang đó qua <Link> nội bộ (xem BatchCard.tsx — lưu ý ?season=/
+// #lo-hang chưa được trang đích đọc để tự mở modal, xem comment ở đó).
+// Chế độ chỉ-xem cho platform_admin:
 // api.system.batches.list() (không lọc được farm_id/season_id) — ẨN HẲN bộ
 // lọc (không phải disable), cột "Đơn vị sở hữu" trên mỗi thẻ, ẨN nút Sửa/Xoá.
 import { useCallback, useEffect, useState } from 'react';

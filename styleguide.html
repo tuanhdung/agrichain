@@ -162,8 +162,12 @@
       height: var(--space-8);
     }
   </style>
-  <script src="js/api-config.js?v=1"></script>
-  <script src="js/api.js?v=17"></script>
+  <script src="js/api-config.js?v=2"></script>
+  <!-- Cần AgriChain.APP_SPA_URL cho nút "Vào Trang Quản Lý" (js/header.js) —
+       trỏ sang SPA thay vì nong-trai.html (đã xoá, xem CLAUDE.md gốc mục
+       "Kết nối backend"). -->
+  <script src="js/app-config.js?v=2"></script>
+  <script src="js/api.js?v=18"></script>
 </head>
 <body>
 
@@ -920,6 +924,6 @@
     </div>
   </section>
 
-  <script src="js/header.js?v=5" defer></script>
+  <script src="js/header.js?v=6" defer></script>
 </body>
 </html>

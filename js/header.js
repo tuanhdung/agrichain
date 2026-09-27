@@ -31,14 +31,21 @@ function renderHeaderAccountArea() {
     return;
   }
 
-  // "Vào Trang Quản Lý" dẫn về khu quản trị chung (nong-trai.html) — dùng
-  // được bởi CẢ business LẪN platform_admin (dùng chung giao diện app-shell
-  // với business, xem CLAUDE.md mục "Quản trị hệ thống (platform_admin)").
+  // "Vào Trang Quản Lý" dẫn về khu quản trị chung — dùng được bởi CẢ
+  // business LẪN platform_admin (dùng chung giao diện app-shell với
+  // business, xem CLAUDE.md mục "Quản trị hệ thống (platform_admin)").
   // Chỉ kiểm isBusiness() từng khiến platform_admin rơi vào nhánh else
   // (target 'agriverse-3d.html', nhãn "Vào Mua Sắm") — sai account_type,
   // cùng loại bug đã vá ở agriverse-3d.html's renderAccountArea().
   var canManage = api.isBusiness() || api.isPlatformAdmin();
-  var target = canManage ? 'nong-trai.html' : 'agriverse-3d.html';
+  // /nong-trai giờ là route SPA (đã xoá nong-trai.html tĩnh, xem CLAUDE.md
+  // gốc mục "Kết nối backend") — dùng AgriChain.APP_SPA_URL (js/app-config.js,
+  // nạp trước file này ở 5 trang công khai) thay vì href tương đối cũ. SPA
+  // sẽ tự đá sang /login của chính nó nếu phiên site tĩnh không tồn tại bên
+  // đó (2 origin khác nhau, không chia sẻ được localStorage — xem
+  // app/CLAUDE.md mục "Giả định host"), tức người dùng cần đăng nhập lại 1
+  // lần nữa — nợ kỹ thuật đã biết, chưa giải quyết được trong lần sửa này.
+  var target = canManage ? ((window.AgriChain.APP_SPA_URL || '') + '/nong-trai') : 'agriverse-3d.html';
   var label = canManage ? 'Vào Trang Quản Lý' : 'Vào Mua Sắm';
 
   // target/label đều là chuỗi tĩnh (không có dữ liệu người dùng) nên ghép

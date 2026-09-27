@@ -9,8 +9,8 @@
 // dependency mới (thư viện tạo QR) ngoài phạm vi các việc đã liệt kê khi
 // migrate trang này, xem app/CLAUDE.md mục "Trang /lo-hang" để biết đầy đủ
 // lý do hoãn lại.
+import { Link } from 'react-router-dom';
 import { Icon } from '../../icons';
-import { mainSiteUrl } from '../../api/config';
 import { statusOf } from './constants';
 import { formatArea, formatDate } from './format';
 import type { Batch, BatchSystemRow } from '../../api';
@@ -36,9 +36,12 @@ export function BatchCard({ batch, isPlatformAdminMode }: BatchCardProps) {
   // farm_code/season_code LUÔN có (BatchOut không cho null) — season còn
   // batch sống thì backend chặn xoá, nên không có ca "mồ côi" phải xử lý
   // riêng như hồi còn store.js (xem js/lo-hang.js gốc).
-  const editUrl = mainSiteUrl(
-    `nong-trai-chi-tiet.html?ma=${encodeURIComponent(batch.farm_code)}&season=${encodeURIComponent(batch.season_code)}#lo-hang`
-  );
+  // /nong-trai-chi-tiet (route SPA, đã migrate) giữ nguyên query/hash ?ma=
+  // &season=...#lo-hang để khớp URL bản gốc — LƯU Ý: trang đích CHƯA đọc
+  // season/hash này để tự mở modal mùa vụ + chuyển tab "Lô hàng" như bản
+  // tĩnh cũ, nên bấm vào đây chỉ vào đúng trang nông trại, còn lại phải tự
+  // bấm thêm (quyết định đã xác nhận — xem app/CLAUDE.md nếu bổ sung sau).
+  const editUrl = `/nong-trai-chi-tiet?ma=${encodeURIComponent(batch.farm_code)}&season=${encodeURIComponent(batch.season_code)}#lo-hang`;
 
   return (
     <article className="card batch-card">
@@ -72,22 +75,22 @@ export function BatchCard({ batch, isPlatformAdminMode }: BatchCardProps) {
       {/* Khối "Xác thực blockchain" đã BỎ HẲN ở bản gốc — không port lại. */}
       {!isPlatformAdminMode && (
         <div className="batch-card__actions">
-          {/* platform_admin: ẩn hẳn 2 nút Sửa/Xoá — đây là <a> điều hướng
-              thẳng sang nong-trai-chi-tiet.html để mở modal Sửa/Xoá lô hàng
+          {/* platform_admin: ẩn hẳn 2 nút Sửa/Xoá — đây là <Link> điều hướng
+              nội bộ sang /nong-trai-chi-tiet để mở modal Sửa/Xoá lô hàng
               (KHÔNG qua hasPermission() nào để tự ẩn, phải bọc điều kiện
               tay), trang đó tự ẩn hết nút ghi khi mở qua ?id= cho
               platform_admin — không có lý do điều hướng qua đây để sửa/xoá. */}
-          <a className="icon-btn batch-card__action--edit" href={editUrl} aria-label={`Sửa lô hàng ${batch.code}`} data-tooltip="Chỉnh sửa">
+          <Link className="icon-btn batch-card__action--edit" to={editUrl} aria-label={`Sửa lô hàng ${batch.code}`} data-tooltip="Chỉnh sửa">
             <Icon name="pencil" />
-          </a>
-          <a
+          </Link>
+          <Link
             className="icon-btn batch-card__action--delete"
-            href={editUrl}
+            to={editUrl}
             aria-label={`Xoá lô hàng ${batch.code}`}
             data-tooltip="Xoá (mở trang mùa vụ)"
           >
             <Icon name="trash" />
-          </a>
+          </Link>
         </div>
       )}
     </article>
