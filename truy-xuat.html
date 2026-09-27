@@ -19,12 +19,8 @@
   <style>
     /* CSS chỉ dùng riêng cho trang truy xuất nguồn gốc — trang này công khai,
        không nạp app-shell.css (dành cho khung quản trị sau đăng nhập), nên
-       những thứ như "trạng thái rỗng"/"dòng thông tin" phải tự định nghĩa
-       lại ở đây thay vì tái dùng .empty-state/.data-card__row. */
-    .trace-page {
-      padding-block: var(--space-10) var(--space-16);
-      min-height: calc(100vh - var(--header-height));
-    }
+       mọi thứ dưới đây tự định nghĩa lại thay vì tái dùng .empty-state/
+       .data-card__row/.async-state. */
 
     .empty-card {
       display: flex;
@@ -34,13 +30,8 @@
       padding: var(--space-16) var(--space-6);
       text-align: center;
     }
-    .empty-card .icon {
-      color: var(--color-text-muted);
-    }
-    .empty-card__title {
-      font-size: var(--text-lg);
-      font-weight: 700;
-    }
+    .empty-card .icon { color: var(--color-text-muted); }
+    .empty-card__title { font-size: var(--text-lg); font-weight: 700; }
     .empty-card__desc {
       max-width: 420px;
       font-size: var(--text-sm);
@@ -48,71 +39,313 @@
       margin-bottom: var(--space-2);
     }
 
-    .trace-head {
+    .loading-card {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: var(--space-3);
-      margin-bottom: var(--space-6);
-      flex-wrap: wrap;
-    }
-    .trace-head__title {
-      font-size: var(--text-2xl);
+      gap: var(--space-4);
+      padding: var(--space-24) var(--space-6);
+      color: var(--color-text-muted);
     }
 
-    .trace-verify {
+    /* --- 1. Hero ------------------------------------------------------- */
+    .qr-hero {
+      position: relative;
+      min-height: 380px;
+      display: flex;
+      align-items: flex-end;
+      background-image: url('https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1600&q=80');
+      background-size: cover;
+      background-position: center;
+      color: var(--color-text-inverse);
+    }
+    .qr-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(20, 74, 48, 0.55) 0%, rgba(15, 28, 20, 0.94) 100%);
+    }
+    .qr-hero__inner {
+      position: relative;
+      z-index: 1;
+      padding-block: var(--space-24) var(--space-16);
+    }
+    .qr-hero__badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      font-size: var(--text-xs);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: var(--space-4);
+    }
+    .qr-hero__title {
+      font-size: var(--text-4xl);
+      font-weight: 800;
+      max-width: 640px;
+      margin-bottom: var(--space-3);
+      line-height: 1.15;
+    }
+    .qr-hero__desc { max-width: 560px; opacity: 0.9; font-size: var(--text-base); }
+
+    /* --- 2+3. Card nhà sản xuất + mùa vụ, nổi trên mép dưới hero -------- */
+    .qr-summary {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: var(--space-5);
+      margin-top: calc(-1 * var(--space-14));
+      position: relative;
+      z-index: 2;
+      margin-bottom: var(--space-10);
+    }
+    @media (max-width: 768px) {
+      .qr-summary { grid-template-columns: 1fr; margin-top: var(--space-6); }
+    }
+
+    .qr-producer { display: flex; align-items: center; gap: var(--space-4); }
+    .qr-producer__avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: var(--radius-full);
+      background: var(--color-primary-subtle);
+      color: var(--color-primary-active);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: var(--text-xl);
+      flex-shrink: 0;
+      border: 3px solid var(--color-bg);
+      box-shadow: var(--shadow-md);
+    }
+    .qr-producer__name { font-weight: 800; font-size: var(--text-lg); }
+    .qr-producer__tagline { color: var(--color-text-muted); font-size: var(--text-sm); margin-top: 2px; }
+
+    .qr-season__eyebrow {
+      font-weight: 700;
+      color: var(--color-text-muted);
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: var(--space-2);
+    }
+    .qr-season__name { font-size: var(--text-xl); font-weight: 800; margin-bottom: var(--space-3); }
+    .qr-season__rows { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--text-sm); }
+    .qr-season__rows .trace-row__label { color: var(--color-text-muted); }
+    .qr-season__yield {
+      margin-top: var(--space-3);
+      padding-top: var(--space-3);
+      border-top: 1px dashed var(--color-border);
+      font-size: var(--text-2xl);
+      font-weight: 800;
+      color: var(--color-primary-active);
+    }
+    .qr-season__yield-label { font-size: var(--text-xs); font-weight: 500; color: var(--color-text-muted); }
+
+    /* --- Tiêu đề section dùng chung -------------------------------------- */
+    .qr-section { margin-bottom: var(--space-10); }
+    .qr-section__title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-xl);
+      font-weight: 800;
+      margin-bottom: var(--space-5);
+    }
+    .qr-section__title .icon { color: var(--color-primary-active); }
+
+    /* --- 4. Nguồn gốc từ nông trại --------------------------------------- */
+    .qr-farm { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); }
+    @media (max-width: 768px) { .qr-farm { grid-template-columns: 1fr; } }
+    .qr-farm__certs { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+    .qr-farm__map {
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      min-height: 220px;
+      background: linear-gradient(135deg, var(--green-100), var(--amber-50));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      color: var(--color-text-muted);
+      text-align: center;
+      padding: var(--space-4);
+      border: 1px dashed var(--color-border);
+    }
+    .qr-farm__map .icon { color: var(--color-primary-active); }
+    .qr-farm__map-note { font-size: var(--text-xs); max-width: 240px; }
+
+    /* --- 5. Mã định danh lô hàng ------------------------------------------ */
+    .qr-batchid {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: var(--space-4);
+      background: var(--color-bg-subtle);
+      margin-bottom: var(--space-10);
+    }
+    .qr-batchid__label { font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-1); }
+    .qr-batchid__code { font-family: 'Courier New', monospace; font-size: var(--text-xl); font-weight: 800; letter-spacing: 0.02em; display: flex; align-items: center; gap: var(--space-2); }
+    .qr-batchid__dates { display: flex; gap: var(--space-6); flex-wrap: wrap; }
+    .qr-batchid__date-label { font-size: var(--text-xs); color: var(--color-text-muted); }
+    .qr-batchid__date-value { font-weight: 700; }
+    .copy-btn {
+      background: transparent;
+      border: none;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      display: inline-flex;
+      padding: var(--space-1);
+      border-radius: var(--radius-sm);
+      transition: color 0.15s, background 0.15s;
+    }
+    .copy-btn:hover { color: var(--color-primary-active); background: var(--color-primary-subtle); }
+    .copy-btn.is-copied { color: var(--color-success); }
+
+    /* --- 6. Card VERIFIED (Blockchain) ------------------------------------ */
+    .qr-verified {
+      background: linear-gradient(135deg, var(--green-900), var(--green-800));
+      color: var(--color-text-inverse);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      margin-bottom: var(--space-10);
+      box-shadow: var(--shadow-lg);
+    }
+    .qr-verified__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+    }
+    .qr-verified__title { display: flex; align-items: center; gap: var(--space-3); font-size: var(--text-xl); font-weight: 800; }
+    .qr-verified__title .icon { color: var(--green-400); }
+    .qr-verified__badge {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      font-size: var(--text-xs);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+    }
+    .qr-verified__grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); margin-bottom: var(--space-5); }
+    @media (max-width: 640px) { .qr-verified__grid { grid-template-columns: 1fr; } }
+    .qr-verified__row-label { font-size: var(--text-xs); opacity: 0.65; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: var(--space-1); }
+    .qr-verified__row-value {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-family: 'Courier New', monospace;
+      font-size: var(--text-sm);
+      word-break: break-all;
+    }
+    .qr-verified__row-value .copy-btn { color: rgba(255, 255, 255, 0.7); }
+    .qr-verified__row-value .copy-btn:hover { color: var(--color-text-inverse); background: rgba(255, 255, 255, 0.12); }
+    .qr-verified__explorer-link {
+      border-color: rgba(255, 255, 255, 0.4);
+      color: var(--color-text-inverse);
+    }
+    .qr-verified__explorer-link:hover { background: rgba(255, 255, 255, 0.12); }
+
+    .qr-pending {
       display: flex;
       align-items: center;
       gap: var(--space-4);
-      padding: var(--space-5);
-      border-radius: var(--radius-lg);
-      margin-bottom: var(--space-6);
-    }
-    .trace-verify--ok {
-      background: var(--color-success-subtle);
-      color: var(--color-success);
-    }
-    .trace-verify--ok .icon {
-      color: var(--color-success);
-    }
-    .trace-verify--pending {
+      padding: var(--space-6);
+      border-radius: var(--radius-xl);
       background: var(--color-warning-subtle);
       color: var(--color-warning);
+      margin-bottom: var(--space-10);
     }
-    .trace-verify--pending .icon {
-      color: var(--color-warning);
+    .qr-pending .icon { color: var(--color-warning); flex-shrink: 0; }
+    .qr-pending__title { font-weight: 700; font-size: var(--text-lg); margin-bottom: var(--space-1); }
+    .qr-pending__desc { font-size: var(--text-sm); opacity: 0.9; }
+
+    /* --- 7. Hành trình sinh trưởng (timeline dọc) -------------------------- */
+    .qr-timeline__item {
+      position: relative;
+      padding-left: 56px;
+      margin-bottom: var(--space-6);
     }
-    .trace-verify__title {
-      font-weight: 700;
-      font-size: var(--text-lg);
+    .qr-timeline__item:last-child { margin-bottom: 0; }
+    .qr-timeline__item::before {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 44px;
+      bottom: -24px;
+      width: 2px;
+      background: var(--color-border);
     }
-    .trace-verify__desc {
-      font-size: var(--text-sm);
-      opacity: 0.85;
+    .qr-timeline__item:last-child::before { display: none; }
+    .qr-timeline__icon {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid var(--color-bg);
+      box-shadow: var(--shadow-sm);
+    }
+    .qr-timeline__icon--success { background: var(--color-success-subtle); color: var(--color-success); }
+    .qr-timeline__icon--info { background: var(--color-info-subtle); color: var(--color-info); }
+    .qr-timeline__icon--warning { background: var(--color-warning-subtle); color: var(--color-warning); }
+    .qr-timeline__icon--danger { background: var(--color-danger-subtle); color: var(--color-danger); }
+    .qr-timeline__icon--neutral { background: var(--color-neutral-subtle); color: var(--color-neutral); }
+    .qr-timeline__head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-2); }
+    .qr-timeline__type { font-weight: 700; }
+    .qr-timeline__date { font-size: var(--text-sm); color: var(--color-text-muted); white-space: nowrap; }
+    .qr-timeline__meta { display: flex; gap: var(--space-5); flex-wrap: wrap; font-size: var(--text-sm); color: var(--color-text-muted); margin-bottom: var(--space-2); }
+    .qr-timeline__meta strong { color: var(--color-text); font-weight: 600; }
+    .qr-timeline__desc { font-size: var(--text-sm); margin-bottom: var(--space-3); }
+    .qr-timeline__images { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+    .qr-timeline__images img {
+      width: 88px;
+      height: 88px;
+      object-fit: cover;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
     }
 
-    .trace-rows {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-3);
-    }
-    .trace-row {
-      display: flex;
-      justify-content: space-between;
-      gap: var(--space-3);
-      font-size: var(--text-sm);
-    }
-    .trace-row__label {
+    /* --- 8. Footer đơn giản ------------------------------------------------ */
+    .qr-footer {
+      padding-block: var(--space-8);
+      text-align: center;
       color: var(--color-text-muted);
+      font-size: var(--text-sm);
+      border-top: 1px solid var(--color-border);
     }
-    .trace-certs {
+    .qr-footer__brand {
       display: flex;
-      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
       gap: var(--space-2);
-      margin-top: var(--space-4);
+      margin-bottom: var(--space-2);
+      font-weight: 700;
+      color: var(--color-text);
     }
+    .qr-footer__brand img { width: var(--space-6); height: var(--space-6); }
   </style>
-  <script src="js/api-config.js?v=1"></script>
-  <script src="js/api.js?v=17"></script>
+
+  <script src="js/api-config.js?v=2"></script>
+  <!-- Cần AgriChain.APP_SPA_URL cho nút "Vào Trang Quản Lý" (js/header.js) —
+       trỏ sang SPA thay vì nong-trai.html (đã xoá, xem CLAUDE.md gốc mục
+       "Kết nối backend"). -->
+  <script src="js/app-config.js?v=2"></script>
+  <script src="js/api.js?v=18"></script>
 </head>
 <body>
 
@@ -159,103 +392,217 @@
   </header>
 
   <main>
-    <section class="trace-page">
+    <!-- Đang tải -->
+    <div class="loading-card" data-loading>
+      <span class="spinner spinner--lg"></span>
+      <p>Đang tải thông tin truy xuất...</p>
+    </div>
+
+    <!-- Không tìm thấy lô hàng theo mã trên URL -->
+    <div class="container">
+      <div class="empty-card" data-not-found hidden>
+        <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-qr-code"></use></svg>
+        <p class="empty-card__title" data-not-found-title>Không tìm thấy lô hàng</p>
+        <p class="empty-card__desc">
+          Lô hàng này có thể đã bị xoá, hoặc đường dẫn/mã QR không đúng.
+        </p>
+        <a class="btn btn--primary" href="index.html">Về trang chủ</a>
+      </div>
+    </div>
+
+    <!-- Nội dung truy xuất -->
+    <div data-trace-detail hidden>
+
+      <!-- 1. Hero -->
+      <section class="qr-hero">
+        <div class="container qr-hero__inner">
+          <span class="qr-hero__badge">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-blockchain"></use></svg>
+            Agriculture 4.0 &amp; Blockchain
+          </span>
+          <h1 class="qr-hero__title">Kiến Tạo Nông Nghiệp Số Minh Bạch</h1>
+          <p class="qr-hero__desc">
+            Mỗi lô hàng đều có thể truy xuất trọn vẹn hành trình từ nông trại tới tay bạn —
+            xác thực bằng dữ liệu thật, neo giữ bất biến trên blockchain.
+          </p>
+        </div>
+      </section>
+
       <div class="container">
 
-        <!-- Không tìm thấy lô hàng theo mã trên URL -->
-        <div class="empty-card" data-not-found hidden>
-          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-qr-code"></use></svg>
-          <p class="empty-card__title" data-not-found-title>Không tìm thấy lô hàng</p>
-          <p class="empty-card__desc">
-            Lô hàng này có thể đã bị xoá, hoặc đường dẫn/mã QR không đúng.
-          </p>
-          <a class="btn btn--primary" href="index.html">Về trang chủ</a>
-        </div>
-
-        <!-- Nội dung truy xuất -->
-        <div data-trace-detail hidden>
-          <div class="trace-head">
-            <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-box"></use></svg>
-            <h1 class="trace-head__title">Lô hàng <span data-trace-code>—</span></h1>
-            <span class="badge badge--neutral" data-trace-status></span>
-          </div>
-
-          <!-- TẠM ẨN: backend batches chưa có anchoring blockchain thật (chỉ có
-               verification_status luôn 'pending'/tx_hash/anchored_at, không có
-               sealed/hash/blockIndex/sealedAt như mô phỏng client-side cũ) —
-               xem ghi chú đầu js/truy-xuat.js. Giữ lại markup/CSS để hiện lại
-               khi có anchoring thật. -->
-          <div class="trace-verify" data-trace-verify hidden>
-            <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+        <!-- 2+3. Card nhà sản xuất + mùa vụ -->
+        <div class="qr-summary">
+          <div class="card qr-producer">
+            <span class="qr-producer__avatar" data-org-avatar>—</span>
             <div>
-              <p class="trace-verify__title" data-trace-verify-title>—</p>
-              <p class="trace-verify__desc" data-trace-verify-desc></p>
+              <p class="qr-producer__name" data-org-name>—</p>
+              <p class="qr-producer__tagline" data-org-tagline hidden></p>
             </div>
           </div>
 
-          <div class="grid grid--2">
-            <div class="card">
-              <div class="card__header">
-                <h2 class="card__title">Thông tin lô hàng</h2>
+          <div class="card">
+            <p class="qr-season__eyebrow">Mùa vụ</p>
+            <p class="qr-season__name" data-season-name>—</p>
+            <div class="qr-season__rows">
+              <div class="trace-row">
+                <span class="trace-row__label">Ngày bắt đầu</span>
+                <span data-season-start></span>
               </div>
-              <div class="trace-rows">
-                <div class="trace-row">
-                  <span class="trace-row__label">Ngày bắt đầu</span>
-                  <span data-trace-start></span>
-                </div>
-                <div class="trace-row">
-                  <span class="trace-row__label">Diện tích</span>
-                  <span data-trace-area></span>
-                </div>
-                <div class="trace-row">
-                  <span class="trace-row__label">Ngày thu hoạch (dự kiến)</span>
-                  <span data-trace-harvest></span>
-                </div>
-                <div class="trace-row">
-                  <span class="trace-row__label">Ngày thu hoạch thực tế</span>
-                  <span data-trace-actual-harvest></span>
-                </div>
-                <div class="trace-row">
-                  <span class="trace-row__label">Sản lượng dự kiến</span>
-                  <span data-trace-yield></span>
-                </div>
-                <div class="trace-row">
-                  <span class="trace-row__label">Mùa vụ</span>
-                  <span data-trace-season></span>
-                </div>
+              <div class="trace-row">
+                <span class="trace-row__label">Ngày kết thúc</span>
+                <span data-season-end></span>
               </div>
             </div>
-
-            <div class="card">
-              <div class="card__header">
-                <h2 class="card__title">Nông trại</h2>
-              </div>
-              <div class="trace-rows">
-                <div class="trace-row">
-                  <span class="trace-row__label">Tên</span>
-                  <span data-trace-farm-name></span>
-                </div>
-                <div class="trace-row">
-                  <span class="trace-row__label">Mã</span>
-                  <span data-trace-farm-code></span>
-                </div>
-                <div class="trace-row">
-                  <span class="trace-row__label">Địa chỉ</span>
-                  <span data-trace-farm-address></span>
-                </div>
-              </div>
-              <div class="trace-certs" data-trace-certs></div>
+            <div class="qr-season__yield">
+              <span data-batch-yield>—</span>
+              <p class="qr-season__yield-label">Sản lượng lô hàng này</p>
             </div>
           </div>
         </div>
+
+        <!-- 4. Nguồn gốc từ nông trại -->
+        <section class="qr-section">
+          <h2 class="qr-section__title">
+            <svg class="icon"><use href="icons/sprite.svg#icon-map-pin"></use></svg>
+            Nguồn gốc từ nông trại
+          </h2>
+          <div class="card qr-farm">
+            <div>
+              <p class="trace-row__label">Nông trại</p>
+              <p class="qr-batchid__date-value" data-farm-name style="font-size: var(--text-lg); margin-bottom: var(--space-2);">—</p>
+              <p style="color: var(--color-text-muted); font-size: var(--text-sm); margin-bottom: var(--space-1);" data-farm-address>—</p>
+              <p style="color: var(--color-text-muted); font-size: var(--text-xs);" data-farm-puc hidden></p>
+              <div class="qr-farm__certs" data-farm-certs></div>
+            </div>
+            <!-- Placeholder bản đồ ranh giới thửa đất — CHƯA tích hợp Leaflet.js
+                 thật (xem PUBLIC-BATCH-SCHEMA.md), farm.polygon đã có sẵn dữ
+                 liệu [{lat,lng}] để vẽ khi cần. -->
+            <div class="qr-farm__map" data-farm-map>
+              <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-map-pin"></use></svg>
+              <p class="qr-farm__map-note">Bản đồ ranh giới thửa đất — sẽ tích hợp Leaflet.js hiển thị vị trí thật</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. Mã định danh lô hàng -->
+        <div class="card qr-batchid">
+          <div>
+            <p class="qr-batchid__label">Mã định danh lô hàng</p>
+            <p class="qr-batchid__code">
+              <span data-batch-code>—</span>
+              <button type="button" class="copy-btn" data-copy-batch-code aria-label="Sao chép mã lô hàng" data-tooltip="Sao chép">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-copy"></use></svg>
+              </button>
+            </p>
+          </div>
+          <div class="qr-batchid__dates">
+            <div>
+              <p class="qr-batchid__date-label">Ngày thu hoạch</p>
+              <p class="qr-batchid__date-value" data-batch-harvest>—</p>
+            </div>
+            <div>
+              <p class="qr-batchid__date-label">Trạng thái</p>
+              <span class="badge badge--neutral" data-batch-status>—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Card VERIFIED (đã xác thực) -->
+        <div class="qr-verified" data-verified hidden>
+          <div class="qr-verified__head">
+            <div class="qr-verified__title">
+              <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-shield-check"></use></svg>
+              Đã Xác Thực Trên Blockchain
+            </div>
+            <span class="qr-verified__badge">
+              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-key"></use></svg>
+              Secure
+            </span>
+          </div>
+
+          <div class="qr-verified__grid">
+            <div>
+              <p class="qr-verified__row-label">Blockchain Network</p>
+              <p class="qr-verified__row-value" data-verified-network>—</p>
+            </div>
+            <div>
+              <p class="qr-verified__row-label">Block Height</p>
+              <p class="qr-verified__row-value" data-verified-block>—</p>
+            </div>
+            <div>
+              <p class="qr-verified__row-label">Smart Contract</p>
+              <p class="qr-verified__row-value">
+                <span data-verified-contract>—</span>
+                <button type="button" class="copy-btn" data-copy="contract" aria-label="Sao chép địa chỉ contract" data-tooltip="Sao chép">
+                  <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-copy"></use></svg>
+                </button>
+              </p>
+            </div>
+            <div>
+              <p class="qr-verified__row-label">Transaction Hash</p>
+              <p class="qr-verified__row-value">
+                <span data-verified-tx>—</span>
+                <button type="button" class="copy-btn" data-copy="tx" aria-label="Sao chép transaction hash" data-tooltip="Sao chép">
+                  <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-copy"></use></svg>
+                </button>
+              </p>
+            </div>
+            <div>
+              <p class="qr-verified__row-label">Signer / Tenant Wallet</p>
+              <p class="qr-verified__row-value" data-verified-signer>—</p>
+            </div>
+            <div>
+              <p class="qr-verified__row-label">Provenance Payload Hash</p>
+              <p class="qr-verified__row-value">
+                <span data-verified-datahash>—</span>
+                <button type="button" class="copy-btn" data-copy="datahash" aria-label="Sao chép payload hash" data-tooltip="Sao chép">
+                  <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-copy"></use></svg>
+                </button>
+              </p>
+            </div>
+          </div>
+
+          <a class="btn btn--outline qr-verified__explorer-link" data-verified-explorer href="#" target="_blank" rel="noopener">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-link"></use></svg>
+            Xem trên Blockchain Explorer
+          </a>
+        </div>
+
+        <!-- 6b. Chưa xác thực -->
+        <div class="qr-pending" data-pending hidden>
+          <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-clock"></use></svg>
+          <div>
+            <p class="qr-pending__title">Chưa xác thực trên Blockchain</p>
+            <p class="qr-pending__desc">Lô hàng này chưa được ghi hash lên blockchain — thông tin vẫn được đảm bảo bởi dữ liệu nội bộ AgriChain.</p>
+          </div>
+        </div>
+
+        <!-- 7. Hành trình sinh trưởng -->
+        <section class="qr-section">
+          <h2 class="qr-section__title">
+            <svg class="icon"><use href="icons/sprite.svg#icon-workflow"></use></svg>
+            Hành Trình Sinh Trưởng
+          </h2>
+          <div class="qr-timeline" data-timeline></div>
+        </section>
 
       </div>
-    </section>
+    </div>
   </main>
 
-  <script src="js/chain.js?v=1" defer></script>
-  <script src="js/store.js?v=12" defer></script>
-  <script src="js/truy-xuat.js?v=3" defer></script>
-  <script src="js/header.js?v=5" defer></script>
+  <footer class="qr-footer">
+    <div class="qr-footer__brand">
+      <img src="icons/exabyte-icon-only-transparent.png" alt="" aria-hidden="true">
+      AgriChain
+    </div>
+    <p>Truy xuất nguồn gốc nông sản bằng blockchain — minh bạch từng lô hàng.</p>
+  </footer>
+
+  <!-- Nguồn DUY NHẤT cho nhãn/icon "loại hoạt động" (AgriChain.ACTIVITY_TYPES)
+       — dùng để dựng icon/nhãn đúng cho từng mốc trong "Hành trình sinh
+       trưởng", không khai báo lại danh sách này lần thứ 3 trong dự án. -->
+  <script src="js/enums.js?v=1"></script>
+  <script src="js/truy-xuat.js?v=4" defer></script>
+  <script src="js/header.js?v=6" defer></script>
 </body>
 </html>

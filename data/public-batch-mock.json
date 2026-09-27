@@ -1,0 +1,114 @@
+{
+  "batch": {
+    "code": "VUON3-VU2-2026",
+    "status": "harvested",
+    "start_date": "2026-07-20",
+    "harvest_date": "2026-09-19",
+    "actual_harvest_date": "2026-09-21",
+    "expected_yield": 6000,
+    "unit": "kg",
+    "note": "Phát triển tốt, không sâu bệnh. Đạt độ ngọt Brix 15° trở lên.",
+    "verification_status": "anchored",
+    "tx_hash": "0x7f3a9c2e4d1b8f6a0e5c3d2b1a9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f",
+    "anchored_at": "2026-09-22T03:15:00Z",
+    "contract_address": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
+    "signer_address": "0x8f2A1c6D9e4B7a3F0c5D8e1B2a9F6c3D7e0A4b1C",
+    "network": "Polygon Amoy Testnet",
+    "block_number": 12345678,
+    "explorer_url": "https://amoy.polygonscan.com/tx/0x7f3a9c2e4d1b8f6a0e5c3d2b1a9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f",
+    "data_hash": "0x9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e"
+  },
+  "farm": {
+    "name": "Vườn Tiến Phát 3",
+    "code": "VUON3",
+    "address": "Thôn 4, xã Tân Lập",
+    "ward": "Xã Tân Lập",
+    "province": "Lâm Đồng",
+    "national_puc": "VN-LD-00123",
+    "polygon": [
+      { "lat": 11.9404, "lng": 108.4583 },
+      { "lat": 11.9412, "lng": 108.4590 },
+      { "lat": 11.9398, "lng": 108.4599 },
+      { "lat": 11.9391, "lng": 108.4587 }
+    ]
+  },
+  "season": {
+    "name": "Vụ 2",
+    "code": "VU2-2026",
+    "start_date": "2026-07-01",
+    "end_date": "2026-10-15"
+  },
+  "organization": {
+    "name": "HTX Nông Nghiệp Tiến Phát",
+    "tagline": null,
+    "logo_url": null
+  },
+  "certifications": [
+    { "name": "VietGAP", "issuer": "Trung tâm Chất lượng Nông lâm thuỷ sản Vùng 3" },
+    { "name": "GlobalGAP", "issuer": "TÜV Rheinland Việt Nam" }
+  ],
+  "logs": [
+    {
+      "activity_type": "planting",
+      "performed_at": "2026-07-20T02:00:00Z",
+      "performed_by": "Anh Nguyễn Văn Tiến",
+      "weather": "Nắng nhẹ, 28°C",
+      "description": "Xuống giống dưa lưới giống Huỳnh Long trên luống đã chuẩn bị kỹ, phủ màng nông nghiệp giữ ẩm.",
+      "images": [
+        { "url": "https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&w=600&q=80", "name": "xuong-giong.jpg" }
+      ]
+    },
+    {
+      "activity_type": "fertilizing",
+      "performed_at": "2026-08-02T01:30:00Z",
+      "performed_by": "Chị Lê Thị Hoa",
+      "weather": "Nhiều mây, 26°C",
+      "description": "Bón thúc đợt 1 bằng phân hữu cơ vi sinh, kết hợp tưới nhỏ giọt.",
+      "images": []
+    },
+    {
+      "activity_type": "watering",
+      "performed_at": "2026-08-10T22:00:00Z",
+      "performed_by": "Anh Nguyễn Văn Tiến",
+      "weather": "Nắng gắt, 33°C",
+      "description": "Tăng tần suất tưới nhỏ giọt lên 2 lần/ngày do thời tiết nắng nóng kéo dài.",
+      "images": []
+    },
+    {
+      "activity_type": "pruning",
+      "performed_at": "2026-08-18T23:00:00Z",
+      "performed_by": "Chị Lê Thị Hoa",
+      "weather": "Nắng nhẹ, 29°C",
+      "description": "Tỉa nhánh phụ, để lại 1 trái/dây đúng kỹ thuật để tập trung dinh dưỡng nuôi trái.",
+      "images": [
+        { "url": "https://images.unsplash.com/photo-1592419044706-39796d40f98c?auto=format&fit=crop&w=600&q=80", "name": "cat-tia.jpg" }
+      ]
+    },
+    {
+      "activity_type": "pest_control",
+      "performed_at": "2026-08-28T02:00:00Z",
+      "performed_by": "Anh Nguyễn Văn Tiến",
+      "weather": "Mưa nhỏ, 25°C",
+      "description": "Phun chế phẩm sinh học phòng trừ bọ trĩ, tuân thủ thời gian cách ly trước thu hoạch.",
+      "images": []
+    },
+    {
+      "activity_type": "inspection",
+      "performed_at": "2026-09-15T03:00:00Z",
+      "performed_by": "KS. Trần Minh Khoa",
+      "weather": "Nắng nhẹ, 27°C",
+      "description": "Kiểm tra định kỳ trước thu hoạch: độ Brix đạt 15°, vỏ lưới hoàn chỉnh, không sâu bệnh.",
+      "images": []
+    },
+    {
+      "activity_type": "harvesting",
+      "performed_at": "2026-09-21T23:30:00Z",
+      "performed_by": "Anh Nguyễn Văn Tiến",
+      "weather": "Nắng nhẹ, 28°C",
+      "description": "Thu hoạch toàn bộ lô VUON3-VU2-2026, sản lượng đạt 6.000 kg, đóng gói ngay tại vườn.",
+      "images": [
+        { "url": "https://images.unsplash.com/photo-1595855759920-86582396756a?auto=format&fit=crop&w=600&q=80", "name": "thu-hoach.jpg" }
+      ]
+    }
+  ]
+}
