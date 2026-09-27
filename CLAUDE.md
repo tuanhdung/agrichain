@@ -942,9 +942,17 @@ trang đều dùng backend thật ngay**:
 ### `js/api-config.js`
 
 Chỉ khai báo `AgriChain.API_BASE_URL`. Tách riêng khỏi `js/api.js` để khi deploy chỉ cần
-sửa đúng 1 dòng (đổi domain), không đụng tới logic gọi API. Nạp ở **mọi trang HTML**, kể
-cả trang chưa dùng API — để lần chuyển tiếp theo không phải thêm lại thẻ `<script>` vào
-từng file.
+sửa file này, không đụng tới logic gọi API. Nạp ở **mọi trang HTML**, kể cả trang chưa
+dùng API — để lần chuyển tiếp theo không phải thêm lại thẻ `<script>` vào từng file.
+
+**Tự nhận diện qua `location.hostname` (2026-09-25, cùng đợt thêm cookie httpOnly chia sẻ
+phiên đăng nhập — xem mục "Cookie httpOnly..." ngay dưới)** — không còn 1 dòng cố định như
+trước: hostname `agrichain.local` (domain giả qua hosts file) → `http://api.agrichain.local:8000`
+(bắt buộc phải là domain, không phải `127.0.0.1`, để cookie `Set-Cookie: Domain=.agrichain.local`
+được trình duyệt chấp nhận); hostname `localhost`/`127.0.0.1` (Live Server mặc định, CHƯA cấu
+hình hosts file) → `http://127.0.0.1:8000` như cũ; domain khác (production) →
+`https://agrichain-api-4mhf.onrender.com`. `js/app-config.js` (`AgriChain.APP_SPA_URL`) áp
+dụng ĐÚNG 3 nhánh y hệt, cùng lúc sửa.
 
 ### `js/api.js`
 
@@ -977,8 +985,28 @@ hướng — script `defer` chạy quá trễ cho việc đó).
   đóng hẳn trình duyệt (đúng ý nghĩa "không ghi nhớ"), nhưng cả 2 kiểu Web Storage vẫn đọc
   được bởi bất kỳ JS nào chạy trên trang (kể cả từ thư viện ngoài bị lỗi) — **không an toàn
   trước XSS như cookie `httpOnly`**. Nợ kỹ thuật "chuyển sang cookie `httpOnly` + `Secure` +
-  `SameSite` trước khi lên production" (xem mục "Nợ kỹ thuật đã biết" cuối file) vẫn còn
-  nguyên, checkbox này không thay thế được việc đó.
+  `SameSite` trước khi lên production" (xem mục "Nợ kỹ thuật đã biết" cuối file) **ĐÃ được
+  giải quyết MỘT PHẦN** — xem mục ngay dưới.
+
+- **Cookie httpOnly dùng chung phiên đăng nhập giữa site tĩnh và SPA (2026-09-25)** — site
+  tĩnh (domain gốc) và `app/` (SPA, subdomain `app.*`) là 2 origin khác nhau, mỗi bên tự giữ
+  token riêng trong Web Storage nên đăng nhập bên này không giúp bên kia nhận ra (đăng nhập
+  2 lần). Backend (`agrichain-api`) giờ NGOÀI trả JSON như cũ còn gắn THÊM 1 cookie `httpOnly`
+  tên `access_token` ở `/auth/login`, `/auth/refresh`, `/auth/change-password` (xem
+  `agrichain-api/CLAUDE.md` mục "Cookie httpOnly chứa access token" để biết đầy đủ
+  `COOKIE_DOMAIN`/`COOKIE_SECURE`/thứ tự ưu tiên đọc token) — trình duyệt tự gửi lại cookie
+  này cho MỌI request cross-subdomain cùng domain cha, JS không cần đọc/gắn thủ công.
+  **`request()` (`js/api.js`) thêm `credentials: 'include'` vào `fetchOptions`** — thiếu dòng
+  này thì trình duyệt coi request là "ẩn danh", không đính kèm cookie dù đã có sẵn (cùng thay
+  đổi ở `app/src/api/http.ts` phía SPA). **KHÔNG xoá cơ chế Web Storage/header `Authorization`
+  cũ** — cookie chỉ là nguồn xác thực THÊM VÀO, backend ưu tiên đọc cookie trước, không có mới
+  fallback về header (client cũ chưa cập nhật, hoặc `COOKIE_DOMAIN` chưa cấu hình ở dev nên
+  cookie không tới nơi, vẫn đăng nhập/gọi API được bình thường qua header như trước).
+  **Chỉ hoạt động cross-subdomain khi dev qua domain giả `agrichain.local`/`app.agrichain.local`/
+  `api.agrichain.local` (hosts file trỏ `127.0.0.1`)** — dev qua `127.0.0.1`/`localhost` như cũ
+  vẫn chạy được (fallback header vẫn còn), chỉ không có được lợi ích "đăng nhập 1 lần" giữa 2
+  origin. `js/api-config.js`/`js/app-config.js` tự đổi `API_BASE_URL`/`APP_SPA_URL` theo đúng
+  domain đang mở (xem mục 2 file đó).
 - **⚠️ Bug bảo mật đã vá — bfcache sau khi đăng xuất (2026-09-08):** đăng xuất xong bấm
   nút Back của trình duyệt từng hiện lại trang cần đăng nhập (VD `nong-trai.html`) kèm dữ
   liệu cũ, dù access token đã bị xoá. Nguyên nhân: trình duyệt khôi phục trang từ **bfcache**
@@ -1256,12 +1284,18 @@ xoá mềm). `js/api.js` bọc thêm `api.farms.*`/`api.seasons.*`/`api.logs.*`/
 
 **Lưu access/refresh token trong `localStorage`/`sessionStorage` không an toàn trước tấn
 công XSS** (bất kỳ đoạn JS nào chạy được trên trang, kể cả từ thư viện ngoài bị lỗi, cũng
-đọc được token — checkbox "Ghi nhớ đăng nhập" (2026-09-08, xem mục "Kết nối backend") chỉ
-đổi TUỔI THỌ của token (sống sót qua đóng/mở trình duyệt hay không), không đổi việc nó vẫn
-là Web Storage đọc được bởi mọi JS, KHÔNG giải quyết được lỗ hổng XSS này). Đây là đánh đổi
-CHỦ ĐỘNG cho giai đoạn phát triển (đơn giản, không cần cấu hình CORS/cookie phức tạp) —
-**bắt buộc phải chuyển sang cookie `httpOnly` + `Secure` + `SameSite` (backend set cookie,
-frontend không đụng tới token nữa) trước khi lên production.**
+đọc được token). **Đã giảm nhẹ MỘT PHẦN (2026-09-25)**: cookie `httpOnly` chứa access token
+đã có (xem mục "Kết nối backend" → "Cookie httpOnly dùng chung phiên đăng nhập") — cookie
+`httpOnly` tự nó không đọc được bằng JS nên an toàn hơn trước XSS, nhưng đây **KHÔNG phải
+"backend set cookie, frontend không đụng tới token nữa" như dự tính ban đầu** — quyết định
+CHỦ ĐỘNG giữ nguyên cả 2 cơ chế song song (cookie ưu tiên, Web Storage/header làm dự phòng)
+để không phá luồng hiện có, nên `localStorage`/`sessionStorage` VẪN còn giữ access/refresh
+token y như cũ, VẪN đọc được bởi mọi JS chạy trên trang — lỗ hổng XSS với 2 storage này vẫn
+CÒN NGUYÊN. Refresh token đặc biệt CHƯA từng đưa vào cookie (chỉ access token) — vẫn hoàn
+toàn dựa vào Web Storage. **Bắt buộc phải dọn hẳn Web Storage khỏi luồng token (chỉ còn
+cookie `httpOnly` + `Secure` + `SameSite`) trước khi lên production** nếu muốn giải quyết
+dứt điểm lỗ hổng này — ngoài phạm vi đợt thêm cookie 2026-09-25 (chủ đích chỉ cộng thêm, chưa
+thay thế).
 
 ## Quy ước CSS
 

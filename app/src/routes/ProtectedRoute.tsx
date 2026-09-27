@@ -24,7 +24,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requireBusinessAccount = true }: ProtectedRouteProps) {
-  const { isLoggedIn, isBusiness, isPlatformAdmin } = useAuth();
+  const { isLoggedIn, isBootstrapping, isBusiness, isPlatformAdmin } = useAuth();
   const location = useLocation();
 
   const failsBusiness = isLoggedIn && requireBusinessAccount && !isBusiness && !isPlatformAdmin;
@@ -36,6 +36,16 @@ export function ProtectedRoute({ children, requireBusinessAccount = true }: Prot
   useEffect(() => {
     if (failsBusiness) redirectToAgriverse();
   }, [failsBusiness]);
+
+  // Đang dò phiên qua cookie httpOnly (AuthContext, xem CLAUDE.md gốc mục
+  // "Kết nối backend") — CHƯA kết luận được gì cả, kể cả "chưa đăng nhập".
+  // Kết luận sớm ở đây (rơi thẳng xuống nhánh !isLoggedIn bên dưới) sẽ đá
+  // NHẦM người dùng ra /login ngay cả khi họ ĐÃ đăng nhập ở site tĩnh và
+  // cookie sắp xác nhận thành công — chỉ là request /auth/me chưa kịp trả
+  // lời. Không vẽ gì (màn trắng thoáng qua, thường dưới 1 lần round-trip
+  // mạng) thay vì 1 spinner riêng — nhất quán với cách `failsBusiness` cũng
+  // trả `null` trong lúc đang điều hướng ra ngoài ở dưới.
+  if (isBootstrapping) return null;
 
   if (!isLoggedIn) {
     const redirectTo = `${location.pathname}${location.search}`;

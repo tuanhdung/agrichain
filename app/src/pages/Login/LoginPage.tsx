@@ -21,7 +21,7 @@ import type { AccountType } from '../../api';
 import { mainSiteUrl } from '../../api/config';
 
 export function LoginPage() {
-  const { login, isLoggedIn, user } = useAuth();
+  const { login, isLoggedIn, isBootstrapping, user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectParam = searchParams.get('redirect');
@@ -44,13 +44,19 @@ export function LoginPage() {
   }
 
   // Đã có sẵn phiên đăng nhập (VD gõ thẳng URL /login trong khi vẫn còn
-  // đăng nhập) — đá đi luôn theo đúng logic post-login, không hiện lại form.
-  // Chỉ kiểm tra 1 LẦN lúc mount — sau khi submit thành công, handleSubmit
-  // tự gọi goToTarget() rồi, effect này không cần chạy lại theo user/isLoggedIn.
+  // đăng nhập, hoặc cookie httpOnly từ site tĩnh vừa xác nhận qua bootstrap —
+  // xem AuthContext.tsx) — đá đi luôn theo đúng logic post-login, không hiện
+  // lại form. Chờ `isBootstrapping` xong mới kết luận: lúc mount, cookie có
+  // thể chưa kịp xác nhận (isLoggedIn/user vẫn rỗng), chạy effect NGAY sẽ bỏ
+  // lỡ ca "hoá ra đã đăng nhập" — phụ thuộc `isBootstrapping` để effect tự
+  // chạy lại đúng 1 lần nữa khi nó chuyển false. Sau khi submit thành công,
+  // handleSubmit tự gọi goToTarget() rồi, không cần effect này chạy lại theo
+  // user/isLoggedIn nữa.
   useEffect(() => {
+    if (isBootstrapping) return;
     if (isLoggedIn && user) goToTarget(user.account_type);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isBootstrapping]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();

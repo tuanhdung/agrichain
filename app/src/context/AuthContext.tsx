@@ -22,6 +22,11 @@ interface AuthContextValue {
   isBusiness: boolean;
   isPlatformAdmin: boolean;
   hasPermission: (code: string) => boolean;
+  /** true trong lúc đang dò phiên qua cookie httpOnly (xem bootstrap ở dưới)
+   *  — ProtectedRoute PHẢI chờ giá trị này về false trước khi kết luận "chưa
+   *  đăng nhập", nếu không sẽ đá nhầm người dùng ra /login trong lúc lượt dò
+   *  còn đang chạy (race condition, xem ProtectedRoute.tsx). */
+  isBootstrapping: boolean;
   /** Đăng nhập NGAY TRONG SPA (LoginPage.tsx) — bọc api.auth.login(), tự cập
    *  nhật state sau khi thành công. Trả về User để nơi gọi tự tính điều
    *  hướng tiếp theo (xem src/routes/postLogin.ts). */
@@ -36,9 +41,33 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => api.getUser());
+  // Chỉ cần bootstrap (gọi /auth/me dựa vào cookie) khi origin NÀY chưa có
+  // sẵn user trong storage — có rồi (đăng nhập thẳng trong SPA qua /login,
+  // hoặc lần bootstrap trước đã lưu) thì khỏi gọi thêm 1 request thừa.
+  const [isBootstrapping, setIsBootstrapping] = useState<boolean>(() => !api.getUser());
 
   const refreshFromStorage = useCallback(() => {
     setUser(api.getUser());
+  }, []);
+
+  // Bootstrap phiên đăng nhập từ cookie httpOnly access_token (xem CLAUDE.md
+  // gốc mục "Kết nối backend") — ca người dùng đăng nhập ở SITE TĨNH rồi mới
+  // bấm sang SPA: localStorage của app.* (origin RIÊNG) trống trơn, nhưng
+  // cookie Domain=COOKIE_DOMAIN (nếu đã cấu hình, VD .agrichain.local) vẫn
+  // còn hợp lệ. Chạy ĐÚNG 1 LẦN lúc mount, không phụ thuộc gì khác — nếu
+  // origin này VỐN ĐÃ có user (đăng nhập thẳng qua SPA), bỏ qua hẳn, không
+  // gọi API thừa.
+  useEffect(() => {
+    if (api.getUser()) return;
+    let cancelled = false;
+    api.auth.bootstrapFromCookie().then((bootstrapped) => {
+      if (cancelled) return;
+      if (bootstrapped) setUser(bootstrapped);
+      setIsBootstrapping(false);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -66,6 +95,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string, remember: boolean) => {
     const loggedInUser = await api.auth.login(email, password, remember);
     setUser(loggedInUser);
+    // Phòng hờ: nếu login() xảy ra trong lúc lượt bootstrap-từ-cookie ở trên
+    // còn đang chạy (hiếm, chỉ khi người dùng gõ xong form đăng nhập cực
+    // nhanh), kết luận NGAY user vừa đăng nhập, không chờ bootstrap nữa.
+    setIsBootstrapping(false);
     return loggedInUser;
   }, []);
 
@@ -83,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       isLoggedIn: !!user,
+      isBootstrapping,
       isBusiness: user?.account_type === 'business',
       isPlatformAdmin: user?.account_type === 'platform_admin',
       hasPermission: (code: string) => (user?.permissions ?? []).includes(code),
@@ -90,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       refreshFromStorage
     }),
-    [user, login, logout, refreshFromStorage]
+    [user, isBootstrapping, login, logout, refreshFromStorage]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

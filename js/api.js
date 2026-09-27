@@ -323,7 +323,14 @@
     var url = global.AgriChain.API_BASE_URL + path + buildQuery(options.query);
 
     var headers = {};
-    var fetchOptions = { method: method, headers: headers };
+    // credentials: 'include' — gửi kèm cookie httpOnly access_token (set bởi
+    // /auth/login, /auth/refresh, /auth/change-password, xem CLAUDE.md mục
+    // "Kết nối backend") dù gọi CROSS-ORIGIN sang backend (api.*). Bắt buộc
+    // phải có để cookie Domain=COOKIE_DOMAIN hoạt động — thiếu dòng này thì
+    // trình duyệt coi như request "ẩn danh", không đính kèm cookie dù đã có
+    // sẵn. Header Authorization bên dưới VẪN giữ nguyên làm phương án dự
+    // phòng (backend đọc cookie trước, không có mới fallback về header).
+    var fetchOptions = { method: method, headers: headers, credentials: 'include' };
 
     if (options.body !== undefined) {
       headers['Content-Type'] = 'application/json';

@@ -81,7 +81,14 @@ export function request<T>(method: string, path: string, options: RequestOptions
   const url = API_BASE_URL + path + buildQuery(options.query);
 
   const headers: Record<string, string> = {};
-  const fetchOptions: RequestInit = { method, headers };
+  // credentials: 'include' — gửi kèm cookie httpOnly access_token (set bởi
+  // /auth/login, /auth/refresh, /auth/change-password, xem CLAUDE.md gốc mục
+  // "Kết nối backend") dù gọi CROSS-ORIGIN sang backend (api.*). Bắt buộc
+  // phải có để cookie Domain=COOKIE_DOMAIN hoạt động — thiếu dòng này thì
+  // trình duyệt coi như request "ẩn danh", không đính kèm cookie dù đã có
+  // sẵn. Header Authorization bên dưới VẪN giữ nguyên làm phương án dự
+  // phòng (backend đọc cookie trước, không có mới fallback về header).
+  const fetchOptions: RequestInit = { method, headers, credentials: 'include' };
 
   if (options.body !== undefined) {
     headers['Content-Type'] = 'application/json';
@@ -154,8 +161,8 @@ function logout(): Promise<void> {
 // GET /auth/me trả về { user, permissions, organization_is_distributor }
 // (object BỌC NGOÀI) — PHẢI gắn permissions/organization_is_distributor vào
 // user trước khi lưu, xem types.ts.
-function me(): Promise<User> {
-  return request<MeResponse>('GET', '/auth/me').then((data) => {
+function fetchMe(options?: RequestOptions): Promise<User> {
+  return request<MeResponse>('GET', '/auth/me', options).then((data) => {
     const user: User = {
       ...data.user,
       permissions: data.permissions || [],
@@ -164,6 +171,28 @@ function me(): Promise<User> {
     saveUser(user);
     return user;
   });
+}
+
+function me(): Promise<User> {
+  return fetchMe();
+}
+
+// Bootstrap phiên đăng nhập từ cookie httpOnly access_token (không phải từ
+// localStorage/sessionStorage của CHÍNH origin app.* — xem CLAUDE.md gốc mục
+// "Kết nối backend") — dùng cho ca người dùng đăng nhập ở site tĩnh RỒI MỚI
+// bấm sang SPA: localStorage của app.* trống trơn (mỗi origin lưu riêng),
+// nhưng cookie (nếu COOKIE_DOMAIN chia sẻ được, VD .agrichain.local) vẫn còn
+// hợp lệ và trình duyệt tự gửi kèm nhờ `credentials: 'include'`.
+// `auth: false` — không có access token cục bộ để gắn header (đúng lúc cần
+// gọi hàm này). `retry: false` — BẮT BUỘC: nếu để mặc định `true`, 401 (ca
+// BÌNH THƯỜNG khi chưa đăng nhập ở đâu cả) sẽ kích hoạt refreshTokenOnce()
+// của request() (không có refresh_token cục bộ nên tự thất bại) rồi
+// redirectToLogin() — full page reload sang /login cho MỌI khách chưa đăng
+// nhập ghé SPA lần đầu, dù đây chỉ là 1 lượt dò thầm lặng. Thất bại (401,
+// không có cookie hợp lệ) trả về `null`, KHÔNG ném lỗi — gọi nơi dùng
+// (AuthContext) tự coi là "chưa đăng nhập", giống hệt trạng thái ban đầu cũ.
+function bootstrapFromCookie(): Promise<User | null> {
+  return fetchMe({ auth: false, retry: false }).catch(() => null);
 }
 
 // PATCH /auth/me — tự sửa hồ sơ CHÍNH mình. Response là UserOut phẳng, không
@@ -223,6 +252,7 @@ export const auth = {
   login,
   logout,
   me,
+  bootstrapFromCookie,
   updateMe,
   changePassword,
   registerCustomer,

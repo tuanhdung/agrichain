@@ -246,40 +246,77 @@ giả định "subpath" (`/app/...`) của bản trước, KHÔNG còn đúng n�
   css/icons vào app/"), để SPA không phụ thuộc site chính còn sống hay không
   chỉ để hiện logo/icon.
 
-### ⚠️ Hệ quả CHƯA GIẢI QUYẾT: phiên đăng nhập KHÔNG dùng chung được giữa 2 origin
+### ⚠️ Hệ quả ĐÃ GIẢM NHẸ (2026-09-25): phiên đăng nhập giờ dùng chung được MỘT CHIỀU giữa 2 origin qua cookie httpOnly
 
 `agrichain.access_token`/`agrichain.refresh_token`/`agrichain.user` lưu ở
-`localStorage`/`sessionStorage` — Web Storage **scope theo origin**. Với
-kiến trúc subdomain đã chốt, `app.agrichain.org.vn` và `agrichain.org.vn` là
-2 origin khác nhau nên **KHÔNG thấy chung 1 phiên đăng nhập nào cả**:
+`localStorage`/`sessionStorage` — Web Storage **scope theo origin**, KHÔNG tự
+chia sẻ được giữa `app.agrichain.org.vn` và `agrichain.org.vn` (2 origin khác
+nhau). Đoạn này TỪNG mô tả nguyên trạng "không dùng chung được gì cả" — giờ
+đã đúng hơn với **"dùng chung được qua cookie, nhưng phải chủ động dò lúc SPA
+khởi động"**:
 
-- Đăng nhập ở `dang-nhap.html` (agrichain.org.vn) rồi bấm link "Vật tư" sang
-  SPA (app.agrichain.org.vn) → SPA thấy CHƯA đăng nhập, `ProtectedRoute` đá
-  ngược lại `dang-nhap.html` — vòng lặp không vào được trang.
-- Đăng xuất ở SPA cũng không đăng xuất được phiên phía site tĩnh, và ngược lại.
+- Backend (`agrichain-api`) giờ set THÊM 1 cookie `httpOnly` tên
+  `access_token`, `Domain=COOKIE_DOMAIN` (VD `.agrichain.local` lúc dev qua
+  hosts file, `.agrichain.org.vn` ở production — CHƯA deploy, domain thật
+  chưa mua) ở `/auth/login`/`/auth/refresh`/`/auth/change-password` — xem
+  `agrichain-api/CLAUDE.md` mục "Cookie httpOnly chứa access token". Trình
+  duyệt tự gửi cookie này cho MỌI request cross-subdomain cùng domain cha,
+  kể cả request `app.*` gọi sang `api.*`.
+- **Vẫn KHÔNG tự động** theo nghĩa "chỉ cần đăng nhập ở site tĩnh là SPA lập
+  tức 'thấy' mình đã đăng nhập" — cookie `httpOnly` vốn KHÔNG đọc được bằng
+  JS (đúng mục đích chống XSS), và trạng thái `isLoggedIn`/`user` của SPA
+  (`AuthContext`) vẫn đọc từ `localStorage` của CHÍNH origin `app.*` (rỗng
+  nếu chưa từng đăng nhập TRỰC TIẾP trên SPA). Phải có 1 bước BOOTSTRAP chủ
+  động: `AuthContext` (`src/context/AuthContext.tsx`) lúc mount, NẾU
+  `localStorage` của `app.*` rỗng, tự gọi `api.auth.bootstrapFromCookie()`
+  (`GET /auth/me` với `auth: false, retry: false` — không gắn header vì
+  không có token cục bộ, không để 401 kích hoạt `refreshTokenOnce()`/
+  `redirectToLogin()` của `request()` thường, vì 401 ở đây là ca BÌNH THƯỜNG
+  "chưa đăng nhập ở đâu cả", không phải lỗi phiên giữa chừng) — cookie
+  (nếu hợp lệ) tự được trình duyệt gửi kèm, backend xác thực qua đó, trả về
+  đúng user, `AuthContext` lưu lại vào `localStorage` của `app.*` NGAY. Từ
+  lần tải trang sau, `app.*` đã có sẵn user trong storage, không cần bootstrap
+  lại (cho tới khi cookie hết hạn — `JWT_ACCESS_TTL_MINUTES`, mặc định 15
+  phút, KHÔNG có cơ chế tự làm mới cookie ngoài việc gọi lại
+  `/auth/login`/`/auth/refresh`/`/auth/change-password`).
+- **`isBootstrapping`** (context value mới, `true` cho tới khi bootstrap xong
+  HOẶC ngay lập tức `false` nếu `app.*` vốn đã có user) — `ProtectedRoute.tsx`
+  PHẢI chờ giá trị này về `false` trước khi kết luận "chưa đăng nhập" (return
+  `null`, không vẽ gì, trong lúc chờ — thường dưới 1 lượt round-trip mạng),
+  nếu không sẽ đá NHẦM người dùng đã đăng nhập (ở site tĩnh) ra `/login` ngay
+  cả khi cookie sắp xác nhận thành công. `LoginPage.tsx`'s effect "đã đăng
+  nhập rồi thì đá đi luôn" cũng phải đợi `isBootstrapping` xong mới chạy,
+  cùng lý do.
+- **Chỉ hoạt động cross-subdomain khi dev qua domain giả** (`agrichain.local`/
+  `app.agrichain.local`/`api.agrichain.local`, hosts file trỏ `127.0.0.1` —
+  xem `agrichain/CLAUDE.md` mục "Kết nối backend") **HOẶC** production thật
+  (`agrichain.org.vn`/`app.agrichain.org.vn`, chưa deploy). Dev qua
+  `127.0.0.1`/`localhost` như trước (chưa cấu hình hosts file) thì
+  `COOKIE_DOMAIN` không áp dụng được (`127.0.0.1` là địa chỉ IP, trình duyệt
+  không chấp nhận `Set-Cookie: Domain=` cho IP) — cookie vẫn được set nhưng
+  chỉ same-origin, bootstrap sẽ luôn thất bại (401, không có cookie nào tới
+  nơi) — quay lại đúng hành vi CŨ (2 phiên tách biệt, mô tả ở đoạn dưới).
+- **Đăng xuất VẪN chưa đồng bộ 2 chiều** — đăng xuất ở SPA xoá cookie (backend
+  `_clear_auth_cookie()`) NHƯNG site tĩnh (nếu đang mở ở tab khác) không tự
+  biết để xoá `localStorage`/vẽ lại UI của NÓ; ngược lại cũng vậy. Đây là hạn
+  chế còn lại, ngoài phạm vi lần thêm cookie 2026-09-25.
+- **Refresh token CHƯA từng vào cookie** (chỉ access token) — hạn 15 phút của
+  cookie hết thì phải đăng nhập lại thật (không có `refresh_token` nào để
+  "làm mới ngầm" từ phía không sở hữu nó ban đầu). Site tĩnh và SPA vẫn tự
+  giữ `refresh_token` RIÊNG của chính phiên đăng nhập nó tạo ra — bootstrap
+  chỉ mượn được access token qua cookie, không mượn được khả năng tự làm mới
+  dài hạn.
 
-**Đây là nợ kỹ thuật CHƯA GIẢI QUYẾT trong lần chốt kiến trúc này** — giải
-pháp đúng là chuyển sang cookie có `Domain=.agrichain.org.vn` (cookie ở
-domain CHA thì mọi subdomain con đọc chung được) thay cho Web Storage, đã
-ghi nhận sẵn trong CLAUDE.md gốc mục "Nợ kỹ thuật đã biết" — cần backend
-(agrichain-api) hợp tác set cookie `httpOnly`/`Secure`/`SameSite` đúng domain
-CHA, và CORS phải cho phép credentials giữa 2 subdomain. **NGOÀI PHẠM VI**
-lần đổi env var/domain này — chỉ ghi nhận rõ ràng ở đây để không ai tưởng
-lầm pilot đã "chạy được xuyên suốt 2 origin".
+Xem `agrichain/CLAUDE.md` mục "Kết nối backend" → "Cookie httpOnly dùng
+chung phiên đăng nhập" và `agrichain-api/CLAUDE.md` mục "Cookie httpOnly
+chứa access token" để biết đầy đủ chi tiết backend + hướng dẫn dev qua hosts
+file.
 
-Test thủ công 1 mình `app/` (KHÔNG bấm link sang site tĩnh giữa chừng, tự
-đăng nhập bằng cách khác — VD copy tay 3 key trên vào localStorage của
-`localhost:5173` qua DevTools) thì vẫn dùng được bình thường — chỉ luồng
-điều hướng XUYÊN 2 origin là chưa thông.
-
-**✅ Giải pháp TẠM cho pilot (2026-09-22): SPA có trang `/login` RIÊNG** —
-xem mục "Trang `/login`" bên dưới. Không còn cần copy tay localStorage qua
-DevTools nữa: `app.agrichain.org.vn` giờ tự đăng nhập được, ĐỘC LẬP với
-`agrichain.org.vn`. Đây KHÔNG giải quyết dứt điểm đoạn trên — vẫn là **2
-phiên đăng nhập tách biệt** (đăng nhập ở SPA không tự đăng nhập bên site
-chính, và ngược lại), chỉ là người dùng không còn bị "vòng lặp không vào
-được trang" nữa mà đăng nhập lại đúng RIÊNG cho từng vùng đang đứng. Xem chi
-tiết đầy đủ ở mục "Nợ kỹ thuật" cuối file.
+**✅ Giải pháp TẠM trước đó (2026-09-22, vẫn còn nguyên): SPA có trang
+`/login` RIÊNG** — xem mục "Trang `/login`" bên dưới. Đây là lớp DỰ PHÒNG khi
+bootstrap-qua-cookie thất bại (dev qua `127.0.0.1`/`localhost`, hoặc cookie
+đã hết hạn) — người dùng vẫn đăng nhập lại được TRỰC TIẾP trên SPA, không bị
+"vòng lặp không vào được trang" như trước khi có trang `/login` này.
 
 ## Sidebar cũ trỏ sang đây — `js/app-config.js` + `data-app-link`
 
@@ -1569,18 +1606,18 @@ Theo đúng thứ tự đã làm với Vật tư — dùng làm checklist:
 
 ## Nợ kỹ thuật / việc cố tình chưa làm trong pilot này
 
-- **⚠️ Phiên đăng nhập KHÔNG dùng chung được giữa `app.agrichain.org.vn` và
-  `agrichain.org.vn`** — hệ quả trực tiếp của kiến trúc subdomain vừa chốt,
-  xem mục "Giả định host" để biết đầy đủ. **Đã có giải pháp TẠM cho giai
-  đoạn demo/pilot (2026-09-22): SPA có trang `/login` RIÊNG** (xem mục
-  "Trang `/login`") — 2 "vùng" (site chính + SPA) giờ có **2 phiên đăng nhập
-  ĐỘC LẬP**, người dùng phải đăng nhập RIÊNG ở mỗi vùng (đăng nhập ở site
-  chính không tự vào được SPA, và ngược lại) thay vì bị "vòng lặp không vào
-  được trang" như trước. **Đây KHÔNG phải giải pháp dứt điểm** — dứt điểm là
-  chuyển sang cookie `Domain=.agrichain.org.vn` (1 phiên dùng chung thật sự
-  qua mọi subdomain), cần backend (agrichain-api) hợp tác set cookie
-  `httpOnly`/`Secure`/`SameSite` đúng domain CHA + CORS cho phép credentials
-  giữa 2 subdomain — **để dành sau, NGOÀI PHẠM VI pilot này.**
+- **⚠️ Phiên đăng nhập giữa `app.agrichain.org.vn` và `agrichain.org.vn` —
+  ĐÃ GIẢM NHẸ (2026-09-25), chưa dứt điểm** — xem mục "Giả định host" (phần
+  "Hệ quả ĐÃ GIẢM NHẸ") để biết đầy đủ cơ chế cookie httpOnly +
+  `bootstrapFromCookie()`. Tóm tắt: đăng nhập ở site tĩnh RỒI bấm sang SPA giờ
+  KHÔNG còn bị chặn (SPA tự dò phiên qua cookie lúc mount) — nhưng vẫn CẦN
+  cấu hình hosts file domain giả (`agrichain.local`/`app.agrichain.local`/
+  `api.agrichain.local`) lúc dev để cookie chia sẻ được (`127.0.0.1` không
+  set `Domain=` được, xem `agrichain/CLAUDE.md` mục "Kết nối backend"), đăng
+  xuất vẫn chưa đồng bộ 2 chiều, và refresh token vẫn KHÔNG qua cookie (chỉ
+  access token 15 phút). **SPA có trang `/login` RIÊNG** (2026-09-22, xem mục
+  "Trang `/login`") vẫn còn nguyên làm lớp dự phòng khi bootstrap thất bại
+  (dev qua `127.0.0.1`/`localhost`, hoặc cookie hết hạn).
 - **`src/routes/postLogin.ts`'s `KNOWN_ROUTES`** hiện có 9 route
   (`/nong-trai`, `/nong-trai-chi-tiet`, `/vat-tu`, `/mau-quy-trinh`,
   `/tai-khoan`, `/lo-hang`, `/ho-so`, `/goi-phan-mem`, `/lich-su-mua-goi`) —
