@@ -55,8 +55,10 @@ cũ trỏ sang đây" bên dưới). 8 trang admin còn lại KHÔNG đụng t�
 ```
 app/
   package.json / tsconfig*.json / vite.config.ts / index.html
-  .env                  # VITE_MAIN_SITE_URL cho dev (Live Server, 127.0.0.1:5500) — COMMIT, dùng chung
-  .env.production        # VITE_MAIN_SITE_URL cho build prod (https://agrichain.org.vn) — COMMIT, ghi đè .env
+  .env                  # VITE_MAIN_SITE_URL cho dev (Live Server, 127.0.0.1:5500) — Ý ĐỊNH là commit,
+                        # dùng chung, nhưng THỰC TẾ đang KHÔNG được commit (khớp pattern ".env" trong
+                        # .gitignore gốc, chưa từng "git add -f") — xem ghi chú đầy đủ ở mục "Giả định host"
+  .env.production        # VITE_MAIN_SITE_URL + VITE_API_BASE_URL cho build prod — CÓ COMMIT thật, ghi đè .env
   .env.example            # copy thành .env.local để trỏ VITE_API_BASE_URL sang backend local (KHÔNG commit .env.local)
   src/
     main.tsx            # import 4 file CSS gốc (../../css/*.css) + mount React
@@ -232,9 +234,15 @@ giả định "subpath" (`/app/...`) của bản trước, KHÔNG còn đúng n�
     gốc mục "Kiểm thử giao diện").
   - `app/.env.production` (CHỈ nạp khi `vite build`, GHI ĐÈ `.env`) —
     `https://agrichain.org.vn`.
-  - Cả 2 file **CÓ COMMIT** (khác `.env.local`/`VITE_API_BASE_URL` — biến đó
-    vẫn qua `.env.local` KHÔNG commit, vì là override cá nhân cho backend
-    local, còn 2 file trên là giá trị DÙNG CHUNG cho cả team).
+  - **⚠️ Chỉ `app/.env.production` THẬT SỰ có commit — `app/.env` THÌ KHÔNG**
+    (đã kiểm tra lại qua `git ls-files`, 2026-09-28): `.gitignore` gốc của repo
+    có pattern `.env` (chặn MỌI file tên `.env` ở bất kỳ thư mục nào, không
+    riêng gì gốc repo), nên `app/.env` chưa từng lọt vào git dù ý định ban đầu
+    (đoạn mô tả cấu trúc thư mục ở trên) là "dùng chung cho cả team". Máy khác/
+    người khác clone repo về sẽ KHÔNG có sẵn `app/.env` — phải tự tạo file này
+    (copy nội dung ở trên) trước khi `npm run dev`, không thể trông chờ nó có
+    sẵn từ git như tài liệu từng ngụ ý. `VITE_API_BASE_URL` vẫn đúng như mô tả
+    cũ — đặt qua `.env.local` (KHÔNG commit, override cá nhân cho backend local).
   - `mainSiteUrl('dang-nhap.html')` -> `http://127.0.0.1:5500/dang-nhap.html`
     (dev) hoặc `https://agrichain.org.vn/dang-nhap.html` (prod build) — tự
     xử lý dấu `/` thừa/thiếu, chỗ gọi không cần tự nhớ quy ước ghép chuỗi.
