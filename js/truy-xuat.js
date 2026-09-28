@@ -75,8 +75,13 @@
     loadingNode.hidden = true;
     notFoundNode.hidden = false;
     detailNode.hidden = true;
-    notFoundNode.querySelector('[data-not-found-title]').textContent =
-      'Không tìm thấy lô hàng có mã "' + code + '"';
+    // Thiếu hẳn ?ma= trên URL (code rỗng) là 1 tình huống KHÁC "có mã nhưng
+    // không tìm thấy" — thông báo cũ ghép chuỗi vô điều kiện từng hiện
+    // 'Không tìm thấy lô hàng có mã ""' (cặp ngoặc kép rỗng) cho ca này, dễ
+    // gây hiểu lầm là đã tra cứu 1 mã rỗng thay vì báo đúng lý do "thiếu mã".
+    notFoundNode.querySelector('[data-not-found-title]').textContent = code
+      ? 'Không tìm thấy lô hàng có mã "' + code + '"'
+      : 'Thiếu mã lô hàng trên đường dẫn';
   }
 
   function showLoadError() {
