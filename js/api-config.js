@@ -17,7 +17,13 @@
      hosts file) -> backend local qua IP như cũ — cookie vẫn hoạt động
      same-origin, chỉ không chia sẻ được sang SPA (app.*) qua cookie, phiên
      đăng nhập vẫn tách rời như trước khi có cookie httpOnly.
-   - domain khác (production thật) -> backend production.
+   - hostname 'agrichain.org.vn'/'www.agrichain.org.vn' (production thật,
+     kiến trúc VPS + Nginx: agrichain.org.vn site tĩnh, app.agrichain.org.vn
+     SPA, api.agrichain.org.vn backend) -> backend production qua đúng
+     subdomain api.*, KHÔNG còn qua Render nữa (domain Render cũ chỉ dùng
+     tạm thời trước khi có VPS, đã ngừng dùng cho production).
+   - domain khác (dự phòng, chưa xác định trước) -> vẫn trỏ backend
+     production api.agrichain.org.vn, không rơi về Render.
    ========================================================================== */
 
 (function (global) {
@@ -31,7 +37,9 @@
     global.AgriChain.API_BASE_URL = 'http://api.agrichain.local:8000';
   } else if (hostname === 'localhost' || hostname === '127.0.0.1') {
     global.AgriChain.API_BASE_URL = 'http://127.0.0.1:8000';
+  } else if (hostname === 'agrichain.org.vn' || hostname === 'www.agrichain.org.vn') {
+    global.AgriChain.API_BASE_URL = 'https://api.agrichain.org.vn';
   } else {
-    global.AgriChain.API_BASE_URL = 'https://agrichain-api-4mhf.onrender.com';
+    global.AgriChain.API_BASE_URL = 'https://api.agrichain.org.vn';
   }
 })(window);
