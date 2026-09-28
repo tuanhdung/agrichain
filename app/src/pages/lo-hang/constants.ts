@@ -23,3 +23,9 @@ export function statusOf(key: string): BatchStatusDef {
 // (page_size: 100 cố định), "Tổng số" hiển thị là batches.length của lần
 // fetch đó, không phải data.total từ API. Giữ đúng hành vi này.
 export const FETCH_PAGE_SIZE = 100;
+
+// Đúng _PUBLIC_TRACEABLE_STATUSES phía backend (app/routers/batches.py) —
+// CHỈ 3 trạng thái này được coi là "đủ điều kiện xác thực blockchain", nút
+// "Xác thực blockchain" ẩn ở mọi trạng thái khác (backend cũng tự chặn bằng
+// 409 nếu vẫn gọi được, đây chỉ là lớp UI tránh hiện nút chắc chắn sẽ lỗi).
+export const VERIFIABLE_BATCH_STATUSES = new Set(['harvested', 'processed', 'completed']);

@@ -47,6 +47,12 @@ cũ trỏ sang đây" bên dưới). 8 trang admin còn lại KHÔNG đụng t�
   `/nong-trai`) — port gần nguyên văn bản `.js` gốc, tránh rủi ro viết sai
   hành vi tinh vi khi phải diễn đạt lại qua API khai báo của 1 thư viện
   khác. Xem đầy đủ lý do ở mục "Trang `/nong-trai`".
+- **Mã QR: npm `qrcode`, KHÔNG nạp CDN `<script>`** (2026-09-28, trang
+  `/lo-hang`) — dependency ngoài ĐẦU TIÊN thêm sau lúc scaffold ban đầu
+  (`leaflet` có sẵn từ đầu), đã hỏi và xác nhận với người phụ trách trước khi
+  thêm vào `package.json`, giữ đúng tiền lệ "mọi thứ trong `app/` đều qua
+  npm, không CDN" — khác bản `.html` gốc (`qrcodejs` qua CDN). Xem mục "Nút
+  Truy xuất nguồn gốc (QR)".
 - Không có ESLint/Prettier riêng cho `app/` — chưa scaffold, ngoài phạm vi
   pilot này. `npm run lint` hiện chỉ là type-check (`tsc -b --noEmit`).
 
@@ -193,10 +199,11 @@ app/
       lo-hang/                # trang THỨ NĂM đã migrate — xem mục "Trang /lo-hang"
         LoHangPage.tsx
         BatchCard.tsx
-        filter-card.css         # CSS riêng trang (port <style> của lo-hang.html gốc, PHẦN filter-card
-                                 # — chưa port phần qr-modal, xem mục riêng)
+        QrModal.tsx             # modal QR truy xuất — Giai đoạn C (2026-09-28), thư viện npm `qrcode`
+        filter-card.css         # CSS riêng trang (port <style> của lo-hang.html gốc — filter-card VÀ
+                                 # qr-modal, cả 2 gộp chung 1 file, xem mục "Nút Truy xuất nguồn gốc")
         constants.ts
-        format.ts
+        format.ts               # + shorten() (rút gọn tx_hash) — Giai đoạn C
       ho-so/                  # trang THỨ SÁU đã migrate — self-service, xem mục "Trang /ho-so"
         HoSoPage.tsx             # trang ĐẦU TIÊN trong app/ dùng tabs (.tabs/.tabs__tab/.tabs__panel),
                                  # tự quản lý bằng 1 state cục bộ — setupTabs() gốc CHƯA có bản port
@@ -1039,20 +1046,106 @@ dụng cho `FarmCard.tsx` ở `/nong-trai`: trang chưa migrate thì link ra sit
 tĩnh, không port khống 1 trang chưa tới lượt). KHÔNG đụng gì tới
 `nong-trai-chi-tiet.html`/`js/nong-trai-chi-tiet.js`.
 
-### ⚠️ Nút "Truy xuất nguồn gốc" (QR) — CHƯA port, cần quyết định riêng
+### Nút "Truy xuất nguồn gốc" (QR) — ĐÃ PORT (Giai đoạn C, 2026-09-28)
 
-Bản gốc mỗi thẻ lô hàng có thêm 1 nút mở modal QR (dùng thư viện
-`qrcodejs` nạp qua CDN `<script>`, xem `openQrModal()`/`traceabilityUrl()`
-trong `js/lo-hang.js`) — **CỐ TÌNH KHÔNG port trong lần migrate này**, vì
-không nằm trong danh sách việc cụ thể được giao, và việc thêm nó đòi hỏi 1
-quyết định riêng (cài `npm install` 1 thư viện QR mới cho `app/`, hay nạp
-lại qua thẻ `<script>` CDN như bản gốc — `app/` hiện chưa có tiền lệ nào
-nạp thư viện ngoài kiểu CDN, mọi thứ khác đều qua `npm`). `BatchCard.tsx`
-vì vậy thiếu hẳn nút này so với bản gốc — **đây là 1 khoảng lùi thật sự về
-tính năng so với `lo-hang.html`**, không phải sơ suất, cần người dùng xác
-nhận hướng đi trước khi thêm. Modal QR y hệt cũng tồn tại ở
-`nong-trai-chi-tiet.html` (CHƯA migrate) — nên cân nhắc port CHUNG 1 lần khi
-trang đó migrate, tránh dựng 2 cơ chế QR khác nhau trong cùng SPA.
+**KHÔNG còn là nợ kỹ thuật** — đã thêm `QrModal.tsx` (mới, `pages/lo-hang/`)
+dùng npm package **`qrcode`** (+ `@types/qrcode` devDependency, đã xác nhận
+với người phụ trách trước khi thêm vào `package.json` — quyết định giữa
+"cài `npm install` 1 thư viện QR mới" và "nạp qua CDN `<script>` như bản
+gốc" ở đây đã CHỐT chọn npm, khớp tiền lệ "mọi thứ khác trong `app/` đều qua
+npm, không CDN"). `QRCode.toCanvas(canvasRef.current, url, ...)` vẽ trực
+tiếp vào `<canvas>` lồng trong `.qr-modal__canvas` (class port nguyên văn từ
+`lo-hang.html` gốc, nay nằm trong `filter-card.css` — xem file đó để biết vì
+sao gộp chung 1 file thay vì tách riêng). Thêm 1 modal DÙNG CHUNG cho mọi
+thẻ (`LoHangPage.tsx` sở hữu `useDialog()` + state `qrBatch`, không phải mỗi
+`BatchCard` tự có 1 `<dialog>` riêng — cùng mẫu các modal khác trong `app/`).
+
+**⚠️ URL trong QR PHẢI trỏ về SITE TĨNH, KHÔNG dùng `location.origin` của
+SPA** — sai khác CÓ CHỦ ĐÍCH so với `traceabilityUrl()` gốc (dùng
+`global.location.origin`, đúng vì bản gốc chạy CÙNG origin với
+`truy-xuat.html`). SPA chạy ở `app.agrichain.org.vn`, còn `truy-xuat.html`
+là trang công khai ở `agrichain.org.vn` — 2 origin thật sự khác nhau (xem
+mục "Giả định host") — dùng `location.origin` sẽ tạo ra 1 URL KHÔNG TỒN TẠI
+(`https://app.agrichain.org.vn/truy-xuat.html?...`, 404). `QrModal.tsx` vì
+vậy dùng `mainSiteUrl(\`truy-xuat.html?ma=${code}\`)` (đã có sẵn, cùng helper
+`BatchCard.tsx`/`FarmCard.tsx` dùng cho các link liên-trang khác).
+
+Thêm nút "Tải mã QR" (bản gốc chỉ có "Mở trang truy xuất") — đọc
+`canvas.toDataURL('image/png')` rồi tự tạo `<a download>` ảo bấm ngay, không
+cần thư viện thêm cho việc tải file.
+
+Đây là ĐÚNG modal QR mà `nong-trai-chi-tiet.html` (CHƯA migrate) cũng có —
+cố tình CHƯA gộp thành 1 component dùng chung giữa `pages/lo-hang/` và
+`pages/nong-trai-chi-tiet/` (2 trang khác thư mục, cần 1 lần refactor riêng
+để rút ra `hooks/`/component top-level) — sẽ cân nhắc gộp khi
+`nong-trai-chi-tiet.html` migrate sang SPA, ngoài phạm vi lần thêm này.
+
+### Nút "Xác thực blockchain" — MỚI (Giai đoạn C, 2026-09-28)
+
+Bản gốc `lo-hang.html`/`js/lo-hang.js` đã **BỎ HẲN** khối "Xác thực
+blockchain" (xem CLAUDE.md gốc mục "Kết nối backend" — lúc migrate, `BatchOut`
+thật chỉ có `verification_status` luôn `'pending'`, chưa có anchoring thật
+nên hiện ra sẽ sai lệch). Backend giờ **đã có** `POST
+/batches/{id}/verify-blockchain` thật (Polygon Amoy testnet — xem
+`PUBLIC-BATCH-SCHEMA.md` + `agrichain-api/CLAUDE.md` mục "Xác thực blockchain
+lô hàng") — đây là tính năng MỚI so với cả bản `.html` gốc, không phải port.
+
+- **`api/batches.ts`** — `Batch` interface bổ sung đủ 8 field
+  (`verification_status`/`tx_hash`/`anchored_at`/`contract_address`/
+  `signer_address`/`network`/`block_number`/`data_hash`), thêm hàm
+  `verifyBlockchain(id)` (`POST /batches/{id}/verify-blockchain`, dùng lại
+  quyền `batches.edit`, KHÔNG có quyền riêng — khớp backend).
+- **`constants.ts`** — `VERIFIABLE_BATCH_STATUSES` (`harvested`/`processed`/
+  `completed`), khớp CHÍNH XÁC `_PUBLIC_TRACEABLE_STATUSES` phía backend
+  (`app/routers/batches.py`) — đã đối chiếu source thật, không suy đoán.
+- **`BatchCard.tsx`** — nút chỉ hiện khi `!isPlatformAdminMode &&
+  !isAnchored && VERIFIABLE_BATCH_STATUSES.has(batch.status)` (cùng quy ước
+  ẩn nút Sửa/Xoá: batches không có permission gate qua giao diện này, chỉ
+  gate bằng `isPlatformAdminMode`, xem CLAUDE.md gốc mục "Trang
+  `tai-khoan.html`"). Khoá nút (`disabled` + đổi nhãn "Đang xác thực
+  blockchain...") suốt lúc gọi — request đồng bộ chờ giao dịch on-chain, có
+  thể mất 5-30 giây (xem docstring route thật). Thành công thì gọi
+  `onVerified(updated)` để `LoHangPage.tsx` thay ĐÚNG 1 phần tử trong danh
+  sách (không `loadBatches()` lại toàn bộ), và hiện ngay badge "Đã xác thực"
+  + `shorten(tx_hash)` trong `.batch-card__rows` (đọc trực tiếp
+  `batch.verification_status === 'anchored'`, không cần tải lại gì thêm).
+- **Xử lý lỗi** (`handleVerify()`) — phân biệt đúng 3 loại theo yêu cầu:
+  - **409** (đã anchored hoặc sai trạng thái — race condition, vì nút đã ẩn
+    theo điều kiện ở trên nên hiếm khi xảy ra) — dùng THẲNG `err.message` từ
+    backend, CỐ TÌNH KHÔNG gộp thành 1 câu chung cho cả 2 ca: message thật
+    backend trả cụ thể hơn hẳn ("Lô hàng này đã được xác thực blockchain
+    trước đó." vs "Chỉ neo được lô hàng ở trạng thái đã thu hoạch, đang xử lý
+    hoặc hoàn tất.") — đã xác nhận qua test tay với backend local (xem dưới).
+  - **503** (giao dịch chain thất bại/thiếu cấu hình, backend đảm bảo KHÔNG
+    ghi gì vào DB — xem route thật) — hiện CỐ ĐỊNH "Chưa xác thực được, vui
+    lòng thử lại sau.", KHÔNG dùng message kỹ thuật backend trả về (dù
+    backend đã tránh lộ chi tiết nhạy cảm, message đó vẫn không dễ hiểu với
+    người dùng cuối) — nút tự bật lại ngay (không khoá vĩnh viễn) nên "thử
+    lại" luôn bấm được ngay sau đó.
+  - **Lỗi mạng** (status `0`, `ApiError` với `code: 'NETWORK_ERROR'`) — rơi
+    vào cùng nhánh với 409 (`err instanceof ApiError`), dùng thẳng
+    `err.message` — message mặc định của `networkError()`
+    ("Không kết nối được máy chủ. Kiểm tra backend đã chạy chưa.") đã đủ rõ
+    ràng và khác hẳn message của 409/503, không cần viết thêm 1 câu riêng.
+
+**Đã test bằng backend local thật** (`agrichain-api`, không phải mock) —
+đăng ký 1 tài khoản business test qua `POST /auth/register/business`, tạo
+farm/season/batch thật, gọi `POST /batches/{id}/verify-blockchain`:
+`BatchOut` trả về khớp CHÍNH XÁC 8 field đã khai báo trong `Batch` interface;
+`BLOCKCHAIN_CONTRACT_ADDRESS` chưa cấu hình ở máy test (đúng trạng thái hiện
+tại — contract thật CHƯA deploy, xem `agrichain-api/CLAUDE.md`) nên gọi verify
+trả đúng **503** (`{"error":{"code":"SERVICE_UNAVAILABLE","message":"Chưa cấu
+hình đủ BLOCKCHAIN_PRIVATE_KEY/BLOCKCHAIN_CONTRACT_ADDRESS..."}}`) — khớp
+đúng nhánh xử lý 503 ở trên. Gọi verify trên 1 batch ở trạng thái `planning`
+(không đủ điều kiện) trả đúng **409**
+(`{"error":{"code":"CONFLICT","message":"Chỉ neo được lô hàng ở trạng thái đã
+thu hoạch, đang xử lý hoặc hoàn tất."}}`) — khớp nhánh 409. **CHƯA test được
+đường thành công thật** (cần `BLOCKCHAIN_CONTRACT_ADDRESS` đã deploy, hiện
+chưa có ở bất kỳ môi trường nào — xem `agrichain-api/CLAUDE.md`) — badge "Đã
+xác thực"/`shorten(tx_hash)` mới chỉ được xác nhận qua đọc code + kiểu dữ
+liệu, CHƯA thấy tận mắt trên trình duyệt thật (cần người dùng tự kiểm bằng
+Live Server + backend đã có contract, xem CLAUDE.md gốc mục "Kiểm thử giao
+diện" — dự án không tự động hoá trình duyệt).
 
 ## Trang `/ho-so` (2026-09-23 — trang thứ 6 đã migrate)
 
@@ -1657,6 +1750,14 @@ Theo đúng thứ tự đã làm với Vật tư — dùng làm checklist:
   `js/api.js` gốc (`logs`, `certifications`, CRUD đầy đủ của `seasons`/
   `batches`, các nhánh còn lại của `system.*`) CHƯA port — thêm khi trang
   tương ứng được migrate (bước 2 ở checklist trên), chắc chắn sẽ cần khi
+  <!-- ⚠️ Đoạn 3 gạch đầu dòng này (batches/seasons/logs/certifications) đã
+       CŨ — `api/batches.ts`/`api/seasons.ts`/`api/logs.ts`/
+       `api/certifications.ts` đều đã có CRUD đầy đủ từ Bước 3/4 của
+       "Trang /nong-trai-chi-tiet" phía trên (mục đó mới, đoạn "Nợ kỹ thuật"
+       này chưa được dọn theo — phát hiện khi thêm `verifyBlockchain()` vào
+       `batches.ts` ở Giai đoạn C, 2026-09-28, ngoài phạm vi việc được giao
+       lần này nên chỉ ghi chú lại, không viết lại toàn đoạn). `batches.ts`
+       giờ có thêm `verifyBlockchain()` (xem mục "Nút Xác thực blockchain"). -->
   `nong-trai-chi-tiet.html` migrate (trang đó là nơi CRUD lô hàng/mùa vụ/
   nhật ký/chứng nhận thật sự diễn ra).
 - **Sai khác so với yêu cầu ban đầu ở `/nong-trai`**: KHÔNG có "nút mắt mở
