@@ -23,10 +23,18 @@ dev) đều trả **503**, KHÔNG có ca thành công thật nào để kiểm c
 tới khi deploy xong (xem `agrichain-api/CLAUDE.md` mục "Xác thực blockchain
 lô hàng").
 
-Khuôn JSON dưới đây khớp ĐÚNG với response thật, TRỪ 2 điểm sai khác đã ghi
-chú ngay tại chỗ: `certifications` route thật luôn trả mảng rỗng (không như
-mock có sẵn 2 chứng nhận mẫu), và mọi field blockchain (`contract_address`
-trở xuống) đều `null` vì chưa có lô hàng nào được anchor thật.
+Khuôn JSON dưới đây khớp ĐÚNG với response thật, TRỪ 1 điểm sai khác đã ghi
+chú ngay tại chỗ: mọi field blockchain (`contract_address` trở xuống) đều
+`null` vì chưa có lô hàng nào được anchor thật.
+
+**Cập nhật 2026-09-29: `certifications` ĐÃ NỐI DỮ LIỆU THẬT** — route giờ
+trả chứng nhận CỦA NÔNG TRẠI đang ở trạng thái `active` (chứng nhận
+`expired`/`suspended`/`revoked` KHÔNG hiện ra, tránh đánh lừa người quét QR
+tưởng nông trại vẫn còn giữ 1 chứng nhận đã hết hiệu lực), sắp xếp mới nhất
+trước, tối đa 50 bản ghi/nông trại. Mảng chỉ RỖNG khi nông trại đó thật sự
+chưa có (hoặc không còn) chứng nhận `active` nào — không còn CỐ TÌNH luôn
+rỗng như trước. Mỗi phần tử CHỈ có đúng 2 field an toàn công khai —
+`name`/`issuer` — xem khuôn mẫu bên dưới.
 
 Route public, KHÔNG cần đăng nhập — đúng khuôn 4 route public-read đã có
 (`GET /farms/{id}`, `GET /seasons/{id}`, `GET /batches/{id}`,
@@ -103,12 +111,12 @@ Route public, KHÔNG cần đăng nhập — đúng khuôn 4 route public-read �
     "logo_url": null
   },
 
-  // Chứng nhận CỦA NÔNG TRẠI — route thật (2026-09-27) CỐ TÌNH luôn trả
-  // MẢNG RỖNG ở bước này, KHÔNG query certifications thật (quyết định lúc
-  // implement: giữ đúng phạm vi ban đầu, tránh phải quyết thêm về filter/
-  // quyền cho một ngoại lệ public mới). Mock vẫn giữ 2 bản ghi mẫu bên dưới
-  // để dựng giao diện, nhưng khi đổi USE_MOCK_DATA sang false, phần này trên
-  // trang thật sẽ RỖNG cho tới khi làm riêng.
+  // Chứng nhận CỦA NÔNG TRẠI đang ở trạng thái `active` — ĐÃ NỐI DỮ LIỆU
+  // THẬT (2026-09-29, trước đó CỐ TÌNH luôn trả mảng rỗng). Chứng nhận
+  // `expired`/`suspended`/`revoked` KHÔNG hiện ở đây. Mảng RỖNG chỉ khi nông
+  // trại thật sự không có chứng nhận `active` nào — không còn là hành vi cố
+  // định nữa. Mock (data/public-batch-mock.json) vẫn giữ 2 bản ghi mẫu để
+  // dựng giao diện, không cần đổi theo vì đây chỉ là dữ liệu demo.
   "certifications": [
     { "name": "VietGAP", "issuer": "Trung tâm Chất lượng Nông lâm thuỷ sản" }
   ],
@@ -228,8 +236,9 @@ thêm vào `js/enums.js` — ngoài phạm vi trang public này.
   **deploy contract thật lên Polygon Amoy** (đang chờ token testnet) —
   không có contract thì MỌI lần gọi route này đều trả 503, không có ca
   thành công thật nào để kiểm chứng cho tới lúc đó.
-- **Vẫn chưa làm**: ngoại lệ public thật cho phần `certifications` (hiện route
-  luôn trả mảng rỗng, xem ghi chú tại chỗ ở trên).
+- ~~ngoại lệ public thật cho phần `certifications`~~ — **ĐÃ LÀM** (2026-09-29,
+  xem ghi chú tại chỗ ở trên) — chỉ trả chứng nhận `active`, đúng 2 field
+  `name`/`issuer`.
 - **Chưa làm ở repo này**: đổi `USE_MOCK_DATA` sang `false` trong
   `js/truy-xuat.js` để gọi route thật — route backend đã sẵn sàng. Route
   ghi (`verify-blockchain`) cũng CHƯA được gọi lại từ site tĩnh
