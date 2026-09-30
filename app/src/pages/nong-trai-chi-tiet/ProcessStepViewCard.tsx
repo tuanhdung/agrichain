@@ -24,7 +24,7 @@ export function ProcessStepViewCard({ step, index, isCurrent, isPlatformAdminMod
         <div className="workflow-checklist__line"></div>
       </div>
 
-      <div className="workflow-checklist__card">
+      <div className={`workflow-checklist__card${isCurrent && !step.done ? ' detail-workflow-current' : ''}`}>
         <div className="workflow-checklist__head">
           <strong className="workflow-checklist__step-title">
             Bước {index + 1}: {step.name}

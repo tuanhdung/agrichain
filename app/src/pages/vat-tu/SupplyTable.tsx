@@ -2,12 +2,15 @@
 // NGUYÊN (.table, .table__code, .table__name, .table__desc, .table__muted,
 // .table__nowrap, .icon-btn, .icon-btn--danger, .badge--cat-<type>). Cột
 // "Đơn vị sở hữu" chỉ hiện khi isPlatformAdminMode (organization_name chỉ có
-// ở SupplySystemRow, không có ở Supply thường).
+// ở SupplySystemRow, không có ở Supply thường). Thêm .supply-table-panel/
+// .supply-row (vat-tu.css, KHÔNG sửa .table-panel/.table dùng chung) cho
+// hiệu ứng hiện dần + hover mượt hơn.
 import { Icon } from '../../icons';
 import { typeOf } from './constants';
 import { formatDateTime } from './format';
 import type { Supply } from '../../api';
 import type { SupplySystemRow } from '../../api';
+import './vat-tu.css';
 
 interface SupplyTableProps {
   supplies: (Supply | SupplySystemRow)[];
@@ -20,7 +23,7 @@ interface SupplyTableProps {
 
 export function SupplyTable({ supplies, isPlatformAdminMode, canEdit, canDelete, onOpenEdit, onOpenDelete }: SupplyTableProps) {
   return (
-    <div className="table-panel">
+    <div className="table-panel supply-table-panel">
       <div className="table-panel__header">
         <h2 className="table-panel__title">Danh sách vật tư</h2>
       </div>
@@ -53,7 +56,7 @@ export function SupplyTable({ supplies, isPlatformAdminMode, canEdit, canDelete,
               const showEdit = isPlatformAdminMode || canEdit;
 
               return (
-                <tr key={material.id}>
+                <tr key={material.id} className="supply-row">
                   {isPlatformAdminMode && <td>{organizationName || '—'}</td>}
                   <td className="table__code">{material.code}</td>
                   <td>

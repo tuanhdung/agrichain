@@ -21,6 +21,7 @@ import { useToast } from '../../components/ToastProvider';
 import { statusOf, VERIFIABLE_BATCH_STATUSES } from './constants';
 import { formatArea, formatDate, shorten } from './format';
 import type { Batch, BatchSystemRow } from '../../api';
+import './batch-card.css';
 
 interface BatchCardProps {
   batch: Batch | BatchSystemRow;
@@ -100,7 +101,7 @@ export function BatchCard({ batch, isPlatformAdminMode, onVerified, onOpenQr }: 
   }
 
   return (
-    <article className="card batch-card">
+    <article className="card batch-card lohang-batch-card">
       <div className="batch-card__header">
         <h2 className="batch-card__code">{batch.code}</h2>
         <span className={`badge ${status.badge}`}>{status.label}</span>

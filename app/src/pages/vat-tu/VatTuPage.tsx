@@ -125,7 +125,7 @@ export function VatTuPage() {
           <p className="page-header__meta">Quản lý danh sách vật tư nông nghiệp của bạn.</p>
         </div>
         {canAdd && (
-          <button type="button" className="btn btn--primary btn--lg" onClick={openCreate}>
+          <button type="button" className="btn btn--primary btn--lg btn-shine" onClick={openCreate}>
             <Icon name="plus" className="icon--sm" />
             Thêm vật tư
           </button>

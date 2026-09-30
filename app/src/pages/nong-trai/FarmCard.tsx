@@ -1,10 +1,13 @@
 // Port farmCard() (js/nong-trai.js gốc) — markup/class giữ NGUYÊN
 // (.card.card--hover, .data-card__header/__title/__code/__rows/__row/
-// __row-label/__actions, .icon-btn/.icon-btn--danger).
+// __row-label/__actions, .icon-btn/.icon-btn--danger). Thêm class
+// .farm-card (farm-card.css, KHÔNG sửa các class dùng chung ở trên) cho
+// hiệu ứng hiện dần khi tải + hover — xem farm-card.css.
 import { Link } from 'react-router-dom';
 import { Icon } from '../../icons';
 import type { Farm, FarmSystemRow } from '../../api';
 import { formatArea, formatDate } from './format';
+import './farm-card.css';
 
 interface FarmCardProps {
   farm: Farm | FarmSystemRow;
@@ -47,7 +50,7 @@ export function FarmCard({ farm, isPlatformAdminMode, canEdit, canDelete, onOpen
   }
 
   return (
-    <Link className="card card--hover" to={href}>
+    <Link className="card card--hover farm-card" to={href}>
       <div className="card__header">
         <h2 className="data-card__title">{farm.name}</h2>
         <p className="data-card__code">{farm.code}</p>

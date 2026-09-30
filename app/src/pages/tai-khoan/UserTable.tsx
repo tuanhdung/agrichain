@@ -6,6 +6,7 @@
 import { Icon } from '../../icons';
 import { initials } from './format';
 import type { OrgUser } from '../../api';
+import './user-table.css';
 
 interface UserTableProps {
   users: OrgUser[];
@@ -29,7 +30,7 @@ export function UserTable({
   onDeactivate
 }: UserTableProps) {
   return (
-    <div className="table-panel">
+    <div className="table-panel user-table-panel">
       <div className="table-panel__header">
         <h2 className="table-panel__title">Danh sách người dùng</h2>
       </div>
@@ -50,7 +51,7 @@ export function UserTable({
           </thead>
           <tbody>
             {users.map((user) => (
-              <tr key={user.id}>
+              <tr key={user.id} className="user-row">
                 <td>
                   <span className="avatar avatar--sm">{initials(user.full_name)}</span>
                 </td>

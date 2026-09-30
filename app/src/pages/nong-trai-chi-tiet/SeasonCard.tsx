@@ -32,7 +32,7 @@ export function SeasonCard({ season, canEdit, canDelete, onView, onEdit, onDelet
   const status = seasonStatusOf(season.status);
 
   return (
-    <article className="card card--hover">
+    <article className="card card--hover detail-card">
       <div className="card__header data-card__header">
         <h2 className="data-card__title">{season.name}</h2>
         <span className={`badge ${status.badge}`}>{status.label}</span>

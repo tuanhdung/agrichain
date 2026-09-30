@@ -1,0 +1,104 @@
+/* Hiệu ứng RIÊNG cho trang Vật tư (.supply-stat/.supply-row, gắn thêm cạnh
+   .stat-card/.badge có sẵn) — KHÔNG sửa .stat-card/.table/.icon-btn/.toast
+   dùng chung trong css/app-shell.css và css/components.css, vì các class đó
+   còn dùng rộng khắp toàn khung quản trị (bảng ở Lô hàng/Tài khoản/Mẫu quy
+   trình, toast dùng chung app-wide...). Cùng mẫu farm-card.css đã làm ở
+   trang Nông trại.
+
+   --ease-emphasized (css/tokens.css) đã có sẵn vì app/ nạp CHUNG 4 file CSS
+   gốc của site tĩnh (xem app/src/main.tsx) — không cần định nghĩa lại. */
+
+@keyframes supply-stat-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.supply-stat {
+  /* fill-mode "backwards" (KHÔNG phải "both") — cùng lý do đã ghi chú ở
+     farm-card.css: .stat-card:hover (css/app-shell.css) cũng đổi transform
+     để nâng thẻ lên, nếu giữ lại trạng thái animation sau khi chạy xong
+     ("both"/"forwards") thì :hover không bao giờ thắng được animation đã
+     kết thúc — chỉ "backwards" mới rảnh tay nhường lại transform cho :hover
+     ngay sau khi animation chạy xong. */
+  animation: supply-stat-in 450ms var(--ease-emphasized) backwards;
+}
+.supply-stat:nth-child(1) { animation-delay: 0ms; }
+.supply-stat:nth-child(2) { animation-delay: 50ms; }
+.supply-stat:nth-child(3) { animation-delay: 100ms; }
+.supply-stat:nth-child(4) { animation-delay: 150ms; }
+.supply-stat:nth-child(5) { animation-delay: 200ms; }
+.supply-stat:nth-child(6) { animation-delay: 250ms; }
+.supply-stat:nth-child(7) { animation-delay: 300ms; }
+.supply-stat:nth-child(8) { animation-delay: 350ms; }
+
+.supply-stat .stat-card__icon {
+  transition: transform 250ms var(--ease-emphasized);
+}
+.supply-stat:hover .stat-card__icon {
+  transform: scale(1.15) rotate(-6deg);
+}
+
+/* Bảng — chỉ tăng thêm độ mượt cho hiệu ứng hover có sẵn của .table tbody
+   tr:hover (vốn đổi màu nền tức thời, không transition), thêm viền trái
+   nhấn màu thương hiệu, và phóng to nút icon-btn khi hover đúng dòng đó.
+   Viền đặt trên Ô ĐẦU TIÊN của dòng (không đặt thẳng trên <tr>) — .table
+   dùng border-collapse: collapse (css/components.css), border trên chính
+   <tr> không hiển thị nhất quán giữa các trình duyệt trong chế độ này, còn
+   border trên <td> thì luôn đáng tin cậy. */
+.supply-row td:first-child {
+  box-shadow: inset 3px 0 0 transparent;
+  transition: box-shadow 200ms var(--ease-emphasized);
+}
+.supply-row:hover td:first-child {
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+.supply-row .icon-btn {
+  transition: transform 200ms var(--ease-emphasized), background-color var(--transition-base),
+    color var(--transition-base);
+}
+.supply-row:hover .icon-btn {
+  transform: scale(1.1);
+}
+.supply-row .badge {
+  transition: transform 200ms var(--ease-emphasized);
+}
+.supply-row:hover .badge {
+  transform: scale(1.05);
+}
+
+/* Cả khối bảng hiện dần 1 lần khi dữ liệu vừa tải xong — KHÔNG so le theo
+   từng dòng (khác thẻ nông trại/ô thống kê): 1 bảng dữ liệu có thể nhiều
+   dòng, so le từng dòng sẽ làm chậm/rối trải nghiệm đọc so với 1 lần hiện
+   mượt cho cả khối. */
+@keyframes supply-table-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.supply-table-panel {
+  animation: supply-table-in 450ms var(--ease-emphasized) backwards;
+  animation-delay: 120ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .supply-stat,
+  .supply-table-panel {
+    animation: none;
+  }
+  .supply-stat:hover .stat-card__icon,
+  .supply-row:hover .icon-btn,
+  .supply-row:hover .badge {
+    transform: none;
+  }
+}

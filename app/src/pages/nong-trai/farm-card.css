@@ -1,0 +1,90 @@
+/* Hiệu ứng RIÊNG cho thẻ nông trại (.farm-card, gắn thêm cạnh .card.card--hover
+   có sẵn) — KHÔNG sửa .card/.data-card__* /.icon-btn dùng chung trong
+   css/components.css và css/app-shell.css, vì các class đó còn dùng ở
+   SeasonCard/CertificationCard (trang chi tiết nông trại) và nhiều nơi khác
+   trong toàn app-shell. Import trực tiếp trong FarmCard.tsx, cùng mẫu
+   filter-card.css đã có ở trang Lô hàng (app/src/pages/lo-hang/).
+
+   --ease-emphasized (css/tokens.css) đã có sẵn vì app/ nạp CHUNG 4 file CSS
+   gốc của site tĩnh (xem app/src/main.tsx) — không cần định nghĩa lại. */
+
+@keyframes farm-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.farm-card {
+  /* fill-mode "backwards" (KHÔNG phải "both"/"forwards") — cố ý: animation
+     CSS có độ ưu tiên cao hơn rule tác giả thường (kể cả :hover) trong lúc
+     đang chạy/giữ trạng thái fill; nếu giữ "forwards" thì .farm-card:hover
+     bên dưới (cũng đổi transform) sẽ bị animation đã kết thúc đè mất, không
+     bao giờ nhấc thẻ lên được khi hover. "backwards" chỉ áp trạng thái "from"
+     TRƯỚC khi animation chạy (tránh chớp thẻ hiện sẵn 1 khung hình trước khi
+     kịp mờ dần), không giữ lại trạng thái "to" sau khi đã chạy xong — nên
+     :hover được rảnh tay đổi transform như bình thường sau đó. */
+  animation: farm-card-in 500ms var(--ease-emphasized) backwards;
+  transition:
+    transform 300ms var(--ease-emphasized),
+    box-shadow 300ms var(--ease-emphasized),
+    border-color 300ms var(--ease-emphasized);
+}
+.farm-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary);
+}
+
+/* So le theo vị trí trong lưới — chặn ở 6 thẻ đầu (PAGE_SIZE=12, không cần
+   domino tới thẻ cuối cùng mới hiện xong), tính bằng CSS thuần qua
+   :nth-child thay vì truyền index xuống props, đỡ phải đổi API của
+   FarmCard. */
+.farm-card:nth-child(1) { animation-delay: 0ms; }
+.farm-card:nth-child(2) { animation-delay: 60ms; }
+.farm-card:nth-child(3) { animation-delay: 120ms; }
+.farm-card:nth-child(4) { animation-delay: 180ms; }
+.farm-card:nth-child(5) { animation-delay: 240ms; }
+.farm-card:nth-child(6) { animation-delay: 300ms; }
+
+.farm-card:hover .data-card__title {
+  color: var(--color-primary);
+}
+.farm-card .data-card__title {
+  transition: color 250ms var(--ease-emphasized);
+}
+
+.farm-card .data-card__row .icon {
+  transition:
+    color 250ms var(--ease-emphasized),
+    transform 250ms var(--ease-emphasized);
+}
+.farm-card:hover .data-card__row .icon {
+  color: var(--color-primary);
+  transform: scale(1.1);
+}
+
+.farm-card .icon-btn {
+  transition:
+    transform 200ms var(--ease-emphasized),
+    background-color var(--transition-base),
+    color var(--transition-base);
+}
+.farm-card .icon-btn:hover {
+  transform: scale(1.15);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .farm-card {
+    animation: none;
+  }
+  .farm-card:hover,
+  .farm-card:hover .data-card__row .icon,
+  .farm-card .icon-btn:hover {
+    transform: none;
+  }
+}

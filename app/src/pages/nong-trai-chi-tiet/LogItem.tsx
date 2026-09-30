@@ -42,7 +42,7 @@ export function LogItem({ log, isPlatformAdminMode, canEdit, canDelete, onEdit, 
   }
 
   return (
-    <div className={`log-item log-item--${activity.color}`}>
+    <div className={`log-item log-item--${activity.color} detail-log-item`}>
       <div className="log-item__icon">
         <Icon name={activityIconName(activity)} />
       </div>

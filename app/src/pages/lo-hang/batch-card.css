@@ -1,0 +1,83 @@
+/* Hiệu ứng RIÊNG cho thẻ lô hàng ở trang Lô hàng (.lohang-batch-card, gắn
+   thêm cạnh .card.batch-card có sẵn) — KHÔNG sửa .card/.batch-card/.icon-btn
+   dùng chung trong css/components.css, vì các class đó còn dùng ở tab "Lô
+   hàng" của nong-trai-chi-tiet (component BatchCard RIÊNG ở thư mục đó, xem
+   app/src/pages/nong-trai-chi-tiet/batch-card-anim.css). Cùng mẫu
+   farm-card.css (app/src/pages/nong-trai/).
+
+   Đặt tên có tiền tố "lohang-" (không chỉ ".batch-card-anim" trơn) vì
+   2 trang (Lô hàng + tab Lô hàng của Chi tiết nông trại) đều có component
+   BatchCard riêng dùng chung ".card.batch-card" — cần 2 class RIÊNG để
+   không đụng nhau nếu sau này cả 2 cùng bị `key` render trong 1 cây DOM
+   (không xảy ra thật, nhưng tên rõ ràng tránh nhầm lẫn khi đọc code).
+
+   Trang KHÔNG phân trang (tải cố định 100 bản ghi/lần, xem LoHangPage.tsx)
+   nên chặn so le ở 9 thẻ đầu (3 hàng lưới .grid--3) thay vì 6 như
+   farm-card.css (PAGE_SIZE=12) — nhiều thẻ hơn nhưng không có pagination để
+   "reset" cảm giác vào trang mới mỗi lần, nới thêm 1 hàng cho tự nhiên hơn. */
+
+@keyframes lohang-batch-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.lohang-batch-card {
+  /* "backwards" (KHÔNG phải "both"/"forwards") — cùng lý do đã ghi chú ở
+     farm-card.css: giữ "forwards" sẽ khiến :hover bên dưới (cũng đổi
+     transform) không bao giờ thắng được animation đã chạy xong. .batch-card
+     gốc KHÔNG có ".card--hover" đi kèm (khác .farm-card) nên hiệu ứng nhấc
+     thẻ khi hover hoàn toàn do class này cung cấp thêm. */
+  animation: lohang-batch-card-in 500ms var(--ease-emphasized) backwards;
+  transition:
+    transform 300ms var(--ease-emphasized),
+    box-shadow 300ms var(--ease-emphasized),
+    border-color 300ms var(--ease-emphasized);
+}
+.lohang-batch-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary);
+}
+
+.lohang-batch-card:nth-child(1) { animation-delay: 0ms; }
+.lohang-batch-card:nth-child(2) { animation-delay: 50ms; }
+.lohang-batch-card:nth-child(3) { animation-delay: 100ms; }
+.lohang-batch-card:nth-child(4) { animation-delay: 150ms; }
+.lohang-batch-card:nth-child(5) { animation-delay: 200ms; }
+.lohang-batch-card:nth-child(6) { animation-delay: 250ms; }
+.lohang-batch-card:nth-child(7) { animation-delay: 300ms; }
+.lohang-batch-card:nth-child(8) { animation-delay: 350ms; }
+.lohang-batch-card:nth-child(9) { animation-delay: 400ms; }
+
+.lohang-batch-card:hover .batch-card__code {
+  color: var(--color-primary);
+}
+.lohang-batch-card .batch-card__code {
+  transition: color 250ms var(--ease-emphasized);
+}
+
+.lohang-batch-card .icon-btn {
+  transition:
+    transform 200ms var(--ease-emphasized),
+    background-color var(--transition-base),
+    color var(--transition-base);
+}
+.lohang-batch-card .icon-btn:hover {
+  transform: scale(1.15);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lohang-batch-card {
+    animation: none;
+  }
+  .lohang-batch-card:hover,
+  .lohang-batch-card .icon-btn:hover {
+    transform: none;
+  }
+}

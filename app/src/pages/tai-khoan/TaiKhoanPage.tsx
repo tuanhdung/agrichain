@@ -197,7 +197,7 @@ function TaiKhoanBusinessView() {
           </button>
         )}
         {canAdd && (
-          <button type="button" className="btn btn--primary btn--lg" onClick={addModal.open}>
+          <button type="button" className="btn btn--primary btn--lg btn-shine" onClick={addModal.open}>
             <Icon name="plus" className="icon--sm" />
             Thêm người dùng
           </button>
