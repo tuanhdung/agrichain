@@ -81,8 +81,10 @@ app/
     api/
       config.ts          # VITE_API_BASE_URL + VITE_MAIN_SITE_URL + mainSiteUrl(path) helper
       error.ts            # class ApiError, buildApiError, networkError — port từ js/api.js
-      session.ts          # storage/token/user/hasPermission/redirectToLogin/redirectToAgriverse — port từ js/api.js
-      http.ts              # request() lõi + refresh token + auth.* (auth.login() dùng ở LoginPage.tsx) — port từ js/api.js
+      session.ts          # storage/token/user/hasPermission/redirectToLogin (-> trang đăng nhập site tĩnh,
+                           # KHÔNG còn route nội bộ)/redirectToAgriverse — port từ js/api.js
+      http.ts              # request() lõi + refresh token + auth.* (auth.login() dùng bởi
+                            # TransferAdminModal.tsx, KHÔNG có trang đăng nhập nào trong SPA gọi) — port từ js/api.js
       supplies.ts          # api.supplies.* — domain module ĐẦU TIÊN, mẫu cho domain khác
       workflowTemplates.ts  # api.workflowTemplates.* — domain THỨ HAI, TemplateStep KHÔNG có `id` riêng
       farms.ts              # api.farms.* — domain THỨ BA, polygon: [{lat,lng}] NOT NULL tối thiểu 3 điểm
@@ -98,7 +100,8 @@ app/
       index.ts              # gộp lại thành `api` — import { api } from '../api', giống AgriChain.api
       types.ts               # User/Page<T>/MeResponse/TokenPair dùng chung
     context/
-      AuthContext.tsx     # thay AgriChain.api phần phiên đăng nhập — useAuth() (có cả login())
+      AuthContext.tsx     # thay AgriChain.api phần phiên đăng nhập — useAuth() (bootstrap qua cookie,
+                          # KHÔNG có login() — SPA không tự đăng nhập bằng form, xem "Đăng nhập 1 lần")
     hooks/
       usePermission.ts        # thay AgriChain.api.hasPermission(code), reactive
       useSidebarState.ts       # 2 key localStorage sidebar — DÙNG CHUNG với 8 trang .html còn lại
@@ -112,8 +115,8 @@ app/
                                    # VÀ Nông trại→Mùa vụ (bộ lọc /lo-hang, allowEmptyParent: true —
                                    # thêm option này lúc migrate /lo-hang, xem "Trang /lo-hang")
     routes/
-      ProtectedRoute.tsx    # thay requireAuth()/requireBusiness() — redirect nội bộ tới /login
-      postLogin.ts           # port redirectTarget()/defaultTargetFor() (js/auth.js gốc) — xem "Trang /login"
+      ProtectedRoute.tsx    # thay requireAuth()/requireBusiness() — chưa đăng nhập thì full navigation
+                            # ra trang đăng nhập của site tĩnh kèm ?next=, xem "Đăng nhập 1 lần"
     layout/
       AppShell.tsx          # khung sidebar+topbar+scrim dùng chung cho MỌI route bảo vệ — mount cả
                              # ToastProvider LẪN ConfirmDialogProvider
@@ -130,8 +133,6 @@ app/
       PlaceholderPage.tsx          # khung "Đang phát triển" dùng CHUNG cho /goi-phan-mem VÀ
                                    # /lich-su-mua-goi — xem mục "Trang /goi-phan-mem"
     pages/
-      Login/
-        LoginPage.tsx         # route /login — xem mục "Trang /login" bên dưới
       vat-tu/                # 1 thư mục / 1 trang đã migrate — xem "Thêm 1 trang mới"
         VatTuPage.tsx
         SupplyFormModal.tsx
@@ -294,14 +295,17 @@ khởi động"**:
   lại (cho tới khi cookie hết hạn — `JWT_ACCESS_TTL_MINUTES`, mặc định 15
   phút, KHÔNG có cơ chế tự làm mới cookie ngoài việc gọi lại
   `/auth/login`/`/auth/refresh`/`/auth/change-password`).
-- **`isBootstrapping`** (context value mới, `true` cho tới khi bootstrap xong
+- **`isBootstrapping`** (context value, `true` cho tới khi bootstrap xong
   HOẶC ngay lập tức `false` nếu `app.*` vốn đã có user) — `ProtectedRoute.tsx`
-  PHẢI chờ giá trị này về `false` trước khi kết luận "chưa đăng nhập" (return
-  `null`, không vẽ gì, trong lúc chờ — thường dưới 1 lượt round-trip mạng),
-  nếu không sẽ đá NHẦM người dùng đã đăng nhập (ở site tĩnh) ra `/login` ngay
-  cả khi cookie sắp xác nhận thành công. `LoginPage.tsx`'s effect "đã đăng
-  nhập rồi thì đá đi luôn" cũng phải đợi `isBootstrapping` xong mới chạy,
-  cùng lý do.
+  PHẢI chờ giá trị này về `false` trước khi kết luận "chưa đăng nhập" (hiện
+  trạng thái loading, không vẽ nội dung/form, trong lúc chờ — thường dưới 1
+  lượt round-trip mạng), nếu không sẽ đá NHẦM người dùng đã đăng nhập (ở site
+  tĩnh) ra trang đăng nhập ngay cả khi cookie sắp xác nhận thành công.
+- **`bootstrapError`** (context value, thêm 2026-09-29) — lỗi KHÁC 401 gặp
+  lúc gọi `/auth/me` (mất mạng, CORS, backend 5xx). PHẢI phân biệt với "chưa
+  đăng nhập" (401, `bootstrapFromCookie()` trả `null`, không lỗi) — xem mục
+  "Đăng nhập 1 lần (2026-09-29)" bên dưới để biết vì sao nhầm lẫn 2 ca này sẽ
+  gây vòng lặp redirect.
 - **Chỉ hoạt động cross-subdomain khi dev qua domain giả** (`agrichain.local`/
   `app.agrichain.local`/`api.agrichain.local`, hosts file trỏ `127.0.0.1` —
   xem `agrichain/CLAUDE.md` mục "Kết nối backend") **HOẶC** production thật
@@ -327,11 +331,122 @@ chung phiên đăng nhập" và `agrichain-api/CLAUDE.md` mục "Cookie httpOnly
 chứa access token" để biết đầy đủ chi tiết backend + hướng dẫn dev qua hosts
 file.
 
-**✅ Giải pháp TẠM trước đó (2026-09-22, vẫn còn nguyên): SPA có trang
-`/login` RIÊNG** — xem mục "Trang `/login`" bên dưới. Đây là lớp DỰ PHÒNG khi
-bootstrap-qua-cookie thất bại (dev qua `127.0.0.1`/`localhost`, hoặc cookie
-đã hết hạn) — người dùng vẫn đăng nhập lại được TRỰC TIẾP trên SPA, không bị
-"vòng lặp không vào được trang" như trước khi có trang `/login` này.
+### Đăng nhập 1 lần (2026-09-29) — bỏ hẳn trang `/login` riêng của SPA
+
+**Quyết định MỚI, THAY HẲN mục "Trang `/login`" cũ (2026-09-22) — SPA KHÔNG
+CÒN trang đăng nhập riêng.** Lý do đổi: có trang `/login` riêng nghĩa là có
+2 trang đăng nhập cho cùng 1 hệ thống — trải nghiệm rối (người dùng không
+biết nên vào trang nào), và bản thân trang đó chỉ là lớp dự phòng cho ca
+bootstrap-qua-cookie thất bại, trong khi cách xử lý ĐÚNG cho ca đó là sửa lỗi
+bootstrap (phân biệt 401 với lỗi mạng/CORS/5xx — xem `bootstrapError` ở mục
+"AuthContext" trên) chứ không phải có 2 nơi để gõ mật khẩu.
+
+- **`src/pages/Login/LoginPage.tsx`, `src/routes/postLogin.ts` — ĐÃ XOÁ.**
+  Route `/login` không còn tồn tại trong `App.tsx`. `useAuth()` không còn
+  field `login` (chỉ còn `logout`) — không nơi nào trong SPA tự đăng nhập
+  bằng form nữa. `api.auth.login()` (ở `src/api/http.ts`) VẪN GIỮ NGUYÊN,
+  KHÔNG xoá — vẫn được gọi trực tiếp (không qua `useAuth()`) bởi
+  `TransferAdminModal.tsx` để làm mới token ngầm sau khi nhường quyền quản
+  trị (xem mục "Trang `/tai-khoan`" → "Bước 4"), một nhu cầu HOÀN TOÀN khác
+  "trang đăng nhập".
+- **`ProtectedRoute.tsx`** — chưa đăng nhập (bootstrap xác nhận 401, không
+  phải lỗi khác) thì full-navigation RA NGOÀI, sang trang đăng nhập DUY NHẤT
+  của site tĩnh (`mainSiteUrl('dang-nhap.html')`), kèm `?next=<URL tuyệt đối
+  của trang SPA đang đứng>` — xem `redirectToLogin()` ở `src/api/session.ts`.
+  Có `bootstrapError` (lỗi mạng/CORS/5xx) thì **KHÔNG redirect** — hiện
+  thông báo lỗi + nút "Thử lại" (gọi `retryBootstrap()` từ `AuthContext`)
+  ngay tại chỗ. Đang bootstrapping thì hiện trạng thái loading. 3 nhánh này
+  loại trừ nhau, xem thứ tự kiểm tra trong `ProtectedRoute.tsx`.
+- **`?next=` KHÁC `?redirect=` cũ** — `redirect` (vẫn còn, dùng bởi
+  `js/auth.js`'s `redirectTarget()` cho 7 trang `thuong-mai-*` chưa migrate)
+  chỉ nhận đường dẫn TƯƠNG ĐỐI trong CHÍNH site tĩnh (`ten-trang.html`).
+  `next` mang URL TUYỆT ĐỐI sang origin KHÁC (SPA) nên cần validate khác hẳn
+  — xem `js/next-target.js` (`resolveNextTarget()`, hàm ES module thuần,
+  KHÔNG gộp vào `js/auth.js` để unit-test được bằng vitest của `app/` mà
+  không cần dựng thêm hạ tầng test cho site tĩnh — xem
+  `app/src/test/nextTarget.test.ts`): chỉ chấp nhận scheme `http`/`https` VÀ
+  origin khớp CHÍNH XÁC `AgriChain.APP_SPA_URL` (`js/app-config.js` — tự đổi
+  theo dev/prod). Chặn được URL scheme-relative (`//evil.com`), scheme lạ
+  (`javascript:`, `data:`), và origin khác (kể cả gần giống, VD
+  `app.agrichain.local.evil.com`, hay đúng domain khác port). `auth.js`'s
+  `redirectTarget()` ưu tiên `next` trước `redirect`, bỏ qua cả hai với
+  `account_type === 'customer'` (không có gì trong SPA, luôn về
+  `agriverse-3d.html`).
+- **`dang-nhap.html`/`dang-ky.html`** thêm `<script type="module"
+  src="js/next-target.js">` TRƯỚC `<script src="js/auth.js" defer>` — module
+  script mặc định đã deferred nên vẫn chạy đúng thứ tự trước `auth.js` dù
+  không có thuộc tính `defer` tường minh.
+- **Đăng xuất** (`AuthContext.tsx::logout()`) gọi `api.auth.logout()`
+  (best-effort — xem mục "Nợ kỹ thuật" → "Đăng xuất gửi `refresh_token`
+  placeholder") rồi full-navigation sang `mainSiteUrl('dang-nhap.html')`
+  **KÈM `?loggedOut=1`** — KHÔNG dùng `next` (đăng xuất xong về thẳng trang
+  đăng nhập, không có "chỗ cũ" để quay lại) nhưng **`?loggedOut=1` BẮT BUỘC**,
+  xem "⚠️ Vòng lặp đăng xuất" ngay dưới.
+- **⚠️ Vòng lặp đăng xuất vô hạn giữa SPA và site tĩnh — bug thật đã gặp,
+  ĐÃ VÁ (2026-09-29)**: `logout()` xoá được state của CHÍNH SPA (`clearSession()`
+  ở origin `app.*`) và cookie dùng chung, nhưng **KHÔNG THỂ xoá
+  `localStorage` của site tĩnh** (`agrichain.access_token`/`refresh_token` ở
+  origin `agrichain.*`, nơi thực sự giữ token từ lần đăng nhập ban đầu — 2
+  origin khác nhau, JS không đụng chéo được). Thiếu `?loggedOut=1`: SPA điều
+  hướng sang `dang-nhap.html`, nhưng `js/auth.js`'s `setupLogin()` thấy
+  `api.isLoggedIn()` (đọc localStorage CỦA SITE TĨNH) vẫn `true` (chưa từng
+  bị đụng tới) nên tự bấm NGƯỢC lại SPA (`redirectTarget()` → SPA URL); SPA
+  bootstrap lại qua cookie (đã bị xoá) → 401 → `ProtectedRoute` lại đẩy về
+  `dang-nhap.html` → lặp lại từ đầu, VÔ HẠN. Vá bằng cờ `?loggedOut=1`:
+  `setupLogin()` nhận diện cờ này TRƯỚC nhánh "đã đăng nhập thì đá đi luôn",
+  tự gọi `api.auth.logout()` CỦA CHÍNH SITE TĨNH (có refresh_token THẬT để
+  revoke đàng hoàng, không phải placeholder) để xoá sạch localStorage của
+  chính nó rồi mới hiện lại form — xem `js/auth.js::setupLogin()`. Test khoá
+  phần SPA chịu trách nhiệm (gửi đúng cờ) ở
+  `AuthContext.test.tsx`'s describe "đăng xuất"; phần `auth.js` xử lý cờ
+  KHÔNG có test tự động (IIFE gắn chặt DOM, xem "Nợ kỹ thuật") — xác nhận
+  bằng test tay (bước (e) ở mục "Chạy thử").
+- **⚠️ Vòng lặp đăng xuất, PHẦN 2 — race condition giữa `setUser(null)` và
+  `ProtectedRoute`, ĐÃ VÁ (2026-09-29, PHÁT HIỆN SAU khi `?loggedOut=1` ở
+  trên đã có mặt)**: cờ `?loggedOut=1` đúng là cần thiết nhưng KHÔNG đủ —
+  `logout()` (bản trước khi vá phần này) gọi `setUser(null)` NGAY TRƯỚC dòng
+  `window.location.href = ...?loggedOut=1`. `setUser(null)` khiến
+  `AuthProvider` re-render, `isLoggedIn` thành `false`, kích hoạt effect
+  `shouldRedirectToLogin` của CHÍNH `ProtectedRoute` đang bọc trang gọi
+  `logout()` — effect đó tự gọi `redirectToLogin()` (`session.ts`), GHI ĐÈ
+  `window.location.href` bằng `dang-nhap.html?next=<url hiện tại>`. Vì
+  `window.location.href = ...` chỉ LÊN LỊCH điều hướng chứ không dừng JS
+  ngay lập tức, và state update của React 18 (automatic batching, xử lý qua
+  microtask) có thể xử lý xong TRƯỚC khi trình duyệt thật sự điều hướng,
+  `redirectToLogin()` kịp chạy chen vào giữa — tệ hơn, nó đọc
+  `window.location.href` LÚC ĐÓ (đã bị `logout()` gán thành
+  `...dang-nhap.html?loggedOut=1` trước đó) làm giá trị `next`, nên URL cuối
+  cùng thực sự điều hướng tới là `dang-nhap.html?next=<đã%20encode%20chính%20
+  URL%20loggedOut%3D1%20đó>` — MẤT HẲN `loggedOut=1` (bị chôn bên trong
+  `next`, `js/auth.js` không đọc ra được). Hậu quả: `js/auth.js` không nhận
+  diện được đây là lượt đăng xuất, thấy site tĩnh vẫn còn phiên nên đẩy
+  NGƯỢC người dùng về đúng URL SPA vừa rời đi — vòng lặp y hệt lần trước,
+  chỉ khác cơ chế kích hoạt.
+
+  **Vá bằng cách XOÁ HẲN `setUser(null)` khỏi `logout()`** — không cần thiết:
+  ngay sau đó là full navigation (`window.location.href =`), toàn bộ cây
+  React (kể cả `AuthProvider`/`ProtectedRoute`) sẽ bị huỷ khi trang unload,
+  nên không có lý do gì phải cập nhật `user` state cho một lần hiển thị sẽ
+  không bao giờ xảy ra — chỉ cần KHÔNG đổi state để `ProtectedRoute` không
+  có cớ tự điều hướng chồng lên đường đi đã định.
+
+  **Bài học kiểm thử quan trọng**: test cũ ở `AuthContext.test.tsx`'s
+  describe "đăng xuất" (phần 1) render `<AuthProvider><LogoutProbe /></AuthProvider>`
+  KHÔNG bọc `ProtectedRoute` — nên PASS dù bug phần 2 này vẫn còn nguyên
+  (không có `ProtectedRoute` nào ở đó để kích hoạt race). Đã thêm test MỚI ở
+  `ProtectedRoute.test.tsx`'s describe "đăng xuất từ bên trong (race
+  condition đã gặp thật)" — bọc `ProtectedRoute` NGOÀI nút đăng xuất, đúng
+  cấu trúc thật trong `App.tsx` — xác nhận thủ công bằng cách tạm thêm lại
+  `setUser(null)` thì test fail đúng với thông báo lỗi cho thấy chính xác cơ
+  chế `next=` nuốt mất `loggedOut=1` mô tả ở trên. Bài học chung: 1 test cho
+  1 component đơn lẻ (dù đúng về logic component đó) không đủ để bắt bug chỉ
+  lộ ra khi 2 component tương tác với nhau (ở đây là `AuthProvider` +
+  `ProtectedRoute` cùng lúc) — cần ít nhất 1 test tích hợp dựng lại đúng cấu
+  trúc lồng nhau thật của app cho những luồng có tương tác qua lại kiểu này.
+- **Test** — `app/src/context/AuthContext.test.tsx`,
+  `app/src/routes/ProtectedRoute.test.tsx`, `app/src/api/http.test.ts`,
+  `app/src/test/nextTarget.test.ts` (vitest + @testing-library/react, thêm
+  cùng lúc với luồng này — xem `package.json`'s script `test`).
 
 ## Sidebar cũ trỏ sang đây — `js/app-config.js` + `data-app-link`
 
@@ -437,12 +552,17 @@ npm install
 npm run dev      # http://localhost:5173/nong-trai (mặc định), /vat-tu, /mau-quy-trinh
 ```
 
-**Do hệ quả ở mục "Giả định host" ở trên (phiên không dùng chung được giữa 2
-origin)**, bấm link "Vật tư" từ site tĩnh (đã đăng nhập bên đó) sang SPA sẽ
-KHÔNG tự vào được — SPA đưa tới `/login` của chính nó (route nội bộ, xem mục
-"Trang `/login`"), cần đăng nhập LẦN NỮA ở đây bằng CHÍNH tài khoản đó. Đây
-là hành vi ĐÚNG với kiến trúc hiện tại (dù chưa hoàn thiện — 2 phiên tách
-biệt), không phải bug của cách chạy thử.
+**Kể từ "Đăng nhập 1 lần" (2026-09-29, xem mục "Giả định host")**, bấm link
+"Vật tư" từ site tĩnh (đã đăng nhập bên đó) sang SPA sẽ TỰ VÀO ĐƯỢC — SPA
+bootstrap phiên qua cookie httpOnly, không cần gõ lại — **NHƯNG CHỈ khi chạy
+qua domain giả đã cấu hình hosts file** (`agrichain.local:5500` /
+`app.agrichain.local:5173`, xem `agrichain/CLAUDE.md` mục "Kết nối backend").
+Chạy thử kiểu cũ qua `127.0.0.1:5500`/`localhost:5173` (chưa cấu hình hosts
+file) thì cookie KHÔNG chia sẻ được cross-origin (`127.0.0.1` là địa chỉ IP,
+trình duyệt không chấp nhận `Set-Cookie: Domain=` cho IP) — bootstrap sẽ
+thất bại (401), SPA tự đá ra `dang-nhap.html` của site tĩnh, phải đăng nhập
+lại. Đây là giới hạn ĐÃ BIẾT của cách chạy thử qua `127.0.0.1`, không phải
+bug — dùng domain giả nếu muốn kiểm thử đúng luồng đăng nhập 1 lần.
 
 ```bash
 npm run build     # tsc -b && vite build -> app/dist, đọc app/.env.production
@@ -476,21 +596,24 @@ api.isPlatformAdmin();
 `http.ts`'s `request<T>(method, path, options)` là lõi DÙNG CHUNG cho mọi
 domain module — hành vi giữ NGUYÊN bản `js/api.js` gốc: tự gắn Bearer token,
 tự refresh khi 401 (1 `refreshPromise` dùng chung, chống gọi `/auth/refresh`
-song song), refresh thất bại thì xoá phiên + điều hướng về `/login` CỦA
-CHÍNH SPA (`redirectToLogin()` ở `session.ts`, KHÔNG còn ra site chính nữa —
-xem mục "Trang `/login`").
+song song), refresh thất bại thì xoá phiên + full navigation sang trang đăng
+nhập của SITE TĨNH kèm `?next=` (`redirectToLogin()` ở `session.ts` — SPA
+không còn trang đăng nhập riêng, xem mục "Giả định host" → "Đăng nhập 1
+lần").
 
 ## AuthContext / usePermission / ProtectedRoute
 
 - `useAuth()` (từ `src/context/AuthContext.tsx`) — `{ user, isLoggedIn,
-  isBusiness, isPlatformAdmin, hasPermission, login, logout, refreshFromStorage }`.
-  `login(email, password, remember)` bọc `api.auth.login()` + tự cập nhật
-  state, dùng ở `LoginPage.tsx` (xem mục "Trang `/login`"). Khác bản .js gốc
-  (mỗi lần chuyển trang là tải lại HTML thật, tự đọc storage mới): SPA có 2
-  listener (`storage`, `pageshow`) để state React không bị LỆCH khi đăng
-  nhập/đăng xuất ở tab khác **CÙNG origin SPA** (KHÔNG giải quyết được lệch
-  giữa SPA và site tĩnh — xem mục "Giả định host"), hoặc bfcache khôi phục
-  JS heap cũ — xem comment đầu file để hiểu đầy đủ lý do.
+  isBusiness, isPlatformAdmin, hasPermission, isBootstrapping,
+  bootstrapError, retryBootstrap, logout, refreshFromStorage }`. KHÔNG có
+  `login` — SPA không tự đăng nhập bằng form nữa (2026-09-29, xem mục "Giả
+  định host" → "Đăng nhập 1 lần"), mọi lượt đăng nhập đi qua
+  `dang-nhap.html` của site tĩnh. Khác bản .js gốc (mỗi lần chuyển trang là
+  tải lại HTML thật, tự đọc storage mới): SPA có 2 listener (`storage`,
+  `pageshow`) để state React không bị LỆCH khi đăng nhập/đăng xuất ở tab khác
+  **CÙNG origin SPA** (KHÔNG giải quyết được lệch giữa SPA và site tĩnh — xem
+  mục "Giả định host"), hoặc bfcache khôi phục JS heap cũ — xem comment đầu
+  file để hiểu đầy đủ lý do.
 - `usePermission(code)` — tương đương `AgriChain.api.hasPermission(code)`,
   reactive. `platform_admin` LUÔN có `permissions = []` (role không gán
   quyền nào — xem CLAUDE.md gốc mục "Quản trị hệ thống (platform_admin)")
@@ -498,55 +621,48 @@ xem mục "Trang `/login`").
 - `<ProtectedRoute>` (`src/routes/ProtectedRoute.tsx`) — bọc quanh mọi route
   cần đăng nhập + tài khoản business/platform_admin (mặc định
   `requireBusinessAccount = true`, khớp 16/16 trang app-shell gốc đều gọi cả
-  `requireAuth()` LẪN `requireBusiness()`). Chưa đăng nhập -> route NỘI BỘ
-  `/login?redirect=<đường dẫn hiện tại>` (react-router `<Navigate>`, KHÔNG
-  còn ra `dang-nhap.html` tĩnh nữa — xem mục "Trang `/login`"); đăng nhập rồi
-  nhưng là `customer` -> `agriverse-3d.html` tĩnh THẬT (qua `mainSiteUrl()`,
-  vì SPA không có gì cho loại tài khoản này).
+  `requireAuth()` LẪN `requireBusiness()`). Chưa đăng nhập (401 xác nhận,
+  không phải lỗi mạng) -> full navigation RA NGOÀI, sang trang đăng nhập của
+  site tĩnh kèm `?next=` (xem mục "Giả định host" → "Đăng nhập 1 lần" để biết
+  đầy đủ 3 nhánh: có phiên/401/lỗi mạng); đăng nhập rồi nhưng là `customer`
+  -> `agriverse-3d.html` tĩnh THẬT (qua `mainSiteUrl()`, vì SPA không có gì
+  cho loại tài khoản này).
 
-## Trang `/login` (2026-09-22 — giải pháp TẠM cho pilot)
+## Hiệu ứng động ở trang `/vat-tu` — `vat-tu.css` (2026-09-29)
 
-SPA có **form đăng nhập RIÊNG** (`src/pages/Login/LoginPage.tsx`), route
-`/login`, **CÔNG KHAI** (không bọc `<ProtectedRoute>`, khai báo TRƯỚC mọi
-route khác trong `App.tsx`). Lý do tồn tại: `app.agrichain.org.vn` và
-`agrichain.org.vn` là 2 origin khác nhau, `localStorage` không chia sẻ được
-— đăng nhập ở `dang-nhap.html` (site chính) KHÔNG giúp SPA nhận được token
-(xem mục "Giả định host"). **`dang-nhap.html`/`dang-ky.html` ở site chính
-GIỮ NGUYÊN HOÀN TOÀN, không đụng tới** — vẫn phục vụ đăng nhập cho 15 trang
-`.html` chưa migrate.
+`/vat-tu` (trang thứ 1 đã migrate, không có mục "## Trang `/vat-tu`" riêng như
+các trang sau — port sớm nhất, trước khi quy ước ghi chú theo từng trang mới
+hình thành) được nâng cấp giao diện cùng đợt với `/nong-trai` — cùng mẫu:
 
-- Form chỉ 2 field (email, mật khẩu) + checkbox "Ghi nhớ đăng nhập" — gọi
-  THẲNG `login()` từ `useAuth()` (bọc `api.auth.login()`, xem mục
-  "AuthContext"), KHÔNG viết lại logic gọi API. Markup chỉ dùng class có sẵn
-  từ `components.css` (`.card`, `.field`, `.label`, `.input`, `.checkbox`,
-  `.btn--primary`, `.field__error`) — không thêm CSS mới, căn giữa trang
-  bằng inline style (cùng cách `VatTuPage.tsx` đã làm cho `.search-field`).
-- **Đăng nhập thành công -> điều hướng theo ĐÚNG logic `redirectTarget()`/
-  `defaultTargetFor()` của `js/auth.js` gốc**, port lại ở
-  `src/routes/postLogin.ts` (hàm `resolvePostLoginTarget()`):
-  - `account_type === 'customer'` -> **KHÔNG có gì trong SPA** (16 trang
-    app-shell chỉ dành cho business/platform_admin) -> đá RA NGOÀI, full
-    navigation sang `mainSiteUrl('agriverse-3d.html')` — kể cả khi
-    `?redirect=` có giá trị (khớp đúng bản vá "chặn customer" của bản gốc).
-  - `business`/`platform_admin`/chưa rõ -> route NỘI BỘ: dùng `?redirect=`
-    nếu khớp 1 route đã biết trong `KNOWN_ROUTES` (mảng nhỏ trong
-    `postLogin.ts`, PHẢI khớp các `<Route>` ở `App.tsx` — thêm route mới thì
-    thêm vào đây, xem "Thêm 1 trang mới"), không thì về mặc định `/vat-tu`
-    (tương đương `nong-trai.html` của bản gốc — trang đầu tiên của khu quản
-    trị).
-  - Validate `?redirect=` theo whitelist (`KNOWN_ROUTES`), không tin bất kỳ
-    chuỗi nào đi thẳng — khác quy ước cũ (regex bắt buộc đuôi `.html`) vì
-    đây là route react-router, nhưng CÙNG TINH THẦN chống open-redirect.
-- Gõ thẳng URL `/login` khi ĐÃ đăng nhập sẵn (VD còn phiên cũ) -> tự đá đi
-  ngay theo đúng logic trên, không hiện lại form.
-- `ProtectedRoute` giờ redirect chưa-đăng-nhập TỚI ĐÂY (route nội bộ, dùng
-  `<Navigate>`, không còn full-page reload) thay vì ra `dang-nhap.html` tĩnh
-  — xem mục "AuthContext / usePermission / ProtectedRoute" ở trên.
-- `src/api/session.ts`'s `redirectToLogin(pathname, search)` — dùng RIÊNG
-  cho ca "mất phiên GIỮA CHỪNG" (refresh token hết hạn, gọi từ `http.ts`, một
-  module JS thuần không có quyền dùng react-router) — điều hướng
-  `window.location.href = '/login?redirect=...'` (route NỘI BỘ, cùng origin
-  SPA, KHÔNG dùng `mainSiteUrl()` nữa).
+- **`SupplyStats.tsx`** (8 ô thống kê — "Tổng số vật tư" + 7 loại) thêm class
+  `.supply-stat` (cạnh `.stat-card`/`.stat-card--total` gốc, giữ NGUYÊN) —
+  hiện dần khi tải so le theo `:nth-child`, icon phóng to + xoay nhẹ khi
+  hover. **Lưu ý quan trọng đã xác nhận (KHÔNG phải suy đoán)**: 8 ô này
+  KHÔNG PHẢI nút lọc — dù ô "Tổng số vật tư" trông nổi bật (nền xanh đậm,
+  `.stat-card--total`) như đang "được chọn", đây chỉ là 1 ô thống kê tĩnh
+  luôn hiện style đó, không có `onClick`/state "đang chọn loại nào" ở đâu cả
+  trong `VatTuPage.tsx`/`SupplyStats.tsx` — bấm vào các ô khác không lọc
+  bảng bên dưới.
+- **`SupplyTable.tsx`** thêm `.supply-table-panel` (cả khối bảng hiện dần 1
+  LẦN khi dữ liệu vừa tải xong — KHÔNG so le theo từng dòng như thẻ nông
+  trại, vì 1 bảng có thể nhiều dòng, so le từng dòng sẽ rối hơn là mượt) và
+  `.supply-row` trên mỗi `<tr>` (viền trái nhấn màu thương hiệu khi hover +
+  nút icon-btn phóng to + badge phóng to nhẹ). **Viền trái dùng
+  `box-shadow: inset` trên Ô ĐẦU TIÊN của dòng, KHÔNG dùng `border-left` trên
+  chính `<tr>`** — `.table` (`css/components.css`) đặt `border-collapse:
+  collapse`, border khai báo thẳng trên `<tr>` không hiển thị nhất quán giữa
+  các trình duyệt ở chế độ này; border trên `<td>` (hoặc `box-shadow` không
+  đụng tới border-collapse) thì luôn đáng tin cậy.
+- Nút "Thêm vật tư" thêm `.btn-shine` (tiện ích dùng chung, xem `css/components.css`).
+- CSS RIÊNG cho trang này (`app/src/pages/vat-tu/vat-tu.css`, cùng mẫu
+  `farm-card.css`/`filter-card.css`) — **KHÔNG sửa trực tiếp**
+  `.stat-card`/`.table`/`.icon-btn`/`.toast` dùng chung: `.stat-card` tuy chỉ
+  đang dùng ở `/vat-tu` trong JSX thật (đã rà toàn bộ `app/src`) nhưng định
+  nghĩa CSS nằm ở file dùng chung `css/app-shell.css`; `.table`/`.icon-btn`
+  dùng RẤT rộng (Lô hàng, Tài khoản, Mẫu quy trình...); `.toast` mount DUY
+  NHẤT 1 lần cho toàn app (`AppShell.tsx`), sửa trực tiếp sẽ ảnh hưởng hệ
+  thống thông báo của MỌI trang — không đụng vào bất kỳ class nào trong 4
+  nhóm này.
 
 ## Trang `/mau-quy-trinh` (2026-09-22 — trang thứ 2 đã migrate)
 
@@ -616,6 +732,22 @@ riêng cho 1 trang thì để trong `<style>` của chính trang đó" (CLAUDE.m
 mục "Quy ước CSS") — chỉ khác chỗ đặt (file `.css` riêng thay vì thẻ
 `<style>` inline, vì component React không có "thẻ trang" để nhúng inline).
 
+### Hiệu ứng động cho thẻ mẫu quy trình — `template-card.css` (2026-09-29)
+
+`TemplateCard.tsx` thêm class `.template-card` (cạnh `.card.card--hover` gốc,
+giữ NGUYÊN không sửa) + `import './template-card.css'` — cùng công thức đã
+dùng ở `farm-card.css` (trang `/nong-trai`, xem mục ngay dưới): hiện dần khi
+tải (so le 6 thẻ đầu qua `:nth-child`, `PAGE_SIZE = 12` giống nhau nên giữ
+nguyên luôn mốc so le), hover nâng thẻ + đổi màu tiêu đề + phóng to nút
+icon-btn, `animation-fill-mode: backwards` (không phải `both`/`forwards`,
+cùng lý do tránh xung đột `:hover` đã ghi ở `farm-card.css`). Nút "Tạo quy
+trình mới" (`MauQuyTrinhPage.tsx`) thêm `.btn-shine`.
+
+**CSS RIÊNG cho trang này** (`template-card.css`) — KHÔNG sửa
+`.card`/`.icon-btn` dùng chung, vì các class đó còn dùng ở
+`FarmCard.tsx`/`SeasonCard.tsx`/`CertificationCard.tsx` và nhiều nơi khác
+trong toàn khung quản trị.
+
 ## Trang `/nong-trai` (2026-09-22 — trang thứ 3 đã migrate)
 
 Port `nong-trai.html` + `js/nong-trai.js` — danh sách lưới thẻ phân trang
@@ -623,6 +755,39 @@ Port `nong-trai.html` + `js/nong-trai.js` — danh sách lưới thẻ phân tra
 thêm/sửa gồm form thông tin cơ bản + 2 select phụ thuộc Tỉnh/Thành→Phường/Xã
 + bản đồ Leaflet vẽ ranh giới polygon + xoá qua `useConfirm()` (đã có từ Mẫu
 quy trình) + permission gate (`farms.add/edit/delete`).
+
+### Hiệu ứng động cho thẻ nông trại — `farm-card.css` (2026-09-29)
+
+`FarmCard.tsx` thêm class `.farm-card` (cạnh `.card.card--hover` gốc, giữ
+NGUYÊN không sửa) + `import './farm-card.css'` — hiện dần khi tải (so le 6
+thẻ đầu qua `:nth-child`, không cần truyền `index` xuống props) và hover
+nâng thẻ + đổi màu tiêu đề/icon + phóng to nút icon. Nút "Thêm nông trại"
+(`NongTraiPage.tsx`) thêm `.btn-shine` (tiện ích dùng chung, đã có sẵn qua
+`css/components.css` — `app/` nạp CHUNG 4 file CSS gốc của site tĩnh, xem
+`app/src/main.tsx`).
+
+**CSS RIÊNG cho trang này** (`farm-card.css`, cùng mẫu `filter-card.css` đã
+có ở trang Lô hàng) — **KHÔNG sửa trực tiếp** `.card`/`.data-card__*`/
+`.icon-btn` dùng chung trong `css/components.css`/`css/app-shell.css`, vì
+các class đó còn dùng ở `SeasonCard.tsx`/`CertificationCard.tsx` (trang chi
+tiết nông trại) và nhiều nơi khác trong toàn khung quản trị — sửa trực tiếp
+sẽ làm hiệu ứng lan ra ngoài ý muốn, không kiểm soát được phạm vi ảnh hưởng.
+
+**⚠️ Bẫy CSS đã tránh được — `animation-fill-mode: forwards` xung đột với
+`:hover` trên CÙNG thuộc tính**: `.farm-card` vừa có animation hiện-dần lúc
+mount (đổi `transform`) VỪA có `:hover` đổi `transform` (nâng thẻ lên). Nếu
+dùng `animation-fill-mode: both`/`forwards` (giữ lại trạng thái keyframe
+cuối sau khi chạy xong), CSS Animation có độ ưu tiên cao hơn rule tác giả
+thường trong cascade — `:hover` sẽ KHÔNG BAO GIỜ thắng được, thẻ không bao
+giờ nhấc lên được khi hover dù CSS trông đúng logic. Dùng
+`animation-fill-mode: backwards` thay thế — chỉ áp trạng thái "from" TRƯỚC
+lúc animation chạy (tránh chớp thẻ hiện sẵn 1 khung hình), KHÔNG giữ lại
+trạng thái "to" sau khi chạy xong, nên `transform` rảnh tay quay về cascade
+bình thường và `:hover` áp dụng được như mong đợi. Bài học chung: bất kỳ
+thuộc tính nào vừa dùng trong `@keyframes` của 1 animation có
+`fill-mode: both/forwards`, vừa cần đổi được qua `:hover`/`:focus` sau đó
+trên CÙNG phần tử, đều dính bẫy này — chỉ dùng `both`/`forwards` khi chắc
+chắn không còn rule nào khác cần ghi đè đúng thuộc tính đó nữa.
 
 ### Quyết định: Leaflet THUẦN, KHÔNG dùng `react-leaflet`
 
@@ -972,6 +1137,24 @@ bước này lỗi) — khác lỗi của chính `transferAdmin()` (401 sai mậ
 bước, đóng modal + `window.location.reload()` TOÀN TRANG — không tự tay cập
 nhật từng phần DOM/state.
 
+### Hiệu ứng động cho bảng người dùng — `user-table.css` (2026-09-29)
+
+`UserTable.tsx` thêm `.user-table-panel` lên `.table-panel` gốc (hiện dần 1
+lần, KHÔNG so le từng dòng — bảng người dùng có thể nhiều dòng, so le sẽ làm
+chậm/rối trải nghiệm đọc) và `.user-row` lên mỗi `<tr>` (trước đó không có
+`className` nào) — cùng công thức `vat-tu.css` (trang `/vat-tu`) đã dùng cho
+`SupplyTable.tsx`: viền trái nhấn màu thương hiệu khi hover (đặt trên ô
+`<td>` ĐẦU TIÊN của dòng, không đặt thẳng trên `<tr>` — `.table` dùng
+`border-collapse: collapse`, border trên `<tr>` không hiển thị nhất quán
+giữa các trình duyệt trong chế độ này) + `.icon-btn`/`.avatar`/`.badge` phóng
+to nhẹ khi hover đúng dòng đó. Nút "Thêm người dùng" (`TaiKhoanPage.tsx`)
+thêm `.btn-shine`.
+
+**CSS RIÊNG cho trang này** (`user-table.css`) — KHÔNG sửa
+`.table-panel`/`.table`/`.icon-btn`/`.avatar`/`.badge` dùng chung, vì các
+class đó còn dùng rộng khắp toàn khung quản trị (bảng ở Lô hàng/Mẫu quy
+trình, avatar ở topbar...).
+
 ## Trang `/lo-hang` (2026-09-23 — trang thứ 5 đã migrate)
 
 Port `lo-hang.html` + `js/lo-hang.js` — đơn giản hơn hẳn `/nong-trai`/
@@ -1146,6 +1329,28 @@ xác thực"/`shorten(tx_hash)` mới chỉ được xác nhận qua đọc code
 liệu, CHƯA thấy tận mắt trên trình duyệt thật (cần người dùng tự kiểm bằng
 Live Server + backend đã có contract, xem CLAUDE.md gốc mục "Kiểm thử giao
 diện" — dự án không tự động hoá trình duyệt).
+
+### Hiệu ứng động cho thẻ lô hàng — `batch-card.css` (2026-09-29)
+
+`BatchCard.tsx` (thư mục `/lo-hang`) thêm class `.lohang-batch-card` (cạnh
+`.card.batch-card` gốc, giữ NGUYÊN không sửa) + `import './batch-card.css'`
+— cùng công thức `farm-card.css`: hiện dần khi tải + hover nâng thẻ (`.card.
+batch-card` KHÔNG có `.card--hover` đi kèm như `.farm-card`, nên hiệu ứng
+nhấc thẻ khi hover hoàn toàn do class mới cung cấp) + đổi màu mã lô hàng +
+phóng to nút icon-btn khi hover. Trang KHÔNG phân trang (tải cố định 100 bản
+ghi/lần) nên nới mốc so le lên 9 thẻ đầu (3 hàng `.grid--3`) thay vì 6 như
+`farm-card.css`.
+
+Đặt tên có tiền tố `lohang-` (không chỉ `.batch-card-anim` trơn) vì có **2**
+component `BatchCard` dùng chung `.card.batch-card` — bản còn lại ở
+`nong-trai-chi-tiet/BatchCard.tsx` (tab "Lô hàng" của modal xem mùa vụ) có
+class riêng `.detail-batch-card` (xem mục "Hiệu ứng động cho các tab chi
+tiết nông trại" bên dưới) — tên rõ ràng tránh nhầm lẫn khi đọc code dù 2 nơi
+không bao giờ cùng render trong 1 cây DOM.
+
+**CSS RIÊNG cho trang này** (`batch-card.css`) — KHÔNG sửa
+`.card`/`.batch-card`/`.icon-btn` dùng chung, vì các class đó còn dùng ở tab
+"Lô hàng" của `nong-trai-chi-tiet.html`/`NongTraiChiTietPage.tsx`.
 
 ## Trang `/ho-so` (2026-09-23 — trang thứ 6 đã migrate)
 
@@ -1337,6 +1542,24 @@ bỏ sót class dùng chéo giữa các tab (VD `.tab-panel-header` dùng ở C�
 tới ở Bước 1 (`.workflow-step*`, `.log-*`, `.qr-modal__*`...) nằm sẵn trong
 file, sẽ có chỗ dùng dần qua Bước 2-5 — không phải CSS thừa/đoán mò, đúng 1:1
 với khối gốc.
+
+**⚠️ Bug đã vá (2026-09-29) — nút zoom/lớp nền bản đồ đè lên `.app-topbar` khi
+cuộn tab "Thông tin"**: `.view-map` port nguyên văn có sẵn `z-index: 0` nhưng
+KHÔNG có `position` — `z-index` chỉ có tác dụng trên phần tử đã "positioned"
+(`position` khác `static`), nên khai báo đó thực chất là dead code, chưa
+từng bảo vệ được gì. Leaflet tự đặt `z-index: 1000` cho nút zoom/control
+(`.leaflet-top`/`.leaflet-bottom`, xem `leaflet.css`) mà không tự giới hạn
+phạm vi — cạnh tranh THẲNG với `.app-topbar` (`position: sticky`, `z-index:
+var(--z-sticky)` = 100, xem `css/app-shell.css`) khi cả 2 cùng nằm trong màn
+hình lúc cuộn trang. Vá bằng `position: relative; isolation: isolate;` —
+`isolation: isolate` ép `.view-map` tự tạo 1 "stacking context" RIÊNG, nhốt
+toàn bộ thang z-index nội bộ của Leaflet ở bên trong khung bản đồ. Cùng bug +
+cùng cách vá đã áp dụng cho bản đồ ở `truy-xuat.html` (site tĩnh, xem
+CLAUDE.md gốc) — 2 nơi DUY NHẤT trong dự án render Leaflet TRỰC TIẾP trên
+trang cuộn (không phải trong modal/`<dialog>`) — `BoundaryEditor.tsx` (modal
+Thêm/Sửa nông trại) KHÔNG dính bug này vì `<dialog>` mở qua `showModal()` tự
+nằm trên "top layer" của trình duyệt, không cạnh tranh z-index với nội dung
+trang thường theo cách này.
 
 Type-check + `npm run build` sạch (127 modules, không lỗi).
 
@@ -1626,6 +1849,45 @@ thành", ghi chú "Chờ đến lượt", hay "Đã hoàn thành" — platform_a
 Type-check + `npm run build` sạch (143 modules, không lỗi — chỉ cảnh báo
 kích thước bundle, không phải lỗi).
 
+### Hiệu ứng động cho các tab chi tiết nông trại (2026-09-29)
+
+Thêm vào cuối `view-detail.css` (KHÔNG tách file riêng theo tab — khớp quy
+ước đầu file "mọi tab con đều dùng chung file này, không tách nhỏ theo
+tab"), cùng công thức đã dùng ở `farm-card.css`/`vat-tu.css`
+(`animation-fill-mode: backwards`, không phải `both`/`forwards`, để `:hover`
+luôn thắng được animation đã chạy xong):
+
+- **`.detail-card`** — gắn cạnh `.card.card--hover` gốc trên CẢ
+  `CertificationCard.tsx` LẪN `SeasonCard.tsx` (2 component riêng nhưng cùng
+  hệt cấu trúc `.data-card__*`, nên dùng CHUNG 1 class, không lặp lại CSS 2
+  lần). Hiện dần khi tải (so le 6 thẻ đầu) + hover nâng thẻ + đổi màu tiêu
+  đề/icon + phóng to nút icon-btn — y hệt `.farm-card`.
+- **`.detail-batch-card`** — gắn cạnh `.card.batch-card` gốc trên
+  `nong-trai-chi-tiet/BatchCard.tsx` (component RIÊNG, khác hẳn
+  `lo-hang/BatchCard.tsx` dù cùng dùng `.batch-card` — xem class
+  `.lohang-batch-card` ở mục "Hiệu ứng động cho thẻ lô hàng" phía trên).
+  Cùng công thức hiện dần + hover nâng thẻ.
+- **`.detail-log-item`** — gắn cạnh `.log-item` gốc trên `LogItem.tsx` (tab
+  Timeline mùa vụ, `.log-list`). Danh sách dọc có thể dài nên CHỈ so le 4
+  mục đầu (khác lưới thẻ so le 6) rồi hiện đồng loạt phần còn lại — cùng lý
+  do `vat-tu.css` không so le toàn bảng. Hover dịch nhẹ sang phải
+  (`translateX(4px)`, không nâng lên như thẻ dạng lưới — đây là danh sách
+  dọc, nâng lên sẽ trông lạc quẻ) + đổ bóng + phóng to nút icon-btn.
+- **Checklist "Quy trình mùa vụ"** (`ProcessStepViewCard.tsx`,
+  `.workflow-checklist__item`) — CỐ TÌNH KHÔNG thêm entrance animation/so le
+  cho từng bước: đây là 1 tuyến thời gian (chấm + đường nối) phải đọc liền
+  mạch theo đúng thứ tự, so le từng bước sẽ phá vỡ cảm giác "1 checklist duy
+  nhất". Chỉ thêm class `.detail-workflow-current` lên `.workflow-checklist__
+  card` của bước ĐANG "tới lượt" (`isCurrent && !step.done`, tính ngay trong
+  `ProcessStepViewCard.tsx`) — viền + đổ bóng nhẹ để mắt tự tìm ra bước cần
+  làm tiếp theo giữa nhiều bước khác, không cần đọc hết badge trạng thái
+  từng bước.
+
+**KHÔNG sửa `.card`/`.data-card__*`/`.batch-card`/`.log-item`/
+`.workflow-checklist__*`/`.icon-btn` dùng chung** — các class đó còn dùng ở
+`FarmCard.tsx` (trang `/nong-trai`) và nhiều nơi khác trong toàn khung quản
+trị, chỉ gắn thêm class RIÊNG của trang này cạnh chúng.
+
 ## AppShell / Sidebar / Topbar / UserMenu
 
 Markup/class CSS giữ NGUYÊN từ `css/app-shell.css` — không thiết kế lại.
@@ -1694,10 +1956,12 @@ Theo đúng thứ tự đã làm với Vật tư — dùng làm checklist:
 4. Thêm `<Route>` trong `App.tsx`, bọc `<ProtectedRoute><AppShell>...</AppShell></ProtectedRoute>`.
 5. Sửa `useNavSections()` trong `Sidebar.tsx`: đổi mục tương ứng từ
    `{ href: mainSiteUrl('<trang>.html'), ... }` sang `{ to: '/<route>', ... }`.
-6. Thêm route mới vào `KNOWN_ROUTES` trong `src/routes/postLogin.ts` — không
-   thì `?redirect=` trỏ tới route đó sẽ bị `resolvePostLoginTarget()` coi là
-   không hợp lệ, rơi về mặc định `/nong-trai` sau khi đăng nhập lại (xem mục
-   "Trang `/login`").
+6. **KHÔNG còn bước "thêm vào whitelist route sau đăng nhập"** — từ khi bỏ
+   trang `/login` riêng của SPA (2026-09-29, xem mục "Giả định host" → "Đăng
+   nhập 1 lần"), `next` mang nguyên URL tuyệt đối của trang SPA (đã đúng path
+   sẵn), không cần đối chiếu với danh sách route đã biết như
+   `postLogin.ts`'s `KNOWN_ROUTES` cũ (file đã xoá) — thêm trang mới không
+   cần sửa gì ở bước đăng nhập.
 7. **KHÔNG xoá trang `.html`/file `js/*.js` cũ** — để nguyên, hoạt động song
    song, cho tới khi TOÀN BỘ 16 trang đã migrate và được xác nhận ổn định
    (quyết định dọn dẹp để sau, ngoài phạm vi từng lần port).
@@ -1707,26 +1971,55 @@ Theo đúng thứ tự đã làm với Vật tư — dùng làm checklist:
 
 ## Nợ kỹ thuật / việc cố tình chưa làm trong pilot này
 
-- **⚠️ Phiên đăng nhập giữa `app.agrichain.org.vn` và `agrichain.org.vn` —
-  ĐÃ GIẢM NHẸ (2026-09-25), chưa dứt điểm** — xem mục "Giả định host" (phần
-  "Hệ quả ĐÃ GIẢM NHẸ") để biết đầy đủ cơ chế cookie httpOnly +
-  `bootstrapFromCookie()`. Tóm tắt: đăng nhập ở site tĩnh RỒI bấm sang SPA giờ
-  KHÔNG còn bị chặn (SPA tự dò phiên qua cookie lúc mount) — nhưng vẫn CẦN
-  cấu hình hosts file domain giả (`agrichain.local`/`app.agrichain.local`/
-  `api.agrichain.local`) lúc dev để cookie chia sẻ được (`127.0.0.1` không
-  set `Domain=` được, xem `agrichain/CLAUDE.md` mục "Kết nối backend"), đăng
-  xuất vẫn chưa đồng bộ 2 chiều, và refresh token vẫn KHÔNG qua cookie (chỉ
-  access token 15 phút). **SPA có trang `/login` RIÊNG** (2026-09-22, xem mục
-  "Trang `/login`") vẫn còn nguyên làm lớp dự phòng khi bootstrap thất bại
-  (dev qua `127.0.0.1`/`localhost`, hoặc cookie hết hạn).
-- **`src/routes/postLogin.ts`'s `KNOWN_ROUTES`** hiện có 9 route
-  (`/nong-trai`, `/nong-trai-chi-tiet`, `/vat-tu`, `/mau-quy-trinh`,
-  `/tai-khoan`, `/lo-hang`, `/ho-so`, `/goi-phan-mem`, `/lich-su-mua-goi`) —
-  thêm route mới thì PHẢI
-  thêm vào đây (bước 6 ở checklist trên), không thì `?redirect=` trỏ vào
-  route đó sau khi đăng nhập lại sẽ bị coi là không hợp lệ, rơi về mặc định
-  `/nong-trai` (`DEFAULT_ROUTE`, ĐÃ đổi từ `/vat-tu` — giờ trỏ đúng
-  `nong-trai.html` tương đương của bản gốc, không còn là "tạm" nữa).
+- **Phiên đăng nhập giữa `app.agrichain.org.vn` và `agrichain.org.vn` — ĐÃ
+  DỨT ĐIỂM (2026-09-29)**, xem mục "Giả định host" phần "Đăng nhập 1 lần
+  (2026-09-29)". SPA không còn trang đăng nhập riêng, mọi lượt đăng nhập đều
+  qua `dang-nhap.html` của site tĩnh, dùng chung phiên qua cookie httpOnly.
+  Hạn chế còn lại (không phải bug, chỉ là giới hạn của thiết kế cookie hiện
+  tại): vẫn CẦN cấu hình hosts file domain giả
+  (`agrichain.local`/`app.agrichain.local`/`api.agrichain.local`) lúc dev để
+  cookie chia sẻ được (`127.0.0.1` không set `Domain=` được, xem
+  `agrichain/CLAUDE.md` mục "Kết nối backend"); refresh token vẫn KHÔNG qua
+  cookie (chỉ access token 15 phút) nên cookie hết hạn thì phải đăng nhập lại
+  thật; đăng xuất ở SPA xoá được cookie (xem mục "Đăng xuất gửi
+  refresh_token placeholder" bên dưới) nhưng site tĩnh (nếu đang mở tab khác)
+  không tự biết để xoá `localStorage`/vẽ lại UI của nó — vẫn chưa đồng bộ
+  2 chiều.
+- **⚠️ Đăng xuất gửi `refresh_token` placeholder — cần backend sửa trước khi
+  deploy production (2026-09-29)**: `src/api/http.ts::logout()` gửi 1 chuỗi
+  KHÔNG RỖNG bất kỳ (`no-local-refresh-token`) làm `refresh_token` khi SPA
+  không có refresh token cục bộ (LUÔN đúng với phiên thuần bootstrap-qua-cookie
+  — xem mục "Giả định host") vì `POST /auth/logout` của agrichain-api hiện
+  bắt buộc field này (`LogoutRequest.refresh_token: str = Field(min_length=1)`,
+  không optional). Backend KHÔNG đọc giá trị này để quyết định có xoá cookie
+  hay không — `_clear_auth_cookie()` chạy vô điều kiện sau bước revoke, xem
+  `agrichain-api/app/routers/auth.py::logout()` — nên placeholder chỉ đơn
+  giản không khớp hash nào, revoke bị bỏ qua (no-op an toàn), cookie vẫn được
+  xoá đúng. Hoạt động đúng, nhưng phụ thuộc vào 1 chi tiết cài đặt hiện tại
+  của backend (thứ tự thao tác trong hàm `logout()`) mà phía SPA không kiểm
+  soát được — **ĐỀ XUẤT cho agrichain-api (CHƯA làm, KHÔNG tự sửa từ phía
+  này)**: đổi `LogoutRequest.refresh_token` thành optional; thiếu thì bỏ qua
+  bước revoke (hoặc đọc token từ cookie nếu backend giữ được liên kết); LUÔN
+  xoá cookie bất kể có refresh_token hợp lệ hay không. Việc này nên làm
+  TRƯỚC KHI deploy production — placeholder hiện tại là giải pháp tạm chấp
+  nhận được cho dev/pilot, không nên là hành vi vĩnh viễn của 1 API công khai.
+- **`app/.npmrc` (`legacy-peer-deps=true`, thêm 2026-09-29)** — cần khi cài đặt
+  `@testing-library/react`/`@testing-library/jest-dom` cùng lúc với bản React
+  18 hiện tại của dự án: các gói testing-library khai báo `peerDependencies`
+  cho dải bản React rộng nhưng `npm` (từ v7) mặc định coi peer dependency
+  không khớp CHÍNH XÁC là lỗi cứng (`ERESOLVE`), dù thực tế tương thích tốt.
+  `legacy-peer-deps=true` quay lại hành vi npm v6 (chỉ cảnh báo, không chặn
+  cài đặt) — KHÔNG phải dấu hiệu xung đột phiên bản thật cần sửa, chỉ là cách
+  npm hiện đại quá nghiêm ngặt với peer dependency range. Không dùng
+  `npm audit fix --force` để "sửa" việc này — lệnh đó có thể tự ý nâng cấp
+  dependency lên major version mới, phá vỡ tương thích ngoài ý muốn.
+- **Node đang chạy KHÔNG phải bản LTS — nên nâng cấp trước khi deploy CI/production**:
+  máy dev hiện dùng Node 21.x (bản lẻ, KHÔNG thuộc dòng LTS — Node chỉ đánh
+  dấu LTS cho các bản CHẴN như 20.x/22.x). `package.json` chưa khai báo
+  `engines.node` để khoá lại — CI/máy khác cài Node khác bản có thể gặp hành
+  vi khác nhau tinh vi giữa các bản Node không-LTS. Đề xuất (CHƯA làm, ngoài
+  phạm vi đợt sửa đăng nhập này): nâng lên Node 22.x (LTS mới nhất tại thời
+  điểm viết) và thêm `"engines": { "node": ">=22" }` vào `app/package.json`.
 - **CORS của `data/provinces.json`/`data/wards/{code}.json` — ĐÃ GIẢI QUYẾT**
   (2026-09-23): gặp lỗi CORS thật giữa Live Server và Vite dev server, đã đổi
   `locationData.ts` sang gọi 2 route static mới của backend

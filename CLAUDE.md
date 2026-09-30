@@ -56,8 +56,24 @@ js/
                           # Đầu Ngay" ở .site-header__actions bằng 1 nút theo account_type + nút
                           # "Đăng Xuất" khi đã đăng nhập — dùng ở mọi trang công khai nạp
                           # .site-header (index.html, blog.html, blog-chi-tiet.html,
-                          # styleguide.html, truy-xuat.html), xem mục "Đăng nhập/Đăng ký" bên dưới
-  contact-form.js        # Validate + hiện thông báo thành công cho form ở section Liên Hệ
+                          # styleguide.html — truy-xuat.html ĐÃ BỎ .site-header, 2026-09-29,
+                          # xem mục riêng bên dưới), xem mục "Đăng nhập/Đăng ký" bên dưới
+  contact-form.js        # Validate + hiện thông báo thành công (dấu tích SVG tự vẽ + thanh đếm
+                          # ngược) + trạng thái "Đang gửi..." cho form ở section Liên Hệ —
+                          # KHÔNG còn lo phần hiện-dần-khi-cuộn nữa, đã tách sang
+                          # js/scroll-reveal.js (2026-09-29) khi hiệu ứng đó mở rộng ra dùng
+                          # cho toàn index.html, không riêng section này
+  scroll-reveal.js       # Hiện dần khi cuộn tới (IntersectionObserver, tự unobserve sau khi
+                          # hiện 1 lần) cho MỌI phần tử [data-reveal] — CSS thật (opacity/
+                          # transform/.is-visible) đã chuyển sang css/components.css (component
+                          # dùng chung, xem "Component hiện có"), file này chỉ lo phần quan sát/
+                          # gắn class. Expose AgriChain.initScrollReveal(root) để trang nào render
+                          # [data-reveal] bằng JS SAU DOMContentLoaded (blog.html/blog-chi-tiet.js
+                          # fetch xong mới có nội dung) tự gọi lại — xem js/blog.js. Dùng ở
+                          # index.html (tự chạy lúc DOMContentLoaded là đủ, xem "Hiệu ứng động
+                          # toàn trang chủ"), blog.html, blog-chi-tiet.html, styleguide.html (demo)
+  hero-stats.js          # Đếm số chạy lên cho khối thống kê ở Hero (index.html) —
+                          # .hero__stat-value[data-count-to], tôn trọng prefers-reduced-motion
   chain.js               # Sổ cái băm nối chuỗi (hash chain) bằng Web Crypto API — chạy trong trình duyệt.
                           # ⚠️ MỒ CÔI TOÀN DỰ ÁN kể từ 2026-09-12 (rà lại lúc chuyển batches CRUD
                           # sang API): chỉ còn được gọi TỪ BÊN TRONG js/store.js
@@ -91,7 +107,10 @@ js/
                            # lý Tài khoản" khỏi platform_admin (updatePlatformAdminOnlyNav()) — xem
                            # mục "Quản trị hệ thống (platform_admin)"
   map-layers.js           # 3 lớp nền bản đồ Leaflet dùng chung (vệ tinh/địa hình/mặc định) —
-                           # AgriChain.addMapBaseLayers(map), dùng ở cả nong-trai.js lẫn nong-trai-chi-tiet.js
+                           # AgriChain.addMapBaseLayers(map). CHỈ còn truy-xuat.js dùng (2026-09-29) —
+                           # nong-trai.html/nong-trai-chi-tiet.html (2 trang từng dùng file này) đã
+                           # migrate hẳn sang SPA (app/), SPA dùng bản port TypeScript riêng
+                           # app/src/mapLayers.ts, không nạp lại file .js này
   location-select.js      # Cơ chế "2 select phụ thuộc nhau" dùng chung — AgriChain.setupCascadingSelect(),
                            # dùng ở nong-trai.js (Tỉnh/Thành phố -> Phường/Xã) và lo-hang.js
                            # (Nông trại -> Mùa vụ). Chỉ định nghĩa cơ chế, không biết gì về dữ liệu cụ thể.
@@ -135,14 +154,25 @@ js/
                           # (PATCH /auth/me) + api.auth.changePassword() (POST /auth/change-password)
                           # — xem mục "Kết nối backend"
   truy-xuat.js            # Logic riêng cho truy-xuat.html (trang truy xuất công khai — KHÔNG nạp
-                          # js/app-shell.js, trang này không cần đăng nhập). Tra lô hàng qua
-                          # api.batches.getByCode() (route public GET /batches/by-code/{code}),
-                          # KHÔNG còn đọc store.list('batches') — xem mục "Kết nối backend"
+                          # js/app-shell.js/js/store.js, trang này không cần đăng nhập). Gọi ĐÚNG
+                          # 1 route GET /batches/by-code/{code}/public (khuôn JSON riêng, gộp sẵn
+                          # batch/farm/season/organization/certifications/logs — KHÔNG phải
+                          # api.batches.getByCode()), vẽ bản đồ ranh giới thật qua
+                          # AgriChain.addMapBaseLayers() (js/map-layers.js) — xem mục "Kết nối
+                          # backend"
   blog.js                 # Logic riêng cho blog.html (fetch() data/blog-posts.json rồi dựng từng
-                          # .post-card vào lưới — trang công khai, không nạp app-shell.js)
+                          # .post-card vào lưới — trang công khai, không nạp app-shell.js). Mỗi
+                          # thẻ gắn thêm [data-reveal] (hiện dần khi cuộn tới, so le theo vị trí)
+                          # rồi tự gọi AgriChain.initScrollReveal(gridNode) ngay sau khi render —
+                          # BẮT BUỘC vì thẻ được tạo SAU thời điểm DOMContentLoaded (phải chờ
+                          # fetch() xong), lần quan sát tự động lúc tải trang của
+                          # js/scroll-reveal.js không thấy được nội dung tạo muộn hơn nó
   blog-chi-tiet.js        # Logic riêng cho blog-chi-tiet.html (đọc ?slug= trên URL, fetch() CÙNG
                           # data/blog-posts.json với blog.js để tìm đúng bài rồi dựng nội dung —
-                          # xem mục "Blog" bên dưới)
+                          # xem mục "Blog" bên dưới). KHÔNG cần tự gọi lại
+                          # AgriChain.initScrollReveal() như blog.js — [data-reveal] gắn SẴN trên
+                          # markup tĩnh (chỉ toggle "hidden" khi tìm thấy bài, không tạo DOM mới),
+                          # IntersectionObserver vẫn theo dõi xuyên suốt kể cả lúc display:none
   ecommerce.js             # Logic riêng cho ecommerce.html (trang sàn mua sắm công khai) — đọc
                           # THẲNG store.list('shops')/store.list('products') qua AgriChain.store
                           # (không fetch() như blog, vì đây là dữ liệu localStorage thật của
@@ -238,9 +268,11 @@ thuong-mai-may-tinh-tien.html # Trang tạm "Đang phát triển" — mục "Má
 thuong-mai-thiet-lap.html    # Trang tạm "Đang phát triển" — mục "Thiết lập Shop"
 truy-xuat.html            # Trang truy xuất nguồn gốc CÔNG KHAI (không cần đăng nhập, không dùng
                           # app-shell) — đọc mã lô hàng qua query string ?ma=..., mở từ mã QR ở nút
-                          # "Truy xuất nguồn gốc" trên thẻ lô hàng (nong-trai-chi-tiet.js). Dùng lại
-                          # .site-header như index.html/styleguide.html vì đây là trang công khai,
-                          # không phải khu vực quản trị.
+                          # "Truy xuất nguồn gốc" trên thẻ lô hàng (nong-trai-chi-tiet.js/SPA).
+                          # KHÔNG dùng .site-header (2026-09-29, theo yêu cầu — trước đó có dùng
+                          # như index.html/styleguide.html, xem mục "Hiệu ứng động ở trang Truy
+                          # xuất nguồn gốc" để biết lý do/chi tiết bỏ) — trang đứng độc lập, chỉ
+                          # còn link Trang chủ/Blog/Liên hệ ở footer để điều hướng ra ngoài.
 quan-tri-he-thong.html    # Dashboard CHỈ ĐỌC dành riêng cho account_type='platform_admin' (Quản
                           # trị hệ thống) — 7 bảng dữ liệu (Nông trại/Mùa vụ/Nhật ký/Chứng nhận/
                           # Vật tư/Mẫu quy trình/Lô hàng) của MỌI Đơn vị qua GET /system/*. KHÔNG
@@ -351,6 +383,68 @@ nhớ khi đụng vào:
   validate định dạng rồi bỏ), nhưng trang đó đã chuyển hẳn sang `/users` của backend thật
   (xem mục "Kết nối backend"). Chưa xoá `orgUsers` khỏi `COLLECTIONS` trong `store.js` vì
   đây là thay đổi ngoài phạm vi lần chuyển đổi này — để lại cho một đợt dọn dẹp sau.
+
+### Hiệu ứng động ở `dang-nhap.html`/`dang-ky.html` (2026-09-29)
+
+2 trang dùng CHUNG `css/auth.css` nên mọi hiệu ứng khai báo ở đó tự áp dụng cho cả 2, không
+cần lặp lại gì riêng:
+
+- **`.auth-page__decor`** (2 blob mờ trôi nổi phía sau thẻ đăng nhập/đăng ký, cùng ngôn ngữ
+  thị giác với `index.html`/`blog.html`, tự khai báo lại `@keyframes auth-blob-float-1/2`
+  RIÊNG — không dùng chung `@keyframes` được giữa các file `.html` khác nhau) là **1 `<span>`
+  RIÊNG** (`position: fixed; inset: 0; overflow: hidden;`), KHÔNG phải `::before`/`::after`
+  đặt thẳng trên `.auth-page` (chính là `<body class="auth-page">`) như bản đầu tiên — 2 lần
+  sửa lỗi liên tiếp trong CÙNG NGÀY (ảnh chụp màn hình thật) mới ra được giải pháp này:
+  1. Bản đầu: `.auth-page { overflow: hidden }` để cắt phần blob lồi ra ngoài — nhưng
+     `overflow` đặt trên chính `<body>` tự LAN LÊN áp dụng cho toàn bộ viewport (quy tắc CSS ít
+     người biết: "propagation of overflow to the viewport" khi `<html>` có `overflow: visible`
+     mặc định), khoá cuộn CẢ TRANG chứ không chỉ cắt riêng blob — `dang-ky.html` (form dài hơn
+     1 màn hình) không cuộn xuống được nữa.
+  2. Bản 2: đổi thành `overflow-x: hidden` (bỏ `overflow-y`) — hết khoá cuộn, nhưng lộ bug
+     MỚI: 2 blob có toạ độ âm (`bottom: -140px`...) vẫn kéo dài "scrollable overflow area" của
+     trang ra QUÁ khung nền thật (nền `linear-gradient` chỉ vẽ trong biên box của `.auth-page`,
+     không theo phần con lồi ra ngoài), để lộ 1 dải nền trắng/mặc định phía dưới khi cuộn —
+     đúng cái lỗi màu trong ảnh chụp màn hình.
+  3. **Giải pháp cuối cùng**: tách 2 blob ra khỏi `.auth-page` (bỏ hẳn `position`/`overflow`
+     trên nó), đưa vào 1 `<span class="auth-page__decor" aria-hidden="true">` RIÊNG với
+     `position: fixed; inset: 0; overflow: hidden;` — `position: fixed` không đóng góp gì vào
+     chiều cao cuộn của trang (luôn phủ đúng khung nhìn hiện tại, bất kể `<body>` cao bao
+     nhiêu), và `overflow: hidden` đặt trên NÓ (không phải trên `<body>`) không bị quy tắc lan
+     truyền lên viewport chi phối (quy tắc đó CHỈ áp dụng cho riêng `<body>`/`<html>`, không áp
+     dụng cho phần tử thường bất kỳ). Bài học chung: khi cần `overflow: hidden` để cắt phần tử
+     trang trí lồi ra ngoài, KHÔNG BAO GIỜ đặt trực tiếp lên `<body>`/`<html>` — luôn bọc phần
+     tử trang trí đó vào 1 wrapper riêng rồi cắt trên wrapper đó. **`.auth-card`** (khối trắng
+     chứa form) hiện dần + trồi lên nhẹ ngay lúc trang tải xong (`animation: auth-card-in`,
+     chạy ngay chứ không chờ cuộn tới như `[data-reveal]` — trang đăng nhập/đăng ký luôn gói
+     gọn trong 1 màn hình đầu tiên).
+- **`.auth-card__brand`** (cột giới thiệu bên trái, chỉ hiện ≥ 960px) có thêm 2 blob riêng
+  (màu đậm hơn, hợp nền xanh tối) — con trực tiếp của nó (`.auth-card__brand > *`) phải nâng
+  `z-index: 1` vì pseudo-element `position: absolute` mặc định vẽ đè lên nội dung tĩnh đứng
+  trước nó. **`.auth-brand__fact`** (3 ô thống kê) hiện dần so le bằng `animation-delay` theo
+  `:nth-child` — không cần JS/`IntersectionObserver` vì luôn nằm sẵn trong khung nhìn đầu
+  tiên.
+- **Icon trong ô nhập** — dùng LẠI component `.input-icon-wrap`/`.input-icon-wrap__icon`
+  (`css/components.css`, xem mục "Component hiện có") y hệt form Liên Hệ ở `index.html`. Ô
+  mật khẩu lồng thêm 1 cấp (`.input-icon-wrap > .password-field > input`) — không ảnh hưởng gì
+  tới `js/password-field.js` (thuần `getElementById`, không phụ thuộc cấu trúc cha/con) hay
+  `showError()` trong `js/auth.js` (`field.closest('.field')` vẫn tìm đúng bất kể lồng sâu bao
+  nhiêu cấp).
+- **`.auth-tab`** (chuyển đổi "Khách hàng"/"Nông hộ Doanh nghiệp") phóng to nhẹ
+  (`transform: scale(1.03)`) khi được chọn, thêm cạnh hiệu ứng đổi màu nền đã có sẵn.
+- **`.auth-alert`** (banner lỗi, VD sai email/mật khẩu) rung nhẹ (`@keyframes
+  auth-alert-shake`) mỗi lần hiện — `showAlert()` (`js/auth.js`) phải xoá rồi ép reflow
+  (`void alert.offsetWidth`) trước khi gắn lại `.is-visible`, cùng kỹ thuật đã dùng cho dấu
+  tích thành công ở form Liên Hệ — nếu không, 2 lần lỗi liên tiếp (gõ sai mật khẩu 2 lần) chỉ
+  rung đúng 1 lần ở lần đầu.
+- **Nút gửi** (`.auth-form button[type="submit"]:disabled::after`) tự hiện spinner xoay khi
+  đang xử lý — hook thẳng vào `:disabled` sẵn có (`js/auth.js` chỉ toggle thuộc tính này lúc
+  gọi API, không cần thêm class riêng hay sửa JS gì thêm), dùng lại `@keyframes spin` đã có ở
+  `css/components.css` (mọi stylesheet nạp cùng 1 trang HTML dùng chung được `@keyframes` của
+  nhau, khác với việc chia sẻ giữa 2 file `.html` riêng biệt). Nút "Đăng nhập"/"Tạo tài khoản"
+  còn gắn thêm `.btn-shine` (ánh sáng lướt qua khi hover, xem "Component hiện có").
+- Toàn bộ hiệu ứng trên đều tắt qua `@media (prefers-reduced-motion: reduce)` (khai báo rải
+  theo từng khối trong `css/auth.css`, không gộp 1 chỗ như `index.html` — auth.css ngắn hơn
+  nhiều nên không cần thiết).
 
 ### Đăng ký — 2 loại tài khoản: `customer` / `business`
 
@@ -815,8 +909,14 @@ này, không dùng chung listener toàn cục nào khác), gọi lại `renderHe
 Đã rà `.site-footer__links` ở cả `index.html`/`blog.html`/`blog-chi-tiet.html` — KHÔNG có
 nút "Bắt Đầu Ngay"/liên kết đăng nhập nào tương tự trong footer (chỉ có anchor nội bộ,
 "E-commerce", "Blog", thông tin liên hệ), nên không cần đồng bộ gì thêm ở đó. `styleguide.html`
-và `truy-xuat.html` không có `<footer>` (`truy-xuat.html` chỉ có `.site-header`, xem cấu trúc
-thư mục) nên không có gì để rà ở 2 trang này.
+không có `<footer>` nên không có gì để rà ở đó.
+
+**⚠️ `truy-xuat.html` KHÔNG còn nằm trong nhóm trang này (2026-09-29)** — đã bỏ hẳn
+`.site-header` (theo yêu cầu, xem mục "Hiệu ứng động ở trang Truy xuất nguồn gốc") nên không
+còn `.site-header__actions`/`js/header.js` để vá gì ở đây nữa; đoạn mô tả "cả 5 trang" ở trên
+giờ chỉ còn ĐÚNG 4 trang (`index.html`/`blog.html`/`blog-chi-tiet.html`/`styleguide.html`).
+Trang giờ CÓ `<footer class="qr-footer">` riêng (khác `.site-footer` dùng chung) với link
+Trang chủ/Blog/Liên hệ.
 
 ## Kết nối backend
 
@@ -845,29 +945,77 @@ trang đều dùng backend thật ngay**:
   phải UUID) sẽ KHÔNG tự chuyển lên backend — biến mất khỏi danh sách sau khi migrate,
   người dùng tự tạo lại qua giao diện mới nếu cần.
 - **`truy-xuat.html`/`js/truy-xuat.js`** (trang truy xuất công khai, quét mã QR, không đăng
-  nhập) **ĐÃ CHUYỂN tra cứu lô hàng sang API** (2026-09-12, vá lỗi: trước đó đọc
-  `store.list('batches')`, chỉ ai dùng ĐÚNG trình duyệt đã tạo ra lô hàng mới xem được, khách
-  quét QR bằng máy khác luôn ra "không tìm thấy" dù dữ liệu đã có trong database). Tra
-  farm/season qua `api.farms.get()`/`api.seasons.get()` — backend mở riêng 2 route này thành
-  **public-read** (`GET /farms/{id}`, `GET /seasons/{id}`, không cần Bearer token), xem
-  `getFarmSafe()`/`getSeasonSafe()` trong `js/truy-xuat.js`. Riêng lô hàng: `GET /batches`
-  (danh sách, có `q=<mã>`) **yêu cầu đăng nhập** — khác farms/seasons, KHÔNG dùng được ở
-  trang công khai này, nên mẫu `loadFarmByCode()` (gọi `q=` rồi tự so khớp client, xem
-  `js/nong-trai-chi-tiet.js`) không áp dụng được cho batches. Backend vì vậy có thêm 1 route
-  public-read riêng — **`GET /batches/by-code/{code}`** (tra CHÍNH XÁC theo mã, không phân
-  biệt hoa/thường, bỏ qua lọc theo Đơn vị — cùng ngoại lệ công khai với `GET /batches/{id}`,
-  xem `app/routers/batches.py::get_batch_by_code` phía `agrichain-api`) — gọi qua
-  `api.batches.getByCode()` (`js/api.js`) — trang này chỉ dùng 2 hàm ĐỌC (`get`/`getByCode`,
-  cả 2 đều `{ auth: false }`) trong số 6 hàm CRUD đầy đủ của `api.batches.*`, vì đây là trang
-  công khai không có phiên đăng nhập để gửi kèm cho `create`/`update`/`remove`/`list`.
-  Danh sách chứng nhận trên trang này vẫn đọc `store.js` — không phải vì `certifications`
-  chưa có ở backend (đã có, xem `nong-trai-chi-tiet.html`), mà vì endpoint đó vẫn yêu cầu
-  đăng nhập và trang công khai này không có phiên nào để gửi kèm — NGOÀI PHẠM VI lần sửa
-  batches này. Khối "Xác thực blockchain" trên trang cũng đã **TẠM ẨN** (`hidden` trong
-  HTML): response `BatchOut` thật của backend KHÔNG có field `sealed`/`hash`/`blockIndex`/
-  `sealedAt` (mô phỏng client-side cũ của `js/chain.js`), chỉ có `verification_status` (luôn
-  `'pending'` — anchoring blockchain thật chưa code)/`tx_hash`/`anchored_at` — xem
-  `agrichain-api/CLAUDE.md` mục "Giai đoạn 3".
+  nhập) **ĐÃ VIẾT LẠI HOÀN TOÀN** (giao diện hero ảnh nền + card nhà sản xuất/mùa vụ + khối
+  "Đã xác thực trên Blockchain" + timeline hành trình sinh trưởng — có vẻ từ nhánh
+  `test/truy-xuat-live` đã merge sau lần "ĐÃ CHUYỂN tra cứu lô hàng sang API" ban đầu ghi ở
+  đây trước đó, nên bản mô tả cũ dùng `getFarmSafe()`/`getSeasonSafe()`/
+  `api.batches.getByCode()` gọi 3 route rời rạc KHÔNG còn đúng — đã bỏ hẳn, không còn hàm nào
+  trong số đó ở file hiện tại). Trang giờ gọi **ĐÚNG 1 route duy nhất** —
+  **`GET /batches/by-code/{code}/public`** (`agrichain-api/app/routers/batches.py::
+  get_batch_public_traceability`, response `PublicBatchTraceabilityOut` —
+  `agrichain-api/app/schemas/public_batch.py`) — trả về gộp sẵn cả `batch`/`farm`/`season`/
+  `organization`/`certifications`/`logs` trong 1 lần gọi, khớp đúng
+  `PUBLIC-BATCH-SCHEMA.md`, không cần ghép nhiều request như bản cũ. **Chỉ trả 200 cho lô
+  hàng ở trạng thái `harvested`/`processed`/`completed`** (`_PUBLIC_TRACEABLE_STATUSES`,
+  backend) — trạng thái khác → 404 "Không tìm thấy" (không tiết lộ lô hàng đó tồn tại, quyết
+  định đã chốt phía backend), khác hẳn quy tắc "public-read mọi trạng thái" của
+  `GET /farms/{id}`/`GET /seasons/{id}` ở nơi khác trong dự án — đừng nhầm 2 quy tắc này khi
+  sửa trang khác cũng dùng route public-read. **`certifications` ĐÃ NỐI DỮ LIỆU THẬT
+  (2026-09-29)** — trước đó backend cố tình luôn trả mảng rỗng, giờ trả chứng nhận THẬT của
+  nông trại đang ở trạng thái `active` (`certification_repo.search(..., status="active")`,
+  xem `agrichain-api/CLAUDE.md`) — chứng nhận `expired`/`suspended`/`revoked` KHÔNG hiện ở
+  đây, không cần frontend tự lọc lại. `renderCertifications()` (`js/truy-xuat.js`) dựng mỗi
+  chứng nhận thành 1 `.badge.badge--success` trong `[data-farm-certs]`, không đổi gì (đã
+  đúng sẵn từ trước, chỉ cần backend hết trả mảng rỗng).
+
+  **Cờ `USE_MOCK_DATA`** (đầu `js/truy-xuat.js`) chuyển giữa gọi route thật (`false`, mặc
+  định từ 2026-09-29) và đọc `data/public-batch-mock.json` tĩnh (`true`, hữu ích để demo/dev
+  giao diện khi không có backend chạy sẵn — file mock giữ nguyên trên đĩa, không xoá) — cả 2
+  nhánh cùng 1 khuôn response nên phần dựng giao diện (`showBatch()`) không cần biết nguồn dữ
+  liệu tới từ đâu. **Bug thật đã vá (2026-09-29)**: cờ này từng mặc định `true` kèm comment
+  sai "route backend chưa code xong" (route thật ra đã xong từ trước) — mọi mã `?ma=` trên
+  URL bị bỏ qua hoàn toàn, trang luôn hiện đúng 1 lô hàng mẫu cố định
+  (`VUON3-VU2-2026`/"HTX Nông Nghiệp Tiến Phát") bất kể quét QR/mở link lô hàng nào, dễ đánh
+  lừa người dùng tưởng đang xem đúng dữ liệu lô hàng họ vừa chọn.
+
+  Khối "Đã xác thực trên Blockchain" (`.qr-verified`) giờ **HIỆN ĐẦY ĐỦ** (không còn ẩn hẳn
+  như bản trước 2026-09-29) khi `batch.verification_status === 'anchored'` — network/block
+  height/smart contract/transaction hash/signer wallet/payload hash (đều rút gọn qua
+  `shorten()`, có nút sao chép riêng từng ô) + link "Xem trên Blockchain Explorer"
+  (`batch.explorer_url`, backend tự ghép từ `tx_hash`); ngược lại hiện khối "Chưa xác thực"
+  (`.qr-pending`). Xem thêm mục "Hiệu ứng động ở trang Truy xuất nguồn gốc" phía dưới
+  ("Việc chưa làm") cho phần hiệu ứng hiện dần/quầng sáng của 2 khối này.
+
+  **Bản đồ ranh giới thửa đất — ĐÃ TÍCH HỢP LEAFLET THẬT (2026-09-29)**, thay cho khung
+  placeholder tĩnh trước đó: `truy-xuat.html` nạp thêm Leaflet **1.9.4 qua CDN** (unpkg,
+  ghim ĐÚNG bản `app/package.json` của SPA dùng — site tĩnh không có build tool nên không
+  `npm install` được, xem mục "Quyết định công nghệ đã chốt") + `js/map-layers.js` (3 lớp
+  nền vệ tinh/địa hình/mặc định dùng chung, cùng file `nong-trai.html` từng dùng trước khi
+  migrate sang SPA — SPA giờ có bản port TypeScript riêng `app/src/mapLayers.ts`, KHÔNG import
+  ngược file `.js` này, 2 bản song song vì 2 codebase khác cơ chế nạp module). `renderFarmMap()`
+  (`js/truy-xuat.js`) vẽ polygon thật từ `farm.polygon` (cần ≥ 3 điểm, cùng ràng buộc
+  `FarmCreate`/`FarmUpdate` phía backend) — không đủ điểm (hoặc Leaflet lỡ tải lỗi, VD mất
+  mạng ngoài CDN) thì giữ nguyên khung placeholder cũ, chỉ đổi lại chữ cho đúng thực trạng
+  ("chưa có dữ liệu ranh giới" thay vì "sẽ tích hợp"). **Khác 1 điểm so với bản đồ admin**
+  (`showFarmOnMap()` từng có ở `js/nong-trai-chi-tiet.js`, giờ mồ côi vì trang đó đã migrate
+  sang SPA): tắt `scrollWheelZoom` — trang này là 1 trang cuộn dài, để mặc định sẽ khiến người
+  dùng bị "kẹt" zoom bản đồ khi lướt chuột ngang qua, khác hẳn form vẽ ranh giới ở admin (luôn
+  nằm trong modal/khung cố định, không phải trang cuộn).
+
+  **⚠️ Bug đã vá — nút zoom/lớp nền bản đồ đè lên `.site-header` khi cuộn tới đoạn bản đồ**:
+  Leaflet tự đặt `z-index: 1000` cho `.leaflet-top`/`.leaflet-bottom` (khung chứa control) mà
+  KHÔNG tự giới hạn phạm vi — `.leaflet-container` (chính là `.qr-farm__map-canvas`) chỉ có
+  `position: relative`, không có `z-index` riêng nên KHÔNG tự tạo "stacking context" mới, khiến
+  z-index:1000 đó cạnh tranh THẲNG với mọi phần tử khác trên trang có `position` khác `static`,
+  kể cả `.site-header` (`position: sticky`, `z-index: var(--z-sticky)` = 100 — thấp hơn hẳn).
+  Cuộn tới đoạn bản đồ thì nút zoom/lớp nền của Leaflet đè cả lên header dính phía trên, dù bản
+  đồ nằm thấp hơn hẳn trong luồng trang. Vá bằng `isolation: isolate` trên `.qr-farm__map-wrap`
+  — ép khối này tự tạo 1 "stacking context" RIÊNG, nhốt toàn bộ thang z-index nội bộ của Leaflet
+  (200-1000) ở BÊN TRONG khung này, không còn cạnh tranh được với bất kỳ phần tử nào bên ngoài
+  dù z-index nội bộ cao tới đâu. **Bài học dùng lại được cho MỌI lần nhúng Leaflet vào 1 trang
+  có `.site-header` dính (hoặc bất kỳ phần tử `position: sticky/fixed` nào khác)**: luôn bọc
+  khung chứa bản đồ trong 1 phần tử có `isolation: isolate` (hoặc `position` + `z-index` để tự
+  tạo stacking context) — đừng để mặc định, vì Leaflet không tự cô lập z-index của chính nó.
 - **`ho-so.html`/`js/ho-so.js` ĐÃ CHUYỂN SANG API** (2026-09-12) — **vá 1 bug thật nghiêm
   trọng**: trang từng đọc `store.getSession()` (phiên `localStorage` GIẢ LẬP, tồn tại độc lập
   với phiên đăng nhập API thật kể từ khi `dang-nhap.html` chuyển hẳn sang API) nên có thể hiện
@@ -1428,6 +1576,24 @@ thay thế).
 - Form: `.field` (bọc label + input + lỗi), `.label`, `.input`, `.textarea`, `.select`
   (dùng chung style, trạng thái `:disabled` và `[aria-invalid="true"]`), `.field__error`,
   `.checkbox`/`.checkbox__input`/`.checkbox__label`, `.radio`/`.radio__input`/`.radio__label`.
+- `[data-reveal]` — hiện dần khi cuộn tới, đánh dấu bằng thuộc tính (không phải class, tránh đụng
+  độ với class bố cục/BEM khác của chính phần tử) trên bất kỳ phần tử nào cần hiệu ứng. Độ trễ so
+  le qua biến CSS `--reveal-delay` đặt ngay trong `style=""` tại chỗ dùng. Cần nạp thêm
+  `js/scroll-reveal.js` (IntersectionObserver, tự gắn `.is-visible` rồi ngừng theo dõi — gọi lại
+  được qua `AgriChain.initScrollReveal(root)` cho nội dung render bằng JS sau `DOMContentLoaded`).
+  Dùng ở `index.html`, `blog.html`, `blog-chi-tiet.html` — xem mục "Hiệu ứng động toàn trang chủ"
+  và "Hiệu ứng động ở Blog". Demo trong `styleguide.html`.
+- `.btn-shine` — gắn thêm cạnh `.btn`/`.btn--primary` cho hiệu ứng ánh sáng lướt qua khi hover,
+  dùng cho CTA chính cần nhấn mạnh hơn hiệu ứng nâng lên mặc định của `.btn`. Dùng ở `index.html`
+  (Hero, CTA, form Liên Hệ), `dang-nhap.html`/`dang-ky.html` (nút gửi), demo trong `styleguide.html`.
+- `.input-icon-wrap`/`.input-icon-wrap__icon` — bọc `.input`/`.textarea` + 1 icon (đặt TRƯỚC ô
+  nhập trong DOM) để icon nằm đè bên trái ô, đổi màu + phóng to khi ô đang focus
+  (`:focus-within`, không cần JS). Thêm modifier `.input-icon-wrap--textarea` cho ô nhiều dòng
+  (icon ghim mép trên thay vì canh giữa cả khung). Ban đầu (2026-09-29) viết riêng cho form
+  Liên Hệ ở `index.html`, nâng lên đây CÙNG NGÀY khi áp dụng thêm cho
+  `dang-nhap.html`/`dang-ky.html` — ô mật khẩu (`.password-field`) lồng được thêm 1 cấp bên
+  trong mà không cần sửa gì (`.input-icon-wrap .input` là descendant selector, không quan tâm
+  lồng sâu bao nhiêu cấp).
 
 ## Logo công ty (2026-09-12)
 
@@ -1491,6 +1657,14 @@ AgriVerse, khác hệ thiết kế site-wide/app-shell/auth, cố tình để ng
   `<script src="js/....js?v=N">` đều gắn sẵn query string phiên bản để ép tải bản mới;
   **mỗi lần sửa một file JS, tăng số `v=` của đúng file đó** ở mọi trang có nạp nó, đừng chỉ
   dựa vào hard refresh.
+- **`.vscode/settings.json` đã ghim `liveServer.settings.host = "agrichain.local"`** (2026-09-29)
+  — mặc định nút "Go Live" mở `http://127.0.0.1:5500`/`localhost:5500`, KHÔNG phải domain giả
+  `agrichain.local` (hosts file, xem mục "Kết nối backend" → cookie httpOnly). Bug thật đã gặp:
+  mở site tĩnh qua `localhost:5500` thì cookie phiên đăng nhập không chia sẻ được với SPA
+  (`app.agrichain.local:5173`, origin khác hẳn `localhost`) — phải đăng nhập 2 lần (1 lần ở site
+  tĩnh, 1 lần nữa khi SPA tự đá về `dang-nhap.html` vì không dò được cookie). Cấu hình này ép Go
+  Live luôn bind + tự mở đúng `http://agrichain.local:5500` ngay từ đầu, không cần tự gõ lại
+  domain trong thanh địa chỉ mỗi lần.
 
 ## Việc chưa làm (ngoài phạm vi giai đoạn này)
 
@@ -1505,6 +1679,110 @@ bị xoá, xem mục "Trang thương mại điện tử chính thức" phía tr�
 côi, vẫn đúng về mặt kỹ thuật của trang, chỉ không còn ai truy cập tới qua điều hướng
 trong app nữa — xem mục "Hero — video giới thiệu" bên dưới cho phần Hero). Chưa có: tích
 hợp AI thật.
+
+### Hiệu ứng động toàn trang chủ (2026-09-29)
+
+Toàn bộ `index.html` (Hero, Tính Năng, Quy Trình, Lợi Ích, CTA, Liên Hệ) đã nâng cấp giao diện
+với hiệu ứng động đồng bộ — bắt đầu từ section Liên Hệ (`#lien-he`), sau đó mở rộng ra CẢ trang
+cùng ngày, rồi lan tiếp sang `blog.html`/`blog-chi-tiet.html` (xem mục "Hiệu ứng động ở Blog"
+ngay dưới) khiến 2 thành phần cốt lõi được NÂNG THÀNH COMPONENT DÙNG CHUNG thật sự:
+
+- **`--ease-emphasized`** (`css/tokens.css`) — easing dùng chung cho hiệu ứng entrance/hover cần
+  nổi bật hơn `--transition-base` (vốn chỉ hợp cho hover/focus tức thời kiểu đổi màu/viền). Lịch
+  sử đổi tên: ban đầu `--contact-ease` (riêng `.contact`) → `--page-ease` (`:root` của
+  `index.html`, khi hiệu ứng mở rộng ra cả trang) → `--ease-emphasized` (`tokens.css`, khi lan
+  sang `blog.html`/`blog-chi-tiet.html` — 1 token dùng lại ở nhiều trang bắt buộc phải nằm ở
+  `tokens.css`, không thể để trong `:root` riêng của 1 file `.html`).
+- **`[data-reveal]`/`.is-visible`** (`css/components.css`) — hiện dần khi cuộn tới, đánh dấu trên
+  bất kỳ phần tử nào cần hiệu ứng này. Độ trễ so le qua biến CSS `--reveal-delay` đặt trực tiếp
+  trong `style=""` tại chỗ dùng, không cần thêm class riêng cho từng mức trễ. Quan sát bằng
+  `IntersectionObserver` trong **`js/scroll-reveal.js`** (tách riêng khỏi `js/contact-form.js` từ
+  khi hiệu ứng mở rộng ra toàn `index.html`) — tự `unobserve()` sau khi đã hiện 1 lần, không lặp
+  lại khi cuộn qua cuộn lại; có fallback hiện ngay nếu trình duyệt không hỗ trợ
+  `IntersectionObserver`. Expose `AgriChain.initScrollReveal(root)` để gọi lại được cho nội dung
+  render bằng JS sau `DOMContentLoaded` (xem `js/blog.js`). Trên `index.html`: Hero (tiêu đề/mô
+  tả/nút/thống kê/khung video — nằm sẵn trong khung nhìn đầu tiên nên chạy gần như ngay khi tải
+  trang, cho cảm giác "entrance animation" thay vì phải cuộn mới thấy), Tính Năng (tiêu đề + 4
+  thẻ), Quy Trình (tiêu đề + 4 bước), Lợi Ích (tiêu đề + 3 mục), CTA (khối nội dung), Liên Hệ
+  (tiêu đề/3 dòng liên hệ/form).
+- **`.btn-shine`** (`css/components.css`) — hiệu ứng ánh sáng lướt qua khi hover, gắn thêm cạnh
+  `.btn`/`.btn--primary` có sẵn (dùng ở nút "Bắt Đầu Ngay" của Hero, 2 nút của CTA, nút gửi của
+  form Liên Hệ, và demo trong `styleguide.html`) — ban đầu chỉ riêng `.contact__submit`, tách
+  thành tiện ích dùng chung ngay trong `index.html` khi lan ra ≥ 3 chỗ cùng trang, rồi nâng tiếp
+  lên `components.css` khi cần dùng lại ở trang khác.
+- **Khối `.hero__blob`/`.cta__blob`/`.contact__blob`** (riêng của `index.html`, KHÔNG nâng lên
+  dùng chung — trang trí thuần tuý, không phải hành vi tương tác nên không nhất thiết phải
+  generic hoá) — trôi nổi phía sau nội dung ở cả 3 section (Hero/CTA nền tối, Liên Hệ nền sáng,
+  màu/độ mờ chỉnh riêng cho từng nền), dùng CHUNG đúng 2 `@keyframes contact-blob-float-1/2`
+  (định nghĩa 1 lần ở phần CSS của Liên Hệ) — `@keyframes` không giới hạn theo selector nào tham
+  chiếu tới nó nên không cần khai báo lại trong CÙNG 1 file. CTA còn thêm `.cta::before` — quầng
+  sáng mờ nhấp nháy chậm phía sau tiêu đề. `blog.html` có khối tương tự riêng
+  (`.blog-hero__blob`, xem mục "Hiệu ứng động ở Blog") — phải tự khai báo lại `@keyframes` vì
+  không dùng chung được GIỮA 2 file `.html` khác nhau (mỗi trang có `<style>` riêng).
+- **Icon bọc khung tròn hover phóng to + xoay nhẹ + đảo màu** — cùng 1 ngôn ngữ thị giác dùng ở
+  3 nơi: `.contact__info-icon` (Liên Hệ), `.feature-card__icon-wrap` (Tính Năng, thẻ SVG icon
+  giờ bọc thêm 1 `<span>` thay vì đặt class thẳng lên `<svg>` như trước), `.benefits__item-icon`
+  (Lợi Ích). Quy Trình dùng biến thể tương tự cho `.process__step-number` (chỉ phóng to, không
+  xoay/đảo màu — số thứ tự không hợp lý để đảo màu nền xanh sẵn có của nó) và đường nối ngang
+  `.process__steps::before` tự "vẽ dần" từ trái sang phải bằng `transform: scaleX()` khi khối
+  `.process__steps` lọt vào khung nhìn (mượn đúng cơ chế `[data-reveal]`/`.is-visible` nhưng tự
+  huỷ hiệu ứng mờ/dịch chuyển mặc định của chính khối lưới — chỉ 4 bước con bên trong hiện dần
+  so le, bản thân lưới cha không cần mờ/dịch chuyển theo).
+- **Số liệu Hero chạy đếm lên** (`.hero__stat-value[data-count-to]`, `js/hero-stats.js`) — nội
+  dung chữ tĩnh có sẵn trong HTML (VD `"1.247+"`) vẫn là giá trị đúng cuối cùng để JS lỗi/tắt
+  không mất thông tin; JS đếm từ 0 lên đúng số đó bằng `requestAnimationFrame` (ease-out cubic),
+  format qua `toLocaleString('vi-VN')` (dấu `.` phân cách nghìn, khớp định dạng gốc). Bỏ qua hẳn
+  hoạt ảnh nếu `matchMedia('(prefers-reduced-motion: reduce)')` đúng — giữ nguyên số tĩnh.
+- **Khối thành công của form Liên Hệ** đổi từ icon tĩnh sang dấu tích SVG tự vẽ
+  (`stroke-dasharray`/`stroke-dashoffset`) kèm thanh đếm ngược 5s, và nút gửi có thêm trạng thái
+  "Đang gửi..." (độ trễ giả lập 700ms — form vẫn chỉ xử lý phía client, xem mục "Việc chưa
+  làm"). **`showSuccess()` (`js/contact-form.js`) phải xoá rồi ép reflow (`void
+  el.offsetWidth`) trước khi gắn lại `.is-visible`** mỗi lần gọi — nếu chỉ `classList.add()` khi
+  class đã tồn tại sẵn từ lần trước, trình duyệt không coi đó là thay đổi nên không chạy lại
+  `@keyframes` vẽ dấu tích/thanh đếm ngược ở lần gửi thứ 2 trở đi.
+- Toàn bộ hiệu ứng chuyển động của trang (blob trôi, hiện dần, ánh sáng lướt, vẽ dấu tích, đường
+  nối Quy Trình, hover phóng to/xoay/đảo màu...) đều tắt qua **1 khối `@media
+  (prefers-reduced-motion: reduce)` DUY NHẤT** ở cuối `<style>` của `index.html` (không rải rác
+  theo từng section) — giữ lại đúng trạng thái cuối (hiện đủ nội dung, không hoạt náo). Số đếm
+  Hero xử lý riêng ở phía JS (`js/hero-stats.js`) như đã nêu trên, không nằm trong khối CSS này.
+
+### Hiệu ứng động ở Blog (2026-09-29, cùng ngày)
+
+`blog.html`/`blog-chi-tiet.html` dùng LẠI `[data-reveal]`/`.is-visible`/`.btn-shine` từ
+`css/components.css` + `var(--ease-emphasized)` (`tokens.css`) — không định nghĩa lại CSS gốc,
+chỉ thêm phần trang trí/áp dụng RIÊNG của từng trang:
+
+- **`blog.html`**: `.blog-hero` thêm 2 khối `.blog-hero__blob` trôi nổi (cùng ngôn ngữ thị giác
+  với `.hero__blob`/`.cta__blob` của `index.html`, nhưng phải tự khai báo lại
+  `@keyframes blog-blob-float-1/2` — không dùng chung `@keyframes` GIỮA 2 file `.html` khác nhau
+  được, mỗi trang có `<style>` riêng biệt hoàn toàn). Eyebrow/tiêu đề/mô tả của hero gắn
+  `[data-reveal]` so le. Mỗi `.post-card` trong lưới được `js/blog.js` gắn thêm `[data-reveal]`
+  + `--reveal-delay` NGAY LÚC TẠO (so le theo vị trí, chặn ở 3 mức 0/100/200ms bằng modulo —
+  không tăng vô hạn theo số bài viết) — **BẮT BUỘC tự gọi lại
+  `AgriChain.initScrollReveal(gridNode)` ngay sau khi render xong lưới**, vì thẻ được tạo SAU
+  thời điểm `DOMContentLoaded` (phải chờ `fetch()` `data/blog-posts.json` xong) — lần quan sát tự
+  động lúc tải trang của `js/scroll-reveal.js` không thấy được nội dung xuất hiện muộn hơn nó.
+  Ảnh bìa (`.post-card__cover`) phóng to nhẹ khi hover cả thẻ (`.blog-list .post-card:hover
+  .post-card__cover { transform: scale(1.08) }`, scoped riêng cho trang này, không đụng
+  `.post-card` gốc dùng chung ở `components.css`) — `overflow: hidden` sẵn có của `.post-card`
+  tự cắt phần ảnh tràn ra ngoài khung.
+- **`blog-chi-tiet.html`**: gắn `[data-reveal]` + `--reveal-delay` so le TRỰC TIẾP lên các khối
+  tĩnh có sẵn trong HTML (breadcrumb/tiêu đề/meta/ảnh bìa/nội dung/tag/nút cuối trang — nội dung
+  bài viết (đoạn văn/heading/danh sách bên trong `.post-detail__body`) hiện dần NHƯ 1 KHỐI DUY
+  NHẤT, không tách từng đoạn — tách nhỏ hơn sẽ làm chậm/phân mảnh trải nghiệm đọc bài dài, phản
+  tác dụng). **KHÔNG cần tự gọi lại `AgriChain.initScrollReveal()`** như `blog.js` — khác biệt
+  quan trọng: `js/blog-chi-tiet.js` (`showPost()`/`showNotFound()`) chỉ TOGGLE thuộc tính
+  `hidden` trên `<article data-post-detail>`/`<div data-not-found>` đã có sẵn trong DOM tĩnh từ
+  đầu, không tạo phần tử `[data-reveal]` MỚI nào cả — lần quan sát mặc định lúc `DOMContentLoaded`
+  của `js/scroll-reveal.js` đã `observe()` đúng các phần tử này rồi (dù lúc đó chúng còn
+  `display: none` do `[hidden]`), và `IntersectionObserver` tiếp tục theo dõi xuyên suốt vòng đời
+  phần tử — tự bắn callback ngay khi thuộc tính `hidden` được gỡ, không cần `observe()` lại.
+  `.share-btn` (Facebook/Twitter/sao chép liên kết) thêm hiệu ứng nhô lên nhẹ khi hover
+  (`translateY(-2px)`, cùng mẫu `.btn:hover` của `components.css` nhưng cho 1 component riêng
+  của trang này).
+- **`styleguide.html`** cập nhật theo đúng quy ước "component mới → thêm vào trang demo": mục
+  "Nút bấm" có thêm ví dụ `.btn-shine`, và có thêm mục demo RIÊNG "Hiện dần khi cuộn tới" (3 khối
+  `.box-demo[data-reveal]` so le) — nạp thêm `js/scroll-reveal.js` để demo chạy thật.
 
 Trang Blog (`blog.html` + `blog-chi-tiet.html`) đã có ở mức cơ bản: hero + danh sách 3 bài viết
 + trang chi tiết đọc nội dung đầy đủ (đoạn văn/tiêu đề phụ/danh sách), cả 2 trang cùng đọc từ
@@ -1522,10 +1800,186 @@ chương trình khuyến mãi thật (tab "Khuyến mãi" luôn rỗng vì chưa
 `products`), ảnh sản phẩm/cửa hàng thật nếu Đơn vị chưa từng tự tải lên qua khu quản trị.
 
 Trang truy xuất nguồn gốc (`truy-xuat.html`) đã có ở mức cơ bản: xem 1 lô hàng qua mã QR
-(hoặc `?ma=...` trực tiếp, tra thật qua API — xem mục "Kết nối backend"), thấy thông tin
-nông trại/mùa vụ liên quan. Khối "Xác thực blockchain" đang TẠM ẨN (backend chưa có anchoring
-thật, xem mục trên) — sẽ hiện lại khi có. Chưa có: liệt kê nhiều lô hàng, tìm kiếm theo mã
-tự nhập tay trên trang.
+(hoặc `?ma=...` trực tiếp), thấy thông tin nông trại/mùa vụ liên quan, khối "Đã xác thực
+trên Blockchain" hiện đầy đủ khi lô hàng đã anchored. Chưa có: liệt kê nhiều lô hàng, tìm
+kiếm theo mã tự nhập tay trên trang. Xem mục "Kết nối backend" ở trên (đoạn
+`truy-xuat.html`/`js/truy-xuat.js`) để biết đầy đủ route/khuôn dữ liệu thật + bug
+`USE_MOCK_DATA` đã vá (2026-09-29).
+
+### Ảnh nền Hero + bug màu tiêu đề `<h1>` (2026-09-29)
+
+Đổi ảnh nền `.qr-hero` từ ảnh 2 người bắt tay giữa đồng lúa sang ảnh cận cảnh lá cây xanh
+(mảng màu liền mạch hơn, ít chi tiết vụn quanh vùng đặt chữ) + làm đậm gradient phủ
+(`.qr-hero::before`, đặc biệt mép TRÊN — nơi đặt tiêu đề — từ `rgba(20,74,48,0.55)` lên
+`rgba(10,40,25,0.75)`), theo yêu cầu người dùng "chữ khó đọc trên nền ảnh".
+
+**⚠️ Bug lộ ra SAU khi làm đậm nền — tiêu đề `.qr-hero__title` gần như vô hình**: đây là bug
+CÓ SẴN từ trước (không phải do đổi ảnh gây ra), chỉ là ảnh/gradient sáng hơn trước đủ để che
+giấu nó — làm đậm nền khiến nó lộ rõ. Nguyên nhân: `css/base.css` có sẵn quy tắc
+`h1,h2,h3,h4,h5,h6 { color: var(--color-text) }` (xám gần đen) đặt TRỰC TIẾP lên phần tử
+`<h1>` — giá trị đặt trực tiếp trên chính phần tử LUÔN thắng giá trị KẾ THỪA từ cha, bất kể
+độ đặc hiệu (specificity) so sánh thế nào. `.qr-hero { color: var(--color-text-inverse) }`
+(trắng) chỉ có tác dụng với con nào KHÔNG bị rule nào khác nhắm trúng trực tiếp — `<p>`/
+`<span>` trong hero (`.qr-hero__desc`/`.qr-hero__badge`) không có rule màu riêng nên tự kế
+thừa đúng thành trắng, nhưng `<h1 class="qr-hero__title">` thì LUÔN bị `base.css` đè lại
+thành màu tối, dù nằm trong `.qr-hero` (nền tối, cần chữ trắng). Đã vá bằng cách khai báo lại
+tường minh `color: var(--color-text-inverse)` ngay trong `.qr-hero__title` — **cùng mẫu**
+`index.html` đã áp dụng cho MỌI heading trên nền tối (`.hero__title`, `.cta__title`...), nơi
+mỗi heading đều tự khai báo lại `color` thay vì trông chờ kế thừa. Bài học dùng lại được:
+**bất kỳ heading (`h1`-`h6`) nào đặt trên nền tối đều phải tự khai báo `color` riêng — không
+bao giờ được để nó tự kế thừa màu từ khối cha**, vì `css/base.css` luôn có sẵn 1 rule màu tối
+mặc định nhắm thẳng vào mọi thẻ heading.
+
+### Hiệu ứng động ở trang Truy xuất nguồn gốc (2026-09-29)
+
+Thêm vào cuối `<style>` có sẵn của `truy-xuat.html` (không tách file CSS riêng — trang này
+vốn đã tự chứa toàn bộ CSS trong 1 khối `<style>`, không dùng `app-shell.css`/router nào).
+Khác các trang quản trị (`/nong-trai`, `/vat-tu`...): mọi thẻ ở đây là panel THÔNG TIN THUẦN
+TUÝ, dùng `.card` TRƠN (không có `.card--hover`, xem `css/components.css`) — cố tình KHÔNG
+thêm hiệu ứng "nhấc thẻ khi hover" như `.farm-card`/`.batch-card`, vì các thẻ này không bấm/
+điều hướng được, thêm hover-lift sẽ ngụ ý sai là bấm được. Trọng tâm là hiệu ứng **hiện dần
+đúng lúc dữ liệu tải xong**:
+
+- `[data-trace-detail]` khởi tạo với `hidden` rồi mới bị gỡ bằng JS SAU KHI fetch xong
+  (`showBatch()`, `js/truy-xuat.js`) — mọi animation `@keyframes trace-fade-up` bên dưới tự
+  CHẠY LẠI TỪ ĐẦU đúng lúc đó (phần tử chuyển từ `display:none` sang hiển thị được trình
+  duyệt coi như "vừa xuất hiện"), **KHÔNG cần `IntersectionObserver`/`js/scroll-reveal.js`**
+  như `index.html`/`blog.html` — khác biệt vì toàn bộ nội dung trang này xuất hiện CÙNG LÚC
+  sau 1 lần tải dữ liệu, không phải người dùng cuộn qua từng phần lần lượt. Mỗi
+  `.qr-timeline__item` (dựng bằng JS trong `renderTimeline()`) cũng tự animate đúng vì cùng
+  lý do — 1 phần tử DOM MỚI được `append()` luôn tự chạy animation khai báo sẵn trong CSS.
+- Hero (badge/tiêu đề/mô tả) hiện dần so le nhẹ; 2 thẻ nhà sản xuất + mùa vụ, khối nông trại,
+  mã lô hàng, khối xác thực blockchain hiện dần theo từng mốc thời gian — **cố tình CHỈ
+  animate ở cấp thẻ `.card`, không lồng thêm animation cho phần tử con bên trong** (VD badge
+  chứng nhận) — 2 animation `opacity` lồng nhau (cha + con cùng chạy 0→1) sẽ NHÂN độ mờ với
+  nhau, trông mờ/lag hơn hẳn chỉ animate 1 cấp, khớp cách `.feature-card` (`index.html`) chỉ
+  animate ở cấp thẻ.
+- Khối "Đã xác thực trên Blockchain" (trọng tâm chính của trang) có thêm quầng sáng mờ nhấp
+  nháy CHẬM sau icon khiên (`@keyframes qr-verified-glow`, LẶP LẠI vô hạn — khác mọi animation
+  còn lại trên trang chỉ chạy 1 lần lúc hiện — cùng ngôn ngữ `.cta::before` ở `index.html`).
+- Nút sao chép (`.copy-btn`) thêm 1 lần "nảy nhẹ" (`@keyframes copy-pop`) khi vừa sao chép
+  thành công — bám vào class `.is-copied` JS đã tự gắn/gỡ sẵn (`setupCopyButtons()`), không
+  cần sửa gì ở `js/truy-xuat.js`.
+- Timeline hành trình sinh trưởng (`.qr-timeline__item`) — danh sách CÓ thể rê chuột để đọc
+  rõ từng mốc (không phải nút bấm), nên chỉ dịch nhẹ sang phải khi hover
+  (`transform: translateX(4px)`, không nâng lên như thẻ dạng lưới, tránh ngụ ý "bấm được") +
+  đổ bóng/viền màu thương hiệu + icon phóng to nhẹ — cùng công thức `.log-item` ở khung quản
+  trị SPA (xem `app/CLAUDE.md`). So le 4 mục đầu rồi hiện đồng loạt phần còn lại — hành trình
+  có thể dài, so le hết sẽ làm chậm trải nghiệm đọc, cùng lý do `vat-tu.css` không so le toàn
+  bảng.
+- Toàn bộ tắt qua 1 khối `@media (prefers-reduced-motion: reduce)` duy nhất ở cuối `<style>`.
+
+### 6 nâng cấp UI thêm cho trang Truy xuất nguồn gốc (2026-09-29, cùng ngày)
+
+- **Logo nhà sản xuất** — `renderProducer()` (`js/truy-xuat.js`) giờ hiện `organization.logo_url`
+  (`<img data-org-logo>`, ảnh thật Đơn vị đã tải lên khu quản trị) thay vì luôn hiện chữ cái viết
+  tắt; chỉ rơi về chữ cái viết tắt (`<span data-org-initials>`) khi CHƯA có logo hoặc ảnh lỗi
+  (`img.onerror`, VD URL cũ đã gỡ) — không để ảnh vỡ hiện giữa trang. Field này ĐÃ có sẵn trong
+  `PublicOrganizationInfo` (`agrichain-api/app/schemas/public_batch.py`) từ trước nhưng chưa
+  từng được dùng ở frontend.
+- **Badge trạng thái đổi màu theo ý nghĩa** — trước đó luôn cố định `.badge--neutral` (xám) bất
+  kể `batch.status` là gì; `renderBatchId()` giờ set `className` theo bảng tra
+  `BATCH_STATUS_BADGES` (`harvested`/`completed` → `--success`, `processed`/`growing` →
+  `--info`, `failed` → `--danger`) — dù route công khai chỉ THỰC TẾ trả về đúng 3 trạng thái
+  `harvested`/`processed`/`completed` (mọi trạng thái khác đã 404 từ backend trước khi tới được
+  đây), bảng tra vẫn khai báo đủ cho rõ ràng phòng route nới lỏng điều kiện sau này.
+- **Nút chia sẻ** (`.qr-batchid__share`, trong card "Mã định danh lô hàng" — đúng nghĩa "danh
+  thiếp" của lô hàng đang xem) — Facebook/Twitter/sao chép liên kết, `setupShareButtons(data)`
+  chép lại NGUYÊN VĂN công thức đã có ở `blog-chi-tiet.html`/`js/blog-chi-tiet.js` (không import
+  chéo giữa 2 file `.html`, đúng quy ước "mỗi trang tự chứa CSS/JS riêng"), chỉ khác nội dung
+  chia sẻ lấy từ MÃ LÔ HÀNG (`batch.code`) thay vì tiêu đề bài viết — trang này không có "tiêu
+  đề nội dung" theo nghĩa content, mã lô hàng là định danh dễ nhận biết nhất khi chia sẻ.
+- **Lightbox phóng to ảnh hiện trường** (mục "Hành trình sinh trưởng") — mỗi ảnh trong
+  `renderTimeline()` giờ bọc trong `<button data-lightbox-trigger>` (thay `<img>` trần, có sẵn
+  hành vi bàn phím Enter/Space) thay vì chỉ hiện cố định 88px không phóng to được. `setupLightbox()`
+  gắn **1 listener DUY NHẤT trên `document`** (uỷ quyền sự kiện, cùng mẫu `setupCopyButtons()`) —
+  bắt buộc phải uỷ quyền vì các nút `[data-lightbox-trigger]` được `renderTimeline()` tạo SAU
+  thời điểm `setupLightbox()` chạy (gọi lúc `DOMContentLoaded`, trước khi có dữ liệu), gắn listener
+  trực tiếp lên từng nút lúc đó sẽ không có gì để gắn. 1 `<div class="lightbox" data-lightbox
+  hidden>` DUY NHẤT dùng chung cho mọi ảnh (không tạo/huỷ động), đóng bằng bấm ra ngoài ảnh/nút
+  Đóng/phím Esc.
+
+  **⚠️ Bug đã vá cùng ngày — nút Đóng (`.lightbox__close`) bị chính ảnh phóng to che mất**:
+  ảnh (`<img>`) là 1 flex item thường (con của `.lightbox`, `display: flex`), còn nút Đóng
+  `position: absolute` (bị đưa ra khỏi luồng flex) — khi cả 2 cùng `z-index: auto`, CSS vẽ theo
+  THỨ TỰ TRONG DOM, và `<img>` đứng SAU nút Đóng trong markup nên vẽ ĐÈ LÊN TRÊN. Ảnh phóng to
+  luôn gần kín màn hình (`max-height: 85vh`) nên góc trên-phải của ảnh hầu như luôn trùng đúng
+  vị trí đặt nút (`top`/`right: var(--space-4)`) — nút bị che khuất hoàn toàn dù CSS định vị
+  "đúng" về mặt toạ độ, không có lỗi cú pháp nào để phát hiện qua đọc code, chỉ lộ ra khi bấm
+  thử ảnh thật. Vá bằng `z-index: 1` trên `.lightbox__close` — ép nó luôn nổi trên `<img>` bất
+  kể thứ tự DOM. **Bài học dùng lại được**: bất kỳ phần tử `position: absolute`/`fixed` nào
+  đứng cạnh 1 flex item khác trong CÙNG container `display: flex`, nếu 2 phần tử có thể chồng
+  lên nhau về mặt hình học, PHẢI tự khai báo `z-index` rõ ràng — không được trông chờ vào thứ
+  tự DOM, vì flex item (dù không tự đặt `position`) vẫn được vẽ theo đúng nhóm "positioned,
+  z-index:auto" của flexbox, ngang hàng với phần tử `position: absolute` thật, và phần tử đứng
+  SAU trong DOM luôn thắng khi z-index bằng nhau.
+- **Ô nhập mã lô hàng thủ công** ở khối "Không tìm thấy" (`data-lookup-form`, dùng lại component
+  `.search-field` có sẵn trong `css/components.css`) — `setupLookupForm()` điều hướng lại CHÍNH
+  trang này với `?ma=` mới (KHÔNG tự `fetch()` ngầm rồi đổi DOM tại chỗ), giữ đúng nguyên tắc
+  "trang chi tiết dùng query string, URL luôn phản ánh đúng bản ghi đang xem" đã chốt trong
+  CLAUDE.md gốc. `showNotFound(code)` tự điền sẵn mã cũ vào ô này — tiện sửa lại đúng mã (VD gõ
+  nhầm 1 ký tự) thay vì phải gõ lại từ đầu. Đáp ứng đúng mục "Chưa có: tìm kiếm theo mã tự nhập
+  tay trên trang" đã ghi nhận từ trước trong CLAUDE.md gốc mục "Việc chưa làm".
+- **Footer thêm liên kết** (`.qr-footer__links` — Trang chủ/Blog/Liên hệ) — trước đó chỉ có 1
+  dòng brand tĩnh, không có đường quay lại phần còn lại của site cho khách đến thẳng trang này
+  từ link QR (không xuất phát từ `index.html`, không có lịch sử trình duyệt để bấm Back).
+- **Bỏ hẳn `.site-header`** (theo yêu cầu người dùng) — trang này giờ KHÔNG còn nằm trong nhóm
+  trang công khai dùng `.site-header` (xem mục "Khu vực tài khoản ở `.site-header__actions`" ở
+  trên, chỉ còn ĐÚNG 4 trang: `index.html`/`blog.html`/`blog-chi-tiet.html`/`styleguide.html`).
+  Gỡ theo đúng thứ tự phụ thuộc: xoá khối `<header class="site-header">`, sau đó `js/header.js`
+  (chỉ tồn tại để xử lý tương tác `.site-header` — không còn gì để gắn vào), rồi `js/app-config.js`
+  (`AgriChain.APP_SPA_URL`, CHỈ được nạp ở đây từ đầu để phục vụ đúng 1 nút "Vào Trang Quản Lý"
+  trong `.site-header__actions` do `js/header.js` render — đã xác nhận qua đọc `js/api.js` rằng
+  không route nào khác trên trang này đọc biến đó, vì `truy-xuat.html` không gọi
+  `requireAuth()`/`requireBusiness()`/`requireDistributor()` nên nhánh code duy nhất dùng
+  `APP_SPA_URL` trong `api.js` không bao giờ chạy tới ở trang công khai này). `.qr-hero` không
+  cần chỉnh gì thêm khi mất header — vốn đã tự đủ `padding-block` riêng, không phụ thuộc chiều
+  cao `.site-header` phía trên. Điều hướng ra ngoài trang giờ chỉ còn qua footer (mục trên) và
+  nút "Về trang chủ" ở khối "Không tìm thấy".
+
+### 4 nâng cấp tham khảo từ bản `agrichain.com.vn` thật (2026-09-29)
+
+Người dùng gửi ảnh chụp 1 bản triển khai thật khác của trang truy xuất (`agrichain.com.vn`) để
+so sánh — đã LỌC ý tưởng phù hợp, KHÔNG copy nguyên bố cục 2 cột cố định hay cờ chọn ngôn ngữ
+của bản đó (trang này chưa làm đa ngôn ngữ, thêm nút không hoạt động sẽ phản tác dụng):
+
+- **Thẻ "Cần hỗ trợ?"** (`.qr-support`, mới) — icon điện thoại + "Chúng tôi luôn sẵn sàng hỗ
+  trợ bạn 24/7" + nút gọi `tel:+84929145555` (CÙNG số điện thoại đã dùng ở mục Liên Hệ
+  `index.html` — 1 nguồn duy nhất cho thông tin liên hệ, không bịa số mới). Đặt SAU khối xác
+  thực blockchain (`.qr-verified`/`.qr-pending`), LUÔN hiện không phụ thuộc `verification_status`
+  — khác 2 khối kia vốn hiện đúng 1 trong 2 tuỳ trạng thái.
+- **Nút "Xem trên Blockchain Explorer" đổi từ viền mờ sang nền trắng đặc** (`.qr-verified__explorer-link`)
+  — đây là hành động quan trọng nhất của khối xác thực (mở link kiểm chứng ĐỘC LẬP, không phải
+  dữ liệu nội bộ), viền trắng mờ trước đó dễ bị bỏ qua giữa nền xanh đậm. Dùng `--green-900` làm
+  màu chữ (cùng màu nền `.qr-verified` đang có) thay vì tự chế 1 màu vàng kim như bản tham khảo
+  — dự án không có thang màu vàng đầy đủ (chỉ 2 token `--amber-50`/`--amber-700`, xem mục dưới),
+  bịa thêm màu mới ngoài token sẽ phạm quy ước CSS đã chốt ("Không hard-code màu sắc"). **KHÔNG
+  tự khai báo lại `transform: translateY(-2px)` khi hover** — `.btn:hover:not(:disabled)` gốc
+  (`css/components.css`) đã có sẵn với độ đặc hiệu CAO HƠN, tự khai báo lại chỉ tạo CSS chết.
+- **Thẻ nhà sản xuất thêm nhãn "Chứng nhận nhà sản xuất"** (`.qr-producer__eyebrow`, cùng công
+  thức `.qr-season__eyebrow` cạnh đó — khai báo LẶP LẠI có chủ đích, không dùng chung 1 class
+  giữa 2 thẻ khác ngữ cảnh) + viền đứt nét quanh avatar kiểu "con dấu chứng nhận"
+  (`.qr-producer__seal`, bọc NGOÀI `.qr-producer__avatar` — 2 phần tử riêng vì avatar đã tự có
+  viền đặc `3px solid` của chính nó, 2 kiểu viền khác nhau mới ra đúng hiệu ứng con dấu).
+- **Sản lượng đổi từ chữ thường sang badge tròn nổi bật** (`.qr-season__yield`) — tái dùng ĐÚNG
+  cặp token `--color-warning`/`--color-warning-subtle` (= `--amber-700`/`--amber-50`,
+  `css/tokens.css`) thay vì bịa màu vàng kim mới, ra đúng tông ấm nổi bật như bản tham khảo mà
+  vẫn tuân thủ quy ước CSS. Đổi luôn thứ tự nhãn/số trong markup (nhãn nhỏ phía TRÊN, số lớn
+  phía DƯỚI, khớp cách `.qr-batchid__date-label`/`__date-value` đã làm ở nơi khác trong cùng
+  trang) — trước đó số đứng trước nhãn, ngược với quy ước hiển thị "eyebrow + giá trị" toàn bài.
+- **Card "Nguồn gốc từ nông trại" thêm nhãn nhỏ-in-hoa phía trên MỖI trường** (`.qr-farm__label`
+  — Nông trại/Địa chỉ/Chứng nhận), cùng công thức `.qr-season__eyebrow`/`.qr-producer__eyebrow`.
+  Nhãn "Nông trại" đã có sẵn nhưng dùng nhầm `.trace-row__label` — class đó chỉ có màu mờ khi
+  nằm TRONG `.qr-season__rows` (`.qr-season__rows .trace-row__label { color: ... }`, xem CSS),
+  farm card không nằm trong đó nên nhãn thực ra hiện màu chữ THƯỜNG, không mờ như dự định — bug
+  có thật đã gặp, không phải giả định. 2 nhãn "Địa chỉ"/"Chứng nhận" là MỚI hoàn toàn (trước đó
+  không có nhãn gì, 2 dòng địa chỉ/mã vùng trồng chỉ style rời rạc bằng `style=""` inline, chứng
+  nhận không có nhãn nào). Nhãn "Chứng nhận" (`[data-farm-certs-label]`) ẨN HẲN khi nông trại
+  CHƯA có chứng nhận active nào (`renderCertifications()`, `js/truy-xuat.js`, tự toggle `hidden`
+  theo `certifications.length`) — tránh hiện nhãn trơ trên 1 khu vực trống, cùng cách xử lý field
+  tuỳ chọn khác trên trang (`data-farm-puc`). Nhân tiện dọn luôn 2 dòng `style=""` inline cũ
+  (địa chỉ/mã vùng trồng) thành class riêng (`.qr-farm__address`/`.qr-farm__puc`) — nhất quán
+  hơn với phần còn lại của trang (không dùng inline style).
 
 ## Hero — video giới thiệu (`index.html`)
 
