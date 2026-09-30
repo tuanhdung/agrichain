@@ -493,6 +493,47 @@ DUY NHẤT khai báo danh sách 16 trang này trong toàn dự án — mọi ch�
 tương tự (VD chèn `requireBusiness()`, xem ngay dưới) phải đối chiếu lại đúng mảng này,
 không gõ tay lại để tránh lệch.
 
+### ⚠️ Bug đã vá — nhảy tab liên tục giữa site tĩnh và SPA lúc đăng nhập 1 lần (2026-09-30)
+
+Bối cảnh (2026-09-29, "đăng nhập 1 lần"): SPA (`app/`) không còn trang đăng nhập riêng —
+`ProtectedRoute.tsx` đá người dùng chưa đăng nhập (xác nhận qua `GET /auth/me` dựa vào cookie
+httpOnly, xem `app/src/api/http.ts::bootstrapFromCookie()`) sang `dang-nhap.html?next=<URL SPA
+đang đứng>` của site tĩnh (`redirectToLogin()`, `app/src/api/session.ts`). `redirectTarget()`
+(`js/auth.js`) đọc `next` này qua `AgriChain.resolveNextTarget()` (`js/next-target.js`, validate
+origin khớp CHÍNH XÁC `AgriChain.APP_SPA_URL`) để đưa người dùng quay lại đúng chỗ sau khi đăng
+nhập xong.
+
+**Bug thật đã gặp**: nhánh "đã đăng nhập rồi" của `setupLogin()` (`js/auth.js`) TRƯỚC ĐÂY chỉ
+kiểm `api.isLoggedIn()` — tức chỉ kiểm access token còn TỒN TẠI trong storage, không kiểm còn
+DÙNG ĐƯỢC hay không — rồi bấm thẳng sang SPA qua `next` ngay khi thấy có token. Nếu token đó là
+phiên CŨ đã hết hạn/bị thu hồi (VD sót lại từ một lần đăng nhập test trước khi backend/DB được
+reset — rất dễ xảy ra trong lúc phát triển), SPA lại xác thực THẬT qua cookie (`bootstrapFromCookie()`),
+thấy KHÔNG hợp lệ (401 thật) nên bấm NGƯỢC lại `dang-nhap.html?next=...` — 2 origin cứ đẩy qua
+đẩy lại VÔ HẠN (tab nhảy liên tục), vì phía site tĩnh chưa từng thật sự gọi API để kiểm tra, chỉ
+thấy còn `access_token` trong storage là tin ngay. Khác hẳn bug vòng lặp `?loggedOut=1` đã vá
+trước đó (`AuthContext.tsx::logout()`, xảy ra lúc ĐĂNG XUẤT) — bug này xảy ra khi người dùng
+KHÔNG hề đăng xuất, chỉ đơn giản có 1 token rác còn sót trong storage của site tĩnh.
+
+**Cách vá**: nhánh này giờ gọi `api.auth.me()` để xác minh phiên còn dùng được TRƯỚC khi quyết
+định điều hướng, thay vì tin ngay vào sự tồn tại của token:
+- Thành công → `global.location.replace(redirectTarget(user.account_type))` như cũ, nhưng dùng
+  `account_type` mới nhất từ server thay vì bản có thể đã cũ trong storage.
+- 401 thật → cơ chế tự làm mới token sẵn có trong `request()`/`refreshTokenOnce()` (`js/api.js`)
+  tự chạy: thử `/auth/refresh`, thất bại tiếp thì tự `clearSession()` + tải lại CHÍNH trang này
+  — token rác bị xoá, lần tải sau `isLoggedIn()` trả về `false`, vòng lặp tự chấm dứt (không cần
+  code thêm gì ở `.catch()` cho ca này).
+- Lỗi mạng (`NETWORK_ERROR`, status `0` — backend chưa chạy) CỐ TÌNH không xử lý gì thêm ở
+  `.catch()` — không được phép xoá một phiên có thể vẫn hợp lệ chỉ vì mất mạng tạm thời, cứ để
+  form đăng nhập hiện ra bình thường. Cùng triết lý "lỗi mạng khác chưa đăng nhập" đã áp dụng
+  cho `bootstrapError` ở `ProtectedRoute.tsx` phía SPA.
+
+**Bài học dùng lại được**: khi 2 origin/2 cơ chế lưu phiên khác nhau (site tĩnh dùng Web Storage,
+SPA dùng cookie httpOnly + bootstrap) cùng tự quyết định "đã đăng nhập hay chưa" để rồi đẩy qua
+đẩy lại cho nhau, CẢ HAI BÊN đều phải xác thực bằng cách GỌI API THẬT (hoặc ít nhất một bên phải
+làm vậy và bên kia tin tưởng lẫn nhau có kiểm soát) — chỉ kiểm tra "có dữ liệu phiên trong tay"
+(token tồn tại trong storage) là chưa đủ, vì dữ liệu đó có thể đã lỗi thời so với trạng thái thật
+trên server.
+
 ### `AgriChain.api.requireBusiness()` — áp dụng cho ĐỦ 16 trang `ADMIN_SHELL_PAGES` (2026-09-11)
 
 `js/api.js` có sẵn từ B1: `AgriChain.api.getAccountType()`/`isBusiness()`/
