@@ -24,13 +24,19 @@ interface AuthContextValue {
   hasPermission: (code: string) => boolean;
   /** true trong lúc đang dò phiên qua cookie httpOnly (xem bootstrap ở dưới)
    *  — ProtectedRoute PHẢI chờ giá trị này về false trước khi kết luận "chưa
-   *  đăng nhập", nếu không sẽ đá nhầm người dùng ra /login trong lúc lượt dò
-   *  còn đang chạy (race condition, xem ProtectedRoute.tsx). */
+   *  đăng nhập", nếu không sẽ đá nhầm người dùng ra trang đăng nhập trong lúc
+   *  lượt dò còn đang chạy (race condition, xem ProtectedRoute.tsx). */
   isBootstrapping: boolean;
-  /** Đăng nhập NGAY TRONG SPA (LoginPage.tsx) — bọc api.auth.login(), tự cập
-   *  nhật state sau khi thành công. Trả về User để nơi gọi tự tính điều
-   *  hướng tiếp theo (xem src/routes/postLogin.ts). */
-  login: (email: string, password: string, remember: boolean) => Promise<User>;
+  /** Lỗi KHÔNG PHẢI 401 gặp lúc dò phiên (mất mạng, CORS, backend 5xx...) —
+   *  KHÁC "chưa đăng nhập" (401), ProtectedRoute PHẢI hiện thông báo lỗi +
+   *  nút "Thử lại" thay vì redirect, nếu không sẽ tạo vòng lặp redirect mỗi
+   *  khi backend sập tạm thời (xem bootstrapFromCookie() ở http.ts). `null`
+   *  nghĩa là lượt dò gần nhất không có lỗi (thành công hoặc 401 bình
+   *  thường). */
+  bootstrapError: Error | null;
+  /** Chạy lại lượt dò phiên qua cookie — dùng bởi nút "Thử lại" ở
+   *  ProtectedRoute khi bootstrapError khác null. */
+  retryBootstrap: () => void;
   logout: () => Promise<void>;
   /** Đọc lại user từ storage — dùng sau khi 1 trang khác (VD form đổi hồ sơ
    *  sau này) tự cập nhật agrichain.user mà không qua Context này. */
@@ -42,33 +48,56 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => api.getUser());
   // Chỉ cần bootstrap (gọi /auth/me dựa vào cookie) khi origin NÀY chưa có
-  // sẵn user trong storage — có rồi (đăng nhập thẳng trong SPA qua /login,
-  // hoặc lần bootstrap trước đã lưu) thì khỏi gọi thêm 1 request thừa.
+  // sẵn user trong storage — có rồi (lần bootstrap trước đã lưu, hoặc phiên
+  // vừa được TransferAdminModal.tsx làm mới ngầm) thì khỏi gọi thêm 1
+  // request thừa.
   const [isBootstrapping, setIsBootstrapping] = useState<boolean>(() => !api.getUser());
+  const [bootstrapError, setBootstrapError] = useState<Error | null>(null);
+  // Đổi mỗi lần retryBootstrap() được gọi — đưa vào dependency array của
+  // effect bootstrap bên dưới để CHỦ ĐỘNG chạy lại đúng 1 lần, không cần
+  // tách logic bootstrap ra khỏi effect.
+  const [bootstrapAttempt, setBootstrapAttempt] = useState(0);
 
   const refreshFromStorage = useCallback(() => {
     setUser(api.getUser());
+  }, []);
+
+  const retryBootstrap = useCallback(() => {
+    setIsBootstrapping(true);
+    setBootstrapError(null);
+    setBootstrapAttempt((n) => n + 1);
   }, []);
 
   // Bootstrap phiên đăng nhập từ cookie httpOnly access_token (xem CLAUDE.md
   // gốc mục "Kết nối backend") — ca người dùng đăng nhập ở SITE TĨNH rồi mới
   // bấm sang SPA: localStorage của app.* (origin RIÊNG) trống trơn, nhưng
   // cookie Domain=COOKIE_DOMAIN (nếu đã cấu hình, VD .agrichain.local) vẫn
-  // còn hợp lệ. Chạy ĐÚNG 1 LẦN lúc mount, không phụ thuộc gì khác — nếu
-  // origin này VỐN ĐÃ có user (đăng nhập thẳng qua SPA), bỏ qua hẳn, không
-  // gọi API thừa.
+  // còn hợp lệ. Chạy lúc mount VÀ mỗi lần retryBootstrap() tăng
+  // bootstrapAttempt — nếu origin này VỐN ĐÃ có user, bỏ qua hẳn lượt đầu
+  // tiên, không gọi API thừa (nhưng retryBootstrap() vẫn chạy lại được nếu
+  // người dùng chủ động bấm "Thử lại" sau 1 lỗi mạng).
   useEffect(() => {
-    if (api.getUser()) return;
+    if (bootstrapAttempt === 0 && api.getUser()) return;
     let cancelled = false;
-    api.auth.bootstrapFromCookie().then((bootstrapped) => {
-      if (cancelled) return;
-      if (bootstrapped) setUser(bootstrapped);
-      setIsBootstrapping(false);
-    });
+    api.auth
+      .bootstrapFromCookie()
+      .then((bootstrapped) => {
+        if (cancelled) return;
+        setUser(bootstrapped);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setBootstrapError(err instanceof Error ? err : new Error('Không dò được phiên đăng nhập.'));
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setIsBootstrapping(false);
+      });
     return () => {
       cancelled = true;
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bootstrapAttempt]);
 
   useEffect(() => {
     // Tab khác (cùng origin) đăng nhập/đăng xuất — 'storage' KHÔNG bắn ở
@@ -92,24 +121,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [refreshFromStorage]);
 
-  const login = useCallback(async (email: string, password: string, remember: boolean) => {
-    const loggedInUser = await api.auth.login(email, password, remember);
-    setUser(loggedInUser);
-    // Phòng hờ: nếu login() xảy ra trong lúc lượt bootstrap-từ-cookie ở trên
-    // còn đang chạy (hiếm, chỉ khi người dùng gõ xong form đăng nhập cực
-    // nhanh), kết luận NGAY user vừa đăng nhập, không chờ bootstrap nữa.
-    setIsBootstrapping(false);
-    return loggedInUser;
-  }, []);
-
   const logout = useCallback(async () => {
-    await api.auth.logout();
-    setUser(null);
-    // dang-nhap.html là trang TĨNH cũ, ở SUBDOMAIN KHÁC (agrichain.org.vn,
-    // app/ ở app.agrichain.org.vn) — phải full navigation tuyệt đối qua
+    // best-effort: SPA thường KHÔNG có refresh_token thật cục bộ (phiên
+    // thuần bootstrap-qua-cookie, xem http.ts::logout()) nên chỉ gửi được
+    // placeholder — vẫn xoá được cookie dùng chung, nhưng KHÔNG revoke được
+    // refresh_token THẬT (nằm trong localStorage của SITE TĨNH, origin
+    // khác, SPA không đọc được). Việc revoke thật + xoá localStorage của
+    // site tĩnh do CHÍNH site tĩnh tự làm khi nhận `?loggedOut=1` bên dưới —
+    // xem js/auth.js. Ngoại lệ: sau khi TransferAdminModal.tsx tự đăng nhập
+    // lại ngầm, SPA CÓ giữ refresh_token thật — lúc đó lời gọi này mới thật
+    // sự revoke được token đó.
+    await api.auth.logout().catch(() => undefined);
+    // dang-nhap.html là trang TĨNH, ở SUBDOMAIN KHÁC (agrichain.org.vn, app/
+    // ở app.agrichain.org.vn) — phải full navigation tuyệt đối qua
     // mainSiteUrl(), không dùng react-router, không dùng đường dẫn tương đối
     // — xem app/CLAUDE.md mục "Giả định host".
-    window.location.href = mainSiteUrl('dang-nhap.html');
+    //
+    // ⚠️ `?loggedOut=1` BẮT BUỘC, không phải trang trí (bug thật đã gặp,
+    // 2026-09-29): thiếu cờ này, `dang-nhap.html` thấy localStorage CỦA NÓ
+    // (site tĩnh, chưa từng bị đụng tới — 2 origin khác nhau) vẫn còn phiên
+    // cũ nên tự bấm NGƯỢC lại SPA, SPA dò cookie thấy đã bị xoá (401) nên lại
+    // đẩy về đây — VÒNG LẶP VÔ HẠN giữa 2 origin. Cờ này báo cho auth.js biết
+    // đây là một lượt ĐĂNG XUẤT (không phải "ghé thăm bình thường"), phải tự
+    // đăng xuất thật (xoá localStorage + revoke refresh_token thật của chính
+    // nó) trước khi hiện lại form, xem js/auth.js::setupLogin().
+    //
+    // ⚠️ CỐ TÌNH KHÔNG gọi setUser(null) trước dòng điều hướng này (bug thật
+    // KHÁC đã gặp, cùng ngày, sau khi thêm ?loggedOut=1 ở trên rồi vẫn còn
+    // vòng lặp): setUser(null) đổi state -> AuthProvider re-render ->
+    // isLoggedIn thành false -> ProtectedRoute's effect (shouldRedirectToLogin)
+    // TỰ gọi redirectToLogin() (session.ts) NGAY TRONG CÙNG khung xử lý sự
+    // kiện — và vì effect + việc gán window.location.href ở ProtectedRoute
+    // hoàn toàn có thể chạy TRƯỚC khi trình duyệt thật sự bắt đầu điều hướng
+    // (window.location.href chỉ LÊN LỊCH điều hướng, không dừng JS ngay lập
+    // tức), redirectToLogin() ghi ĐÈ href này bằng
+    // `dang-nhap.html?next=<url SPA hiện tại>` — mất hẳn `?loggedOut=1`.
+    // Hậu quả: js/auth.js không nhận diện được đây là lượt đăng xuất, thấy
+    // phiên site tĩnh vẫn còn nên tự đẩy NGƯỢC lại đúng URL SPA vừa rời đi
+    // (qua chính `next` đó) — quay lại y hệt vòng lặp cũ. Component sắp bị
+    // huỷ hoàn toàn ngay sau dòng này (full navigation) nên không cần cập
+    // nhật `user` state cho bất kỳ mục đích hiển thị nào — chỉ cần KHÔNG đổi
+    // state để ProtectedRoute không có cớ tự điều hướng chồng lên.
+    window.location.href = `${mainSiteUrl('dang-nhap.html')}?loggedOut=1`;
   }, []);
 
   const value = useMemo<AuthContextValue>(
@@ -117,14 +170,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       isLoggedIn: !!user,
       isBootstrapping,
+      bootstrapError,
+      retryBootstrap,
       isBusiness: user?.account_type === 'business',
       isPlatformAdmin: user?.account_type === 'platform_admin',
       hasPermission: (code: string) => (user?.permissions ?? []).includes(code),
-      login,
       logout,
       refreshFromStorage
     }),
-    [user, isBootstrapping, login, logout, refreshFromStorage]
+    [user, isBootstrapping, bootstrapError, retryBootstrap, logout, refreshFromStorage]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

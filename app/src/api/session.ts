@@ -1,17 +1,15 @@
 // Port 1:1 phần "Chọn storage" + "Phiên đăng nhập" của js/api.js — GIỮ
 // NGUYÊN tên key localStorage/sessionStorage ('agrichain.access_token'...).
 //
-// ⚠️ Kiến trúc ĐÃ CHỐT là SUBDOMAIN riêng (app.agrichain.org.vn khác hẳn
+// Kiến trúc ĐÃ CHỐT là SUBDOMAIN riêng (app.agrichain.org.vn khác hẳn
 // agrichain.org.vn) — 2 domain này là 2 ORIGIN KHÁC NHAU, nên Web Storage
-// (localStorage/sessionStorage) KHÔNG còn dùng chung được giữa site tĩnh cũ
-// và app/ nữa (khác giả định "cùng origin" ở bản trước của comment này).
-// Nghĩa là: đăng nhập ở dang-nhap.html (agrichain.org.vn) rồi bấm sang SPA
-// (app.agrichain.org.vn) qua link sidebar sẽ KHÔNG thấy phiên đã đăng nhập —
-// ProtectedRoute sẽ coi là "chưa đăng nhập" và đá ngược lại dang-nhap.html.
-// Đây là NỢ KỸ THUẬT CHƯA GIẢI QUYẾT trong lần đổi kiến trúc này (giải pháp
-// đúng là chuyển sang cookie có `Domain=.agrichain.org.vn` — đã ghi nhận sẵn
-// trong CLAUDE.md gốc mục "Nợ kỹ thuật đã biết", cần backend hợp tác, NGOÀI
-// PHẠM VI lần sửa env var này) — xem thêm app/CLAUDE.md mục "Giả định host".
+// (localStorage/sessionStorage) KHÔNG dùng chung được giữa site tĩnh và
+// app/. Việc "thấy phiên đã đăng nhập" giữa 2 origin giờ đi qua cookie
+// httpOnly `access_token` (Domain=COOKIE_DOMAIN, backend agrichain-api) +
+// bước bootstrap chủ động của AuthContext (gọi GET /auth/me lúc SPA mount) —
+// xem app/CLAUDE.md mục "Giả định host". SPA (2026-09-29) không còn trang
+// đăng nhập riêng — mọi lượt đăng nhập đều qua dang-nhap.html của site
+// tĩnh, xem redirectToLogin() bên dưới.
 import { mainSiteUrl } from './config';
 import type { User } from './types';
 
@@ -168,19 +166,22 @@ export function hasPermission(code: string): boolean {
   return user.permissions.indexOf(code) !== -1;
 }
 
-/* --- Mất phiên GIỮA CHỪNG (refresh token hết hạn/bị thu hồi) --------------
-   Khác ProtectedRoute (chặn TRƯỚC khi vẽ trang, dùng <Navigate> nội bộ của
-   react-router) — hàm này gọi từ src/api/http.ts, một module JS thuần
-   KHÔNG có quyền truy cập router (không phải component), nên phải điều
-   hướng bằng window.location. Từ khi SPA có trang /login RIÊNG (xem
-   app/CLAUDE.md mục "Nợ kỹ thuật"), đích đến giờ là **route NỘI BỘ** của
-   chính SPA (`/login`, CÙNG origin) — KHÔNG còn ra site chính
-   (dang-nhap.html) nữa, vì phiên của SPA và site chính là 2 phiên ĐỘC LẬP
-   (2 origin khác nhau, xem mục "Giả định host"): đá người dùng sang trang
-   đăng nhập của site chính lúc này chẳng giải quyết được gì cho phiên bên
-   SPA cả. */
-export function redirectToLogin(pathname: string, search = ''): void {
-  window.location.href = `/login?redirect=${encodeURIComponent(pathname + search)}`;
+/* --- Chưa đăng nhập / mất phiên GIỮA CHỪNG (bootstrap qua cookie xác nhận
+   401, hoặc refresh token hết hạn/bị thu hồi) ---------------------------
+   Gọi từ 2 nơi KHÔNG có quyền dùng react-router: ProtectedRoute.tsx (side
+   effect, không phải lúc render) và src/api/http.ts (module JS thuần, không
+   phải component) — cả 2 đều cần full navigation bằng window.location.
+   SPA (2026-09-29) KHÔNG còn trang /login riêng nữa (xem app/CLAUDE.md mục
+   "Giả định host") — đích đến là trang đăng nhập DUY NHẤT của site tĩnh
+   (`dang-nhap.html`, qua mainSiteUrl()), kèm `next` = URL tuyệt đối của
+   chính trang SPA đang đứng, để auth.js's redirectTarget() đưa người dùng
+   quay lại ĐÚNG chỗ sau khi đăng nhập xong. `next` không dùng đường dẫn
+   tương đối như `redirect` cũ (2 origin khác nhau, tương đối vô nghĩa) —
+   xem js/next-target.js phía site tĩnh để biết cách `next` được validate
+   (whitelist origin, chặn open redirect). */
+export function redirectToLogin(): void {
+  const next = window.location.href;
+  window.location.href = `${mainSiteUrl('dang-nhap.html')}?next=${encodeURIComponent(next)}`;
 }
 
 /* --- Điều hướng ra ngoài SPA THẬT SỰ, sang site chính ----------------------

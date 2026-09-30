@@ -3,8 +3,9 @@
 //   - Gặp 401 (khi auth + retry) thì tự làm mới token qua 1 refreshPromise
 //     DÙNG CHUNG (nhiều request 401 cùng lúc chỉ gọi /auth/refresh đúng 1
 //     lần — gọi song song sẽ khiến refresh token bị thu hồi, đăng xuất oan).
-//   - Refresh thất bại -> xoá phiên + điều hướng về /login CỦA CHÍNH SPA
-//     (xem redirectToLogin() ở session.ts).
+//   - Refresh thất bại -> xoá phiên + điều hướng sang trang đăng nhập của
+//     site tĩnh (SPA không còn trang /login riêng, xem redirectToLogin() ở
+//     session.ts).
 import { API_BASE_URL } from './config';
 import { ApiError, buildApiError, networkError } from './error';
 import {
@@ -61,7 +62,7 @@ function refreshTokenOnce(): Promise<TokenPair> {
     refreshPromise = performRefresh()
       .catch((err) => {
         clearSession();
-        redirectToLogin(window.location.pathname, window.location.search);
+        redirectToLogin();
         throw err;
       })
       .finally(() => {
@@ -148,11 +149,26 @@ function login(email: string, password: string, remember: boolean): Promise<User
   });
 }
 
+// TODO(agrichain-api): LogoutRequest.refresh_token đang BẮT BUỘC (min_length=1)
+// — phiên thuần cookie (SPA bootstrap từ site tĩnh, xem AuthContext.tsx) KHÔNG
+// bao giờ có refresh_token cục bộ, nên KHÔNG THỂ gọi endpoint này với giá trị
+// thật. Backend không đọc refresh_token để quyết định có xoá cookie hay
+// không (_clear_auth_cookie() chạy VÔ ĐIỀU KIỆN sau bước revoke, xem
+// routers/auth.py::logout) — gửi 1 CHUỖI PLACEHOLDER không rỗng vẫn khiến
+// backend chạy đúng nhánh xoá cookie, chỉ đơn giản là không tìm thấy hash
+// nào khớp nên bỏ qua revoke (no-op an toàn, không lộ chuyện có/không phiên
+// khác). Giải pháp SẠCH lâu dài (đề xuất cho agrichain-api, CHƯA làm): đổi
+// LogoutRequest.refresh_token thành optional; thiếu thì đọc lại refresh
+// token hiện có QUA CHÍNH CƠ CHẾ xác thực cookie (nếu backend giữ được liên
+// kết access token cookie -> refresh token, hoặc đơn giản hơn: luôn xoá
+// cookie bất kể có refresh_token hợp lệ hay không, chỉ revoke khi có).
+const NO_LOCAL_REFRESH_TOKEN_PLACEHOLDER = 'no-local-refresh-token';
+
 function logout(): Promise<void> {
-  const refreshToken = getRefreshToken();
-  const done = refreshToken
-    ? request('POST', '/auth/logout', { body: { refresh_token: refreshToken } }).catch(() => undefined)
-    : Promise.resolve();
+  const refreshToken = getRefreshToken() ?? NO_LOCAL_REFRESH_TOKEN_PLACEHOLDER;
+  const done = request('POST', '/auth/logout', { body: { refresh_token: refreshToken }, auth: false, retry: false }).catch(
+    () => undefined
+  );
   return done.then(() => {
     clearSession();
   });
@@ -187,12 +203,24 @@ function me(): Promise<User> {
 // gọi hàm này). `retry: false` — BẮT BUỘC: nếu để mặc định `true`, 401 (ca
 // BÌNH THƯỜNG khi chưa đăng nhập ở đâu cả) sẽ kích hoạt refreshTokenOnce()
 // của request() (không có refresh_token cục bộ nên tự thất bại) rồi
-// redirectToLogin() — full page reload sang /login cho MỌI khách chưa đăng
-// nhập ghé SPA lần đầu, dù đây chỉ là 1 lượt dò thầm lặng. Thất bại (401,
-// không có cookie hợp lệ) trả về `null`, KHÔNG ném lỗi — gọi nơi dùng
-// (AuthContext) tự coi là "chưa đăng nhập", giống hệt trạng thái ban đầu cũ.
+// redirectToLogin() ngay TRONG hàm này — bỏ lỡ cơ hội để AuthContext tự
+// quyết định khi nào mới thực sự redirect (xem dưới).
+//
+// ⚠️ PHÂN BIỆT RÕ 2 loại thất bại (2026-09-29, xem ProtectedRoute.tsx):
+// - 401 đúng nghĩa "chưa đăng nhập ở đâu cả" (không có cookie hợp lệ) —
+//   trả về `null`, KHÔNG ném lỗi, để ProtectedRoute redirect sang trang đăng
+//   nhập của site tĩnh.
+// - MỌI lỗi khác (status 0 = mất mạng/CORS, 5xx = backend sập...) — NÉM LẠI
+//   nguyên trạng, KHÔNG được coi là "chưa đăng nhập". Nuốt lỗi này rồi kết
+//   luận null sẽ gây VÒNG LẶP REDIRECT: mỗi lần backend sập, người dùng bị
+//   đá ra trang đăng nhập, đăng nhập xong quay lại SPA thì bootstrap lại gọi
+//   /auth/me, lại lỗi mạng, lại bị đá ra — không có cách nào thoát nếu không
+//   phân biệt 2 ca này.
 function bootstrapFromCookie(): Promise<User | null> {
-  return fetchMe({ auth: false, retry: false }).catch(() => null);
+  return fetchMe({ auth: false, retry: false }).catch((err) => {
+    if (err instanceof ApiError && err.status === 401) return null;
+    throw err;
+  });
 }
 
 // PATCH /auth/me — tự sửa hồ sơ CHÍNH mình. Response là UserOut phẳng, không
