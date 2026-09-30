@@ -42,4 +42,13 @@
   } else {
     global.AgriChain.API_BASE_URL = 'https://api.agrichain.org.vn';
   }
+
+  // Trang truy-xuat.html (truy xuất nguồn gốc công khai, js/truy-xuat.js) —
+  // đọc dữ liệu MẪU tĩnh (data/public-batch-mock.json) thay vì gọi API thật
+  // khi cờ này là true, hữu ích để demo/dev giao diện lúc backend chưa chạy.
+  // Mặc định false ở MỌI hostname (luôn ưu tiên dữ liệu thật) — bật true THỦ
+  // CÔNG ngay tại đây khi cần demo, KHÔNG sửa trực tiếp trong
+  // js/truy-xuat.js, cùng nguyên tắc "1 nơi cấu hình duy nhất" như
+  // API_BASE_URL ở trên.
+  global.AgriChain.USE_MOCK_TRACE_DATA = false;
 })(window);

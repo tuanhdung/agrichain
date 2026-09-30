@@ -6,22 +6,32 @@
    mô tả thiết kế ban đầu có nhắc tới, xem PUBLIC-BATCH-SCHEMA.md mục "Sai
    khác so với mô tả thiết kế ban đầu"). Trang KHÔNG cần đăng nhập.
 
-   ⚠️ GIAI ĐOẠN B (route backend GET /batches/by-code/{code}/public) CHƯA
-   XONG — xem PUBLIC-BATCH-SCHEMA.md để biết đầy đủ khuôn JSON kỳ vọng và
-   danh sách việc còn thiếu phía backend. Trang này ĐANG dùng dữ liệu MẪU từ
-   data/public-batch-mock.json (USE_MOCK_DATA = true bên dưới) — implement
-   xong route thật thì chỉ cần đổi cờ này thành false, KHÔNG cần sửa gì ở
-   phần dựng giao diện (fetchPublicBatch() đã tách sẵn 2 nhánh, cùng response
-   shape).
+   GIAI ĐOẠN B (route backend GET /batches/by-code/{code}/public) ĐÃ XONG
+   (xác nhận qua agrichain-api/app/routers/batches.py + schemas/public_batch.py
+   — khuôn PublicBatchTraceabilityOut khớp đúng PUBLIC-BATCH-SCHEMA.md và
+   đúng những gì showBatch() bên dưới cần) — trang này ĐÃ ĐỔI sang gọi API
+   thật. Route chỉ trả 200 cho lô hàng ở trạng thái harvested/processed/
+   completed (BatchStatus khác → 404 "Không tìm thấy", không tiết lộ lô hàng
+   đó tồn tại — quyết định đã chốt phía backend), nên quét QR/mở link 1 lô
+   hàng đang planning/planted/growing sẽ ra "Không tìm thấy lô hàng" dù lô đó
+   có thật — ĐÚNG Ý ĐỒ, không phải lỗi.
+
+   data/public-batch-mock.json vẫn giữ lại (KHÔNG xoá) — hữu ích để demo/dev
+   giao diện khi backend chưa chạy. Cờ bật/tắt (AgriChain.USE_MOCK_TRACE_DATA)
+   nằm ở js/api-config.js — CHỈ sửa ở ĐÓ khi cần demo, KHÔNG hard-code trực
+   tiếp trong file này, cùng nguyên tắc "1 nơi cấu hình duy nhất" đã áp dụng
+   cho AgriChain.API_BASE_URL trong chính file đó.
    ========================================================================== */
 
 (function (global) {
   'use strict';
 
-  // Đổi thành false khi GET /batches/by-code/{code}/public đã code xong ở
-  // agrichain-api (xem agrichain-api/CLAUDE.md mục "Xác thực blockchain lô
-  // hàng", Giai đoạn B).
-  var USE_MOCK_DATA = true;
+  // Đọc từ js/api-config.js (nạp TRƯỚC file này, xem thẻ <script> trong
+  // truy-xuat.html) — KHÔNG hard-code true/false thẳng ở đây. `!!` ép về
+  // boolean thật, phòng trường hợp js/api-config.js lỡ chưa nạp kịp (cờ
+  // undefined -> coi như false, ưu tiên gọi API thật hơn là âm thầm hiện dữ
+  // liệu giả).
+  var USE_MOCK_DATA = !!(global.AgriChain && global.AgriChain.USE_MOCK_TRACE_DATA);
 
   var ACTIVITY_TYPES = global.AgriChain.ACTIVITY_TYPES || [];
 
