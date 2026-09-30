@@ -1,4 +1,9 @@
-import { defineConfig } from 'vite';
+// `defineConfig` nạp từ 'vitest/config' (không phải 'vite' trực tiếp) — re-export
+// nguyên bản của Vite, chỉ MỞ RỘNG type để chấp nhận thêm khoá `test` bên
+// dưới mà không cần triple-slash reference riêng. Đây là cách tích hợp
+// vitest chính thức khi đã có sẵn 1 vite.config.ts dùng chung cho cả app lẫn
+// test, tránh phải duy trì 2 file cấu hình.
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,6 +25,17 @@ const staticSiteRoot = path.resolve(__dirname, '..');
 // Xem app/CLAUDE.md mục "Giả định host" + "Chạy thử".
 export default defineConfig({
   plugins: [react()],
+  // Cấu hình vitest, thêm 2026-09-29 cho test của luồng "đăng nhập 1 lần"
+  // (AuthContext bootstrap, ProtectedRoute redirect) — xem app/src/test/setup.ts
+  // + app/CLAUDE.md mục "Giả định host". `environment: 'jsdom'` vì các test
+  // này render component React thật (cần `document`/`window`); không bật
+  // `globals: true` — mỗi test file tự `import { describe, it, expect } from
+  // 'vitest'` tường minh, tránh phải khai báo thêm `types` trong
+  // tsconfig.app.json (giữ đúng tinh thần "thay đổi tối thiểu").
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts']
+  },
   server: {
     port: 5173,
     // Không set thì Vite chỉ bind theo cách Node phân giải "localhost" lúc
