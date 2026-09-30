@@ -1135,13 +1135,23 @@ sửa file này, không đụng tới logic gọi API. Nạp ở **mọi trang H
 dùng API — để lần chuyển tiếp theo không phải thêm lại thẻ `<script>` vào từng file.
 
 **Tự nhận diện qua `location.hostname` (2026-09-25, cùng đợt thêm cookie httpOnly chia sẻ
-phiên đăng nhập — xem mục "Cookie httpOnly..." ngay dưới)** — không còn 1 dòng cố định như
-trước: hostname `agrichain.local` (domain giả qua hosts file) → `http://api.agrichain.local:8000`
-(bắt buộc phải là domain, không phải `127.0.0.1`, để cookie `Set-Cookie: Domain=.agrichain.local`
-được trình duyệt chấp nhận); hostname `localhost`/`127.0.0.1` (Live Server mặc định, CHƯA cấu
-hình hosts file) → `http://127.0.0.1:8000` như cũ; domain khác (production) →
-`https://agrichain-api-4mhf.onrender.com`. `js/app-config.js` (`AgriChain.APP_SPA_URL`) áp
-dụng ĐÚNG 3 nhánh y hệt, cùng lúc sửa.
+phiên đăng nhập — xem mục "Cookie httpOnly..." ngay dưới; ĐÃ CẬP NHẬT LẠI 2026-09-30 cho khớp
+code thật, bản mô tả cũ ở đây vẫn ghi "domain khác (production) → domain Render cũ" dù code đã
+đổi từ lâu — xem mục "⚠️ Bug đã vá — nhảy tab liên tục..." phía trên cho bối cảnh đợt dọn dẹp
+tài liệu này)** — **4 nhánh** `if`/`else if`/`else` (không phải 3): hostname `agrichain.local`
+(domain giả qua hosts file) → `http://api.agrichain.local:8000` (bắt buộc phải là domain, không
+phải `127.0.0.1`, để cookie `Set-Cookie: Domain=.agrichain.local` được trình duyệt chấp nhận);
+hostname `localhost`/`127.0.0.1` (Live Server mặc định, CHƯA cấu hình hosts file) →
+`http://127.0.0.1:8000` như cũ; hostname `agrichain.org.vn`/`www.agrichain.org.vn` (production
+thật, VPS + Nginx) → `https://api.agrichain.org.vn`; domain khác/dự phòng (nhánh `else` cuối,
+chưa xác định trước) → **cũng** `https://api.agrichain.org.vn`, **KHÔNG còn rơi về domain Render
+cũ** (`agrichain-api-4mhf.onrender.com` — Render chỉ dùng tạm trước khi có VPS, đã ngừng dùng
+cho production hẳn, xem mục "Kết nối backend" đầu file). `js/app-config.js`
+(`AgriChain.APP_SPA_URL`) cùng cơ chế tự nhận diện qua `location.hostname` nhưng chỉ **3
+nhánh** (`agrichain.local` → SPA dev qua domain giả; `localhost`/`127.0.0.1` → SPA dev kiểu cũ;
+`else` → `https://app.agrichain.org.vn`, gộp chung production/dự phòng vào 1 nhánh thay vì tách
+riêng như `api-config.js` — không có gì khác biệt về GIÁ TRỊ cuối cùng cho production, chỉ khác
+SỐ NHÁNH viết trong code).
 
 ### `js/api.js`
 
