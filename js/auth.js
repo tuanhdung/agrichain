@@ -132,15 +132,30 @@
     // 'nong-trai.html' đã XOÁ (migrate sang SPA, xem CLAUDE.md mục "Kết nối
     // backend"), trỏ sang URL TUYỆT ĐỐI của SPA (origin khác hẳn site tĩnh
     // này — AgriChain.APP_SPA_URL, js/app-config.js, tự nhận diện dev/prod).
-    // SPA sẽ không thấy phiên vừa đăng nhập ở đây (2 origin không chia sẻ
-    // được localStorage, xem app/CLAUDE.md mục "Giả định host") nên sẽ tự đá
-    // sang /login của chính nó — người dùng cần đăng nhập lại 1 lần nữa, nợ
-    // kỹ thuật đã biết, chưa giải quyết được trong lần sửa này.
+    // SPA tự nhận ra phiên vừa đăng nhập ở đây qua cookie httpOnly dùng chung
+    // (AuthContext bootstrap lúc mount, xem app/CLAUDE.md mục "Giả định
+    // host") — KHÔNG cần đăng nhập lại lần 2 nữa kể từ 2026-09-29.
     return (global.AgriChain.APP_SPA_URL || '') + '/nong-trai';
   }
 
   function redirectTarget(accountType) {
     var params = new URLSearchParams(global.location.search);
+
+    // `next` — đích TUYỆT ĐỐI sang SPA (app.agrichain.*), thêm 2026-09-29 cho
+    // luồng "đăng nhập 1 lần": SPA không còn trang đăng nhập riêng,
+    // ProtectedRoute đá người dùng về ĐÂY kèm next=<url SPA họ đang đứng>
+    // (xem app/CLAUDE.md mục "Giả định host"). Validate qua
+    // window.AgriChain.resolveNextTarget() (js/next-target.js — origin phải
+    // khớp CHÍNH XÁC AgriChain.APP_SPA_URL, chặn open redirect kiểu
+    // //evil.com, javascript:, sai origin). 'customer' KHÔNG có gì trong SPA
+    // (cùng lý do ADMIN_SHELL_PAGES chặn ?redirect= bên dưới) nên bỏ qua
+    // next, rơi thẳng xuống defaultTargetFor() -> agriverse-3d.html.
+    var nextParam = params.get('next');
+    if (nextParam && accountType !== 'customer') {
+      var nextTarget = global.AgriChain.resolveNextTarget(nextParam, global.AgriChain.APP_SPA_URL);
+      if (nextTarget) return nextTarget;
+    }
+
     var target = params.get('redirect');
     // Chỉ chấp nhận đường dẫn nội bộ dạng "ten-trang.html", bắt đầu bằng chữ
     // cái. Không cho URL tuyệt đối ("http://"/"https://") hay "//..." — tránh
@@ -173,8 +188,27 @@
     var form = document.getElementById('login-form');
     if (!form) return;
 
-    // Đã đăng nhập rồi (còn access token) thì vào thẳng, khỏi bắt đăng nhập lại.
-    if (api.isLoggedIn()) {
+    // `?loggedOut=1` — SPA (app.agrichain.*) vừa đăng xuất và đá người dùng
+    // VỀ ĐÂY (2026-09-29, xem app/src/context/AuthContext.tsx::logout()).
+    // BẮT BUỘC xử lý TRƯỚC nhánh "đã đăng nhập rồi thì đá đi luôn" bên dưới,
+    // nếu không sẽ VÒNG LẶP VÔ HẠN: SPA không xoá được localStorage CỦA
+    // TRANG NÀY (2 origin khác nhau, SPA chỉ xoá được cookie dùng chung +
+    // storage của chính nó) — nếu vẫn chạy nhánh `isLoggedIn()` như bình
+    // thường, trang này thấy "còn đăng nhập" nên bấm NGƯỢC lại SPA, SPA dò
+    // cookie thấy đã bị xoá (401) nên lại đẩy về đây — cứ thế lặp mãi (bug
+    // thật đã gặp). Tự đăng xuất THẬT ở đây — trang này mới có refresh_token
+    // THẬT của chính phiên nó tạo ra, revoke được đằng hoàng, không chỉ xoá
+    // cookie bằng placeholder như phía SPA.
+    var params = new URLSearchParams(global.location.search);
+    if (params.get('loggedOut') === '1') {
+      // Bỏ `?loggedOut=1` khỏi URL ngay — tải lại trang sau đó (F5) không
+      // được lặp lại bước đăng xuất này lần nữa.
+      global.history.replaceState(null, '', global.location.pathname);
+      if (api.isLoggedIn()) api.auth.logout();
+      // KHÔNG return sớm — vẫn cần chạy tiếp phần gắn sự kiện submit bên
+      // dưới để form đăng nhập dùng được ngay, không phải tải lại trang.
+    } else if (api.isLoggedIn()) {
+      // Đã đăng nhập rồi (còn access token) thì vào thẳng, khỏi bắt đăng nhập lại.
       global.location.replace(redirectTarget(api.getAccountType()));
       return;
     }
