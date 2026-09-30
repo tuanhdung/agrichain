@@ -80,7 +80,7 @@ describe('ProtectedRoute — không có phiên (401)', () => {
 
     await waitFor(() => expect(window.location.href).not.toBe(SPA_URL));
 
-    const expected = `http://agrichain.local:5500/dang-nhap.html?next=${encodeURIComponent(SPA_URL)}`;
+    const expected = `http://agrichain.local:5500/dang-nhap.html?reason=unauth&next=${encodeURIComponent(SPA_URL)}`;
     expect(window.location.href).toBe(expected);
     expect(screen.queryByText('Nội dung được bảo vệ')).not.toBeInTheDocument();
   });

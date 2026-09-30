@@ -179,9 +179,18 @@ export function hasPermission(code: string): boolean {
    tương đối như `redirect` cũ (2 origin khác nhau, tương đối vô nghĩa) —
    xem js/next-target.js phía site tĩnh để biết cách `next` được validate
    (whitelist origin, chặn open redirect). */
+// `reason=unauth` (2026-09-30, vá kẽ hở của bản vá vòng lặp trước đó — xem
+// CLAUDE.md gốc mục "⚠️ Bug đã vá — nhảy tab liên tục..."): đánh dấu rõ ràng
+// "SPA đã TỰ XÁC NHẬN qua cookie/GET /auth/me rằng phiên không hợp lệ, mới
+// đá về đây" — để js/login-redirect.js (site tĩnh) KHÔNG được tự tin tưởng
+// phiên của CHÍNH NÓ (dù api.auth.me() ở đó có thành công) mà phải buộc đăng
+// nhập lại thật. Thiếu cờ này thì 2 cơ chế xác thực khác nhau (site tĩnh:
+// Web Storage; SPA: cookie httpOnly) có thể bất đồng vì lý do KHÁC "token hết
+// hạn" (VD cookie Domain không khớp domain thật của SPA) và vẫn loop vô hạn
+// dù mỗi bên tự kiểm tra đúng phần của mình.
 export function redirectToLogin(): void {
   const next = window.location.href;
-  window.location.href = `${mainSiteUrl('dang-nhap.html')}?next=${encodeURIComponent(next)}`;
+  window.location.href = `${mainSiteUrl('dang-nhap.html')}?reason=unauth&next=${encodeURIComponent(next)}`;
 }
 
 /* --- Điều hướng ra ngoài SPA THẬT SỰ, sang site chính ----------------------

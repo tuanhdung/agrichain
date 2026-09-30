@@ -194,30 +194,40 @@
     var form = document.getElementById('login-form');
     if (!form) return;
 
-    // `?loggedOut=1` — SPA (app.agrichain.*) vừa đăng xuất và đá người dùng
-    // VỀ ĐÂY (2026-09-29, xem app/src/context/AuthContext.tsx::logout()).
-    // BẮT BUỘC xử lý TRƯỚC nhánh "đã đăng nhập rồi thì đá đi luôn" bên dưới,
-    // nếu không sẽ VÒNG LẶP VÔ HẠN: SPA không xoá được localStorage CỦA
-    // TRANG NÀY (2 origin khác nhau, SPA chỉ xoá được cookie dùng chung +
-    // storage của chính nó) — nếu vẫn chạy nhánh `isLoggedIn()` như bình
-    // thường, trang này thấy "còn đăng nhập" nên bấm NGƯỢC lại SPA, SPA dò
-    // cookie thấy đã bị xoá (401) nên lại đẩy về đây — cứ thế lặp mãi (bug
-    // thật đã gặp). Tự đăng xuất THẬT ở đây — trang này mới có refresh_token
-    // THẬT của chính phiên nó tạo ra, revoke được đằng hoàng, không chỉ xoá
-    // cookie bằng placeholder như phía SPA.
+    // Quyết định hành vi lúc tải trang (đăng xuất từ SPA qua `?loggedOut=1`,
+    // buộc đăng nhập lại vì SPA đã xác nhận phiên không hợp lệ qua
+    // `?reason=unauth`, hay tự động vào thẳng SPA nếu phiên còn dùng được)
+    // giờ nằm hết trong js/login-redirect.js (hàm THUẦN, test được trực tiếp
+    // — xem app/src/test/loginRedirect.test.ts) để tránh lặp lại đúng bug đã
+    // gặp 2 lần liên tiếp (loop lúc đăng xuất, rồi loop lúc phiên bất đồng
+    // giữa 2 origin) mỗi khi có thêm 1 ca đặc biệt mới. `setupLogin()` chỉ
+    // còn việc gom tham số URL + phụ thuộc thật (gọi API, điều hướng) rồi
+    // giao cho hàm đó quyết định — xem chi tiết từng nhánh trong file đó.
+    //
+    // `?loggedOut=1` clear khỏi URL NGAY (đồng bộ, TRƯỚC khi gọi
+    // runLoginPageEntry) — tải lại trang (F5) trong lúc logout() còn đang
+    // chạy dở không được lặp lại bước đăng xuất này lần nữa.
     var params = new URLSearchParams(global.location.search);
-    if (params.get('loggedOut') === '1') {
-      // Bỏ `?loggedOut=1` khỏi URL ngay — tải lại trang sau đó (F5) không
-      // được lặp lại bước đăng xuất này lần nữa.
+    var loggedOutParam = params.get('loggedOut');
+    var reasonParam = params.get('reason');
+    if (loggedOutParam === '1') {
       global.history.replaceState(null, '', global.location.pathname);
-      if (api.isLoggedIn()) api.auth.logout();
-      // KHÔNG return sớm — vẫn cần chạy tiếp phần gắn sự kiện submit bên
-      // dưới để form đăng nhập dùng được ngay, không phải tải lại trang.
-    } else if (api.isLoggedIn()) {
-      // Đã đăng nhập rồi (còn access token) thì vào thẳng, khỏi bắt đăng nhập lại.
-      global.location.replace(redirectTarget(api.getAccountType()));
-      return;
     }
+
+    global.AgriChain.runLoginPageEntry(
+      { reason: reasonParam, loggedOut: loggedOutParam, isLoggedIn: api.isLoggedIn() },
+      {
+        logout: function () { return api.auth.logout(); },
+        clearSession: function () { api.clearSession(); },
+        verifySession: function () { return api.auth.me(); },
+        navigate: function (accountType) {
+          global.location.replace(redirectTarget(accountType));
+        }
+      }
+    );
+    // KHÔNG chờ Promise trên rồi mới gắn sự kiện submit — mọi nhánh có thể
+    // điều hướng đi (`redirected`) đều chạy bất đồng bộ, trong lúc chờ vẫn
+    // cần form đăng nhập dùng được ngay (ca `show-form`/`logged-out`).
 
     var submitButton = form.querySelector('button[type="submit"]');
     var submitLabel = submitButton.textContent;
