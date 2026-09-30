@@ -17,8 +17,12 @@
   <link rel="stylesheet" href="css/components.css" />
 
   <style>
-    /* CSS chỉ dùng riêng cho trang Blog, không phải component tái sử dụng */
+    /* CSS chỉ dùng riêng cho trang Blog, không phải component tái sử dụng.
+       [data-reveal] (hiện dần khi cuộn tới) và .btn-shine dùng chung ở
+       css/components.css — xem js/scroll-reveal.js + js/blog.js. */
     .blog-hero {
+      position: relative;
+      overflow: hidden;
       /* Nền gradient tạm thời — sau này thay ảnh nền thật bằng cách thêm
          url('images/blog/hero.jpg') vào trước gradient, ví dụ:
          background: linear-gradient(160deg, rgba(20,74,48,.85), rgba(31,143,88,.7)), url('images/blog/hero.jpg') center/cover; */
@@ -26,6 +30,51 @@
       padding-block: var(--space-24);
       text-align: center;
       color: var(--color-text-inverse);
+    }
+
+    /* Khối trang trí trôi nổi phía sau nội dung — cùng ngôn ngữ thị giác với
+       .hero__blob/.cta__blob ở index.html (không dùng chung được @keyframes
+       giữa 2 file .html khác nhau nên khai báo lại ở đây, đúng quy ước "mỗi
+       trang tự chứa CSS riêng"). */
+    .blog-hero__blob {
+      position: absolute;
+      border-radius: var(--radius-full);
+      filter: blur(80px);
+      opacity: 0.25;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .blog-hero__blob--1 {
+      top: -100px;
+      left: 10%;
+      width: 320px;
+      height: 320px;
+      background: var(--green-400);
+      animation: blog-blob-float-1 16s ease-in-out infinite;
+    }
+    .blog-hero__blob--2 {
+      bottom: -120px;
+      right: 8%;
+      width: 300px;
+      height: 300px;
+      background: var(--green-300);
+      animation: blog-blob-float-2 20s ease-in-out infinite;
+    }
+    @keyframes blog-blob-float-1 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(30px, 40px) scale(1.08); }
+    }
+    @keyframes blog-blob-float-2 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(-30px, -30px) scale(1.05); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .blog-hero__blob { animation: none; }
+    }
+
+    .blog-hero__inner {
+      position: relative;
+      z-index: 1;
     }
 
     .blog-hero__eyebrow {
@@ -59,6 +108,20 @@
 
     .blog-list {
       padding-block: var(--space-16);
+    }
+
+    /* Ảnh bìa phóng to nhẹ khi hover cả thẻ — .post-card dùng chung
+       (components.css) đã có sẵn lift + đổ bóng, chỉ thêm hiệu ứng ảnh
+       riêng cho trang này. overflow:hidden của .post-card (component gốc)
+       tự cắt phần ảnh phóng to tràn ra ngoài khung. */
+    .blog-list .post-card__cover {
+      transition: transform 400ms var(--ease-emphasized);
+    }
+    .blog-list .post-card:hover .post-card__cover {
+      transform: scale(1.08);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .blog-list .post-card:hover .post-card__cover { transform: none; }
     }
   </style>
   <script src="js/api-config.js?v=2"></script>
@@ -125,10 +188,13 @@
   <main>
     <!-- Hero -->
     <section class="blog-hero">
-      <div class="container">
-        <span class="blog-hero__eyebrow">Insight &amp; Knowledge</span>
-        <h1 class="blog-hero__title">Agrichain Blog</h1>
-        <p class="blog-hero__desc">
+      <span class="blog-hero__blob blog-hero__blob--1" aria-hidden="true"></span>
+      <span class="blog-hero__blob blog-hero__blob--2" aria-hidden="true"></span>
+
+      <div class="container blog-hero__inner">
+        <span class="blog-hero__eyebrow" data-reveal>Insight &amp; Knowledge</span>
+        <h1 class="blog-hero__title" data-reveal style="--reveal-delay: 100ms">Agrichain Blog</h1>
+        <p class="blog-hero__desc" data-reveal style="--reveal-delay: 200ms">
           Cập nhật những xu hướng công nghệ mới nhất trong nông nghiệp số, từ Blockchain
           đến AI và các tiêu chuẩn bền vững quốc tế.
         </p>
@@ -191,6 +257,7 @@
   </footer>
 
   <script src="js/header.js?v=6" defer></script>
-  <script src="js/blog.js?v=2" defer></script>
+  <script src="js/scroll-reveal.js?v=2" defer></script>
+  <script src="js/blog.js?v=3" defer></script>
 </body>
 </html>

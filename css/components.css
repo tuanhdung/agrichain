@@ -656,6 +656,53 @@ td.table-empty {
   color: var(--color-danger);
 }
 
+/* --- Icon trong ô nhập -------------------------------------------------
+   Bọc .input/.textarea trong .input-icon-wrap + 1 icon (.input-icon-wrap__icon,
+   đặt TRƯỚC input/textarea trong DOM) để icon nằm đè bên trái, đổi màu +
+   phóng to khi ô đang được focus (:focus-within, không cần JS). Ban đầu
+   (2026-09-29) chỉ viết riêng cho form Liên Hệ ở index.html
+   (.contact__input-wrap), nâng lên đây trong CÙNG NGÀY khi áp dụng thêm cho
+   dang-nhap.html/dang-ky.html — 3 nơi dùng cùng 1 hiệu ứng là đủ để tính
+   "dùng lại nhiều nơi", tránh 3 bản CSS gần giống hệt nhau. */
+.input-icon-wrap {
+  position: relative;
+  transition: transform 200ms var(--ease-emphasized);
+}
+.input-icon-wrap .input,
+.input-icon-wrap .textarea {
+  padding-left: var(--space-10);
+}
+.input-icon-wrap__icon {
+  position: absolute;
+  top: 50%;
+  left: var(--space-3);
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  transition: color 200ms var(--ease-emphasized), transform 200ms var(--ease-emphasized);
+}
+/* Textarea cao hơn hẳn 1 dòng — icon giữ ở mép trên thay vì canh giữa toàn
+   bộ khung, nếu không icon sẽ trôi lệch xuống giữa vùng nhập nhiều dòng. */
+.input-icon-wrap--textarea .input-icon-wrap__icon {
+  top: var(--space-3);
+  transform: none;
+}
+.input-icon-wrap:focus-within {
+  transform: translateY(-2px);
+}
+.input-icon-wrap:focus-within .input-icon-wrap__icon {
+  color: var(--color-primary);
+  transform: translateY(-50%) scale(1.15);
+}
+.input-icon-wrap--textarea:focus-within .input-icon-wrap__icon {
+  transform: scale(1.15);
+}
+@media (prefers-reduced-motion: reduce) {
+  .input-icon-wrap:focus-within,
+  .input-icon-wrap:focus-within .input-icon-wrap__icon {
+    transform: none;
+  }
+}
+
 /* --- Ô tải ảnh (logo/banner/hình sản phẩm) --------------------------------
    Bọc <input type="file"> phủ kín (opacity:0) — bấm bất kỳ đâu trong khung
    cũng mở hộp thoại chọn tệp. Gắn class .is-filled bằng JS sau khi đã có
@@ -863,13 +910,17 @@ td.table-empty {
 .password-rule .icon {
   flex-shrink: 0;
   color: var(--color-border);
-  transition: color var(--transition-base);
+  transition: color var(--transition-base), transform 200ms var(--ease-emphasized);
 }
 .password-rule.is-met {
   color: var(--color-success);
 }
 .password-rule.is-met .icon {
   color: var(--color-success);
+  transform: scale(1.15);
+}
+@media (prefers-reduced-motion: reduce) {
+  .password-rule.is-met .icon { transform: none; }
 }
 
 /* --- Site Footer -----------------------------------------------------------
@@ -1135,4 +1186,62 @@ a.post-card {
 .pagination__info {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
+}
+
+/* --- Hiện dần khi cuộn tới ("reveal-on-scroll") -----------------------------
+   Đánh dấu bất kỳ phần tử nào cần hiệu ứng này bằng thuộc tính [data-reveal]
+   (không phải class, để không đụng độ với các class bố cục/BEM khác của
+   chính phần tử đó) — JS (js/scroll-reveal.js, AgriChain.initScrollReveal())
+   dùng IntersectionObserver gắn thêm .is-visible khi phần tử lọt vào khung
+   nhìn, rồi ngừng theo dõi (không lặp lại khi cuộn qua cuộn lại). Ban đầu
+   (2026-09-29) chỉ viết riêng cho index.html, đã nâng lên thành component
+   dùng chung ở đây ngay trong ngày vì lan sang cả blog.html/
+   blog-chi-tiet.html — nếu trang mới cũng cần hiệu ứng này, chỉ cần gắn
+   [data-reveal] + nạp js/scroll-reveal.js, không cần viết lại CSS.
+   Độ trễ so le giữa nhiều phần tử (thẻ trong 1 lưới, các dòng trong 1 khối...)
+   đặt qua biến CSS --reveal-delay ngay trong style="" tại chỗ dùng — không
+   cần thêm class riêng cho từng mức trễ. */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 700ms var(--ease-emphasized) var(--reveal-delay, 0ms),
+    transform 700ms var(--ease-emphasized) var(--reveal-delay, 0ms);
+}
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --- Nút "ánh sáng lướt qua" khi hover --------------------------------------
+   Gắn thêm cạnh .btn/.btn--primary có sẵn (không thay thế) cho các nút CTA
+   chính cần nhấn mạnh hơn hiệu ứng nâng lên mặc định của .btn. */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-20deg);
+  transition: left 600ms var(--ease-emphasized);
+}
+.btn-shine:hover::after {
+  left: 130%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-shine::after {
+    display: none;
+  }
 }

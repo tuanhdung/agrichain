@@ -47,6 +47,12 @@
     var alert = document.querySelector('[data-auth-alert]');
     if (!alert) return;
     alert.querySelector('[data-auth-alert-message]').textContent = message;
+    // Xoá rồi ép reflow trước khi thêm lại ".is-visible" — nếu không, báo
+    // lỗi 2 lần liên tiếp (VD gõ sai mật khẩu 2 lần) sẽ không rung lại lần
+    // thứ 2 (class không đổi giá trị nên trình duyệt không chạy lại
+    // @keyframes, cùng lỗi đã gặp với dấu tích thành công ở form Liên Hệ).
+    alert.classList.remove('is-visible');
+    void alert.offsetWidth;
     alert.classList.add('is-visible');
   }
 

@@ -16,6 +16,15 @@
   <link rel="stylesheet" href="css/base.css" />
   <link rel="stylesheet" href="css/components.css" />
 
+  <!-- Leaflet — bản đồ ranh giới thửa đất (mục "Nguồn gốc từ nông trại"),
+       CÙNG BẢN 1.9.4 đã ghim ở app/package.json (SPA) để đồng bộ hành vi giữa
+       2 codebase. Site tĩnh không có build tool nên nạp qua CDN thay vì npm,
+       xem CLAUDE.md gốc mục "Quyết định công nghệ đã chốt". -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
   <style>
     /* CSS chỉ dùng riêng cho trang truy xuất nguồn gốc — trang này công khai,
        không nạp app-shell.css (dành cho khung quản trị sau đăng nhập), nên
@@ -38,6 +47,19 @@
       color: var(--color-text-muted);
       margin-bottom: var(--space-2);
     }
+    /* Ô nhập mã lô hàng thủ công — tra cứu lại KHÔNG cần quay về trang chủ
+       rồi tìm lại link, tiện cho ca gõ nhầm mã hoặc muốn tra 1 mã khác biết
+       trước. .search-field/.search-field__icon dùng lại nguyên component
+       chung (css/components.css), không viết CSS riêng cho ô nhập. */
+    .empty-card__lookup {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      width: 100%;
+      max-width: 420px;
+      margin-bottom: var(--space-2);
+    }
+    .empty-card__lookup .search-field { flex: 1; min-width: 220px; }
 
     .loading-card {
       display: flex;
@@ -54,7 +76,12 @@
       min-height: 380px;
       display: flex;
       align-items: flex-end;
-      background-image: url('https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1600&q=80');
+      /* Đổi ảnh nền (2026-09-29) — ảnh cũ (2 người bắt tay giữa đồng lúa) có
+         nhiều chi tiết/đường nét sáng ngay vùng đặt tiêu đề, làm chữ khó đọc.
+         Ảnh mới: cận cảnh lá cây xanh mướt, mảng màu liền mạch hơn hẳn — kết
+         hợp lớp phủ gradient đậm hơn bên dưới, tương phản chữ trắng luôn tốt
+         bất kể cuộn tới đâu trong ảnh. */
+      background-image: url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80');
       background-size: cover;
       background-position: center;
       color: var(--color-text-inverse);
@@ -63,7 +90,15 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(180deg, rgba(20, 74, 48, 0.55) 0%, rgba(15, 28, 20, 0.94) 100%);
+      /* Nới lại lớp phủ (2026-09-29, lần 2) — bản trước làm quá đậm để "cứu"
+         tiêu đề, nhưng nguyên nhân chữ mờ THẬT RA là bug màu (h1 bị base.css
+         đè màu tối, xem mục "Ảnh nền Hero + bug màu tiêu đề" — ĐÃ vá bằng
+         cách khai báo lại color trực tiếp trên .qr-hero__title). Giờ chữ
+         luôn trắng chắc chắn nên không cần lớp phủ quá dày để bù nữa — nới
+         nhẹ lại (0.75 -> 0.32 ở mép trên) để ảnh lá cây thấy rõ hơn, vẫn giữ
+         đủ tối ở mép dưới (nơi tiếp giáp 2 card trắng) để không bị "hụt"
+         tương phản đột ngột. */
+      background: linear-gradient(180deg, rgba(10, 40, 25, 0.32) 0%, rgba(8, 20, 14, 0.68) 100%);
     }
     .qr-hero__inner {
       position: relative;
@@ -85,6 +120,19 @@
       margin-bottom: var(--space-4);
     }
     .qr-hero__title {
+      /* BẮT BUỘC khai báo lại màu, KHÔNG dựa vào kế thừa từ .qr-hero — quy
+         tắc CSS ít người để ý: css/base.css có sẵn `h1,h2,...{color:
+         var(--color-text)}` (xám gần đen) đặt TRỰC TIẾP lên chính phần tử
+         <h1>, và giá trị đặt trực tiếp trên phần tử LUÔN thắng giá trị kế
+         thừa từ cha (bất kể độ đặc hiệu) — `.qr-hero { color:
+         var(--color-text-inverse) }` chỉ có tác dụng với con nào KHÔNG bị
+         quy tắc nào khác nhắm trúng, như <p>/<span> (không có rule màu
+         riêng nên tự kế thừa đúng), còn <h1> thì luôn bị đè lại thành màu
+         tối. Y hệt bẫy đã tránh ở index.html (.hero__title/.cta__title đều
+         khai báo lại color thay vì trông chờ kế thừa) — bài học chung: bất
+         kỳ heading nào đặt trên nền tối cũng phải tự khai báo `color`
+         riêng, không bao giờ được để nó tự kế thừa. */
+      color: var(--color-text-inverse);
       font-size: var(--text-4xl);
       font-weight: 800;
       max-width: 640px;
@@ -108,6 +156,18 @@
     }
 
     .qr-producer { display: flex; align-items: center; gap: var(--space-4); }
+    /* Viền đứt nét quanh avatar — gợi cảm giác "con dấu chứng nhận", đặt
+       RIÊNG khỏi .qr-producer__avatar (không lồng trực tiếp vào avatar) vì
+       avatar đã tự có viền đặc `3px solid` của chính nó — 2 style viền khác
+       nhau (đứt nét ngoài, đặc trong) mới ra đúng hiệu ứng "con dấu", gộp
+       chung 1 phần tử sẽ chỉ còn 1 trong 2. */
+    .qr-producer__seal {
+      display: inline-flex;
+      padding: 3px;
+      border: 2px dashed var(--color-primary);
+      border-radius: var(--radius-full);
+      flex-shrink: 0;
+    }
     .qr-producer__avatar {
       width: 64px;
       height: 64px;
@@ -122,6 +182,27 @@
       flex-shrink: 0;
       border: 3px solid var(--color-bg);
       box-shadow: var(--shadow-md);
+      overflow: hidden;
+    }
+    /* Logo thật của Đơn vị (organization.logo_url) — renderProducer()
+       (js/truy-xuat.js) hiện ảnh này khi có, chỉ rơi về chữ cái viết tắt khi
+       Đơn vị chưa từng tải logo lên hoặc ảnh lỗi (onerror, xem JS). */
+    .qr-producer__avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    /* Cùng hệt .qr-season__eyebrow bên dưới (nhãn nhỏ-in-hoa phía trên tiêu
+       đề) — khai báo lặp lại có chủ đích thay vì dùng chung 1 class giữa 2
+       thẻ khác ngữ cảnh (nhà sản xuất/mùa vụ), tránh tên class gây hiểu lầm
+       "mượn" từ thẻ kia khi đọc lại sau này. */
+    .qr-producer__eyebrow {
+      font-weight: 700;
+      color: var(--color-text-muted);
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: var(--space-1);
     }
     .qr-producer__name { font-weight: 800; font-size: var(--text-lg); }
     .qr-producer__tagline { color: var(--color-text-muted); font-size: var(--text-sm); margin-top: 2px; }
@@ -137,15 +218,34 @@
     .qr-season__name { font-size: var(--text-xl); font-weight: 800; margin-bottom: var(--space-3); }
     .qr-season__rows { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--text-sm); }
     .qr-season__rows .trace-row__label { color: var(--color-text-muted); }
+    /* Đổi từ chữ thường sang badge tròn nổi bật (2026-09-29) — dùng ĐÚNG
+       token màu cảnh báo có sẵn (--color-warning/--color-warning-subtle =
+       --amber-700/--amber-50, xem css/tokens.css) thay vì tự chế 1 màu vàng
+       kim mới — tái dùng cặp token ngữ nghĩa đã có, không hard-code màu
+       (đúng quy ước CSS của dự án), mà vẫn ra đúng tông vàng/hổ phách nổi
+       bật như bản tham khảo. */
     .qr-season__yield {
-      margin-top: var(--space-3);
-      padding-top: var(--space-3);
-      border-top: 1px dashed var(--color-border);
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      margin-top: var(--space-4);
+      padding: var(--space-2) var(--space-5);
+      border-radius: var(--radius-full);
+      background: var(--color-warning-subtle);
+    }
+    .qr-season__yield [data-batch-yield] {
       font-size: var(--text-2xl);
       font-weight: 800;
-      color: var(--color-primary-active);
+      color: var(--color-warning);
     }
-    .qr-season__yield-label { font-size: var(--text-xs); font-weight: 500; color: var(--color-text-muted); }
+    .qr-season__yield-label {
+      font-size: var(--text-xs);
+      font-weight: 700;
+      color: var(--color-warning);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
 
     /* --- Tiêu đề section dùng chung -------------------------------------- */
     .qr-section { margin-bottom: var(--space-10); }
@@ -162,10 +262,51 @@
     /* --- 4. Nguồn gốc từ nông trại --------------------------------------- */
     .qr-farm { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); }
     @media (max-width: 768px) { .qr-farm { grid-template-columns: 1fr; } }
-    .qr-farm__certs { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
-    .qr-farm__map {
+    /* Nhãn nhỏ-in-hoa phía trên MỖI trường (Nông trại/Địa chỉ/Chứng nhận) —
+       cùng công thức .qr-season__eyebrow/.qr-producer__eyebrow (khai báo lặp
+       lại có chủ đích, không dùng chung 1 class giữa các thẻ khác ngữ cảnh,
+       xem ghi chú ở .qr-producer__eyebrow). Nhãn ĐẦU TIÊN không cần margin
+       trên (bám sát mép trên của cột), các nhãn SAU cách trường trước 1
+       khoảng rõ ràng để mắt tách được từng nhóm field. */
+    .qr-farm__label {
+      font-weight: 700;
+      color: var(--color-text-muted);
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: var(--space-1);
+    }
+    .qr-farm__label:not(:first-child) { margin-top: var(--space-4); }
+    .qr-farm__value { font-size: var(--text-lg); font-weight: 700; }
+    .qr-farm__address { color: var(--color-text-muted); font-size: var(--text-sm); }
+    .qr-farm__puc { color: var(--color-text-muted); font-size: var(--text-xs); margin-top: var(--space-1); }
+    .qr-farm__certs { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+    /* Bọc ngoài chung cho cả 2 trạng thái (placeholder / bản đồ Leaflet thật)
+       — border-radius/overflow đặt ở ĐÂY (không ở .qr-farm__map hay
+       .qr-farm__map-canvas riêng lẻ), để tile bản đồ cũng bị cắt bo góc
+       đúng như khung placeholder trước đó, không cần lặp lại ở cả 2 nơi. */
+    .qr-farm__map-wrap {
+      position: relative;
+      min-height: 220px;
       border-radius: var(--radius-lg);
       overflow: hidden;
+      /* BẮT BUỘC — Leaflet tự đặt z-index RẤT cao cho nút zoom/lớp nền
+         (.leaflet-top/.leaflet-bottom: 1000, xem leaflet.css) mà KHÔNG tự
+         giới hạn phạm vi trong khung bản đồ của nó — .leaflet-container chỉ
+         có position:relative, không có z-index riêng nên không tự tạo
+         "stacking context" mới, khiến z-index:1000 đó cạnh tranh THẲNG với
+         mọi phần tử khác trên trang, kể cả .site-header (position: sticky,
+         z-index: var(--z-sticky) = 100 — thấp hơn hẳn). Cuộn tới đoạn bản đồ
+         thì nút zoom/lớp nền của Leaflet đè cả lên header dính phía trên,
+         dù bản đồ nằm thấp hơn hẳn trong luồng trang — bug có thật đã gặp,
+         không phải giả định. `isolation: isolate` ép khối này tự tạo 1
+         "stacking context" RIÊNG, nhốt toàn bộ thang z-index nội bộ của
+         Leaflet (200-1000) ở BÊN TRONG khung này — không còn cạnh tranh
+         được với bất kỳ phần tử nào bên ngoài, kể cả z-index rất cao. */
+      isolation: isolate;
+    }
+    .qr-farm__map {
       min-height: 220px;
       background: linear-gradient(135deg, var(--green-100), var(--amber-50));
       display: flex;
@@ -180,6 +321,14 @@
     }
     .qr-farm__map .icon { color: var(--color-primary-active); }
     .qr-farm__map-note { font-size: var(--text-xs); max-width: 240px; }
+    /* Vùng Leaflet render vào — chỉ hiện khi farm.polygon có đủ ≥3 điểm
+       (renderFarm() trong js/truy-xuat.js), thay chỗ .qr-farm__map placeholder
+       bằng cách gỡ/gắn [hidden] qua lại, KHÔNG render đè lên nhau. */
+    .qr-farm__map-canvas {
+      width: 100%;
+      height: 100%;
+      min-height: 220px;
+    }
 
     /* --- 5. Mã định danh lô hàng ------------------------------------------ */
     .qr-batchid {
@@ -208,6 +357,45 @@
     }
     .copy-btn:hover { color: var(--color-primary-active); background: var(--color-primary-subtle); }
     .copy-btn.is-copied { color: var(--color-success); }
+
+    /* Chia sẻ trang truy xuất — .share-btn chép lại NGUYÊN VĂN từ
+       blog-chi-tiet.html (không import chéo giữa 2 file .html, đúng quy ước
+       "mỗi trang tự chứa CSS riêng" của dự án). Đặt trong card "Mã định danh
+       lô hàng" vì đây đúng nghĩa "danh thiếp" của lô hàng đang xem — hợp lý
+       nhất để đặt hành động chia sẻ ngay cạnh đó. */
+    .share-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--space-10);
+      height: var(--space-10);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-full);
+      color: var(--color-text-muted);
+      transition: border-color var(--transition-base), color var(--transition-base),
+        transform var(--transition-base);
+    }
+    .share-btn:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+      transform: translateY(-2px);
+    }
+    /* flex-basis: 100% trong container flex-wrap của .qr-batchid ép khối này
+       LUÔN xuống 1 dòng riêng, không chen ngang 2 khối "mã lô hàng"/"ngày +
+       trạng thái" hiện có — kỹ thuật quen thuộc trong dự án, không cần thêm
+       phần tử bọc ngoài hay đổi display của .qr-batchid. */
+    .qr-batchid__share {
+      flex-basis: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+      margin-top: var(--space-4);
+      padding-top: var(--space-4);
+      border-top: 1px dashed var(--color-border);
+    }
+    .qr-batchid__share-buttons { display: flex; gap: var(--space-2); }
 
     /* --- 6. Card VERIFIED (Blockchain) ------------------------------------ */
     .qr-verified {
@@ -250,11 +438,29 @@
     }
     .qr-verified__row-value .copy-btn { color: rgba(255, 255, 255, 0.7); }
     .qr-verified__row-value .copy-btn:hover { color: var(--color-text-inverse); background: rgba(255, 255, 255, 0.12); }
+    /* Đổi từ viền trắng mờ sang nền đặc (2026-09-29) — đây là hành động
+       QUAN TRỌNG NHẤT của khối xác thực (mở link kiểm chứng độc lập trên
+       blockchain explorer thật, không phải dữ liệu nội bộ AgriChain), viền
+       mờ trước đó dễ bị bỏ qua giữa nền xanh đậm. Dùng nền trắng đặc + chữ
+       xanh đậm (--green-900, cùng màu nền chính .qr-verified đang dùng) —
+       tương phản mạnh nhất có thể trên thẻ này, KHÔNG cần bịa 1 màu vàng
+       kim mới (dự án không có thang màu vàng đầy đủ, xem CLAUDE.md gốc mục
+       "Quy ước CSS" — không hard-code màu ngoài token). */
     .qr-verified__explorer-link {
-      border-color: rgba(255, 255, 255, 0.4);
-      color: var(--color-text-inverse);
+      background: var(--color-text-inverse);
+      color: var(--green-900);
+      border-color: transparent;
+      font-weight: 700;
     }
-    .qr-verified__explorer-link:hover { background: rgba(255, 255, 255, 0.12); }
+    /* KHÔNG tự khai báo lại "transform: translateY(-2px)" ở đây — .btn
+       gốc (css/components.css) đã có sẵn `.btn:hover:not(:disabled)` với
+       độ đặc hiệu CAO HƠN (3 lớp: class + 2 pseudo-class) áp đúng hiệu ứng
+       nhô lên khi hover cho MỌI nút, tự khai báo lại chỉ tạo ra CSS chết
+       (không bao giờ thắng được rule gốc). Chỉ thêm đúng phần MỚI —
+       box-shadow đậm hơn khi hover, rule gốc không có sẵn thuộc tính này. */
+    .qr-verified__explorer-link:hover {
+      box-shadow: var(--shadow-lg);
+    }
 
     .qr-pending {
       display: flex;
@@ -269,6 +475,30 @@
     .qr-pending .icon { color: var(--color-warning); flex-shrink: 0; }
     .qr-pending__title { font-weight: 700; font-size: var(--text-lg); margin-bottom: var(--space-1); }
     .qr-pending__desc { font-size: var(--text-sm); opacity: 0.9; }
+
+    /* --- 6c. "Cần hỗ trợ?" — lối liên hệ trực tiếp cho khách quét QR ------- */
+    .qr-support {
+      display: flex;
+      align-items: center;
+      gap: var(--space-5);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-10);
+    }
+    .qr-support__icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-full);
+      background: var(--color-primary-subtle);
+      color: var(--color-primary-active);
+      flex-shrink: 0;
+    }
+    .qr-support__text { flex: 1; min-width: 200px; }
+    .qr-support__title { font-weight: 800; font-size: var(--text-lg); margin-bottom: 2px; }
+    .qr-support__desc { color: var(--color-text-muted); font-size: var(--text-sm); }
+    .qr-support__cta { flex-shrink: 0; }
 
     /* --- 7. Hành trình sinh trưởng (timeline dọc) -------------------------- */
     .qr-timeline__item {
@@ -312,12 +542,82 @@
     .qr-timeline__meta strong { color: var(--color-text); font-weight: 600; }
     .qr-timeline__desc { font-size: var(--text-sm); margin-bottom: var(--space-3); }
     .qr-timeline__images { display: flex; gap: var(--space-2); flex-wrap: wrap; }
-    .qr-timeline__images img {
+    /* Ảnh hiện trường giờ bọc trong <button> (data-lightbox-trigger, dựng
+       trong renderTimeline() — js/truy-xuat.js) thay vì <img> trần — bấm mở
+       lightbox phóng to, có sẵn hành vi bàn phím Enter/Space của <button>. */
+    .qr-timeline__image-btn {
+      padding: 0;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: transparent;
+      cursor: zoom-in;
+      transition: transform 200ms var(--ease-emphasized), border-color 200ms var(--ease-emphasized);
+    }
+    .qr-timeline__image-btn:hover,
+    .qr-timeline__image-btn:focus-visible {
+      transform: scale(1.06);
+      border-color: var(--color-primary);
+    }
+    .qr-timeline__image-btn img {
+      display: block;
       width: 88px;
       height: 88px;
       object-fit: cover;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--color-border);
+    }
+
+    /* Lightbox — phóng to ảnh hiện trường, dùng chung cho MỌI ảnh trong
+       Hành trình sinh trưởng (1 overlay duy nhất, không phải mỗi ảnh 1
+       modal). [hidden] tự thắng display:flex nhờ base.css (`[hidden]{
+       display:none!important}` toàn cục, xem CLAUDE.md gốc mục "Quy ước
+       CSS") — không cần tự viết lại quy tắc đó ở đây. */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-6);
+      background: rgba(8, 20, 14, 0.9);
+      animation: trace-fade-up 200ms var(--ease-emphasized);
+    }
+    .lightbox img {
+      max-width: 100%;
+      max-height: 85vh;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+    }
+    .lightbox__close {
+      position: absolute;
+      top: var(--space-4);
+      right: var(--space-4);
+      /* BẮT BUỘC — không phải trang trí thừa: <img> bên cạnh là 1 flex item
+         (con của .lightbox, display:flex), còn nút này position:absolute
+         (bị đưa ra khỏi luồng flex) — cả 2 cùng z-index mặc định "auto" thì
+         thứ tự vẽ ưu tiên theo THỨ TỰ TRONG DOM, và <img> đứng SAU nút này
+         trong markup nên vẽ ĐÈ LÊN TRÊN. Ảnh phóng to thường gần kín màn
+         hình (max-height 85vh) nên góc trên-phải của ảnh dễ trùng đúng vị
+         trí nút — nút bị ảnh che mất hoàn toàn dù CSS "đúng", đây là bug có
+         thật đã gặp (không phải giả định). z-index ép nút luôn nổi trên
+         ảnh, bất kể thứ tự DOM. */
+      z-index: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--space-10);
+      height: var(--space-10);
+      padding: 0;
+      border: none;
+      border-radius: var(--radius-full);
+      background: rgba(20, 20, 20, 0.55);
+      color: var(--color-text-inverse);
+      cursor: pointer;
+      transition: background var(--transition-base), transform var(--transition-base);
+    }
+    .lightbox__close:hover {
+      background: rgba(20, 20, 20, 0.8);
+      transform: scale(1.08);
     }
 
     /* --- 8. Footer đơn giản ------------------------------------------------ */
@@ -338,58 +638,171 @@
       color: var(--color-text);
     }
     .qr-footer__brand img { width: var(--space-6); height: var(--space-6); }
+    .qr-footer__links {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: var(--space-2);
+      margin-top: var(--space-3);
+    }
+    .qr-footer__links a {
+      color: var(--color-text-muted);
+      transition: color var(--transition-base);
+    }
+    .qr-footer__links a:hover { color: var(--color-primary); }
+
+    /* ==================================================================
+       Hiệu ứng động (2026-09-29) — khác các trang quản trị (nong-trai/
+       vat-tu/lo-hang...): mọi thẻ ở trang này là panel THÔNG TIN THUẦN
+       TUÝ (không bấm/điều hướng được), nên KHÔNG thêm hiệu ứng "nhấc thẻ
+       khi hover" như .farm-card/.batch-card — dễ gây hiểu lầm là bấm
+       được, trong khi các thẻ này thật ra chỉ dùng ".card" trơn (không
+       có ".card--hover", xem css/components.css) đúng ý đồ gốc là
+       KHÔNG tương tác. Trọng tâm ở đây là hiệu ứng HIỆN DẦN đúng lúc dữ
+       liệu tải xong, cùng var(--ease-emphasized) đã dùng ở mọi nơi khác
+       trong dự án (css/tokens.css).
+
+       [data-trace-detail] khởi tạo với thuộc tính `hidden` rồi mới bị gỡ
+       bằng JS SAU KHI fetch xong (showBatch(), js/truy-xuat.js) — toàn
+       bộ animation bên dưới tự CHẠY LẠI TỪ ĐẦU đúng lúc đó (trình duyệt
+       coi phần tử vừa chuyển từ display:none sang hiển thị là "vừa được
+       tạo ra"), KHÔNG cần IntersectionObserver/js/scroll-reveal.js như
+       index.html/blog.html — khác biệt vì toàn bộ nội dung trang này
+       xuất hiện CÙNG LÚC sau 1 lần tải dữ liệu, không phải người dùng
+       cuộn qua từng phần. Mỗi .qr-timeline__item (dựng bằng JS trong
+       renderTimeline()) cũng tự animate đúng vì lý do tương tự — 1 phần
+       tử DOM MỚI được append() luôn tự chạy animation khai báo sẵn
+       trong CSS, không cần gọi lại cơ chế quan sát nào. */
+
+    @keyframes trace-fade-up {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .qr-hero__badge,
+    .qr-hero__title,
+    .qr-hero__desc {
+      animation: trace-fade-up 600ms var(--ease-emphasized) backwards;
+    }
+    .qr-hero__badge { animation-delay: 0ms; }
+    .qr-hero__title { animation-delay: 80ms; }
+    .qr-hero__desc { animation-delay: 160ms; }
+
+    /* 2 thẻ nhà sản xuất + mùa vụ — CHỈ animate ở cấp thẻ .card, KHÔNG
+       lồng thêm animation cho phần tử con bên trong (VD .qr-farm__certs
+       .badge) — 2 animation opacity lồng nhau (cha + con cùng chạy
+       0→1) sẽ nhân độ mờ với nhau, trông mờ/lag hơn hẳn chỉ animate 1
+       cấp, khớp cách .feature-card (index.html) chỉ animate ở cấp thẻ. */
+    .qr-summary > .card {
+      animation: trace-fade-up 550ms var(--ease-emphasized) backwards;
+    }
+    .qr-summary > .card:nth-child(1) { animation-delay: 220ms; }
+    .qr-summary > .card:nth-child(2) { animation-delay: 280ms; }
+
+    .qr-section__title,
+    .qr-farm.card,
+    .qr-batchid,
+    .qr-verified,
+    .qr-pending,
+    .qr-support {
+      animation: trace-fade-up 550ms var(--ease-emphasized) backwards;
+      animation-delay: 340ms;
+    }
+
+    /* Nút sao chép — thêm 1 lần "nảy nhẹ" khi vừa sao chép thành công
+       (.is-copied gắn/gỡ bằng JS có sẵn, xem setupCopyButtons()), phản
+       hồi rõ ràng hơn chỉ đổi màu/icon như trước. */
+    @keyframes copy-pop {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.25); }
+      100% { transform: scale(1); }
+    }
+    .copy-btn.is-copied { animation: copy-pop 350ms var(--ease-emphasized); }
+
+    /* Khoảnh khắc "đã xác thực blockchain" — trọng tâm chính của trang,
+       thêm quầng sáng mờ nhấp nháy CHẬM sau icon khiên (cùng ngôn ngữ
+       ".cta::before" ở index.html), tách riêng animation LẶP LẠI này
+       khỏi animation-once "trace-fade-up" ở trên (2 animation trên cùng
+       phần tử cha/con khác nhau, không xung đột). */
+    @keyframes qr-verified-glow {
+      0%, 100% { opacity: 0.55; }
+      50% { opacity: 1; }
+    }
+    .qr-verified__title .icon {
+      animation: qr-verified-glow 2400ms ease-in-out infinite;
+    }
+
+    /* Timeline hành trình sinh trưởng — danh sách CÓ thể rê chuột để đọc
+       rõ từng mốc (không phải nút bấm), nên chỉ dịch nhẹ sang phải khi
+       hover (không nâng lên như thẻ dạng lưới, tránh ngụ ý "bấm được"),
+       cùng công thức .log-item ở khung quản trị (app/CLAUDE.md). So le
+       4 mục đầu rồi hiện đồng loạt phần còn lại — hành trình có thể dài,
+       so le hết sẽ làm chậm trải nghiệm đọc. */
+    .qr-timeline__item {
+      animation: trace-fade-up 450ms var(--ease-emphasized) backwards;
+      transition: transform 250ms var(--ease-emphasized);
+    }
+    .qr-timeline__item:nth-child(1) { animation-delay: 0ms; }
+    .qr-timeline__item:nth-child(2) { animation-delay: 70ms; }
+    .qr-timeline__item:nth-child(3) { animation-delay: 140ms; }
+    .qr-timeline__item:nth-child(4) { animation-delay: 210ms; }
+    .qr-timeline__item:hover { transform: translateX(4px); }
+    .qr-timeline__item .card {
+      transition: box-shadow 250ms var(--ease-emphasized), border-color 250ms var(--ease-emphasized);
+    }
+    .qr-timeline__item:hover .card {
+      box-shadow: var(--shadow-md);
+      border-color: var(--color-primary);
+    }
+    .qr-timeline__icon {
+      transition: transform 250ms var(--ease-emphasized);
+    }
+    .qr-timeline__item:hover .qr-timeline__icon {
+      transform: scale(1.1);
+    }
+
+    /* Trạng thái đang tải/không tìm thấy — hiện dần nhẹ, cùng lý do đã
+       nêu ở trên (chuyển từ hidden -> hiển thị là đủ để animation tự
+       chạy, không cần JS thêm). */
+    .loading-card,
+    .empty-card {
+      animation: trace-fade-up 450ms var(--ease-emphasized) backwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .qr-hero__badge,
+      .qr-hero__title,
+      .qr-hero__desc,
+      .qr-summary > .card,
+      .qr-section__title,
+      .qr-farm.card,
+      .qr-batchid,
+      .qr-verified,
+      .qr-pending,
+      .qr-support,
+      .qr-timeline__item,
+      .loading-card,
+      .empty-card,
+      .copy-btn.is-copied,
+      .qr-verified__title .icon,
+      .lightbox {
+        animation: none;
+      }
+      .qr-timeline__item:hover,
+      .qr-timeline__item:hover .qr-timeline__icon,
+      .share-btn:hover,
+      .qr-timeline__image-btn:hover,
+      .qr-timeline__image-btn:focus-visible,
+      .lightbox__close:hover {
+        transform: none;
+      }
+    }
   </style>
 
-  <script src="js/api-config.js?v=2"></script>
-  <!-- Cần AgriChain.APP_SPA_URL cho nút "Vào Trang Quản Lý" (js/header.js) —
-       trỏ sang SPA thay vì nong-trai.html (đã xoá, xem CLAUDE.md gốc mục
-       "Kết nối backend"). -->
-  <script src="js/app-config.js?v=2"></script>
+  <script src="js/api-config.js?v=3"></script>
   <script src="js/api.js?v=18"></script>
 </head>
 <body>
-
-  <header class="site-header">
-    <div class="container site-header__inner">
-      <a href="index.html" class="site-header__logo" aria-label="AgriChain — Trang chủ">
-        <img class="site-header__logo-mark" src="icons/exabyte-icon-only-transparent.png" alt="" aria-hidden="true">
-        <span class="site-header__logo-text">AgriChain</span>
-      </a>
-
-      <button
-        type="button"
-        class="site-header__toggle"
-        aria-controls="site-header-panel"
-        aria-expanded="false"
-        aria-label="Mở menu"
-      >
-        <span class="site-header__toggle-bar"></span>
-        <span class="site-header__toggle-bar"></span>
-        <span class="site-header__toggle-bar"></span>
-      </button>
-
-      <div class="site-header__panel" id="site-header-panel">
-        <nav class="site-header__nav" aria-label="Menu chính">
-          <ul class="site-header__menu" role="list">
-            <li class="site-header__menu-item">
-              <a class="site-header__link" href="index.html#tinh-nang">Tính Năng</a>
-            </li>
-            <li class="site-header__menu-item">
-              <a class="site-header__link" href="index.html#quy-trinh">Quy Trình</a>
-            </li>
-            <li class="site-header__menu-item">
-              <a class="site-header__link" href="index.html#lien-he">Liên Hệ</a>
-            </li>
-          </ul>
-        </nav>
-
-        <div class="site-header__actions">
-          <a class="btn btn--outline btn--sm" href="dang-nhap.html">Đăng Nhập</a>
-          <a class="btn btn--primary btn--sm" href="dang-ky.html">Bắt Đầu Ngay</a>
-        </div>
-      </div>
-    </div>
-  </header>
 
   <main>
     <!-- Đang tải -->
@@ -406,7 +819,15 @@
         <p class="empty-card__desc">
           Lô hàng này có thể đã bị xoá, hoặc đường dẫn/mã QR không đúng.
         </p>
-        <a class="btn btn--primary" href="index.html">Về trang chủ</a>
+        <form class="empty-card__lookup" data-lookup-form>
+          <div class="search-field">
+            <svg class="icon search-field__icon"><use href="icons/sprite.svg#icon-search"></use></svg>
+            <input class="input" type="text" name="ma" data-lookup-input autocomplete="off"
+              placeholder="Nhập mã lô hàng, VD: NV01-MV01-001" />
+          </div>
+          <button type="submit" class="btn btn--primary">Tra cứu</button>
+        </form>
+        <a class="btn btn--outline" href="index.html">Về trang chủ</a>
       </div>
     </div>
 
@@ -433,8 +854,14 @@
         <!-- 2+3. Card nhà sản xuất + mùa vụ -->
         <div class="qr-summary">
           <div class="card qr-producer">
-            <span class="qr-producer__avatar" data-org-avatar>—</span>
+            <span class="qr-producer__seal">
+              <span class="qr-producer__avatar">
+                <img data-org-logo alt="" hidden />
+                <span data-org-initials>—</span>
+              </span>
+            </span>
             <div>
+              <p class="qr-producer__eyebrow">Chứng nhận nhà sản xuất</p>
               <p class="qr-producer__name" data-org-name>—</p>
               <p class="qr-producer__tagline" data-org-tagline hidden></p>
             </div>
@@ -454,8 +881,8 @@
               </div>
             </div>
             <div class="qr-season__yield">
-              <span data-batch-yield>—</span>
               <p class="qr-season__yield-label">Sản lượng lô hàng này</p>
+              <span data-batch-yield>—</span>
             </div>
           </div>
         </div>
@@ -468,18 +895,26 @@
           </h2>
           <div class="card qr-farm">
             <div>
-              <p class="trace-row__label">Nông trại</p>
-              <p class="qr-batchid__date-value" data-farm-name style="font-size: var(--text-lg); margin-bottom: var(--space-2);">—</p>
-              <p style="color: var(--color-text-muted); font-size: var(--text-sm); margin-bottom: var(--space-1);" data-farm-address>—</p>
-              <p style="color: var(--color-text-muted); font-size: var(--text-xs);" data-farm-puc hidden></p>
+              <p class="qr-farm__label">Nông trại</p>
+              <p class="qr-farm__value" data-farm-name>—</p>
+
+              <p class="qr-farm__label">Địa chỉ</p>
+              <p class="qr-farm__address" data-farm-address>—</p>
+              <p class="qr-farm__puc" data-farm-puc hidden></p>
+
+              <p class="qr-farm__label" data-farm-certs-label hidden>Chứng nhận</p>
               <div class="qr-farm__certs" data-farm-certs></div>
             </div>
-            <!-- Placeholder bản đồ ranh giới thửa đất — CHƯA tích hợp Leaflet.js
-                 thật (xem PUBLIC-BATCH-SCHEMA.md), farm.polygon đã có sẵn dữ
-                 liệu [{lat,lng}] để vẽ khi cần. -->
-            <div class="qr-farm__map" data-farm-map>
-              <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-map-pin"></use></svg>
-              <p class="qr-farm__map-note">Bản đồ ranh giới thửa đất — sẽ tích hợp Leaflet.js hiển thị vị trí thật</p>
+            <!-- Bản đồ ranh giới thửa đất — renderFarm() (js/truy-xuat.js) tự
+                 chọn hiện .qr-farm__map-canvas (vẽ polygon thật bằng Leaflet,
+                 farm.polygon >= 3 điểm) hoặc giữ placeholder này (không đủ dữ
+                 liệu ranh giới), KHÔNG BAO GIỜ hiện cả 2 cùng lúc. -->
+            <div class="qr-farm__map-wrap">
+              <div class="qr-farm__map-canvas" data-farm-map-canvas hidden></div>
+              <div class="qr-farm__map" data-farm-map>
+                <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-map-pin"></use></svg>
+                <p class="qr-farm__map-note" data-farm-map-note>Bản đồ ranh giới thửa đất — sẽ tích hợp Leaflet.js hiển thị vị trí thật</p>
+              </div>
             </div>
           </div>
         </section>
@@ -503,6 +938,21 @@
             <div>
               <p class="qr-batchid__date-label">Trạng thái</p>
               <span class="badge badge--neutral" data-batch-status>—</span>
+            </div>
+          </div>
+
+          <div class="qr-batchid__share">
+            <span class="qr-batchid__label" style="margin-bottom: 0;">Chia sẻ trang này</span>
+            <div class="qr-batchid__share-buttons">
+              <a class="share-btn" data-share-facebook target="_blank" rel="noopener" aria-label="Chia sẻ lên Facebook">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-facebook"></use></svg>
+              </a>
+              <a class="share-btn" data-share-twitter target="_blank" rel="noopener" aria-label="Chia sẻ lên Twitter">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-twitter"></use></svg>
+              </a>
+              <button type="button" class="share-btn" data-copy-link aria-label="Sao chép liên kết trang">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-link"></use></svg>
+              </button>
             </div>
           </div>
         </div>
@@ -562,7 +1012,7 @@
             </div>
           </div>
 
-          <a class="btn btn--outline qr-verified__explorer-link" data-verified-explorer href="#" target="_blank" rel="noopener">
+          <a class="btn qr-verified__explorer-link" data-verified-explorer href="#" target="_blank" rel="noopener">
             <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-link"></use></svg>
             Xem trên Blockchain Explorer
           </a>
@@ -575,6 +1025,21 @@
             <p class="qr-pending__title">Chưa xác thực trên Blockchain</p>
             <p class="qr-pending__desc">Lô hàng này chưa được ghi hash lên blockchain — thông tin vẫn được đảm bảo bởi dữ liệu nội bộ AgriChain.</p>
           </div>
+        </div>
+
+        <!-- 6c. Cần hỗ trợ? — luôn hiện, không phụ thuộc dữ liệu lô hàng -->
+        <div class="card qr-support">
+          <div class="qr-support__icon">
+            <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-phone"></use></svg>
+          </div>
+          <div class="qr-support__text">
+            <p class="qr-support__title">Bạn cần thêm thông tin?</p>
+            <p class="qr-support__desc">Chúng tôi luôn sẵn sàng hỗ trợ bạn 24/7.</p>
+          </div>
+          <a class="btn btn--primary qr-support__cta" href="tel:+84929145555">
+            <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-phone"></use></svg>
+            Liên hệ chúng tôi
+          </a>
         </div>
 
         <!-- 7. Hành trình sinh trưởng -->
@@ -596,13 +1061,34 @@
       AgriChain
     </div>
     <p>Truy xuất nguồn gốc nông sản bằng blockchain — minh bạch từng lô hàng.</p>
+    <nav class="qr-footer__links" aria-label="Liên kết">
+      <a href="index.html">Trang chủ</a>
+      <span aria-hidden="true">·</span>
+      <a href="blog.html">Blog</a>
+      <span aria-hidden="true">·</span>
+      <a href="index.html#lien-he">Liên hệ</a>
+    </nav>
   </footer>
+
+  <!-- Lightbox phóng to ảnh hiện trường (mục "Hành trình sinh trưởng") — 1
+       overlay DÙNG CHUNG cho mọi ảnh, luôn có sẵn trong DOM (không tạo/huỷ
+       động), setupLightbox() (js/truy-xuat.js) chỉ đổi src + gỡ/gắn hidden. -->
+  <div class="lightbox" data-lightbox hidden>
+    <button type="button" class="lightbox__close" data-lightbox-close aria-label="Đóng">
+      <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-x-circle"></use></svg>
+    </button>
+    <img data-lightbox-img alt="" />
+  </div>
 
   <!-- Nguồn DUY NHẤT cho nhãn/icon "loại hoạt động" (AgriChain.ACTIVITY_TYPES)
        — dùng để dựng icon/nhãn đúng cho từng mốc trong "Hành trình sinh
        trưởng", không khai báo lại danh sách này lần thứ 3 trong dự án. -->
   <script src="js/enums.js?v=1"></script>
-  <script src="js/truy-xuat.js?v=4" defer></script>
-  <script src="js/header.js?v=6" defer></script>
+  <!-- 3 lớp nền bản đồ dùng chung (vệ tinh/địa hình/mặc định) — cùng nội
+       dung với app/src/mapLayers.ts (bản port TypeScript cho SPA, dùng ở
+       BoundaryEditor.tsx), chỉ khác chỗ nạp (site tĩnh không build ES module
+       nên vẫn giữ bản vanilla JS gốc này thay vì import). -->
+  <script src="js/map-layers.js?v=1"></script>
+  <script src="js/truy-xuat.js?v=9" defer></script>
 </body>
 </html>

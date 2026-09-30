@@ -92,6 +92,10 @@
     notFoundNode.querySelector('[data-not-found-title]').textContent = code
       ? 'Không tìm thấy lô hàng có mã "' + code + '"'
       : 'Thiếu mã lô hàng trên đường dẫn';
+    // Điền sẵn mã cũ vào ô tra cứu (nếu có) — tiện sửa lại đúng mã thay vì
+    // phải gõ lại từ đầu, VD gõ nhầm 1 ký tự trong link/QR.
+    var lookupInput = document.querySelector('[data-lookup-input]');
+    if (lookupInput) lookupInput.value = code || '';
   }
 
   function showLoadError() {
@@ -139,7 +143,26 @@
       .join('')
       .toUpperCase();
 
-    fillField('[data-org-avatar]', initials || 'A');
+    // Logo thật (organization.logo_url) khi Đơn vị đã tải lên — chỉ rơi về
+    // chữ cái viết tắt khi CHƯA có logo hoặc ảnh lỗi (onerror, VD URL cũ đã
+    // gỡ) — không để ảnh vỡ hiện ra giữa trang.
+    var logoNode = document.querySelector('[data-org-logo]');
+    var initialsNode = document.querySelector('[data-org-initials]');
+    if (organization && organization.logo_url) {
+      logoNode.src = organization.logo_url;
+      logoNode.alt = name;
+      logoNode.hidden = false;
+      initialsNode.hidden = true;
+      logoNode.onerror = function () {
+        logoNode.hidden = true;
+        initialsNode.hidden = false;
+      };
+    } else {
+      logoNode.hidden = true;
+      initialsNode.hidden = false;
+    }
+    initialsNode.textContent = initials || 'A';
+
     fillField('[data-org-name]', name);
 
     var taglineNode = document.querySelector('[data-org-tagline]');
@@ -174,9 +197,53 @@
       pucNode.hidden = true;
     }
 
-    // Placeholder bản đồ — farm.polygon (mảng {lat,lng}, tối thiểu 3 điểm)
-    // đã có sẵn để vẽ ranh giới thật khi tích hợp Leaflet.js, xem
-    // PUBLIC-BATCH-SCHEMA.md. Không vẽ gì thêm ở đây ngoài ghi chú tĩnh.
+    renderFarmMap(farm);
+  }
+
+  /* --- Bản đồ ranh giới thửa đất (Leaflet, chỉ xem — không cho click để vẽ
+     như form Thêm nông trại) --------------------------------------------
+     Cùng công thức showFarmOnMap() từng có ở js/nong-trai-chi-tiet.js (đã
+     mồ côi khỏi HTML, trang đó đã chuyển sang SPA) — dùng lại
+     AgriChain.addMapBaseLayers() (js/map-layers.js) cho 3 lớp nền vệ tinh/
+     địa hình/mặc định. Khác 1 điểm: tắt scrollWheelZoom — trang này là 1
+     trang cuộn dài, để mặc định (cuộn chuột trên bản đồ = zoom) sẽ khiến
+     người dùng bị "kẹt" zoom bản đồ giữa chừng khi lướt qua, một lỗi UX quen
+     thuộc với bản đồ nhúng trong trang nội dung dài — form vẽ ranh giới ở
+     admin không gặp vấn đề này vì luôn nằm trong modal/khung cố định, không
+     phải 1 trang cuộn dài. */
+  function renderFarmMap(farm) {
+    var canvasNode = document.querySelector('[data-farm-map-canvas]');
+    var placeholderNode = document.querySelector('[data-farm-map]');
+    var polygon = (farm && farm.polygon) || [];
+
+    if (typeof L === 'undefined' || polygon.length < 3) {
+      // Không đủ dữ liệu ranh giới (hoặc Leaflet lỡ tải lỗi, VD mất mạng
+      // ngoài CDN) — giữ nguyên placeholder, chỉ đổi lại chữ cho đúng thực
+      // trạng (bản đồ ĐÃ tích hợp xong, chỉ là nông trại này chưa có toạ độ).
+      var noteNode = document.querySelector('[data-farm-map-note]');
+      if (noteNode) {
+        noteNode.textContent = 'Nông trại này chưa có dữ liệu ranh giới thửa đất.';
+      }
+      return;
+    }
+
+    canvasNode.hidden = false;
+    placeholderNode.hidden = true;
+
+    var latlngs = polygon.map(function (p) { return [p.lat, p.lng]; });
+    var map = L.map(canvasNode, { center: latlngs[0], zoom: 15, scrollWheelZoom: false });
+    global.AgriChain.addMapBaseLayers(map);
+    L.polygon(latlngs, {
+      color: '#1F8F58', weight: 3, fillColor: '#2EA86B', fillOpacity: 0.25
+    }).addTo(map);
+    map.fitBounds(L.latLngBounds(latlngs), { padding: [24, 24] });
+
+    // Khung bản đồ chỉ có kích thước thật sau khi trình duyệt vẽ xong khối
+    // cha (vừa được bỏ [hidden] trên [data-trace-detail]) — đợi 1 khung
+    // hình rồi đo lại, cùng kỹ thuật đã dùng ở js/nong-trai-chi-tiet.js cũ.
+    global.requestAnimationFrame(function () {
+      map.invalidateSize();
+    });
   }
 
   function renderCertifications(certifications) {
@@ -185,6 +252,13 @@
     (certifications || []).forEach(function (cert) {
       node.appendChild(el('span', 'badge badge--success', cert.name));
     });
+
+    // Nhãn "Chứng nhận" chỉ hiện khi CÓ ít nhất 1 chứng nhận active — ẩn hẳn
+    // (thay vì hiện nhãn trơ trên 1 khu vực trống) khi nông trại chưa có
+    // chứng nhận nào, cùng cách xử lý field-tuỳ-chọn khác trên trang (VD
+    // data-farm-puc).
+    var labelNode = document.querySelector('[data-farm-certs-label]');
+    if (labelNode) labelNode.hidden = !certifications || certifications.length === 0;
   }
 
   function renderBatchId(batch) {
@@ -193,6 +267,12 @@
 
     var statusNode = document.querySelector('[data-batch-status]');
     statusNode.textContent = BATCH_STATUS_LABELS[batch.status] || batch.status || '—';
+    // Đổi màu badge theo ý nghĩa trạng thái thay vì luôn xám (--neutral) —
+    // route công khai này chỉ trả 3 trạng thái harvested/processed/completed
+    // (xem _PUBLIC_TRACEABLE_STATUSES phía backend, mọi trạng thái khác 404
+    // trước khi tới được đây), nhưng vẫn khai báo đủ cả bảng cho rõ ràng nếu
+    // sau này route nới lỏng điều kiện.
+    statusNode.className = 'badge ' + (BATCH_STATUS_BADGES[batch.status] || 'badge--neutral');
   }
 
   var BATCH_STATUS_LABELS = {
@@ -203,6 +283,16 @@
     processed: 'Đã sơ chế',
     completed: 'Hoàn thành',
     failed: 'Thất bại'
+  };
+
+  var BATCH_STATUS_BADGES = {
+    planning: 'badge--neutral',
+    planted: 'badge--neutral',
+    growing: 'badge--info',
+    harvested: 'badge--success',
+    processed: 'badge--info',
+    completed: 'badge--success',
+    failed: 'badge--danger'
   };
 
   function renderVerification(batch) {
@@ -280,11 +370,22 @@
       if (log.images && log.images.length) {
         var imagesWrap = el('div', 'qr-timeline__images');
         log.images.forEach(function (image) {
+          // Bọc trong <button> (thay vì <img> trần) — bấm mở lightbox phóng
+          // to, có sẵn hành vi bàn phím Enter/Space của <button>, không cần
+          // tự bắt keydown như 1 <img tabindex="0"> tự chế. Xem
+          // setupLightbox() (uỷ quyền sự kiện qua document, bắt được cả nút
+          // tạo sau thời điểm nó chạy).
+          var imgBtn = document.createElement('button');
+          imgBtn.type = 'button';
+          imgBtn.className = 'qr-timeline__image-btn';
+          imgBtn.setAttribute('data-lightbox-trigger', '');
+          imgBtn.setAttribute('aria-label', 'Xem lớn ảnh ' + (image.name || 'hiện trường'));
           var img = document.createElement('img');
           img.src = image.url;
           img.alt = image.name || '';
           img.loading = 'lazy';
-          imagesWrap.appendChild(img);
+          imgBtn.appendChild(img);
+          imagesWrap.appendChild(imgBtn);
         });
         card.appendChild(imagesWrap);
       }
@@ -325,6 +426,95 @@
     });
   }
 
+  /* --- Tra cứu mã lô hàng thủ công (khối "Không tìm thấy") -----------------
+     Điều hướng lại chính trang này với ?ma= mới — KHÔNG tự fetch() ngầm rồi
+     đổi DOM tại chỗ, để URL luôn phản ánh đúng mã đang xem (bấm Back/chia sẻ
+     link vẫn đúng), cùng nguyên tắc "trang chi tiết dùng query string" đã
+     ghi trong CLAUDE.md gốc. Gọi 1 LẦN lúc DOMContentLoaded, không phụ
+     thuộc data — form luôn có sẵn trong DOM tĩnh (chỉ ẩn/hiện qua [hidden]
+     trên khối cha .empty-card, không tạo/huỷ động). */
+  function setupLookupForm() {
+    var form = document.querySelector('[data-lookup-form]');
+    if (!form) return;
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var input = document.querySelector('[data-lookup-input]');
+      var code = (input.value || '').trim();
+      if (!code) return;
+      global.location.href = 'truy-xuat.html?ma=' + encodeURIComponent(code);
+    });
+  }
+
+  /* --- Lightbox phóng to ảnh hiện trường (timeline) -------------------------
+     1 overlay DÙNG CHUNG cho mọi ảnh (luôn có sẵn trong DOM tĩnh) — uỷ quyền
+     sự kiện qua document, cùng mẫu setupCopyButtons() bên dưới, vì
+     .qr-timeline__image-btn được TẠO SAU bởi renderTimeline() (chưa tồn tại
+     lúc setupLightbox() chạy) nên không gắn listener trực tiếp lên từng nút
+     được — gắn 1 lần trên document là đủ, bắt được cả nút tạo sau này. Gọi 1
+     LẦN lúc DOMContentLoaded, không phụ thuộc data. */
+  function setupLightbox() {
+    var overlay = document.querySelector('[data-lightbox]');
+    var imgNode = document.querySelector('[data-lightbox-img]');
+    if (!overlay || !imgNode) return;
+
+    function close() {
+      overlay.hidden = true;
+      imgNode.src = '';
+    }
+
+    document.addEventListener('click', function (event) {
+      var trigger = event.target.closest('[data-lightbox-trigger]');
+      if (trigger) {
+        var triggerImg = trigger.querySelector('img');
+        imgNode.src = triggerImg.src;
+        imgNode.alt = triggerImg.alt;
+        overlay.hidden = false;
+        return;
+      }
+      // Bấm ra ngoài ảnh (chính lớp phủ overlay) hoặc bấm nút Đóng đều đóng —
+      // KHÔNG đóng khi bấm thẳng vào <img> (event.target lúc đó là chính
+      // .lightbox img, không phải overlay).
+      if (!overlay.hidden && (event.target === overlay || event.target.closest('[data-lightbox-close]'))) {
+        close();
+      }
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !overlay.hidden) close();
+    });
+  }
+
+  /* --- Chia sẻ trang truy xuất (Facebook/Twitter/sao chép liên kết) --------
+     Cùng công thức đã dùng ở blog-chi-tiet.html (js/blog-chi-tiet.js) — khác
+     1 điểm: nội dung chia sẻ lấy từ MÃ LÔ HÀNG (không phải tiêu đề bài viết),
+     vì trang này không có "tiêu đề" theo nghĩa content, chỉ có mã lô hàng
+     làm định danh dễ nhận biết nhất khi chia sẻ. Gọi SAU khi có `data` (cần
+     batch.code), khác setupLookupForm()/setupLightbox() ở trên. */
+  function setupShareButtons(data) {
+    var url = global.location.href;
+    var shareText = 'Xem nguồn gốc lô hàng ' + data.batch.code + ' trên AgriChain';
+
+    var fbLink = document.querySelector('[data-share-facebook]');
+    fbLink.href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url);
+
+    var twLink = document.querySelector('[data-share-twitter]');
+    twLink.href = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(url) +
+      '&text=' + encodeURIComponent(shareText);
+
+    var copyBtn = document.querySelector('[data-copy-link]');
+    copyBtn.addEventListener('click', function () {
+      var iconUse = copyBtn.querySelector('use');
+      var originalHref = iconUse.getAttribute('href');
+      if (!global.navigator.clipboard) return;
+      global.navigator.clipboard.writeText(url).then(function () {
+        iconUse.setAttribute('href', 'icons/sprite.svg#icon-check-circle');
+        setTimeout(function () {
+          iconUse.setAttribute('href', originalHref);
+        }, 1500);
+      });
+    });
+  }
+
   function showBatch(data) {
     loadingNode.hidden = true;
     notFoundNode.hidden = true;
@@ -338,9 +528,13 @@
     renderVerification(data.batch);
     renderTimeline(data.logs);
     setupCopyButtons(data);
+    setupShareButtons(data);
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    setupLookupForm();
+    setupLightbox();
+
     var code = (new URLSearchParams(global.location.search).get('ma') || '').trim();
 
     if (!code) {

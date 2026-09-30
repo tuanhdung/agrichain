@@ -19,6 +19,19 @@
 }
 
 .auth-page {
+  /* Không còn overflow/position gì ở đây — 2 lần sửa trước đã chứng minh cả
+     2 hướng đều có vấn đề khi đặt trên chính <body>:
+     - overflow: hidden -> tự lan lên khoá cuộn CẢ VIEWPORT (quy tắc lan
+       truyền overflow từ body lên root), không chỉ cắt riêng phần blob.
+     - overflow-x: hidden (không kèm overflow-y) -> không khoá cuộn nữa,
+       nhưng phần blob lồi ra âm (bottom/right < 0) vẫn kéo dài "scrollable
+       overflow area" của trang ra QUÁ khung nền thật (nền chỉ vẽ trong biên
+       box của .auth-page, không theo phần con lồi ra), để lộ 1 dải nền
+       trắng/mặc định phía dưới — bug thật đã gặp (ảnh chụp màn hình).
+     Giải pháp đúng: chuyển 2 blob sang 1 lớp RIÊNG (.auth-page__decor,
+     position: fixed, xem ngay dưới) — position: fixed không đóng góp vào
+     chiều cao cuộn của trang, và overflow: hidden đặt trên NÓ (không phải
+     trên <body>) không bị quy tắc lan truyền lên viewport chi phối. */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -27,7 +40,55 @@
   background: linear-gradient(140deg, var(--green-100) 0%, var(--color-bg-subtle) 60%);
 }
 
+/* Khối trang trí trôi nổi phía sau thẻ đăng nhập/đăng ký — cùng ngôn ngữ thị
+   giác với các blob ở index.html/blog.html (mỗi file .html tự khai báo lại
+   @keyframes riêng, không dùng chung được giữa các trang khác nhau).
+   position: fixed + inset: 0 luôn phủ ĐÚNG khung nhìn hiện tại bất kể trang
+   cao hơn 100vh hay không, và overflow: hidden của CHÍNH lớp này (không phải
+   <body>) cắt gọn 2 blob mà không ảnh hưởng gì tới việc cuộn trang. */
+.auth-page__decor {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.auth-page__decor::before,
+.auth-page__decor::after {
+  content: '';
+  position: absolute;
+  border-radius: var(--radius-full);
+  filter: blur(80px);
+  opacity: 0.35;
+}
+.auth-page__decor::before {
+  top: -120px;
+  left: -80px;
+  width: 320px;
+  height: 320px;
+  background: var(--green-300);
+  animation: auth-blob-float-1 16s ease-in-out infinite;
+}
+.auth-page__decor::after {
+  bottom: -140px;
+  right: -100px;
+  width: 360px;
+  height: 360px;
+  background: var(--green-200);
+  animation: auth-blob-float-2 20s ease-in-out infinite;
+}
+@keyframes auth-blob-float-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, 40px) scale(1.08); }
+}
+@keyframes auth-blob-float-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-30px, -30px) scale(1.05); }
+}
+
 .auth-card {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 1fr;
   width: 100%;
@@ -36,11 +97,31 @@
   background: var(--color-bg);
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-xl);
+  /* Hiện dần + trồi lên nhẹ ngay lúc trang tải xong — trang đăng nhập/đăng
+     ký luôn gói gọn trong 1 màn hình đầu tiên, không cần chờ cuộn tới như
+     [data-reveal] (components.css) nên dùng animation chạy ngay thay vì
+     IntersectionObserver. */
+  animation: auth-card-in 600ms var(--ease-emphasized) both;
+}
+@keyframes auth-card-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-page__decor::before,
+  .auth-page__decor::after {
+    animation: none;
+  }
+  .auth-card {
+    animation: none;
+  }
 }
 
 /* Bảng giới thiệu bên trái — ẩn dưới 960px để form không bị đẩy quá sâu
    xuống dưới trên điện thoại. */
 .auth-card__brand {
+  position: relative;
+  overflow: hidden;
   display: none;
   flex-direction: column;
   justify-content: center;
@@ -48,6 +129,46 @@
   padding: var(--space-12) var(--space-10);
   background: linear-gradient(160deg, var(--green-900) 0%, var(--green-700) 100%);
   color: var(--color-text-inverse);
+}
+/* Blob riêng của cột giới thiệu (nền tối hơn .auth-page) — nâng nội dung
+   thật lên trên bằng z-index vì pseudo-element position:absolute mặc định
+   sẽ vẽ đè lên các phần tử tĩnh (static) đứng trước nó trong cùng ngữ cảnh
+   xếp chồng. */
+.auth-card__brand::before,
+.auth-card__brand::after {
+  content: '';
+  position: absolute;
+  border-radius: var(--radius-full);
+  filter: blur(70px);
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 0;
+}
+.auth-card__brand::before {
+  top: -100px;
+  right: -60px;
+  width: 260px;
+  height: 260px;
+  background: var(--green-400);
+  animation: auth-blob-float-1 18s ease-in-out infinite;
+}
+.auth-card__brand::after {
+  bottom: -120px;
+  left: -60px;
+  width: 240px;
+  height: 240px;
+  background: var(--green-500);
+  animation: auth-blob-float-2 22s ease-in-out infinite;
+}
+.auth-card__brand > * {
+  position: relative;
+  z-index: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-card__brand::before,
+  .auth-card__brand::after {
+    animation: none;
+  }
 }
 
 .auth-brand__mark {
@@ -102,6 +223,23 @@
   padding: var(--space-4);
   border-radius: var(--radius-lg);
   background: var(--overlay-white-subtle);
+  /* Hiện dần so le ngay lúc trang tải xong (cùng mẫu .auth-card ở trên) —
+     animation-delay tính riêng theo :nth-child, không cần JS. */
+  opacity: 0;
+  animation: auth-fact-in 500ms var(--ease-emphasized) both;
+}
+.auth-brand__fact:nth-child(1) { animation-delay: 200ms; }
+.auth-brand__fact:nth-child(2) { animation-delay: 320ms; }
+.auth-brand__fact:nth-child(3) { animation-delay: 440ms; }
+@keyframes auth-fact-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-brand__fact {
+    opacity: 1;
+    animation: none;
+  }
 }
 
 .auth-brand__fact-value {
@@ -161,7 +299,8 @@
   font-weight: 600;
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: background-color var(--transition-base), color var(--transition-base);
+  transition: background-color var(--transition-base), color var(--transition-base),
+    transform 200ms var(--ease-emphasized);
 }
 
 .auth-tab__input {
@@ -173,6 +312,12 @@
 .auth-tab:has(.auth-tab__input:checked) {
   background: var(--color-primary);
   color: var(--color-text-inverse);
+  transform: scale(1.03);
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-tab:has(.auth-tab__input:checked) {
+    transform: none;
+  }
 }
 
 .auth-tab:has(.auth-tab__input:focus-visible) {
@@ -223,8 +368,49 @@
   color: var(--color-danger);
   font-size: var(--text-sm);
 }
+/* Rung nhẹ để thu hút chú ý khi báo lỗi — js/auth.js's showAlert() ép reflow
+   (void alert.offsetWidth) trước khi thêm lại .is-visible, để 2 lần lỗi liên
+   tiếp (VD gõ sai mật khẩu 2 lần) đều rung lại từ đầu thay vì chỉ chạy đúng
+   1 lần ở lần lỗi đầu tiên (cùng kỹ thuật đã dùng cho dấu tích thành công ở
+   form Liên Hệ, index.html). */
 .auth-alert.is-visible {
   display: flex;
+  animation: auth-alert-shake 400ms var(--ease-emphasized);
+}
+@keyframes auth-alert-shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-alert.is-visible {
+    animation: none;
+  }
+}
+
+/* Spinner cho nút gửi lúc đang xử lý — js/auth.js chỉ toggle
+   `submitButton.disabled` (không thêm class riêng), nên hook thẳng vào
+   :disabled của CHÍNH nút submit trong form auth là đủ, không cần sửa JS:
+   nút submit của 2 form này chỉ ở trạng thái disabled đúng lúc đang gửi.
+   Dùng lại @keyframes spin đã có ở css/components.css (cùng tài liệu, mọi
+   stylesheet nạp vào 1 trang HTML dùng chung được @keyframes của nhau). */
+.auth-form button[type="submit"]:disabled::after {
+  content: '';
+  display: inline-block;
+  width: var(--space-4);
+  height: var(--space-4);
+  margin-left: var(--space-2);
+  vertical-align: -3px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: var(--color-text-inverse);
+  border-radius: var(--radius-full);
+  animation: spin 0.6s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-form button[type="submit"]:disabled::after {
+    animation: none;
+  }
 }
 
 /* --- Nhóm trường chỉ hiện với một loại tài khoản -------------------------- */

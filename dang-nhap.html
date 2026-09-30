@@ -26,6 +26,8 @@
 </head>
 <body class="auth-page">
 
+  <span class="auth-page__decor" aria-hidden="true"></span>
+
   <main class="auth-card">
 
     <!-- Cột giới thiệu -->
@@ -77,19 +79,25 @@
 
         <div class="field">
           <label class="label" for="login-email">Email</label>
-          <input class="input" type="email" id="login-email" name="email"
-            autocomplete="email" required />
+          <div class="input-icon-wrap">
+            <svg class="icon icon--sm input-icon-wrap__icon"><use href="icons/sprite.svg#icon-mail"></use></svg>
+            <input class="input" type="email" id="login-email" name="email"
+              autocomplete="email" required />
+          </div>
         </div>
 
         <div class="field">
           <label class="label" for="login-password">Mật khẩu</label>
-          <div class="password-field">
-            <input class="input" type="password" id="login-password" name="password"
-              autocomplete="current-password" required />
-            <button type="button" class="password-toggle" data-password-toggle="login-password"
-              aria-label="Hiện mật khẩu">
-              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-eye"></use></svg>
-            </button>
+          <div class="input-icon-wrap">
+            <svg class="icon icon--sm input-icon-wrap__icon"><use href="icons/sprite.svg#icon-key"></use></svg>
+            <div class="password-field">
+              <input class="input" type="password" id="login-password" name="password"
+                autocomplete="current-password" required />
+              <button type="button" class="password-toggle" data-password-toggle="login-password"
+                aria-label="Hiện mật khẩu">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-eye"></use></svg>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -101,7 +109,7 @@
           <a class="auth-link" href="#quen-mat-khau">Quên mật khẩu?</a>
         </div>
 
-        <button type="submit" class="btn btn--primary btn--lg">Đăng nhập</button>
+        <button type="submit" class="btn btn--primary btn--lg btn-shine">Đăng nhập</button>
       </form>
 
       <p class="auth-foot">
