@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi Tiết Nông Sản - AgriVerse</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Cùng cấu hình Tailwind với agriverse-3d.html (mỗi trang tự chứa riêng)
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#14532d', 950: '#052e18' },
+                        amber: { 500: '#f59e0b', 600: '#d97706' }
+                    },
+                    fontFamily: { sans: ['Lexend', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Lexend', sans-serif; background-color: #fafaf8; }
+        .field-input { width: 100%; padding: .7rem 1rem; border-radius: .9rem; border: 1px solid #e2e8f0; background: #fff; font-size: .875rem; }
+        .field-input:focus { outline: none; border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.15); }
+        .star-pick button { font-size: 1.6rem; line-height: 1; color: #cbd5e1; transition: transform .1s, color .1s; }
+        .star-pick button:hover { transform: scale(1.15); }
+        .star-pick button.is-on { color: #f59e0b; }
+    </style>
+
+    <script src="js/api-config.js?v=2"></script>
+    <script src="js/app-config.js?v=2"></script>
+    <script src="js/api.js?v=23"></script>
+    <script src="js/agriverse-cart.js?v=3"></script>
+    <script src="js/agriverse-cart-drawer.js?v=1"></script>
+    <script src="js/agriverse-wholesale.js?v=1"></script>
+    <script src="js/agriverse-account.js?v=1" defer></script>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-emerald-100 shadow-sm">
+        <div class="px-4 sm:px-6">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex items-center space-x-3 sm:space-x-4">
+                    <a href="index.html" class="flex items-center space-x-1.5 pr-3 sm:pr-4 border-r border-slate-200 text-slate-500 hover:text-brand-700 font-semibold text-xs transition flex-shrink-0" aria-label="Về trang giới thiệu AgriChain">
+                        <i class="fa-solid fa-arrow-left-long"></i>
+                        <span class="hidden sm:inline">Về AgriChain</span>
+                    </a>
+                    <a href="agriverse-3d.html" class="flex items-center space-x-3">
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-700 via-emerald-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+                            <i class="fa-solid fa-cube text-2xl"></i>
+                        </div>
+                        <span class="text-2xl font-black bg-gradient-to-r from-brand-800 via-emerald-600 to-amber-600 bg-clip-text text-transparent tracking-tight">AgriVerse</span>
+                    </a>
+                </div>
+                <nav class="hidden md:flex flex-1 items-center justify-center gap-2 lg:gap-4 px-2">
+                    <a href="agriverse-3d.html" class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-600 border-b-2 border-transparent hover:text-brand-700 hover:border-emerald-300 transition"><i class="fa-solid fa-house"></i> Trang Chủ</a>
+                    <a href="san-pham.html" class="flex items-center gap-2 px-4 py-2 text-sm font-bold text-brand-700 border-b-2 border-brand-600"><i class="fa-solid fa-leaf"></i> Sản Phẩm</a>
+                </nav>
+                <div class="flex items-center space-x-3">
+                    <a href="agriverse-3d.html?gio-hang=1" class="relative p-2.5 rounded-full hover:bg-slate-100 text-slate-700 transition" aria-label="Giỏ hàng">
+                        <i class="fa-solid fa-basket-shopping text-xl"></i>
+                        <span id="cart-count" class="absolute -top-1 -right-1 bg-amber-500 text-slate-950 font-black text-xs w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow">0</span>
+                    </a>
+                    <div id="account-area" class="relative"></div>
+                </div>
+            </div>
+        </div>
+        <nav class="md:hidden flex border-t border-slate-100 text-sm" aria-label="Menu chính">
+            <a href="agriverse-3d.html" class="flex-1 text-center py-2.5 font-semibold text-slate-600 border-b-2 border-transparent hover:text-brand-700"><i class="fa-solid fa-house mr-1.5"></i>Trang Chủ</a>
+            <a href="san-pham.html" class="flex-1 text-center py-2.5 font-semibold text-brand-700 border-b-2 border-brand-600"><i class="fa-solid fa-leaf mr-1.5"></i>Sản Phẩm</a>
+        </nav>
+    </header>
+
+    <main class="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex-1 space-y-8">
+        <nav class="text-sm text-slate-500">
+            <a href="agriverse-3d.html" class="hover:text-brand-700">Trang chủ</a><span class="mx-2">/</span>
+            <a href="san-pham.html" class="hover:text-brand-700">Sản phẩm</a>
+            <span id="crumb-category-sep" class="mx-2" hidden>/</span><a id="crumb-category" href="#" class="hover:text-brand-700" hidden></a>
+            <span class="mx-2">/</span><span id="crumb-name" class="font-bold text-slate-900"></span>
+        </nav>
+
+        <div id="state-loading" class="bg-white rounded-3xl border border-slate-200 p-16 text-center text-slate-400">
+            <i class="fa-solid fa-spinner fa-spin text-2xl mb-3"></i><p>Đang tải sản phẩm...</p>
+        </div>
+        <div id="state-error" class="bg-white rounded-3xl border border-slate-200 p-16 text-center" hidden>
+            <i class="fa-solid fa-seedling text-5xl text-slate-200 mb-4"></i>
+            <p id="state-error-title" class="font-black text-slate-900 text-lg"></p>
+            <p id="state-error-text" class="text-sm text-slate-500 mt-1"></p>
+            <a href="san-pham.html" class="inline-block mt-5 px-5 py-2.5 rounded-2xl bg-brand-700 hover:bg-brand-800 text-white text-sm font-bold transition">Xem tất cả sản phẩm</a>
+        </div>
+
+        <div id="product" hidden class="space-y-8">
+            <section class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white rounded-3xl border border-slate-200 p-6 sm:p-8">
+                <div class="rounded-2xl bg-gradient-to-br from-amber-50 to-emerald-50 aspect-square overflow-hidden flex items-center justify-center">
+                    <img id="p-image" alt="" class="w-full h-full object-cover" hidden>
+                    <i id="p-image-empty" class="fa-solid fa-seedling text-7xl text-slate-200"></i>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <span id="p-category" class="text-xs font-bold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-md" hidden></span>
+                        <h1 id="p-name" class="text-2xl sm:text-3xl font-black text-slate-900 mt-2"></h1>
+                        <a href="#reviews" class="flex items-center gap-2 mt-2 text-sm text-slate-500 hover:text-brand-700">
+                            <span id="p-stars"></span><span id="p-rating-text"></span>
+                        </a>
+                    </div>
+                    <p id="p-summary" class="text-slate-600 text-sm"></p>
+
+                    <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4 space-y-2">
+                        <div class="flex items-baseline gap-2"><span id="p-price" class="text-3xl font-black text-brand-700 font-mono"></span><span id="p-unit" class="text-sm text-slate-500"></span></div>
+                        <p id="p-wholesale" class="text-sm text-amber-700" hidden></p>
+                    </div>
+
+                    <ul class="text-sm text-slate-600 space-y-1.5">
+                        <li><i class="fa-solid fa-box w-5 text-brand-600"></i>Tình trạng: <strong id="p-stock"></strong></li>
+                        <li id="p-origin-row" hidden><i class="fa-solid fa-location-dot w-5 text-brand-600"></i>Xuất xứ: <strong id="p-origin"></strong></li>
+                        <li id="p-standards-row" hidden><i class="fa-solid fa-certificate w-5 text-brand-600"></i>Tiêu chuẩn: <strong id="p-standards"></strong></li>
+                    </ul>
+
+                    <div class="flex flex-wrap items-center gap-3 pt-2">
+                        <div class="inline-flex items-center rounded-full border border-slate-300 bg-white">
+                            <button id="qty-minus" type="button" class="w-10 h-10 font-bold text-slate-600 hover:text-brand-700" aria-label="Giảm">−</button>
+                            <input id="qty" type="number" min="1" value="1" class="w-14 text-center font-mono font-bold text-sm bg-transparent focus:outline-none" aria-label="Số lượng">
+                            <button id="qty-plus" type="button" class="w-10 h-10 font-bold text-slate-600 hover:text-brand-700" aria-label="Tăng">+</button>
+                        </div>
+                        <button id="add-btn" type="button" class="flex-1 min-w-[10rem] py-3 rounded-2xl bg-brand-700 hover:bg-brand-800 text-white font-bold transition disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-basket-shopping mr-1.5"></i>Thêm Vào Giỏ
+                        </button>
+                        <button id="wholesale-btn" type="button" hidden class="py-3 px-5 rounded-2xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold transition">
+                            <i class="fa-solid fa-bolt mr-1.5"></i>Tính Sỉ
+                        </button>
+                    </div>
+                    <p id="add-msg" class="text-sm text-brand-700" role="status" hidden></p>
+                </div>
+            </section>
+
+            <section id="p-description-box" class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8" hidden>
+                <h2 class="text-xl font-black text-slate-900 mb-3">Mô tả sản phẩm</h2>
+                <div id="p-description" class="text-slate-600 text-sm leading-relaxed space-y-3"></div>
+            </section>
+
+            <section id="reviews" class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-6 scroll-mt-24">
+                <h2 class="text-xl font-black text-slate-900">Đánh giá từ khách hàng</h2>
+
+                <div id="rv-summary" class="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-6 items-center"></div>
+
+                <div id="rv-mine" class="rounded-2xl border border-slate-200 bg-slate-50/60 p-5 space-y-3" hidden></div>
+
+                <div id="rv-list" class="divide-y divide-slate-100"></div>
+                <div class="text-center"><button id="rv-more" type="button" class="px-5 py-2.5 rounded-2xl bg-white border border-slate-200 hover:border-brand-500 text-sm font-bold transition" hidden>Xem thêm đánh giá</button></div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="bg-brand-950 text-emerald-100/80 text-sm">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row justify-between gap-2">
+            <span>© 2026 AgriChain. Nền tảng truy xuất nguồn gốc nông sản bằng Blockchain.</span>
+            <a href="index.html" class="hover:text-white">Về trang giới thiệu AgriChain</a>
+        </div>
+    </footer>
+
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl bg-slate-900 text-white text-sm font-semibold shadow-xl opacity-0 pointer-events-none transition z-50"></div>
+
+    <script>
+        (function () {
+            var api = AgriChain.api;
+            var cart = AgriChain.cart;
+            var $ = function (id) { return document.getElementById(id); };
+            var money = function (n) { return Number(n).toLocaleString('vi-VN') + ' đ'; };
+            function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+            function toast(msg) {
+                var t = $('toast');
+                t.textContent = msg;
+                t.classList.remove('opacity-0');
+                clearTimeout(toast.timer);
+                toast.timer = setTimeout(function () { t.classList.add('opacity-0'); }, 2200);
+            }
+            function stars(value, size) {
+                var html = '';
+                for (var i = 1; i <= 5; i++) {
+                    var full = value >= i - 0.25, half = !full && value >= i - 0.75;
+                    html += '<i class="fa-' + (full || half ? 'solid' : 'regular') + ' fa-star' + (half ? '-half-stroke' : '') + ' ' + (full || half ? 'text-amber-500' : 'text-slate-300') + '" style="font-size:' + size + 'px"></i>';
+                }
+                return html;
+            }
+            function dateText(iso) {
+                var d = new Date(iso);
+                return isNaN(d) ? '' : d.toLocaleDateString('vi-VN');
+            }
+
+            cart.onChange(function () { $('cart-count').textContent = cart.totals().lines; });
+            $('cart-count').textContent = cart.totals().lines;
+
+            var slug = new URLSearchParams(location.search).get('slug') || '';
+            var product = null;
+
+            function showError(title, text) {
+                $('state-loading').hidden = true;
+                $('state-error').hidden = false;
+                $('state-error-title').textContent = title;
+                $('state-error-text').textContent = text || '';
+                $('crumb-name').textContent = '';
+            }
+
+            // ---------------- Sản phẩm ----------------
+            function renderProduct(p) {
+                product = p;
+                document.title = p.name + ' - AgriVerse';
+                $('state-loading').hidden = true;
+                $('product').hidden = false;
+                $('crumb-name').textContent = p.name;
+                if (p.category_name) {
+                    $('crumb-category').textContent = p.category_name;
+                    $('crumb-category').href = 'san-pham.html?danh-muc=' + encodeURIComponent(p.category_slug || '');
+                    $('crumb-category').hidden = false;
+                    $('crumb-category-sep').hidden = false;
+                    $('p-category').textContent = p.category_name;
+                    $('p-category').hidden = false;
+                }
+                var image = p.banner_url || p.thumbnail_url;
+                if (image) { $('p-image').src = image; $('p-image').hidden = false; $('p-image-empty').hidden = true; }
+                $('p-name').textContent = p.name;
+                $('p-summary').textContent = p.summary || '';
+                $('p-price').textContent = money(p.retail_price);
+                $('p-unit').textContent = '/ ' + p.unit;
+                if (p.wholesale_price) {
+                    $('p-wholesale').hidden = false;
+                    $('p-wholesale').innerHTML = '<i class="fa-solid fa-tags mr-1.5"></i>Mua từ <strong>' + p.moq + ' ' + esc(p.unit) + '</strong> chỉ <strong>' + money(p.wholesale_price) + '</strong> / ' + esc(p.unit) + ' (giá sỉ)';
+                }
+                var inStock = p.stock > 0;
+                $('p-stock').textContent = inStock ? 'Còn ' + p.stock.toLocaleString('vi-VN') + ' ' + p.unit : 'Hết hàng';
+                $('p-stock').className = inStock ? 'text-brand-700' : 'text-red-600';
+                if (p.origin) { $('p-origin').textContent = p.origin; $('p-origin-row').hidden = false; }
+                if (p.standards) { $('p-standards').textContent = p.standards; $('p-standards-row').hidden = false; }
+                if (p.description) {
+                    $('p-description-box').hidden = false;
+                    $('p-description').innerHTML = p.description.split(/\n\s*\n/).map(function (para) { return '<p>' + esc(para.trim()).replace(/\n/g, '<br>') + '</p>'; }).join('');
+                }
+                $('add-btn').disabled = !inStock;
+                if (!inStock) $('add-btn').textContent = 'Hết hàng';
+                $('wholesale-btn').hidden = !(inStock && p.wholesale_price);
+                renderRatingLine(p.rating_avg, p.rating_count);
+            }
+
+            function renderRatingLine(avg, count) {
+                $('p-stars').innerHTML = stars(avg || 0, 15);
+                $('p-rating-text').textContent = count ? avg.toFixed(1) + ' · ' + count + ' đánh giá' : 'Chưa có đánh giá';
+            }
+
+            function qtyValue() {
+                var v = Math.floor(Number($('qty').value));
+                return isFinite(v) && v >= 1 ? v : 1;
+            }
+            function clampQtyInput() {
+                var v = qtyValue();
+                if (product && product.stock > 0) v = Math.min(v, product.stock);
+                $('qty').value = v;
+            }
+            $('qty').addEventListener('change', clampQtyInput);
+            $('qty-minus').addEventListener('click', function () { $('qty').value = Math.max(1, qtyValue() - 1); clampQtyInput(); });
+            $('qty-plus').addEventListener('click', function () { $('qty').value = qtyValue() + 1; clampQtyInput(); });
+            function showAdded(result) {
+                var msg = $('add-msg');
+                msg.hidden = false;
+                msg.innerHTML = (result.limited ? 'Đã đạt số lượng tối đa trong kho. ' : 'Đã thêm vào giỏ hàng. ') + '<button type="button" id="view-cart" class="font-bold underline">Xem giỏ hàng</button>';
+                $('view-cart').addEventListener('click', function () { AgriChain.cartDrawer.open(); });
+            }
+            $('wholesale-btn').addEventListener('click', function () {
+                if (!product) return;
+                AgriChain.wholesale.open({
+                    id: product.id, name: product.name, price: product.retail_price, wholesale: product.wholesale_price, moq: product.moq,
+                    unit: product.unit, stock: product.stock, img: product.thumbnail_url, origin: product.origin
+                }, showAdded);
+            });
+            $('add-btn').addEventListener('click', function () {
+                if (!product) return;
+                var result = cart.add({
+                    id: product.id, name: product.name, price: product.retail_price, img: product.thumbnail_url,
+                    wholesale: product.wholesale_price, moq: product.moq, stock: product.stock
+                }, qtyValue());
+                showAdded(result);
+            });
+
+            // ---------------- Đánh giá ----------------
+            var reviewPage = 1, reviewTotal = 0, loadedCount = 0;
+
+            function renderSummary(s) {
+                var max = Math.max.apply(null, [1].concat(Object.keys(s.distribution).map(function (k) { return s.distribution[k]; })));
+                var bars = [5, 4, 3, 2, 1].map(function (star) {
+                    var n = s.distribution[String(star)] || 0;
+                    return '<div class="flex items-center gap-2 text-xs text-slate-500"><span class="w-6">' + star + ' <i class="fa-solid fa-star text-amber-500"></i></span>' +
+                        '<div class="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden"><div class="h-full bg-amber-500 rounded-full" style="width:' + Math.round(n / max * 100) + '%"></div></div>' +
+                        '<span class="w-6 text-right">' + n + '</span></div>';
+                }).join('');
+                $('rv-summary').innerHTML =
+                    '<div class="text-center"><div class="text-5xl font-black text-slate-900">' + (s.average != null ? s.average.toFixed(1) : '—') + '</div>' +
+                    '<div class="mt-1">' + stars(s.average || 0, 18) + '</div><p class="text-sm text-slate-500 mt-1">' + s.count + ' đánh giá</p></div>' +
+                    '<div class="space-y-1.5">' + bars + '</div>';
+                renderRatingLine(s.average, s.count);
+            }
+
+            function reviewHtml(r) {
+                return '<article class="py-4"><div class="flex items-center justify-between gap-3">' +
+                    '<div class="flex items-center gap-2"><span class="w-8 h-8 rounded-full bg-emerald-100 text-brand-700 text-xs font-black flex items-center justify-center">' + esc(r.reviewer_name.charAt(0).toUpperCase()) + '</span>' +
+                    '<strong class="text-sm text-slate-900">' + esc(r.reviewer_name) + '</strong>' +
+                    '<span class="px-1.5 py-0.5 rounded bg-emerald-50 text-brand-700 text-[10px] font-bold"><i class="fa-solid fa-circle-check mr-1"></i>Đã mua hàng</span></div>' +
+                    '<span class="text-xs text-slate-400">' + dateText(r.created_at) + '</span></div>' +
+                    '<div class="mt-1.5">' + stars(r.rating, 13) + '</div>' +
+                    (r.comment ? '<p class="text-sm text-slate-600 mt-1.5 whitespace-pre-line">' + esc(r.comment) + '</p>' : '') + '</article>';
+            }
+
+            function loadReviews(reset) {
+                if (reset) { reviewPage = 1; loadedCount = 0; $('rv-list').innerHTML = ''; }
+                return api.products.reviews(product.id, { page: reviewPage, page_size: 5 }).then(function (res) {
+                    renderSummary(res.summary);
+                    reviewTotal = res.total;
+                    $('rv-list').insertAdjacentHTML('beforeend', res.items.map(reviewHtml).join(''));
+                    loadedCount += res.items.length;
+                    if (!reviewTotal) $('rv-list').innerHTML = '<p class="py-8 text-center text-sm text-slate-400">Chưa có đánh giá nào. Hãy là người đầu tiên sau khi nhận hàng!</p>';
+                    $('rv-more').hidden = loadedCount >= reviewTotal;
+                }).catch(function () {
+                    $('rv-list').innerHTML = '<p class="py-6 text-center text-sm text-red-600">Không tải được đánh giá.</p>';
+                });
+            }
+            $('rv-more').addEventListener('click', function () { reviewPage += 1; loadReviews(false); });
+
+            // Khung viết/sửa đánh giá của CHÍNH người dùng
+            var pickedRating = 0;
+            function starPicker() {
+                return '<div class="star-pick flex gap-1" role="radiogroup" aria-label="Số sao">' + [1, 2, 3, 4, 5].map(function (n) {
+                    return '<button type="button" data-star="' + n + '" class="' + (n <= pickedRating ? 'is-on' : '') + '" aria-label="' + n + ' sao"><i class="fa-solid fa-star"></i></button>';
+                }).join('') + '</div>';
+            }
+            function renderMine(state) {
+                var box = $('rv-mine');
+                box.hidden = false;
+                if (!api.isLoggedIn()) {
+                    box.innerHTML = '<p class="text-sm text-slate-600"><i class="fa-solid fa-circle-info text-sky-500 mr-1.5"></i>' +
+                        '<a href="dang-nhap.html?redirect=' + encodeURIComponent('san-pham-chi-tiet.html?slug=' + slug) + '" class="font-bold text-brand-700 underline">Đăng nhập</a> để đánh giá sản phẩm bạn đã mua.</p>';
+                    return;
+                }
+                if (state.review) {
+                    box.innerHTML = '<div class="flex items-center justify-between gap-3"><strong class="text-sm text-slate-900">Đánh giá của bạn</strong>' +
+                        '<span class="flex gap-4 text-sm font-bold"><button type="button" data-rv-edit class="text-brand-700 hover:underline">Sửa</button><button type="button" data-rv-delete class="text-red-600 hover:underline">Xoá</button></span></div>' +
+                        '<div>' + stars(state.review.rating, 15) + '</div>' + (state.review.comment ? '<p class="text-sm text-slate-600 whitespace-pre-line">' + esc(state.review.comment) + '</p>' : '');
+                    return;
+                }
+                if (!state.can_review) {
+                    box.innerHTML = '<p class="text-sm text-slate-600"><i class="fa-solid fa-circle-info text-sky-500 mr-1.5"></i>Chỉ khách đã nhận hàng sản phẩm này mới đánh giá được.</p>';
+                    return;
+                }
+                renderForm(null);
+            }
+            function renderForm(existing) {
+                pickedRating = existing ? existing.rating : 0;
+                $('rv-mine').innerHTML = '<strong class="text-sm text-slate-900">' + (existing ? 'Sửa đánh giá của bạn' : 'Viết đánh giá của bạn') + '</strong>' +
+                    '<div id="rv-stars">' + starPicker() + '</div><p id="rv-error" class="text-xs text-red-600" hidden></p>' +
+                    '<textarea id="rv-comment" rows="3" maxlength="2000" class="field-input" placeholder="Chia sẻ cảm nhận của bạn về sản phẩm (không bắt buộc)">' + esc(existing && existing.comment ? existing.comment : '') + '</textarea>' +
+                    '<div class="flex gap-2"><button type="button" data-rv-save class="px-5 py-2.5 rounded-2xl bg-brand-700 hover:bg-brand-800 text-white text-sm font-bold transition">' + (existing ? 'Lưu thay đổi' : 'Gửi đánh giá') + '</button>' +
+                    (existing ? '<button type="button" data-rv-cancel class="px-5 py-2.5 rounded-2xl bg-white border border-slate-200 text-sm font-bold">Huỷ</button>' : '') + '</div>';
+            }
+            var myState = null;
+            function loadMine() {
+                if (!api.isLoggedIn()) return Promise.resolve(renderMine(null));
+                return api.products.myReview(product.id).then(function (state) { myState = state; renderMine(state); },
+                    function () { $('rv-mine').hidden = true; });
+            }
+            function refreshAfterChange() { return Promise.all([loadMine(), loadReviews(true)]); }
+
+            $('rv-mine').addEventListener('click', function (e) {
+                var star = e.target.closest('[data-star]');
+                if (star) { pickedRating = Number(star.getAttribute('data-star')); $('rv-stars').innerHTML = starPicker(); return; }
+                if (e.target.closest('[data-rv-edit]')) return renderForm(myState.review);
+                if (e.target.closest('[data-rv-cancel]')) return renderMine(myState);
+                if (e.target.closest('[data-rv-delete]')) {
+                    if (!window.confirm('Xoá đánh giá của bạn?')) return;
+                    api.products.deleteMyReview(product.id).then(function () { toast('Đã xoá đánh giá.'); return refreshAfterChange(); })
+                        .catch(function (err) { toast((err && err.message) || 'Không xoá được đánh giá.'); });
+                    return;
+                }
+                if (e.target.closest('[data-rv-save]')) {
+                    var err = $('rv-error');
+                    if (!pickedRating) { err.textContent = 'Hãy chọn số sao.'; err.hidden = false; return; }
+                    err.hidden = true;
+                    var body = { rating: pickedRating, comment: $('rv-comment').value.trim() };
+                    var editing = !!(myState && myState.review);
+                    var request = editing ? api.products.updateMyReview(product.id, body) : api.products.createReview(product.id, body);
+                    request.then(function () { toast(editing ? 'Đã cập nhật đánh giá.' : 'Cảm ơn bạn đã đánh giá!'); return refreshAfterChange(); })
+                        .catch(function (e2) { err.textContent = (e2 && e2.message) || 'Không gửi được đánh giá.'; err.hidden = false; });
+                }
+            });
+
+            // ---------------- Khởi động ----------------
+            if (!slug) { showError('Thiếu đường dẫn sản phẩm', 'Hãy mở sản phẩm từ trang Sản phẩm.'); return; }
+            api.products.getBySlug(slug).then(function (p) {
+                renderProduct(p);
+                cart.init();
+                return Promise.all([loadReviews(true), loadMine()]);
+            }).catch(function (err) {
+                if (err && err.status === 404) showError('Không tìm thấy sản phẩm', 'Sản phẩm không tồn tại hoặc đã ngừng bán.');
+                else showError('Không tải được sản phẩm', (err && err.message) || 'Vui lòng thử lại sau.');
+            });
+        })();
+    </script>
+</body>
+</html>

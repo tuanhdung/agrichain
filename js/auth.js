@@ -22,24 +22,10 @@
   var api = global.AgriChain.api;
   var passwordProblems = global.AgriChain.passwordProblems;
 
-  // 7 trang thuong-mai-* CÒN LẠI dùng khung quản trị (app-shell: sidebar +
-  // topbar) trên site tĩnh — tài khoản 'customer' không có quyền gì ở đây
-  // (RBAC chặn = 403 nếu cố vào), nên KHÔNG được phép là đích ?redirect= cho
-  // account_type này, dù link redirect có khớp regex an toàn ở dưới. Xem
-  // redirectTarget(). Trước đây mảng này có ĐỦ 16 trang app-shell — 9 trang
-  // nhóm "Hoạt động sản xuất" (nong-trai, nong-trai-chi-tiet, vat-tu,
-  // mau-quy-trinh, lo-hang, tai-khoan, ho-so, goi-phan-mem, lich-su-mua-goi)
-  // đã XOÁ HẲN khỏi site tĩnh (migrate xong sang SPA, xem CLAUDE.md mục "Kết
-  // nối backend") nên bỏ khỏi mảng — ?redirect= không còn cách nào trỏ tới
-  // chúng nữa (SPA ở origin khác, ngoài phạm vi regex ".html" bên dưới).
-  // NGUỒN THAM CHIẾU DUY NHẤT cho danh sách 7 trang này trong toàn dự án —
-  // nơi khác cần cùng danh sách phải đối chiếu lại đúng mảng này, không gõ
-  // tay lại.
-  var ADMIN_SHELL_PAGES = [
-    'thuong-mai-tong-quan.html', 'thuong-mai-san-pham.html', 'thuong-mai-don-hang.html',
-    'thuong-mai-van-chuyen.html', 'thuong-mai-nhap-hang.html', 'thuong-mai-may-tinh-tien.html',
-    'thuong-mai-thiet-lap.html'
-  ];
+  // Danh sách trang khung quản trị (app-shell) trên site tĩnh mà tài khoản 'customer' KHÔNG được phép là đích ?redirect=
+  // (RBAC chặn = 403). Hiện RỖNG: mọi trang quản trị đã chuyển sang SPA (origin khác, ngoài phạm vi regex ".html" của
+  // redirectTarget()) và 7 trang thuong-mai-* đã xoá. Giữ mảng để thêm lại nếu site tĩnh có trang quản trị mới.
+  var ADMIN_SHELL_PAGES = [];
 
   /* --- Tiện ích chung ------------------------------------------------------ */
 

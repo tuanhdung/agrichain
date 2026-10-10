@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thanh Toán Đơn Hàng - AgriVerse</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Cùng cấu hình Tailwind với agriverse-3d.html (mỗi trang tự chứa riêng)
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#14532d', 950: '#052e18' },
+                        amber: { 500: '#f59e0b', 600: '#d97706' }
+                    },
+                    fontFamily: { sans: ['Lexend', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Lexend', sans-serif; background-color: #fafaf8; }
+        .field-input { width: 100%; padding: .7rem 1rem; border-radius: .9rem; border: 1px solid #e2e8f0; background: #fff; font-size: .875rem; transition: border-color .15s, box-shadow .15s; }
+        .field-input:focus { outline: none; border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.15); }
+        .field-input:disabled { background: #f1f5f9; color: #94a3b8; }
+        .field-input[aria-invalid="true"] { border-color: #ef4444; }
+        .field-error { color: #dc2626; font-size: .75rem; margin-top: .25rem; }
+        .pay-option { cursor: pointer; border: 2px solid #e2e8f0; border-radius: 1.1rem; padding: 1.1rem 1.25rem; background: #fff; transition: border-color .15s, background .15s; position: relative; }
+        .pay-option:hover { border-color: #86efac; }
+        .pay-option.is-selected { border-color: #16a34a; background: #f0fdf4; }
+        .pay-option .pay-check { display: none; }
+        .pay-option.is-selected .pay-check { display: inline; }
+    </style>
+
+    <script src="js/api-config.js?v=2"></script>
+    <script src="js/app-config.js?v=2"></script>
+    <script src="js/api.js?v=23"></script>
+    <script src="js/agriverse-cart.js?v=3"></script>
+    <script src="js/agriverse-account.js?v=1" defer></script>
+    <!-- Đặt hàng cần đăng nhập (đơn gắn với tài khoản) — khách chưa đăng nhập bị chuyển sang dang-nhap.html?redirect=thanh-toan.html -->
+    <script>AgriChain.api.requireAuth();</script>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-emerald-100 shadow-sm">
+        <div class="px-4 sm:px-6">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex items-center space-x-3 sm:space-x-4">
+                    <a href="index.html" class="flex items-center space-x-1.5 pr-3 sm:pr-4 border-r border-slate-200 text-slate-500 hover:text-brand-700 font-semibold text-xs transition flex-shrink-0" aria-label="Về trang giới thiệu AgriChain">
+                        <i class="fa-solid fa-arrow-left-long"></i>
+                        <span class="hidden sm:inline">Về AgriChain</span>
+                    </a>
+                    <a href="agriverse-3d.html" class="flex items-center space-x-3">
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-700 via-emerald-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+                            <i class="fa-solid fa-cube text-2xl"></i>
+                        </div>
+                        <span class="text-2xl font-black bg-gradient-to-r from-brand-800 via-emerald-600 to-amber-600 bg-clip-text text-transparent tracking-tight">AgriVerse</span>
+                    </a>
+                </div>
+                <nav class="hidden md:flex flex-1 items-center justify-center gap-2 lg:gap-4 px-2">
+                    <a href="agriverse-3d.html" class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-600 border-b-2 border-transparent hover:text-brand-700 hover:border-emerald-300 transition"><i class="fa-solid fa-house"></i> Trang Chủ</a>
+                    <a href="san-pham.html" class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-600 border-b-2 border-transparent hover:text-brand-700 hover:border-emerald-300 transition"><i class="fa-solid fa-leaf"></i> Sản Phẩm</a>
+                </nav>
+                <div class="flex items-center space-x-3">
+                    <a href="agriverse-3d.html?gio-hang=1" class="relative p-2.5 rounded-full hover:bg-slate-100 text-slate-700 transition" aria-label="Giỏ hàng">
+                        <i class="fa-solid fa-basket-shopping text-xl"></i>
+                        <span id="cart-count" class="absolute -top-1 -right-1 bg-amber-500 text-slate-950 font-black text-xs w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow">0</span>
+                    </a>
+                    <div id="account-area" class="relative"></div>
+                </div>
+            </div>
+        </div>
+        <!-- Menu cho màn hình nhỏ (< 768px): menu chính ở giữa header chỉ hiện từ md trở lên -->
+        <nav class="md:hidden flex border-t border-slate-100 text-sm" aria-label="Menu chính">
+            <a href="agriverse-3d.html" class="flex-1 text-center py-2.5 font-semibold text-slate-600 border-b-2 border-transparent hover:text-brand-700"><i class="fa-solid fa-house mr-1.5"></i>Trang Chủ</a>
+            <a href="san-pham.html" class="flex-1 text-center py-2.5 font-semibold text-slate-600 border-b-2 border-transparent hover:text-brand-700"><i class="fa-solid fa-leaf mr-1.5"></i>Sản Phẩm</a>
+        </nav>
+    </header>
+
+    <main class="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex-1 space-y-6">
+        <nav class="text-sm text-slate-500">
+            <a href="agriverse-3d.html" class="hover:text-brand-700">Trang chủ</a><span class="mx-2">/</span>
+            <a href="agriverse-3d.html?gio-hang=1" class="hover:text-brand-700">Giỏ hàng</a><span class="mx-2">/</span>
+            <span class="font-bold text-slate-900">Thanh toán</span>
+        </nav>
+
+        <!-- Tiến trình 3 bước -->
+        <div class="bg-white rounded-3xl border border-slate-200 p-6">
+            <ol id="steps" class="flex items-start justify-between max-w-2xl mx-auto"></ol>
+        </div>
+
+        <!-- Giỏ trống / không chọn món nào -->
+        <div id="empty-state" class="bg-white rounded-3xl border border-slate-200 p-14 text-center" hidden>
+            <i class="fa-solid fa-basket-shopping text-5xl text-slate-200 mb-4"></i>
+            <p class="font-black text-slate-900 text-lg">Chưa có món nào để thanh toán</p>
+            <p class="text-sm text-slate-500 mt-1">Hãy chọn ít nhất 1 món trong giỏ hàng.</p>
+            <div class="flex justify-center gap-3 mt-6">
+                <a href="agriverse-3d.html?gio-hang=1" class="px-5 py-2.5 rounded-2xl bg-brand-700 hover:bg-brand-800 text-white text-sm font-bold transition">Mở giỏ hàng</a>
+                <a href="san-pham.html" class="px-5 py-2.5 rounded-2xl bg-white border border-slate-200 hover:border-brand-500 text-sm font-bold transition">Xem sản phẩm</a>
+            </div>
+        </div>
+
+        <!-- Bước 2: thanh toán & giao nhận -->
+        <div id="checkout" class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 items-start" hidden>
+            <form id="checkout-form" class="space-y-6" novalidate>
+                <section class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-5">
+                    <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100">
+                        <h2 class="text-xl font-black text-slate-900"><i class="fa-solid fa-location-dot text-rose-500 mr-2"></i>1. Địa Chỉ Nhận Hàng</h2>
+                        <select id="saved-address" class="field-input !w-auto text-xs" aria-label="Chọn từ sổ địa chỉ" hidden></select>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label for="f-name" class="block text-sm font-bold text-slate-700 mb-1.5">Họ và tên người nhận <span class="text-red-500">*</span></label>
+                            <input id="f-name" class="field-input" type="text" placeholder="Ví dụ: Nguyễn Văn An" autocomplete="name">
+                            <p class="field-error" data-error-for="f-name" hidden></p>
+                        </div>
+                        <div>
+                            <label for="f-phone" class="block text-sm font-bold text-slate-700 mb-1.5">Số điện thoại nhận hàng <span class="text-red-500">*</span></label>
+                            <input id="f-phone" class="field-input" type="tel" autocomplete="tel">
+                            <p class="field-error" data-error-for="f-phone" hidden></p>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="f-email" class="block text-sm font-bold text-slate-700 mb-1.5">Email nhận hóa đơn điện tử &amp; mã truy xuất Blockchain</label>
+                        <input id="f-email" class="field-input" type="email" autocomplete="email">
+                        <p class="field-error" data-error-for="f-email" hidden></p>
+                    </div>
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50/60 p-5 space-y-4">
+                        <h3 class="text-xs font-extrabold text-slate-700 uppercase tracking-widest"><i class="fa-solid fa-map-location-dot text-brand-600 mr-2"></i>Khu vực giao nhận chuỗi lạnh <span class="text-red-500">*</span></h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="f-province" class="block text-sm font-bold text-slate-700 mb-1.5">Tỉnh / Thành Phố <span class="text-red-500">*</span></label>
+                                <select id="f-province" class="field-input"><option value="">-- Chọn Tỉnh / Thành Phố --</option></select>
+                                <p class="field-error" data-error-for="f-province" hidden></p>
+                            </div>
+                            <div>
+                                <label for="f-ward" class="block text-sm font-bold text-slate-700 mb-1.5">Xã / Phường / Thị Trấn <span class="text-red-500">*</span></label>
+                                <select id="f-ward" class="field-input" disabled><option value="">-- Vui lòng chọn Tỉnh trước --</option></select>
+                                <p class="field-error" data-error-for="f-ward" hidden></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="f-detail" class="block text-sm font-bold text-slate-700 mb-1.5">Địa chỉ chi tiết (Số nhà, Tên đường, Tòa nhà) <span class="text-red-500">*</span></label>
+                        <input id="f-detail" class="field-input" type="text" placeholder="Ví dụ: 123 Đường Nguyễn Huệ, Phường Bến Nghé">
+                        <p class="field-error" data-error-for="f-detail" hidden></p>
+                    </div>
+                    <div>
+                        <label for="f-note" class="block text-sm font-bold text-slate-700 mb-1.5">Ghi chú giao hàng</label>
+                        <textarea id="f-note" rows="3" class="field-input" placeholder="Ví dụ: Giao giờ hành chính, gọi trước 15 phút..."></textarea>
+                    </div>
+                </section>
+
+                <section class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-5">
+                    <h2 class="text-xl font-black text-slate-900 pb-4 border-b border-slate-100"><i class="fa-solid fa-credit-card text-sky-500 mr-2"></i>2. Phương Thức Thanh Toán</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="pay-options">
+                        <div class="pay-option is-selected" data-pay="cod" role="radio" aria-checked="true" tabindex="0">
+                            <div class="flex items-start justify-between"><i class="fa-solid fa-money-bill-wave text-2xl text-brand-600"></i><span class="pay-check text-sm font-bold text-brand-700">✓ Chọn</span></div>
+                            <p class="font-black text-slate-900 mt-3">COD Tiền Mặt</p>
+                            <p class="text-xs text-slate-500 mt-0.5">Thanh toán khi shipper giao hàng tận nơi</p>
+                        </div>
+                        <div class="pay-option" data-pay="transfer" role="radio" aria-checked="false" tabindex="0">
+                            <div class="flex items-start justify-between"><i class="fa-solid fa-qrcode text-2xl text-indigo-500"></i><span class="pay-check text-sm font-bold text-brand-700">✓ Chọn</span></div>
+                            <p class="font-black text-slate-900 mt-3">Chuyển Khoản VietQR</p>
+                            <p class="text-xs text-slate-500 mt-0.5">Quét mã QR ngân hàng xác thực tự động</p>
+                        </div>
+                    </div>
+                    <div id="transfer-info" class="rounded-2xl border border-slate-200 bg-slate-50/60 p-5 text-sm space-y-2" hidden></div>
+                </section>
+            </form>
+
+            <!-- Tóm tắt đơn -->
+            <aside class="bg-white rounded-3xl border border-slate-200 p-6 space-y-4 lg:sticky lg:top-24">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <h2 class="font-black text-slate-900 text-lg">Đơn Hàng Của Bạn</h2>
+                    <span id="sum-count" class="px-3 py-1 rounded-full bg-emerald-50 text-brand-700 text-xs font-bold"></span>
+                </div>
+                <div id="sum-items" class="space-y-4"></div>
+                <div class="pt-3 border-t border-slate-100 space-y-1.5 text-sm text-slate-600">
+                    <div class="flex justify-between"><span>Tạm tính nông sản:</span><strong id="sum-subtotal" class="font-mono text-slate-900"></strong></div>
+                    <div class="flex justify-between"><span>Phí giao xe lạnh:</span><strong id="sum-shipping" class="font-mono text-slate-900"></strong></div>
+                </div>
+                <div class="pt-3 border-t border-slate-200">
+                    <div class="flex items-center justify-between">
+                        <span class="font-black text-slate-900">Tổng Thanh Toán:</span>
+                        <span id="sum-total" class="text-2xl font-black font-mono text-brand-700"></span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Đã bao gồm VAT &amp; Chuỗi lạnh</p>
+                </div>
+                <p id="submit-error" class="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700" role="alert" hidden></p>
+                <button id="confirm-btn" type="button" class="w-full py-4 rounded-2xl bg-brand-700 hover:bg-brand-800 text-white font-black shadow-lg transition disabled:opacity-60">Xác Nhận Đặt Hàng <i class="fa-solid fa-arrow-right ml-1"></i></button>
+                <ul class="text-xs text-slate-500 space-y-1.5 pt-1">
+                    <li><i class="fa-solid fa-check text-brand-600 mr-1.5"></i>Nông sản tươi chuẩn VietGAP/GlobalGAP.</li>
+                    <li><i class="fa-solid fa-check text-brand-600 mr-1.5"></i>Bảo hiểm nhiệt độ chuỗi lạnh 4°C - 8°C.</li>
+                    <li><i class="fa-solid fa-check text-brand-600 mr-1.5"></i>Mã băm Blockchain xác thực nguồn gốc minh bạch.</li>
+                </ul>
+            </aside>
+        </div>
+
+        <!-- Bước 3: hoàn tất -->
+        <div id="done" class="bg-white rounded-3xl border border-slate-200 p-10 text-center space-y-4" hidden>
+            <div class="w-20 h-20 mx-auto rounded-full bg-emerald-100 text-brand-700 flex items-center justify-center text-4xl"><i class="fa-solid fa-check"></i></div>
+            <h2 class="text-2xl font-black text-slate-900">Đặt hàng thành công!</h2>
+            <p class="text-slate-500">Mã đơn hàng của bạn: <strong id="done-code" class="font-mono text-slate-900"></strong></p>
+            <p id="done-note" class="text-sm text-slate-500 max-w-lg mx-auto"></p>
+            <div class="flex flex-wrap justify-center gap-3 pt-2">
+                <a href="tai-khoan-khach-hang.html?tab=orders" class="px-6 py-3 rounded-2xl bg-brand-900 hover:bg-brand-950 text-white font-bold text-sm transition">Xem đơn mua của tôi</a>
+                <a href="san-pham.html" class="px-6 py-3 rounded-2xl bg-white border border-slate-200 hover:border-brand-500 font-bold text-sm transition">Tiếp tục mua sắm</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-brand-950 text-emerald-100/80 text-sm">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row justify-between gap-2">
+            <span>© 2026 AgriChain. Nền tảng truy xuất nguồn gốc nông sản bằng Blockchain.</span>
+            <a href="index.html" class="hover:text-white">Về trang giới thiệu AgriChain</a>
+        </div>
+    </footer>
+
+    <script>
+        (function () {
+            var api = AgriChain.api;
+            var user = api.getUser() || {};
+            var uid = user.id || 'me';
+            var EXTRA_KEY = 'agriverse:profile-extra:' + uid;
+            // Cùng quy tắc phí vận chuyển với backend (app/routers/orders.py) — backend là nguồn sự thật,
+            // số hiển thị ở đây chỉ để xem trước; đơn thật dùng số backend tính lại từ giá trong database.
+            var FREESHIP_THRESHOLD = 500000, SHIPPING_FEE = 30000;
+            // ⚠️ Chưa có tài khoản ngân hàng thật của AgriChain — ĐIỀN VÀO ĐÂY khi có. Để trống thì trang chỉ hiện
+            // thông báo "sẽ gửi thông tin chuyển khoản sau khi xác nhận", KHÔNG hiện số tài khoản bịa.
+            var BANK_INFO = { bank: '', accountNumber: '', accountName: '' };
+
+            var $ = function (id) { return document.getElementById(id); };
+            var money = function (n) { return Number(n).toLocaleString('vi-VN') + ' đ'; };
+            function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+            function readJson(key, fallback) {
+                try { var v = JSON.parse(localStorage.getItem(key) || ''); return v == null ? fallback : v; } catch (e) { return fallback; }
+            }
+
+            // ---- Tiến trình 3 bước ----
+            function renderSteps(active) {
+                var labels = ['Giỏ hàng', 'Thanh toán & Giao nhận', 'Hoàn tất đơn'];
+                $('steps').innerHTML = labels.map(function (label, i) {
+                    var n = i + 1, done = n < active, cur = n === active;
+                    var circle = done ? 'bg-brand-600 text-white' : cur ? 'bg-brand-600 text-white ring-4 ring-emerald-100' : 'bg-slate-100 text-slate-400';
+                    return '<li class="flex-1 flex flex-col items-center relative">' +
+                        (i > 0 ? '<span class="absolute top-5 right-1/2 w-full h-1 ' + (n <= active ? 'bg-brand-600' : 'bg-emerald-100') + '" aria-hidden="true"></span>' : '') +
+                        '<span class="relative z-10 w-10 h-10 rounded-full flex items-center justify-center font-black ' + circle + '">' + (done ? '✓' : n) + '</span>' +
+                        '<span class="mt-2 text-xs sm:text-sm font-bold ' + (n <= active ? 'text-slate-900' : 'text-slate-400') + '">' + label + '</span></li>';
+                }).join('');
+            }
+
+            // Đợi giỏ đồng bộ với máy chủ (đổi máy vẫn còn giỏ) rồi mới dựng trang
+            function start() {
+            // ---- Giỏ hàng: chỉ các món đang được chọn (module dùng chung js/agriverse-cart.js) ----
+            var cartModule = AgriChain.cart;
+            var items = cartModule.items().filter(function (i) { return i.selected; });
+            $('cart-count').textContent = cartModule.totals().lines;
+
+            if (!items.length) {
+                renderSteps(1);
+                $('empty-state').hidden = false;
+                return;
+            }
+
+            renderSteps(2);
+            $('checkout').hidden = false;
+
+            // Giá sỉ khi sản phẩm có giá sỉ và số lượng đạt MOQ — cùng quy tắc backend (đơn thật được tính lại ở máy chủ)
+            function unitPrice(i) { return i.wholesale && i.qty >= i.moq ? i.wholesale : i.price; }
+            var subtotal = items.reduce(function (s, i) { return s + unitPrice(i) * i.qty; }, 0);
+            var shipping = subtotal < FREESHIP_THRESHOLD ? SHIPPING_FEE : 0;
+            var total = subtotal + shipping;
+
+            $('sum-count').textContent = items.length + ' mặt hàng';
+            $('sum-items').innerHTML = items.map(function (i) {
+                return '<div class="flex items-center gap-3">' +
+                    '<div class="w-14 h-14 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center flex-shrink-0">' +
+                    (i.img ? '<img src="' + esc(i.img) + '" alt="" class="w-full h-full object-cover">' : '<i class="fa-solid fa-seedling text-slate-300"></i>') + '</div>' +
+                    '<div class="flex-1 min-w-0"><p class="font-bold text-sm text-slate-900 leading-snug">' + esc(i.name) + '</p>' +
+                    '<p class="text-xs text-slate-500">' + i.qty + ' × <span class="font-mono">' + money(unitPrice(i)) + '</span>' +
+                    (i.wholesale && i.qty >= i.moq ? ' <span class="ml-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-bold">Giá sỉ</span>' : '') + '</p></div>' +
+                    '<strong class="font-mono text-sm">' + money(unitPrice(i) * i.qty) + '</strong></div>';
+            }).join('');
+            $('sum-subtotal').textContent = money(subtotal);
+            $('sum-shipping').textContent = shipping ? money(shipping) : 'Miễn phí';
+            $('sum-total').textContent = money(total);
+
+            // ---- Tỉnh / Phường (cùng dữ liệu data/ của site tĩnh) ----
+            var provinces = [];
+            var provinceSel = $('f-province'), wardSel = $('f-ward');
+            function loadWards(name, selected) {
+                wardSel.innerHTML = '<option value="">-- Chọn Xã / Phường --</option>';
+                var p = provinces.find(function (x) { return x.name === name; });
+                if (!p) { wardSel.disabled = true; wardSel.options[0].textContent = '-- Vui lòng chọn Tỉnh trước --'; return Promise.resolve(); }
+                wardSel.disabled = true;
+                return fetch('data/wards/' + p.id + '.json').then(function (r) { return r.json(); }).then(function (wards) {
+                    wards.forEach(function (w) { var o = document.createElement('option'); o.value = w.name; o.textContent = w.name; wardSel.appendChild(o); });
+                    wardSel.disabled = false;
+                    if (selected) wardSel.value = selected;
+                }).catch(function () { wardSel.options[0].textContent = 'Không tải được danh sách'; });
+            }
+            var provincesReady = fetch('data/provinces.json').then(function (r) { return r.json(); }).then(function (list) {
+                provinces = list;
+                list.forEach(function (p) { var o = document.createElement('option'); o.value = p.name; o.textContent = p.name; provinceSel.appendChild(o); });
+            }).catch(function () { /* để trống — người dùng không chọn được tỉnh, form báo lỗi khi gửi */ });
+            provinceSel.addEventListener('change', function () { loadWards(provinceSel.value); });
+
+            // ---- Điền sẵn thông tin giao nhận ----
+            var extra = readJson(EXTRA_KEY, {}) || {};
+            $('f-email').value = user.email || '';
+            $('f-name').value = user.full_name || '';
+            $('f-phone').value = user.phone || '';
+            $('f-note').value = extra.note || '';
+            $('f-detail').value = extra.address || '';
+            provincesReady.then(function () {
+                if (extra.province && !provinceSel.value) { provinceSel.value = extra.province; return loadWards(extra.province, extra.ward); }
+            });
+
+            var addresses = [];
+            function applyAddress(a) {
+                $('f-name').value = a.recipient_name || '';
+                $('f-phone').value = a.phone || '';
+                $('f-detail').value = a.detail || '';
+                provincesReady.then(function () {
+                    if (a.province) { provinceSel.value = a.province; return loadWards(a.province, a.ward); }
+                });
+            }
+            // Sổ địa chỉ THẬT từ máy chủ (/me/addresses) — lỗi mạng thì bỏ qua, người dùng vẫn nhập tay được
+            api.addresses.list().then(function (list) {
+                addresses = list || [];
+                if (!addresses.length) return;
+                var def = addresses.find(function (a) { return a.is_default; }) || addresses[0];
+                var sel = $('saved-address');
+                sel.hidden = false;
+                sel.innerHTML = '<option value="">Chọn từ sổ địa chỉ…</option>' + addresses.map(function (a) {
+                    return '<option value="' + esc(a.id) + '">' + esc(a.recipient_name) + ' — ' + esc(a.detail) + (a.is_default ? ' (mặc định)' : '') + '</option>';
+                }).join('');
+                sel.value = def.id;
+                applyAddress(def);
+                sel.addEventListener('change', function () {
+                    var a = addresses.find(function (x) { return x.id === sel.value; });
+                    if (a) applyAddress(a);
+                });
+            }).catch(function () { /* không có sổ địa chỉ cũng không sao */ });
+
+            // ---- Phương thức thanh toán ----
+            var payment = 'cod';
+            function renderTransferInfo() {
+                var box = $('transfer-info');
+                box.hidden = payment !== 'transfer';
+                if (payment !== 'transfer') return;
+                var has = BANK_INFO.bank && BANK_INFO.accountNumber;
+                box.innerHTML = has
+                    ? '<p class="font-bold text-slate-900"><i class="fa-solid fa-circle-info text-sky-500 mr-1.5"></i>Thông tin chuyển khoản nhanh VietQR:</p>' +
+                      '<div class="grid sm:grid-cols-2 gap-2"><p>Ngân hàng: <strong>' + esc(BANK_INFO.bank) + '</strong></p><p>Số tài khoản: <strong class="font-mono">' + esc(BANK_INFO.accountNumber) + '</strong></p>' +
+                      '<p>Chủ tài khoản: <strong>' + esc(BANK_INFO.accountName) + '</strong></p><p>Nội dung: <strong class="font-mono">AGR-[Mã Đơn Hàng]</strong></p></div>' +
+                      '<p class="text-xs italic text-slate-400">* Mã VietQR động sẽ hiển thị ngay sau khi bạn bấm "Xác Nhận Đặt Hàng".</p>'
+                    : '<p class="font-bold text-slate-900"><i class="fa-solid fa-circle-info text-sky-500 mr-1.5"></i>Chuyển khoản VietQR</p>' +
+                      '<p class="text-slate-500">Thông tin tài khoản nhận tiền sẽ được gửi cho bạn qua email và số điện thoại sau khi bạn xác nhận đặt hàng.</p>';
+            }
+            function setPayment(value) {
+                payment = value;
+                document.querySelectorAll('.pay-option').forEach(function (el) {
+                    var on = el.getAttribute('data-pay') === value;
+                    el.classList.toggle('is-selected', on);
+                    el.setAttribute('aria-checked', on ? 'true' : 'false');
+                });
+                renderTransferInfo();
+            }
+            document.querySelectorAll('.pay-option').forEach(function (el) {
+                el.addEventListener('click', function () { setPayment(el.getAttribute('data-pay')); });
+                el.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPayment(el.getAttribute('data-pay')); } });
+            });
+
+            // ---- Kiểm tra + đặt hàng ----
+            function setError(id, msg) {
+                var input = $(id), err = document.querySelector('[data-error-for="' + id + '"]');
+                if (input) input.setAttribute('aria-invalid', msg ? 'true' : 'false');
+                if (err) { err.textContent = msg || ''; err.hidden = !msg; }
+            }
+            var FIELDS = ['f-name', 'f-phone', 'f-email', 'f-province', 'f-ward', 'f-detail'];
+            // Tên field backend trả về (details.field) -> ô trong form
+            var SERVER_FIELDS = { receiver_name: 'f-name', receiver_phone: 'f-phone', receiver_email: 'f-email', province: 'f-province', ward: 'f-ward', detail: 'f-detail' };
+
+            function validate() {
+                FIELDS.forEach(function (id) { setError(id, ''); });
+                var firstBad = null;
+                function bad(id, msg) { setError(id, msg); if (!firstBad) firstBad = id; }
+                if (!$('f-name').value.trim()) bad('f-name', 'Vui lòng nhập họ tên người nhận.');
+                if (!/^[0-9+()\s.-]{8,15}$/.test($('f-phone').value.trim())) bad('f-phone', 'Số điện thoại không hợp lệ.');
+                var email = $('f-email').value.trim();
+                if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) bad('f-email', 'Email không hợp lệ.');
+                if (!provinceSel.value) bad('f-province', 'Vui lòng chọn Tỉnh / Thành phố.');
+                if (!wardSel.value) bad('f-ward', 'Vui lòng chọn Xã / Phường.');
+                if (!$('f-detail').value.trim()) bad('f-detail', 'Vui lòng nhập địa chỉ chi tiết.');
+                if (firstBad) $(firstBad).focus();
+                return !firstBad;
+            }
+
+            function showSubmitError(msg) {
+                var box = $('submit-error');
+                box.textContent = msg || '';
+                box.hidden = !msg;
+            }
+            function resetButton() {
+                var btn = $('confirm-btn');
+                btn.disabled = false;
+                btn.innerHTML = 'Xác Nhận Đặt Hàng <i class="fa-solid fa-arrow-right ml-1"></i>';
+            }
+
+            $('confirm-btn').addEventListener('click', function () {
+                showSubmitError('');
+                if (!validate()) return;
+                var btn = $('confirm-btn');
+                btn.disabled = true;
+                btn.innerHTML = 'Đang xử lý...';
+
+                api.orders.create({
+                    items: items.map(function (i) { return { product_id: i.id, quantity: i.qty }; }),
+                    payment_method: payment,
+                    receiver_name: $('f-name').value.trim(),
+                    receiver_phone: $('f-phone').value.trim(),
+                    receiver_email: $('f-email').value.trim() || null,
+                    province: provinceSel.value,
+                    ward: wardSel.value,
+                    detail: $('f-detail').value.trim(),
+                    note: $('f-note').value.trim() || null
+                }).then(function (order) {
+                    // Chỉ bỏ các món vừa đặt khỏi giỏ — món không tick vẫn giữ lại (máy chủ cũng đã gỡ các món này)
+                    cartModule.removeMany(items.map(function (i) { return i.id; }));
+
+                    $('checkout').hidden = true;
+                    $('done').hidden = false;
+                    $('done-code').textContent = order.code;
+                    $('done-note').textContent = order.payment_method === 'cod'
+                        ? 'Bạn sẽ thanh toán ' + money(order.total) + ' khi shipper giao hàng tận nơi.'
+                        : 'Vui lòng chuyển khoản ' + money(order.total) + ' với nội dung "' + order.code + '". Chúng tôi sẽ liên hệ xác nhận qua điện thoại.';
+                    renderSteps(3);
+                    $('cart-count').textContent = cartModule.totals().lines;
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }).catch(function (err) {
+                    resetButton();
+                    var field = err && err.details && err.details.field;
+                    if (field && SERVER_FIELDS[field]) { setError(SERVER_FIELDS[field], err.message); $(SERVER_FIELDS[field]).focus(); return; }
+                    // Hết hàng / sản phẩm ngừng bán / lỗi mạng…: hiện thông báo của máy chủ ngay trên nút
+                    showSubmitError((err && err.message) || 'Không đặt được đơn hàng, vui lòng thử lại.');
+                });
+            });
+            }
+            AgriChain.cart.init().then(start, start);
+        })();
+    </script>
+</body>
+</html>
