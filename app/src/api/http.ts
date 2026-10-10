@@ -33,6 +33,8 @@ function buildQuery(query?: Record<string, unknown>): string {
 
 export interface RequestOptions {
   body?: unknown;
+  /** Thân nhị phân (VD ảnh tải lên) — gửi nguyên Blob với Content-Type của nó, không JSON hoá. */
+  rawBody?: Blob;
   query?: Record<string, unknown>;
   /** Mặc định true — có gắn Authorization: Bearer <token> hay không. */
   auth?: boolean;
@@ -91,7 +93,10 @@ export function request<T>(method: string, path: string, options: RequestOptions
   // phòng (backend đọc cookie trước, không có mới fallback về header).
   const fetchOptions: RequestInit = { method, headers, credentials: 'include' };
 
-  if (options.body !== undefined) {
+  if (options.rawBody !== undefined) {
+    headers['Content-Type'] = options.rawBody.type || 'application/octet-stream';
+    fetchOptions.body = options.rawBody;
+  } else if (options.body !== undefined) {
     headers['Content-Type'] = 'application/json';
     fetchOptions.body = JSON.stringify(options.body);
   }

@@ -12,6 +12,8 @@ import { batches } from './batches';
 import { certifications } from './certifications';
 import { logs } from './logs';
 import { system } from './system';
+import { categories } from './categories';
+import { products } from './products';
 import { users } from './users';
 import { roles } from './roles';
 import { permissions } from './permissions';
@@ -37,6 +39,8 @@ export const api = {
   certifications,
   logs,
   system,
+  categories,
+  products,
   users,
   roles,
   permissions,
@@ -72,3 +76,15 @@ export type {
 export type { OrgUser, UserCreatePayload, UserUpdatePayload, UserListParams, TransferAdminPayload } from './users';
 export type { Role, RoleCreatePayload, RoleUpdatePayload } from './roles';
 export type { Permission, PermissionGroup } from './permissions';
+export type { Category, CategoryType, CategoryPayload, CategoryUpdatePayload, CategoryListParams } from './categories';
+export type { Product, ProductListItem, ProductStatus, ProductPayload, ProductUpdatePayload, ProductListParams } from './products';
+export type {
+  AdminOrder,
+  OrderItem,
+  OrderListParams,
+  OrderStats,
+  OrderStatus,
+  PaymentStatus,
+  SystemUser,
+  SystemUserSummary
+} from './orders';

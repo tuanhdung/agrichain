@@ -10,6 +10,13 @@ import { LoHangPage } from './pages/lo-hang/LoHangPage';
 import { HoSoPage } from './pages/ho-so/HoSoPage';
 import { GoiPhanMemPage } from './pages/goi-phan-mem/GoiPhanMemPage';
 import { LichSuMuaGoiPage } from './pages/lich-su-mua-goi/LichSuMuaGoiPage';
+import { TongQuanPage } from './pages/tmdt/TongQuanPage';
+import { DonHangPage } from './pages/tmdt/DonHangPage';
+import { DanhMucPage } from './pages/tmdt/DanhMucPage';
+import { BaiVietPage } from './pages/tmdt/BaiVietPage';
+import { DanhGiaPage } from './pages/tmdt/DanhGiaPage';
+import { SanPhamPage } from './pages/tmdt/SanPhamPage';
+import { TaiKhoanHeThongPage } from './pages/tmdt/TaiKhoanHeThongPage';
 
 // KHÔNG còn route /login — SPA không có trang đăng nhập riêng từ 2026-09-29
 // (xem app/CLAUDE.md mục "Giả định host"), MỌI route dưới đây đều bọc
@@ -108,6 +115,76 @@ export default function App() {
           <ProtectedRoute>
             <AppShell>
               <LichSuMuaGoiPage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tmdt/tong-quan"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <TongQuanPage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tmdt/don-hang"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <DonHangPage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tmdt/danh-muc"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <DanhMucPage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tmdt/bai-viet"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <BaiVietPage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tmdt/danh-gia"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <DanhGiaPage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tmdt/san-pham"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <SanPhamPage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tmdt/tai-khoan"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <TaiKhoanHeThongPage />
             </AppShell>
           </ProtectedRoute>
         }
