@@ -17,11 +17,6 @@ jobs:
     defaults:
       run:
         working-directory: app
-    env:
-      # Giá trị giả chỉ để build qua được (src/api/config.ts cố tình throw nếu thiếu).
-      # Build thật cho production dùng app/.env.production trên máy deploy.
-      VITE_API_BASE_URL: https://api.example.test
-      VITE_MAIN_SITE_URL: https://example.test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -35,6 +30,13 @@ jobs:
       - name: Test
         run: npm test
       - name: Build
+        # Giá trị giả chỉ để build qua được (src/api/config.ts cố tình throw nếu thiếu). CHỈ
+        # đặt ở bước này: đặt ở cấp job sẽ đè lên app/.env.test và làm hỏng bước Test (biến
+        # môi trường của shell luôn thắng file .env). Build thật cho production dùng
+        # app/.env.production trên máy deploy.
+        env:
+          VITE_API_BASE_URL: https://api.example.test
+          VITE_MAIN_SITE_URL: https://example.test
         run: npm run build
 
   static-site:
