@@ -7,19 +7,35 @@
    AgriChain.api.requireAuth() ngay trong <head> để tránh chớp nội dung
    trước khi chuyển hướng — script defer sẽ chạy quá trễ cho việc đó).
 
-   Token lưu trong localStorage HOẶC sessionStorage tuỳ checkbox "Ghi nhớ
-   đăng nhập" lúc submit (xem activeStorage() ngay dưới đây và api.auth.
-   login()) — NỢ KỸ THUẬT vẫn còn (dù đã giảm nhẹ): cả 2 kiểu Web Storage
-   đều không an toàn trước XSS như cookie httpOnly, cần chuyển hẳn sang đó
-   trước khi lên production. Xem CLAUDE.md mục "Kết nối backend".
+   KHÔNG còn lưu access/refresh token ở bất kỳ đâu phía trình duyệt: backend
+   giữ chúng trong cookie httpOnly (access_token Path=/, refresh_token
+   Path=/auth) mà JS không đọc được, mọi request gửi kèm cookie qua
+   `credentials: 'include'`. Web Storage chỉ còn giữ `agrichain.user` (hồ sơ +
+   quyền, KHÔNG phải bí mật) làm GỢI Ý để vẽ giao diện đồng bộ ngay lúc tải
+   trang (requireAuth()/isBusiness()/hasPermission() đều đồng bộ) và cờ
+   "Ghi nhớ đăng nhập" (localStorage hay sessionStorage, xem activeStorage()).
+   Gợi ý này KHÔNG phải xác thực: quyền thật luôn do backend quyết định, và bị
+   xoá ngay khi gặp 401 không làm mới được. Xem CLAUDE.md mục "Kết nối backend".
    ========================================================================== */
 
 (function (global) {
   'use strict';
 
-  var ACCESS_TOKEN_KEY = 'agrichain.access_token';
-  var REFRESH_TOKEN_KEY = 'agrichain.refresh_token';
   var USER_KEY = 'agrichain.user';
+  // Khoá token của các phiên bản CŨ (trước khi chuyển sang cookie-only) — chỉ
+  // còn dùng để DỌN sạch, không bao giờ đọc/ghi nữa.
+  var LEGACY_TOKEN_KEYS = ['agrichain.access_token', 'agrichain.refresh_token'];
+
+  // Di trú một lần: xoá token cũ còn sót trong Web Storage của người dùng đã
+  // đăng nhập từ bản trước (idempotent, chạy lại mỗi lần tải trang cũng vô hại).
+  function purgeLegacyTokens() {
+    [global.localStorage, global.sessionStorage].forEach(function (storage) {
+      try {
+        LEGACY_TOKEN_KEYS.forEach(function (key) { storage.removeItem(key); });
+      } catch (err) { /* chế độ ẩn danh có thể chặn storage — bỏ qua */ }
+    });
+  }
+  purgeLegacyTokens();
 
   /* --- Chọn storage: localStorage (Ghi nhớ đăng nhập) hay sessionStorage
      (không ghi nhớ — tự đăng xuất khi đóng hẳn trình duyệt) -----------------
@@ -89,30 +105,20 @@
     }
   }
 
-  // Xoá sạch token/user còn sót ở CẢ 2 storage — gọi lúc đăng nhập, TRƯỚC
-  // khi setStorageMode() đổi chế độ, để không bao giờ có tình huống 1 token
-  // cũ (VD từ lần đăng nhập trước, khác chế độ "Ghi nhớ") còn nằm im ở
-  // storage không active — dù không đọc/ghi qua đó nữa, vẫn là dữ liệu phiên
-  // cũ vô tình còn sống trong trình duyệt lâu hơn cần thiết.
+  // Xoá sạch hồ sơ gợi ý (và token cũ nếu còn) ở CẢ 2 storage — gọi lúc đăng
+  // nhập, TRƯỚC khi setStorageMode() đổi chế độ, để bản `agrichain.user` của
+  // lần đăng nhập trước (khác chế độ "Ghi nhớ") không nằm im ở storage không
+  // active.
   function clearBothStorages() {
     [global.localStorage, global.sessionStorage].forEach(function (storage) {
       try {
-        storage.removeItem(ACCESS_TOKEN_KEY);
-        storage.removeItem(REFRESH_TOKEN_KEY);
         storage.removeItem(USER_KEY);
       } catch (err) { /* im lặng — chế độ ẩn danh có thể chặn cả 2 storage */ }
     });
+    purgeLegacyTokens();
   }
 
   /* --- Phiên đăng nhập ------------------------------------------------------ */
-
-  function getAccessToken() {
-    return readStorage(ACCESS_TOKEN_KEY);
-  }
-
-  function getRefreshToken() {
-    return readStorage(REFRESH_TOKEN_KEY);
-  }
 
   function saveUser(user) {
     if (!user) return;
@@ -129,22 +135,24 @@
     }
   }
 
-  // data: { access_token, refresh_token, user } — user là tuỳ chọn vì
-  // /auth/refresh chỉ trả về cặp token, không kèm lại thông tin user.
+  // data: response của /auth/login — chỉ lấy `user` để lưu gợi ý giao diện.
+  // access_token/refresh_token trong body CỐ TÌNH bị bỏ qua: bản thật nằm
+  // trong cookie httpOnly do backend đặt, không bao giờ chạm vào JS/Web Storage.
   function saveSession(data) {
-    if (data.access_token) writeStorage(ACCESS_TOKEN_KEY, data.access_token);
-    if (data.refresh_token) writeStorage(REFRESH_TOKEN_KEY, data.refresh_token);
-    if (data.user) saveUser(data.user);
+    if (data && data.user) saveUser(data.user);
   }
 
   function clearSession() {
-    removeStorage(ACCESS_TOKEN_KEY);
-    removeStorage(REFRESH_TOKEN_KEY);
     removeStorage(USER_KEY);
+    purgeLegacyTokens();
   }
 
+  // "Có vẻ đã đăng nhập" theo gợi ý đã lưu — JS không đọc được cookie httpOnly
+  // nên không thể biết chắc. Dùng để quyết định vẽ giao diện/điều hướng sớm;
+  // phiên hết hạn thật sẽ lộ ra ở lần gọi API đầu tiên (401 -> làm mới thất bại
+  // -> clearSession()).
   function isLoggedIn() {
-    return !!getAccessToken();
+    return !!getUser();
   }
 
   // Đọc đồng bộ từ agrichain.user đã lưu (UserOut, xem /auth/me) — KHÔNG gọi
@@ -280,19 +288,10 @@
      thu hồi và đăng xuất oan). */
   var refreshPromise = null;
 
+  // Không gửi body: backend đọc refresh token từ cookie httpOnly (Path=/auth)
+  // và tự đặt lại cặp cookie mới trong response.
   function performRefresh() {
-    var refreshToken = getRefreshToken();
-    if (!refreshToken) {
-      return Promise.reject(new ApiError(401, 'UNAUTHORIZED', 'Phiên đăng nhập đã hết hạn.', null));
-    }
-    return request('POST', '/auth/refresh', {
-      body: { refresh_token: refreshToken },
-      auth: false,
-      retry: false
-    }).then(function (data) {
-      saveSession(data);
-      return data;
-    });
+    return request('POST', '/auth/refresh', { auth: false, retry: false });
   }
 
   function refreshTokenOnce() {
@@ -328,17 +327,13 @@
     // "Kết nối backend") dù gọi CROSS-ORIGIN sang backend (api.*). Bắt buộc
     // phải có để cookie Domain=COOKIE_DOMAIN hoạt động — thiếu dòng này thì
     // trình duyệt coi như request "ẩn danh", không đính kèm cookie dù đã có
-    // sẵn. Header Authorization bên dưới VẪN giữ nguyên làm phương án dự
-    // phòng (backend đọc cookie trước, không có mới fallback về header).
+    // sẵn. KHÔNG còn header Authorization: phiên chỉ nằm trong cookie httpOnly.
+    // `options.auth` giờ chỉ quyết định có tự làm mới token khi gặp 401 hay không.
     var fetchOptions = { method: method, headers: headers, credentials: 'include' };
 
     if (options.body !== undefined) {
       headers['Content-Type'] = 'application/json';
       fetchOptions.body = JSON.stringify(options.body);
-    }
-    if (auth) {
-      var token = getAccessToken();
-      if (token) headers['Authorization'] = 'Bearer ' + token;
     }
 
     return global.fetch(url, fetchOptions)
@@ -375,14 +370,14 @@
   /* --- auth ------------------------------------------------------------- */
 
   // `remember` (boolean, đọc từ checkbox "Ghi nhớ đăng nhập" ở dang-nhap.html)
-  // quyết định token lưu ở localStorage (true — sống sót qua đóng/mở lại
-  // trình duyệt) hay sessionStorage (false/mặc định — tự mất khi đóng hẳn
-  // trình duyệt, không chỉ đóng tab). Đổi chế độ TRƯỚC saveSession() để bản
-  // ghi mới đi đúng chỗ; clearBothStorages() trước đó dọn sạch token cũ ở
-  // storage không active, tránh sót dữ liệu phiên cũ.
+  // gửi lên backend để chọn cookie sống lâu (true) hay cookie phiên, mất khi
+  // đóng hẳn trình duyệt (false); đồng thời quyết định hồ sơ gợi ý
+  // `agrichain.user` nằm ở localStorage hay sessionStorage cho khớp. Đổi chế độ
+  // TRƯỚC saveSession() để bản ghi mới đi đúng chỗ; clearBothStorages() trước
+  // đó dọn sạch bản cũ ở storage không active.
   function login(email, password, remember) {
     return request('POST', '/auth/login', {
-      body: { email: email, password: password },
+      body: { email: email, password: password, remember: !!remember },
       auth: false,
       retry: false
     }).then(function (data) {
@@ -395,14 +390,16 @@
     });
   }
 
+  // Không gửi body: backend đọc refresh token (thu hồi đúng phiên này) và
+  // access token từ cookie rồi tự xoá cả hai. Luôn xoá gợi ý phía trình duyệt kể
+  // cả khi gọi API lỗi (mất mạng) — người dùng đã bấm Đăng xuất thì giao diện
+  // phải coi như đã thoát.
   function logout() {
-    var refreshToken = getRefreshToken();
-    var done = refreshToken
-      ? request('POST', '/auth/logout', { body: { refresh_token: refreshToken } }).catch(function () {})
-      : Promise.resolve();
-    return done.then(function () {
-      clearSession();
-    });
+    return request('POST', '/auth/logout', { auth: false, retry: false })
+      .catch(function () {})
+      .then(function () {
+        clearSession();
+      });
   }
 
   // GET /auth/me trả về { user: UserOut, permissions: string[],
@@ -445,18 +442,13 @@
     });
   }
 
-  // POST /auth/change-password trả về 1 cặp token MỚI (backend thu hồi hết
-  // token cũ khi đổi mật khẩu) — PHẢI lưu lại ngay bằng saveSession(), nếu
-  // không lần làm mới token tiếp theo của phiên hiện tại sẽ dùng refresh
-  // token cũ đã bị thu hồi, tự đăng xuất oan ngay sau khi vừa đổi mật khẩu
-  // thành công. Không có user trong response nên saveSession() chỉ ghi đè
-  // 2 token, giữ nguyên agrichain.user đang có.
+  // POST /auth/change-password: backend thu hồi hết refresh token cũ rồi tự đặt
+  // lại cặp cookie MỚI trong response — trình duyệt tự áp dụng, JS không phải
+  // làm gì để phiên hiện tại không bị đăng xuất oan. (Body vẫn có cặp token mới
+  // nhưng bị bỏ qua, xem saveSession().)
   function changePassword(oldPassword, newPassword) {
     return request('POST', '/auth/change-password', {
       body: { old_password: oldPassword, new_password: newPassword }
-    }).then(function (data) {
-      saveSession(data);
-      return data;
     });
   }
 
@@ -872,7 +864,6 @@
     isLoggedIn: isLoggedIn,
     hasPermission: hasPermission,
     getUser: getUser,
-    getAccessToken: getAccessToken,
     clearSession: clearSession,
     requireAuth: requireAuth,
     getAccountType: getAccountType,

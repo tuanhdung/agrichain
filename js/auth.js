@@ -186,9 +186,9 @@
 
   /* --- Đăng nhập (đã chuyển sang backend thật qua js/api.js) ----------------
      Checkbox "Ghi nhớ đăng nhập" (name="remember", không có id riêng) giờ
-     có tác dụng THẬT — đọc lúc submit, truyền vào api.auth.login() để quyết
-     định lưu token ở localStorage (tick) hay sessionStorage (bỏ tick, xem
-     js/api.js). */
+     có tác dụng THẬT — đọc lúc submit, truyền vào api.auth.login() để backend
+     đặt cookie xác thực sống lâu (tick) hay cookie phiên (bỏ tick), xem
+     js/api.js. */
 
   function setupLogin() {
     var form = document.getElementById('login-form');

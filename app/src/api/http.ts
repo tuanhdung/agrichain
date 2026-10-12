@@ -1,5 +1,6 @@
-// Port 1:1 phần "request lõi" + "auth" của js/api.js — GIỮ NGUYÊN hành vi:
-//   - Gắn Bearer token từ storage đang active.
+// Port phần "request lõi" + "auth" của js/api.js:
+//   - KHÔNG còn Bearer token: phiên nằm hoàn toàn trong cookie httpOnly, mọi
+//     request gửi kèm qua `credentials: 'include'`.
 //   - Gặp 401 (khi auth + retry) thì tự làm mới token qua 1 refreshPromise
 //     DÙNG CHUNG (nhiều request 401 cùng lúc chỉ gọi /auth/refresh đúng 1
 //     lần — gọi song song sẽ khiến refresh token bị thu hồi, đăng xuất oan).
@@ -11,10 +12,8 @@ import { ApiError, buildApiError, networkError } from './error';
 import {
   clearBothStorages,
   clearSession,
-  getAccessToken,
-  getRefreshToken,
+  getUser,
   redirectToLogin,
-  saveSession,
   saveUser,
   setSessionStorageMode
 } from './session';
@@ -34,7 +33,8 @@ function buildQuery(query?: Record<string, unknown>): string {
 export interface RequestOptions {
   body?: unknown;
   query?: Record<string, unknown>;
-  /** Mặc định true — có gắn Authorization: Bearer <token> hay không. */
+  /** Mặc định true — có tự làm mới token (cookie refresh_token) khi gặp 401 hay không
+   *  (cùng `retry`). Không còn ý nghĩa "gắn header" vì không còn Authorization. */
   auth?: boolean;
   /** Mặc định true — có được tự retry đúng 1 lần sau khi refresh token hay không. */
   retry?: boolean;
@@ -42,19 +42,10 @@ export interface RequestOptions {
 
 let refreshPromise: Promise<TokenPair> | null = null;
 
+// Không gửi body: backend đọc refresh token từ cookie httpOnly (Path=/auth) và
+// tự đặt lại cặp cookie mới trong response.
 function performRefresh(): Promise<TokenPair> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    return Promise.reject(new ApiError(401, 'UNAUTHORIZED', 'Phiên đăng nhập đã hết hạn.', null));
-  }
-  return request<TokenPair>('POST', '/auth/refresh', {
-    body: { refresh_token: refreshToken },
-    auth: false,
-    retry: false
-  }).then((data) => {
-    saveSession(data);
-    return data;
-  });
+  return request<TokenPair>('POST', '/auth/refresh', { auth: false, retry: false });
 }
 
 function refreshTokenOnce(): Promise<TokenPair> {
@@ -87,17 +78,12 @@ export function request<T>(method: string, path: string, options: RequestOptions
   // "Kết nối backend") dù gọi CROSS-ORIGIN sang backend (api.*). Bắt buộc
   // phải có để cookie Domain=COOKIE_DOMAIN hoạt động — thiếu dòng này thì
   // trình duyệt coi như request "ẩn danh", không đính kèm cookie dù đã có
-  // sẵn. Header Authorization bên dưới VẪN giữ nguyên làm phương án dự
-  // phòng (backend đọc cookie trước, không có mới fallback về header).
+  // sẵn. KHÔNG còn header Authorization: phiên chỉ nằm trong cookie httpOnly.
   const fetchOptions: RequestInit = { method, headers, credentials: 'include' };
 
   if (options.body !== undefined) {
     headers['Content-Type'] = 'application/json';
     fetchOptions.body = JSON.stringify(options.body);
-  }
-  if (auth) {
-    const token = getAccessToken();
-    if (token) headers.Authorization = `Bearer ${token}`;
   }
 
   return fetch(url, fetchOptions)
@@ -130,45 +116,31 @@ export function request<T>(method: string, path: string, options: RequestOptions
 
 /* --- auth ------------------------------------------------------------- */
 
-// `remember` — checkbox "Ghi nhớ đăng nhập" ở dang-nhap.html; quyết định
-// token lưu localStorage (sống sót qua đóng/mở trình duyệt) hay sessionStorage
-// (mất khi đóng hẳn trình duyệt). App/ pilot hiện chưa có form đăng nhập
+// `remember` — checkbox "Ghi nhớ đăng nhập" ở dang-nhap.html; gửi lên backend
+// để chọn cookie sống lâu hay cookie phiên (mất khi đóng hẳn trình duyệt), đồng
+// thời quyết định hồ sơ gợi ý nằm localStorage hay sessionStorage. App/ pilot hiện chưa có form đăng nhập
 // riêng (đăng nhập vẫn qua dang-nhap.html tĩnh) — hàm này port đủ để dùng khi
 // cần (VD sau này 1 trang React tự đăng nhập lại ngầm, giống transferAdmin ở
 // tai-khoan.html gốc), KHÔNG phải vì app/ đã có UI đăng nhập.
 function login(email: string, password: string, remember: boolean): Promise<User> {
   return request<TokenPair>('POST', '/auth/login', {
-    body: { email, password },
+    body: { email, password, remember },
     auth: false,
     retry: false
-  }).then((data) => {
+  }).then(() => {
     clearBothStorages();
     setSessionStorageMode(remember);
-    saveSession(data);
+    // Token trong body bị bỏ qua (cookie httpOnly đã được backend đặt); hồ sơ
+    // gợi ý lấy từ GET /auth/me để có đủ quyền.
     return me();
   });
 }
 
-// TODO(agrichain-api): LogoutRequest.refresh_token đang BẮT BUỘC (min_length=1)
-// — phiên thuần cookie (SPA bootstrap từ site tĩnh, xem AuthContext.tsx) KHÔNG
-// bao giờ có refresh_token cục bộ, nên KHÔNG THỂ gọi endpoint này với giá trị
-// thật. Backend không đọc refresh_token để quyết định có xoá cookie hay
-// không (_clear_auth_cookie() chạy VÔ ĐIỀU KIỆN sau bước revoke, xem
-// routers/auth.py::logout) — gửi 1 CHUỖI PLACEHOLDER không rỗng vẫn khiến
-// backend chạy đúng nhánh xoá cookie, chỉ đơn giản là không tìm thấy hash
-// nào khớp nên bỏ qua revoke (no-op an toàn, không lộ chuyện có/không phiên
-// khác). Giải pháp SẠCH lâu dài (đề xuất cho agrichain-api, CHƯA làm): đổi
-// LogoutRequest.refresh_token thành optional; thiếu thì đọc lại refresh
-// token hiện có QUA CHÍNH CƠ CHẾ xác thực cookie (nếu backend giữ được liên
-// kết access token cookie -> refresh token, hoặc đơn giản hơn: luôn xoá
-// cookie bất kể có refresh_token hợp lệ hay không, chỉ revoke khi có).
-const NO_LOCAL_REFRESH_TOKEN_PLACEHOLDER = 'no-local-refresh-token';
-
+// Không gửi body: backend đọc refresh token (thu hồi đúng phiên này, kể cả phiên
+// đăng nhập ở site tĩnh vì cookie dùng chung domain) và access token từ cookie
+// rồi tự xoá cả hai. Luôn xoá gợi ý phía trình duyệt kể cả khi gọi API lỗi.
 function logout(): Promise<void> {
-  const refreshToken = getRefreshToken() ?? NO_LOCAL_REFRESH_TOKEN_PLACEHOLDER;
-  const done = request('POST', '/auth/logout', { body: { refresh_token: refreshToken }, auth: false, retry: false }).catch(
-    () => undefined
-  );
+  const done = request('POST', '/auth/logout', { auth: false, retry: false }).catch(() => undefined);
   return done.then(() => {
     clearSession();
   });
@@ -206,10 +178,14 @@ function me(): Promise<User> {
 // redirectToLogin() ngay TRONG hàm này — bỏ lỡ cơ hội để AuthContext tự
 // quyết định khi nào mới thực sự redirect (xem dưới).
 //
+// Access token chỉ sống 15 phút nhưng refresh token (cookie Path=/auth) sống 7
+// ngày: gặp 401 ở /auth/me thì thử /auth/refresh ĐÚNG 1 lần rồi dò lại, để
+// người dùng quay lại sau > 15 phút không bị buộc đăng nhập lại oan.
+//
 // ⚠️ PHÂN BIỆT RÕ 2 loại thất bại (2026-09-29, xem ProtectedRoute.tsx):
-// - 401 đúng nghĩa "chưa đăng nhập ở đâu cả" (không có cookie hợp lệ) —
-//   trả về `null`, KHÔNG ném lỗi, để ProtectedRoute redirect sang trang đăng
-//   nhập của site tĩnh.
+// - 401 đúng nghĩa "chưa đăng nhập ở đâu cả" (không có cookie hợp lệ, kể cả sau
+//   khi thử làm mới) — trả về `null`, KHÔNG ném lỗi, để ProtectedRoute
+//   redirect sang trang đăng nhập của site tĩnh.
 // - MỌI lỗi khác (status 0 = mất mạng/CORS, 5xx = backend sập...) — NÉM LẠI
 //   nguyên trạng, KHÔNG được coi là "chưa đăng nhập". Nuốt lỗi này rồi kết
 //   luận null sẽ gây VÒNG LẶP REDIRECT: mỗi lần backend sập, người dùng bị
@@ -217,9 +193,15 @@ function me(): Promise<User> {
 //   /auth/me, lại lỗi mạng, lại bị đá ra — không có cách nào thoát nếu không
 //   phân biệt 2 ca này.
 function bootstrapFromCookie(): Promise<User | null> {
-  return fetchMe({ auth: false, retry: false }).catch((err) => {
+  const unauthorizedToNull = (err: unknown): null => {
     if (err instanceof ApiError && err.status === 401) return null;
     throw err;
+  };
+  return fetchMe({ auth: false, retry: false }).catch((err: unknown) => {
+    if (!(err instanceof ApiError) || err.status !== 401) throw err;
+    return performRefresh()
+      .then(() => fetchMe({ auth: false, retry: false }))
+      .catch(unauthorizedToNull);
   });
 }
 
@@ -230,7 +212,7 @@ function updateMe(payload: { full_name?: string; phone?: string | null }): Promi
   return request<Omit<User, 'permissions' | 'organization_is_distributor'>>('PATCH', '/auth/me', {
     body: payload
   }).then((partial) => {
-    const existing = (JSON.parse(localStorage.getItem('agrichain.user') || 'null') as User | null) || null;
+    const existing = getUser();
     const user: User = {
       ...partial,
       permissions: existing?.permissions || [],
@@ -241,15 +223,12 @@ function updateMe(payload: { full_name?: string; phone?: string | null }): Promi
   });
 }
 
-// POST /auth/change-password trả về cặp token MỚI (backend thu hồi hết token
-// cũ) — PHẢI lưu lại ngay, không thì lần refresh tiếp theo sẽ dùng refresh
-// token cũ đã bị thu hồi, tự đăng xuất oan.
+// POST /auth/change-password: backend thu hồi hết refresh token cũ rồi tự đặt
+// lại cặp cookie MỚI trong response — trình duyệt tự áp dụng, JS không phải làm
+// gì để phiên hiện tại không bị đăng xuất oan.
 function changePassword(oldPassword: string, newPassword: string): Promise<TokenPair> {
   return request<TokenPair>('POST', '/auth/change-password', {
     body: { old_password: oldPassword, new_password: newPassword }
-  }).then((data) => {
-    saveSession(data);
-    return data;
   });
 }
 

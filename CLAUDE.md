@@ -1155,6 +1155,8 @@ SỐ NHÁNH viết trong code).
 
 ### `js/api.js`
 
+> **⚠️ Phần "Lưu phiên", "Checkbox Ghi nhớ đăng nhập" và "Cookie httpOnly dùng chung" bên dưới mô tả cơ chế TRƯỚC 2026-10-12** (token trong Web Storage + header `Authorization` dự phòng). Hiện đã bỏ hẳn — xem mục "Phiên chỉ nằm trong cookie httpOnly" ở cuối phần "Kết nối backend".
+
 Nạp SAU `api-config.js`, ở mọi trang, **không `defer`** (một số trang cần gọi
 `AgriChain.api.requireAuth()` ngay trong `<head>` để chặn hiển thị trước khi kịp chuyển
 hướng — script `defer` chạy quá trễ cho việc đó).
@@ -1479,22 +1481,35 @@ xoá mềm). `js/api.js` bọc thêm `api.farms.*`/`api.seasons.*`/`api.logs.*`/
   `api.supplies.list()`, tải 1 lần lúc trang khởi động — không đọc `store.js` nữa, nếu không
   id vật tư chọn được sẽ không khớp bản ghi thật trong DB.
 
-### Nợ kỹ thuật đã biết
+### Phiên chỉ nằm trong cookie httpOnly (2026-10-12, nhánh `feat/cookie-only-auth`)
 
-**Lưu access/refresh token trong `localStorage`/`sessionStorage` không an toàn trước tấn
-công XSS** (bất kỳ đoạn JS nào chạy được trên trang, kể cả từ thư viện ngoài bị lỗi, cũng
-đọc được token). **Đã giảm nhẹ MỘT PHẦN (2026-09-25)**: cookie `httpOnly` chứa access token
-đã có (xem mục "Kết nối backend" → "Cookie httpOnly dùng chung phiên đăng nhập") — cookie
-`httpOnly` tự nó không đọc được bằng JS nên an toàn hơn trước XSS, nhưng đây **KHÔNG phải
-"backend set cookie, frontend không đụng tới token nữa" như dự tính ban đầu** — quyết định
-CHỦ ĐỘNG giữ nguyên cả 2 cơ chế song song (cookie ưu tiên, Web Storage/header làm dự phòng)
-để không phá luồng hiện có, nên `localStorage`/`sessionStorage` VẪN còn giữ access/refresh
-token y như cũ, VẪN đọc được bởi mọi JS chạy trên trang — lỗ hổng XSS với 2 storage này vẫn
-CÒN NGUYÊN. Refresh token đặc biệt CHƯA từng đưa vào cookie (chỉ access token) — vẫn hoàn
-toàn dựa vào Web Storage. **Bắt buộc phải dọn hẳn Web Storage khỏi luồng token (chỉ còn
-cookie `httpOnly` + `Secure` + `SameSite`) trước khi lên production** nếu muốn giải quyết
-dứt điểm lỗ hổng này — ngoài phạm vi đợt thêm cookie 2026-09-25 (chủ đích chỉ cộng thêm, chưa
-thay thế).
+Đã GIẢI QUYẾT nợ kỹ thuật "token trong Web Storage": access token VÀ refresh token giờ
+chỉ nằm trong cookie httpOnly do backend đặt (`access_token` Path=/, `refresh_token`
+Path=/auth, SameSite=Lax, Secure/Domain theo cấu hình) — JS không đọc được. `js/api.js` và
+`app/src/api/*` không còn lưu/đọc token, không còn header `Authorization`; mọi fetch dùng
+`credentials: 'include'`. Backend: xem `agrichain-api/CLAUDE.md` mục "Cookie-only auth".
+
+- **Web Storage chỉ còn giữ `agrichain.user`** (hồ sơ + quyền, KHÔNG phải bí mật) làm GỢI Ý
+  để `requireAuth()`/`isBusiness()`/`hasPermission()` chạy ĐỒNG BỘ lúc tải trang, và cờ
+  `agrichain.storage_mode` ("Ghi nhớ đăng nhập": localStorage hay sessionStorage). Gợi ý này
+  KHÔNG phải xác thực — quyền thật do backend quyết định, gợi ý bị xoá khi 401 không làm
+  mới được. `isLoggedIn()` = "có gợi ý", không còn nghĩa "có access token".
+- **Di trú**: lúc tải trang `purgeLegacyTokens()` xoá `agrichain.access_token`/
+  `agrichain.refresh_token` còn sót trong cả 2 storage (idempotent). `js/store.js` KHÔNG bị
+  đụng: `agrichain:session` ở đó là phiên GIẢ LẬP cũ, không chứa token thật.
+- **"Ghi nhớ đăng nhập"** gửi `remember` lên `/auth/login`: true -> cookie sống đủ hạn (access
+  15 phút, refresh 7 ngày), false -> cookie phiên. Lần `/auth/refresh` giữ đúng kiểu.
+- **SPA tự làm mới được**: `bootstrapFromCookie()` gặp 401 thì thử `/auth/refresh` đúng 1 lần
+  rồi dò lại `/auth/me` — người dùng quay lại sau > 15 phút không bị ép đăng nhập lại.
+- **CSRF**: backend kiểm `Origin`/`Referer` ∈ `CORS_ORIGINS` cho POST/PUT/PATCH/DELETE khi
+  dựa vào cookie (trình duyệt tự gửi `Origin` cho fetch cross-origin). Origin của site tĩnh và
+  SPA PHẢI nằm trong `CORS_ORIGINS` của backend, nếu không mọi request ghi bị 403.
+- **Dev bắt buộc qua domain giả** `agrichain.local`/`app.agrichain.local`/
+  `api.agrichain.local` (hosts file, `COOKIE_DOMAIN=.agrichain.local`): không còn header
+  `Authorization` làm dự phòng, và cookie SameSite=Lax không đi kèm fetch giữa `localhost` và
+  `127.0.0.1` (khác site) nên dev qua `localhost`/`127.0.0.1` KHÔNG còn đăng nhập được.
+- Còn lại: nếu XSS chạy được trên trang, kẻ tấn công vẫn gọi được API NHƯ người dùng (cookie
+  tự gửi) trong lúc trang còn mở, nhưng không đánh cắp được token mang đi dùng nơi khác.
 
 ## Quy ước CSS
 
