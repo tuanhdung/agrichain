@@ -2550,3 +2550,12 @@ dữ liệu TMĐT nào chỉ nằm trong localStorage ngoại trừ **giỏ hàn
 - **SPA**: thêm trang `/tmdt/danh-gia` (Quản lý đánh giá, `app/src/pages/tmdt/DanhGiaPage.tsx`, `api/reviews.ts`) — xem và gỡ đánh giá vi phạm.
 - **Dọn code cũ (CHƯA xoá file)**: `ecommerce.html` đã không còn; còn 7 `thuong-mai-*.html` + 7 `js/thuong-mai-*.js` + `js/ecommerce.js`,
   không trang nào ngoài chính chúng trỏ tới (xác nhận bằng grep) — chờ người dùng tự xoá hoặc cho phép.
+
+## Nâng cấp thư viện SPA vá lỗ hổng (2026-10-12, nhánh `security/upgrade-deps`)
+
+`npm audit` báo 3 lỗ hổng: `react-router`/`react-router-dom` 6.x (open redirect qua dấu `\` trong `<Link>`/`useNavigate`;
+lỗi `deserializeErrors` chỉ ảnh hưởng SSR nên SPA này không dính) và `source-map-js` (DoS, chỉ ở công cụ build). Đã nâng
+`react-router-dom` 6 → **7.18.4** (bản vá duy nhất, nhảy major) và chạy `npm audit fix` cho `source-map-js`; sau đó
+`npm audit` báo 0 lỗ hổng, `tsc` sạch, 70 test qua, `npm run build` qua. **CHƯA kiểm tra bằng tay trên trình duyệt** —
+cần bấm thử sidebar (NavLink), chuyển trang, đăng nhập/đăng xuất và trang chi tiết nông trại trước khi merge, vì đổi major
+của router có thể lệch hành vi mà test tự động không bắt được.
