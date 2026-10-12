@@ -33,7 +33,7 @@
 
     var media = el('div', 'post-card__media');
     var cover = el('img', 'post-card__cover');
-    cover.src = post.cover;
+    if (post.cover) cover.src = post.cover;
     cover.alt = '';
     cover.loading = 'lazy';
     var category = el('span', 'badge badge--solid post-card__category', post.category);
@@ -86,11 +86,8 @@
   document.addEventListener('DOMContentLoaded', function () {
     if (!gridNode) return;
 
-    fetch('data/blog-posts.json')
-      .then(function (res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      })
+    // Gộp bài tĩnh (data/blog-posts.json) + bài đã xuất bản từ máy chủ — xem js/blog-data.js
+    global.AgriChain.loadBlogPosts()
       .then(function (posts) {
         gridNode.textContent = '';
         posts.forEach(function (post, index) {

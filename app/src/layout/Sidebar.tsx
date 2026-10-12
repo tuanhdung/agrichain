@@ -7,7 +7,6 @@ import { NavLink } from 'react-router-dom';
 import { Icon } from '../icons';
 import { useAuth } from '../context/AuthContext';
 import { useSidebarSections } from '../hooks/useSidebarState';
-import { mainSiteUrl } from '../api/config';
 
 interface NavItem {
   href?: string;
@@ -34,6 +33,8 @@ function useNavSections(): NavSectionDef[] {
       label: 'Hoạt động sản xuất',
       items: [
         { to: '/nong-trai', icon: 'seedling', label: 'Nông trại' },
+        { to: '/ngan-hang', icon: 'credit-card', label: 'Ngân hàng' },
+        { to: '/bao-hiem', icon: 'shield-check', label: 'Bảo hiểm' },
         { to: '/vat-tu', icon: 'box', label: 'Vật tư' },
         { to: '/mau-quy-trinh', icon: 'workflow', label: 'Mẫu quy trình' },
         { to: '/lo-hang', icon: 'warehouse', label: 'Quản lý lô hàng' }
@@ -45,13 +46,13 @@ function useNavSections(): NavSectionDef[] {
       // Port updateDistributorOnlyNav(): nhóm này CHỈ dành cho platform_admin.
       hidden: !isPlatformAdmin,
       items: [
-        { href: mainSiteUrl('thuong-mai-tong-quan.html'), icon: 'monitor', label: 'Tổng quan' },
-        { href: mainSiteUrl('thuong-mai-san-pham.html'), icon: 'box', label: 'Sản phẩm' },
-        { href: mainSiteUrl('thuong-mai-don-hang.html'), icon: 'shopping-cart', label: 'Đơn hàng' },
-        { href: mainSiteUrl('thuong-mai-van-chuyen.html'), icon: 'truck', label: 'Vận chuyển' },
-        { href: mainSiteUrl('thuong-mai-nhap-hang.html'), icon: 'barcode', label: 'Nhập hàng' },
-        { href: mainSiteUrl('thuong-mai-may-tinh-tien.html'), icon: 'credit-card', label: 'Máy tính tiền (POS)' },
-        { href: mainSiteUrl('thuong-mai-thiet-lap.html'), icon: 'settings', label: 'Thiết lập Shop' }
+        { to: '/tmdt/tong-quan', icon: 'monitor', label: 'Tổng quan bảng điều khiển' },
+        { to: '/tmdt/don-hang', icon: 'shopping-cart', label: 'Quản lý đơn hàng' },
+        { to: '/tmdt/danh-muc', icon: 'layers', label: 'Cây danh mục đa cấp' },
+        { to: '/tmdt/bai-viet', icon: 'file-text', label: 'Quản lý bài viết' },
+        { to: '/tmdt/san-pham', icon: 'box', label: 'Quản lý sản phẩm' },
+        { to: '/tmdt/danh-gia', icon: 'star', label: 'Quản lý đánh giá' },
+        { to: '/tmdt/tai-khoan', icon: 'user', label: 'Quản lý tài khoản' }
       ]
     },
     {

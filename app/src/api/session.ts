@@ -1,5 +1,9 @@
-// Port 1:1 phần "Chọn storage" + "Phiên đăng nhập" của js/api.js — GIỮ
-// NGUYÊN tên key localStorage/sessionStorage ('agrichain.access_token'...).
+// Port phần "Chọn storage" + "Phiên đăng nhập" của js/api.js. KHÔNG còn lưu
+// access/refresh token ở bất kỳ đâu phía trình duyệt: backend giữ chúng trong
+// cookie httpOnly (access_token Path=/, refresh_token Path=/auth), JS không đọc
+// được, mọi request gửi kèm qua `credentials: 'include'`. Web Storage chỉ còn
+// giữ `agrichain.user` (hồ sơ + quyền, KHÔNG phải bí mật) làm GỢI Ý để vẽ giao
+// diện đồng bộ và cờ "Ghi nhớ đăng nhập" — quyền thật luôn do backend quyết định.
 //
 // Kiến trúc ĐÃ CHỐT là SUBDOMAIN riêng (app.agrichain.org.vn khác hẳn
 // agrichain.org.vn) — 2 domain này là 2 ORIGIN KHÁC NHAU, nên Web Storage
@@ -13,10 +17,24 @@
 import { mainSiteUrl } from './config';
 import type { User } from './types';
 
-const ACCESS_TOKEN_KEY = 'agrichain.access_token';
-const REFRESH_TOKEN_KEY = 'agrichain.refresh_token';
 const USER_KEY = 'agrichain.user';
 const STORAGE_MODE_KEY = 'agrichain.storage_mode';
+// Khoá token của các phiên bản CŨ — chỉ còn dùng để DỌN sạch, không bao giờ
+// đọc/ghi nữa.
+const LEGACY_TOKEN_KEYS = ['agrichain.access_token', 'agrichain.refresh_token'];
+
+// Di trú một lần: xoá token cũ còn sót trong Web Storage của người dùng đã đăng
+// nhập từ bản trước (idempotent, chạy lại vô hại).
+function purgeLegacyTokens(): void {
+  [window.localStorage, window.sessionStorage].forEach((storage) => {
+    try {
+      LEGACY_TOKEN_KEYS.forEach((key) => storage.removeItem(key));
+    } catch {
+      /* chế độ ẩn danh có thể chặn storage — bỏ qua */
+    }
+  });
+}
+purgeLegacyTokens();
 
 type StorageMode = 'local' | 'session';
 
@@ -71,30 +89,21 @@ function removeStorage(key: string): void {
   }
 }
 
-// Xoá sạch token/user còn sót ở CẢ 2 storage — gọi lúc đăng nhập, TRƯỚC khi
-// đổi storage mode, tránh sót phiên cũ ở storage không active.
+// Xoá sạch hồ sơ gợi ý (và token cũ nếu còn) ở CẢ 2 storage — gọi lúc đăng
+// nhập, TRƯỚC khi đổi storage mode, tránh sót bản cũ ở storage không active.
 export function clearBothStorages(): void {
   [window.localStorage, window.sessionStorage].forEach((storage) => {
     try {
-      storage.removeItem(ACCESS_TOKEN_KEY);
-      storage.removeItem(REFRESH_TOKEN_KEY);
       storage.removeItem(USER_KEY);
     } catch {
       /* im lặng — chế độ ẩn danh có thể chặn cả 2 storage */
     }
   });
+  purgeLegacyTokens();
 }
 
 export function setSessionStorageMode(remember: boolean): void {
   setStorageMode(remember ? 'local' : 'session');
-}
-
-export function getAccessToken(): string | null {
-  return readStorage(ACCESS_TOKEN_KEY);
-}
-
-export function getRefreshToken(): string | null {
-  return readStorage(REFRESH_TOKEN_KEY);
 }
 
 export function saveUser(user: User): void {
@@ -113,25 +122,25 @@ export function getUser(): User | null {
 }
 
 export interface SessionData {
-  access_token?: string;
-  refresh_token?: string;
   user?: User;
 }
 
+// Chỉ lấy `user` (gợi ý giao diện). access_token/refresh_token trong body của
+// /auth/login CỐ TÌNH bị bỏ qua: bản thật nằm trong cookie httpOnly do backend
+// đặt, không bao giờ chạm vào JS/Web Storage.
 export function saveSession(data: SessionData): void {
-  if (data.access_token) writeStorage(ACCESS_TOKEN_KEY, data.access_token);
-  if (data.refresh_token) writeStorage(REFRESH_TOKEN_KEY, data.refresh_token);
   if (data.user) saveUser(data.user);
 }
 
 export function clearSession(): void {
-  removeStorage(ACCESS_TOKEN_KEY);
-  removeStorage(REFRESH_TOKEN_KEY);
   removeStorage(USER_KEY);
+  purgeLegacyTokens();
 }
 
+// "Có vẻ đã đăng nhập" theo gợi ý đã lưu — JS không đọc được cookie httpOnly
+// nên không thể biết chắc. Phiên hết hạn thật lộ ra ở lần gọi API đầu tiên.
 export function isLoggedIn(): boolean {
-  return !!getAccessToken();
+  return !!getUser();
 }
 
 export function getAccountType(): User['account_type'] | null {

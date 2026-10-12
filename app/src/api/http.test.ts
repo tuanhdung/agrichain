@@ -81,7 +81,7 @@ describe('auth.bootstrapFromCookie', () => {
 });
 
 describe('auth.logout', () => {
-  it('khong co refresh_token cuc bo (phien thuan cookie) van goi duoc /auth/logout voi placeholder khong rong', async () => {
+  it('goi /auth/logout KHONG kem body, gui cookie (credentials include), va xoa goi y phia client', async () => {
     const fetchMock = vi.fn().mockResolvedValue(fakeResponse(200, { message: 'Đã đăng xuất.' }));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -90,8 +90,9 @@ describe('auth.logout', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toContain('/auth/logout');
-    const sentBody = JSON.parse(init.body as string) as { refresh_token: string };
-    expect(sentBody.refresh_token.length).toBeGreaterThan(0);
+    expect(init.body).toBeUndefined();
+    expect(init.credentials).toBe('include');
+    expect((init.headers as Record<string, string>).Authorization).toBeUndefined();
     expect(getUser()).toBeNull();
   });
 
@@ -99,15 +100,86 @@ describe('auth.logout', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(fakeResponse(200, { message: 'Đã đăng xuất.' })) // POST /auth/logout
-      .mockResolvedValueOnce(
+      .mockResolvedValue(
         fakeResponse(401, { error: { code: 'UNAUTHORIZED', message: 'Phiên đăng nhập đã hết hạn.' } })
-      ); // GET /auth/me
+      ); // GET /auth/me rồi POST /auth/refresh (cookie đã xoá) đều 401
     vi.stubGlobal('fetch', fetchMock);
 
     await auth.logout();
     const user = await auth.bootstrapFromCookie();
 
     expect(user).toBeNull();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('auth.bootstrapFromCookie — làm mới bằng cookie refresh_token', () => {
+  it('/auth/me 401 nhung /auth/refresh thanh cong -> do lai /auth/me va tra ve user (khong ep dang nhap lai)', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(fakeResponse(401, { error: { code: 'UNAUTHORIZED', message: 'Hết hạn.' } })) // GET /auth/me
+      .mockResolvedValueOnce(fakeResponse(200, { access_token: 'x', refresh_token: 'y' })) // POST /auth/refresh
+      .mockResolvedValueOnce(
+        fakeResponse(200, { user: FAKE_USER, permissions: ['farms.view'], organization_is_distributor: null })
+      ); // GET /auth/me lan 2
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = await auth.bootstrapFromCookie();
+
+    expect(user?.email).toBe(FAKE_USER.email);
+    const [refreshUrl, refreshInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(refreshUrl).toContain('/auth/refresh');
+    expect(refreshInit.body).toBeUndefined(); // refresh token nằm trong cookie, không trong body
+  });
+
+  it('refresh gap loi mang -> NEM LAI, khong coi la chua dang nhap', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(fakeResponse(401, { error: { code: 'UNAUTHORIZED', message: 'Hết hạn.' } }))
+        .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    );
+
+    const error = await auth.bootstrapFromCookie().catch((err: unknown) => err);
+    expect((error as ApiError).status).toBe(0);
+  });
+});
+
+describe('khong luu token trong Web Storage', () => {
+  it('dang nhap xong storage KHONG chua access/refresh token, chi co ho so goi y', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(fakeResponse(200, { access_token: 'AAA', refresh_token: 'RRR', user: FAKE_USER }))
+        .mockResolvedValueOnce(
+          fakeResponse(200, { user: FAKE_USER, permissions: [], organization_is_distributor: null })
+        )
+    );
+
+    await auth.login('nguoidung@agrichain.vn', 'MatKhau1!', true);
+
+    const dump = JSON.stringify({ ...window.localStorage }) + JSON.stringify({ ...window.sessionStorage });
+    expect(dump).not.toContain('AAA');
+    expect(dump).not.toContain('RRR');
+    expect(window.localStorage.getItem('agrichain.access_token')).toBeNull();
+    expect(window.localStorage.getItem('agrichain.refresh_token')).toBeNull();
+    expect(getUser()?.email).toBe(FAKE_USER.email);
+  });
+
+  it('gui remember len backend va khong gan header Authorization', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(fakeResponse(200, { access_token: 'A', refresh_token: 'R', user: FAKE_USER }))
+      .mockResolvedValueOnce(fakeResponse(200, { user: FAKE_USER, permissions: [], organization_is_distributor: null }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await auth.login('nguoidung@agrichain.vn', 'MatKhau1!', false);
+
+    const [, loginInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(loginInit.body as string)).toMatchObject({ remember: false });
+    const [, meInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect((meInit.headers as Record<string, string>).Authorization).toBeUndefined();
   });
 });

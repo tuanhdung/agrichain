@@ -103,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Tab khác (cùng origin) đăng nhập/đăng xuất — 'storage' KHÔNG bắn ở
     // chính tab vừa ghi, chỉ bắn ở các tab KHÁC, đúng ý dùng ở đây.
     function onStorage(event: StorageEvent) {
-      if (event.key === 'agrichain.user' || event.key === 'agrichain.access_token') {
+      if (event.key === 'agrichain.user') {
         refreshFromStorage();
       }
     }

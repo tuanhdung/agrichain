@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danh Sách Nông Sản - AgriVerse</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Cùng cấu hình Tailwind với agriverse-3d.html (mỗi trang tự chứa riêng, không dùng chung được giữa 2 file .html)
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#14532d', 950: '#052e18' },
+                        amber: { 500: '#f59e0b', 600: '#d97706' }
+                    },
+                    fontFamily: { sans: ['Lexend', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Lexend', sans-serif; background-color: #fafaf8; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #22c55e; border-radius: 8px; }
+    </style>
+    <script src="js/api-config.js?v=2"></script>
+    <script src="js/app-config.js?v=2"></script>
+    <script src="js/api.js?v=24"></script>
+    <script src="js/agriverse-cart.js?v=3"></script>
+    <script src="js/agriverse-wholesale.js?v=1"></script>
+    <script src="js/agriverse-cart-drawer.js?v=1"></script>
+    <script src="js/agriverse-account.js?v=1" defer></script>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+    <!-- Navigation Header -->
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-emerald-100 shadow-sm">
+        <div class="px-4 sm:px-6">
+            <div class="flex items-center justify-between h-20">
+                <!-- Logo & Slogan (No 3D on badges) + link về trang giới thiệu -->
+                <div class="flex items-center space-x-3 sm:space-x-4">
+                    <!-- Về trang giới thiệu AgriChain (index.html): điểm quay về DUY NHẤT cho khách vào
+                         thẳng trang này (VD từ đích đăng nhập customer, xem redirectTarget() trong
+                         js/auth.js), hiện với MỌI account_type. Icon luôn hiện, chữ từ sm. -->
+                    <a href="index.html" class="flex items-center space-x-1.5 pr-3 sm:pr-4 border-r border-slate-200 text-slate-500 hover:text-brand-700 font-semibold text-xs transition flex-shrink-0" aria-label="Về trang giới thiệu AgriChain">
+                        <i class="fa-solid fa-arrow-left-long"></i>
+                        <span class="hidden sm:inline">Về AgriChain</span>
+                    </a>
+                    <div class="flex items-center space-x-3 cursor-pointer" onclick="location.href='agriverse-3d.html'">
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-700 via-emerald-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+                            <i class="fa-solid fa-cube text-2xl"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-2xl font-black bg-gradient-to-r from-brand-800 via-emerald-600 to-amber-600 bg-clip-text text-transparent tracking-tight">AgriVerse</span>
+                            </div>
+                            <p class="hidden xl:block whitespace-nowrap text-xs text-slate-500 font-medium">Sàn Dưa Lưới Tiến Phát • Quét Mã QR Chuẩn 100%</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Menu chính: Trang chủ (trang này) + Sản phẩm (san-pham.html) -->
+                <nav class="hidden md:flex flex-1 items-center justify-center gap-2 lg:gap-4 px-2">
+                    <a href="agriverse-3d.html" class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-600 border-b-2 border-transparent hover:text-brand-700 hover:border-emerald-300 transition">
+                        <i class="fa-solid fa-house"></i> Trang Chủ
+                    </a>
+                    <a href="san-pham.html" class="flex items-center gap-2 px-4 py-2 text-sm font-bold text-brand-700 border-b-2 border-brand-600">
+                        <i class="fa-solid fa-leaf"></i> Sản Phẩm
+                    </a>
+                </nav>
+
+                <!-- Global Search Bar -->
+                <div class="hidden xl:flex w-64 mr-4">
+                    <div class="relative w-full">
+                        <input id="header-search" type="text" placeholder="Tìm nông sản..." 
+                            class="w-full pl-11 pr-4 py-2.5 bg-slate-100/90 rounded-full text-sm border border-transparent focus:border-brand-500 focus:bg-white focus:outline-none transition-all shadow-inner">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400"></i>
+                    </div>
+                </div>
+
+                <!-- Nav Actions & VR Tour Trigger -->
+                <div class="flex items-center space-x-3">
+                    <a href="agriverse-3d.html?gio-hang=1" class="relative p-2.5 rounded-full hover:bg-slate-100 text-slate-700 transition" aria-label="Giỏ hàng">
+                        <i class="fa-solid fa-basket-shopping text-xl"></i>
+                        <span id="cart-count" class="absolute -top-1 -right-1 bg-amber-500 text-slate-950 font-black text-xs w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow">0</span>
+                    </a>
+
+                    <!-- Khu vực tài khoản — renderAccountArea() (cuối trang) điền nội
+                         dung lúc tải trang dựa vào AgriChain.api.isLoggedIn(). Mặc định
+                         tĩnh dưới đây (link Đăng Nhập) chỉ để không hiện khung rỗng nếu
+                         JS lỗi/chưa kịp chạy. -->
+                    <div id="account-area" class="relative">
+                        <a href="dang-nhap.html" class="flex items-center space-x-2 px-3.5 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition">
+                            <i class="fa-solid fa-user"></i>
+                            <span class="hidden sm:inline">Đăng Nhập</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Menu cho màn hình nhỏ (< 768px): menu chính ở giữa header chỉ hiện từ md trở lên -->
+        <nav class="md:hidden flex border-t border-slate-100 text-sm" aria-label="Menu chính">
+            <a href="agriverse-3d.html" class="flex-1 text-center py-2.5 font-semibold text-slate-600 border-b-2 border-transparent hover:text-brand-700"><i class="fa-solid fa-house mr-1.5"></i>Trang Chủ</a>
+            <a href="san-pham.html" class="flex-1 text-center py-2.5 font-semibold text-brand-700 border-b-2 border-brand-600"><i class="fa-solid fa-leaf mr-1.5"></i>Sản Phẩm</a>
+        </nav>
+    </header>
+
+    <!-- Hero -->
+    <section class="relative overflow-hidden bg-gradient-to-br from-emerald-900 via-brand-800 to-emerald-950 text-white">
+        <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#22c55e_1px,transparent_1px)] [background-size:18px_18px]"></div>
+        <div class="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-amber-500/20 blur-3xl"></div>
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+            <nav class="text-sm text-emerald-100/80">
+                <a href="agriverse-3d.html" class="hover:text-white">Trang Chủ</a>
+                <span class="mx-2">/</span>
+                <span class="font-semibold text-white">Danh Sách Nông Sản</span>
+            </nav>
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div class="space-y-3 max-w-2xl">
+                    <h1 class="text-3xl sm:text-4xl font-black text-white">Sàn Nông Sản Công Nghệ Cao</h1>
+                    <p class="text-emerald-50/90 text-sm sm:text-base">Khám phá nông sản tươi ngon, chứng nhận nguồn gốc minh bạch bằng mã QR truy xuất và kiểm soát chất lượng từ nông trại đến bàn ăn.</p>
+                </div>
+                <div class="flex gap-4">
+                    <div class="px-6 py-4 rounded-2xl bg-white/10 border border-white/20 text-center">
+                        <div id="stat-total" class="text-2xl font-black text-amber-500">0</div>
+                        <div class="text-[11px] font-bold uppercase tracking-wide mt-1">Sản phẩm sẵn có</div>
+                    </div>
+                    <div class="px-6 py-4 rounded-2xl bg-white/10 border border-white/20 text-center">
+                        <div id="stat-categories" class="text-2xl font-black text-amber-500">0</div>
+                        <div class="text-[11px] font-bold uppercase tracking-wide mt-1">Danh mục</div>
+                    </div>
+                </div>
+            </div>
+            <div id="hero-pills" class="flex items-center gap-3 overflow-x-auto pb-1 custom-scrollbar"></div>
+        </div>
+    </section>
+
+    <main class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex-1 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8 items-start">
+
+        <!-- Sidebar bộ lọc -->
+        <aside class="bg-white rounded-3xl border border-slate-200 p-5 space-y-6 lg:sticky lg:top-20">
+            <h2 class="font-black text-slate-900 uppercase text-sm tracking-wide"><i class="fa-solid fa-sliders text-brand-600 mr-2"></i>Bộ lọc tìm kiếm</h2>
+
+            <label class="flex items-start justify-between gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-200 cursor-pointer">
+                <div>
+                    <div class="font-bold text-sm text-slate-900"><i class="fa-solid fa-bolt text-amber-600 mr-1"></i>Ưu Đãi Giá Sỉ B2B</div>
+                    <p class="text-xs text-slate-500 mt-1">Hiển thị thêm giá sỉ (ưu đãi 8%) cho doanh nghiệp, đại lý và nhà hàng.</p>
+                </div>
+                <input id="b2b-toggle" type="checkbox" class="mt-1 w-5 h-5 accent-amber-500 flex-shrink-0">
+            </label>
+
+            <div>
+                <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Danh mục sản phẩm</h3>
+                <ul id="category-list" class="space-y-1"></ul>
+            </div>
+
+            <div>
+                <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Khoảng giá (VND)</h3>
+                <div id="price-list" class="space-y-1"></div>
+            </div>
+
+            <div>
+                <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Tiêu chuẩn nông sản</h3>
+                <div id="standard-list" class="space-y-2"></div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-sky-50 border border-sky-200 text-xs text-slate-600">
+                <div class="font-bold text-slate-900 text-sm mb-1"><i class="fa-regular fa-snowflake text-sky-500 mr-1"></i>Truy xuất nguồn gốc QR</div>
+                Mỗi lô hàng đính kèm mã QR độc lập, quét để xem nhật ký canh tác và chứng nhận.
+            </div>
+        </aside>
+
+        <!-- Khu vực sản phẩm -->
+        <section class="space-y-6 min-w-0">
+            <div class="bg-white rounded-3xl border border-slate-200 p-4 flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-brand-600"></i>
+                    <input id="search-input" type="text" placeholder="Tìm nông sản theo tên, xuất xứ..." class="w-full pl-11 pr-4 py-2.5 bg-slate-50 rounded-full text-sm border border-slate-200 focus:border-brand-500 focus:outline-none">
+                </div>
+                <div class="flex items-center gap-2 text-sm">
+                    <span class="text-slate-400">Sắp xếp:</span>
+                    <select id="sort-select" class="px-3 py-2 rounded-xl border border-slate-200 bg-white font-semibold focus:outline-none focus:border-brand-500">
+                        <option value="newest">Nổi bật & mới nhất</option>
+                        <option value="price-asc">Giá tăng dần</option>
+                        <option value="price-desc">Giá giảm dần</option>
+                        <option value="name">Tên A → Z</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+
+            <div class="border-t border-slate-200 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500">
+                <span id="page-info"></span>
+                <div id="pagination" class="flex items-center gap-2"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-brand-950 text-emerald-100/80 text-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row justify-between gap-2">
+            <span>© 2026 AgriChain. Nền tảng truy xuất nguồn gốc nông sản bằng Blockchain.</span>
+            <a href="index.html" class="hover:text-white">Về trang giới thiệu AgriChain</a>
+        </div>
+    </footer>
+
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl bg-slate-900 text-white text-sm font-semibold shadow-xl opacity-0 pointer-events-none transition"></div>
+
+    <script>
+        // Dữ liệu THẬT từ backend (GET /categories + GET /products, công khai) — cùng nguồn với trang quản trị
+        // (SPA /tmdt/danh-muc, /tmdt/san-pham). Nạp xong ở loadStore() cuối file.
+        let PRODUCTS_DATA = [];
+        // Danh mục (cây 2 cấp): { key: slug, label, icon (emoji), parent: slug|null, badge }
+        let CATEGORIES = [];
+
+        const PRICE_RANGES = [
+            { key: 'all', label: 'Tất cả mức giá', min: 0, max: Infinity },
+            { key: 'r1', label: 'Dưới 100.000 đ', min: 0, max: 100000 },
+            { key: 'r2', label: '100.000 đ - 300.000 đ', min: 100000, max: 300000 },
+            { key: 'r3', label: '300.000 đ - 1.000.000 đ', min: 300000, max: 1000000 },
+            { key: 'r4', label: 'Trên 1.000.000 đ', min: 1000000, max: Infinity }
+        ];
+        // Không có field "tiêu chuẩn" riêng trong dữ liệu — suy ra từ mô tả/nhãn của sản phẩm
+        const STANDARDS = [
+            { key: 'vietgap', label: 'Chuẩn VietGAP', test: p => /vietgap/i.test(p.desc) },
+            { key: 'globalgap', label: 'Chuẩn GlobalGAP', test: p => /globalgap/i.test(p.desc) },
+            { key: 'ocop', label: 'Chứng Nhận OCOP', test: p => /ocop/i.test(p.brix + ' ' + p.desc) },
+            { key: 'organic', label: 'Hữu Cơ Tự Nhiên', test: p => /hữu cơ|nguyên chất/i.test(p.name + ' ' + p.brix + ' ' + p.desc) }
+        ];
+        const PAGE_SIZE = 6;
+        const B2B_DISCOUNT = 0.08;
+
+        const state = { category: 'all', price: 'all', standards: new Set(), q: '', sort: 'newest', page: 1, b2b: false };
+
+        // p.catPath = slug danh mục của sản phẩm + các danh mục cha của nó → chọn danh mục cha thì thấy cả sản phẩm của danh mục con
+        const inCategory = (p, key) => key === 'all' || p.catPath.includes(key);
+        const fmt = n => n.toLocaleString('vi-VN') + ' đ';
+        const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+        function getFiltered() {
+            const range = PRICE_RANGES.find(r => r.key === state.price);
+            const q = state.q.trim().toLowerCase();
+            const list = PRODUCTS_DATA.filter(p =>
+                inCategory(p, state.category) &&
+                p.price >= range.min && p.price < range.max &&
+                Array.from(state.standards).every(k => STANDARDS.find(s => s.key === k).test(p)) &&
+                (!q || (p.name + ' ' + p.origin + ' ' + p.brix).toLowerCase().includes(q))
+            );
+            const sorters = {
+                newest: (a, b) => b.order - a.order,
+                'price-asc': (a, b) => a.price - b.price,
+                'price-desc': (a, b) => b.price - a.price,
+                name: (a, b) => a.name.localeCompare(b.name, 'vi')
+            };
+            return list.sort(sorters[state.sort]);
+        }
+
+        function pillClass(active) {
+            return 'px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap border transition ' +
+                (active ? 'bg-white text-brand-800 border-white' : 'bg-white/10 text-white border-white/20 hover:bg-white/20');
+        }
+
+        function renderSidebar() {
+            const total = PRODUCTS_DATA.length;
+            const roots = CATEGORIES.filter(c => !c.parent);
+            const pills = [{ key: 'all', label: 'Tất Cả', icon: '🛒', count: total }]
+                .concat(roots.map(c => ({ ...c, count: PRODUCTS_DATA.filter(p => inCategory(p, c.key)).length })));
+
+            document.getElementById('hero-pills').innerHTML = pills.map(c =>
+                `<button data-cat="${esc(c.key)}" class="${pillClass(state.category === c.key)}"><span class="mr-1.5">${esc(c.icon || '🗂️')}</span>${esc(c.label)} (${c.count})</button>`).join('');
+
+            // Danh mục cha, con của nó thụt vào ngay bên dưới
+            const sideRows = [pills[0]];
+            roots.forEach(r => {
+                sideRows.push({ ...r, count: PRODUCTS_DATA.filter(p => inCategory(p, r.key)).length });
+                CATEGORIES.filter(c => c.parent === r.key).forEach(c =>
+                    sideRows.push({ ...c, child: true, count: PRODUCTS_DATA.filter(p => inCategory(p, c.key)).length }));
+            });
+            document.getElementById('category-list').innerHTML = sideRows.map(c => {
+                const active = state.category === c.key;
+                return `<li><button data-cat="${esc(c.key)}" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm transition ${c.child ? 'pl-8 font-medium' : 'font-semibold'} ${active ? 'bg-emerald-50 text-brand-700' : 'text-slate-700 hover:bg-slate-50'}">
+                    <span><span class="inline-block w-5 mr-1">${c.child ? '↳' : esc(c.icon || '🗂️')}</span>${c.label === 'Tất Cả' ? 'Tất Cả Danh Mục' : esc(c.label)}</span>
+                    <span class="text-xs text-slate-400">${c.count}</span></button></li>`;
+            }).join('');
+
+            document.getElementById('price-list').innerHTML = PRICE_RANGES.map(r =>
+                `<label class="flex items-center gap-2 px-3 py-2 rounded-xl text-sm cursor-pointer ${state.price === r.key ? 'bg-emerald-50 font-semibold' : 'hover:bg-slate-50'}">
+                    <input type="radio" name="price" value="${r.key}" class="accent-brand-600" ${state.price === r.key ? 'checked' : ''}>${r.label}</label>`).join('');
+
+            document.getElementById('standard-list').innerHTML = STANDARDS.map(s =>
+                `<label class="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" value="${s.key}" class="w-4 h-4 accent-brand-600" ${state.standards.has(s.key) ? 'checked' : ''}>${s.label}</label>`).join('');
+        }
+
+        function renderGrid() {
+            const list = getFiltered();
+            const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+            state.page = Math.min(state.page, pages);
+            const slice = list.slice((state.page - 1) * PAGE_SIZE, state.page * PAGE_SIZE);
+            const grid = document.getElementById('product-grid');
+
+            if (storeStatus === 'loading') {
+                grid.innerHTML = `<div class="col-span-full text-center py-16 text-slate-500">
+                    <i class="fa-solid fa-spinner fa-spin text-3xl text-slate-300 mb-3"></i>
+                    <p class="font-semibold">Đang tải nông sản...</p></div>`;
+            } else if (storeStatus === 'error') {
+                grid.innerHTML = `<div class="col-span-full text-center py-16 text-slate-500">
+                    <i class="fa-solid fa-triangle-exclamation text-4xl text-amber-400 mb-3"></i>
+                    <p class="font-semibold">Không tải được danh sách nông sản.</p>
+                    <button data-retry class="mt-4 px-5 py-2 rounded-2xl bg-brand-700 hover:bg-brand-800 text-white font-bold text-sm transition">Thử lại</button></div>`;
+            } else if (!slice.length) {
+                grid.innerHTML = `<div class="col-span-full text-center py-16 text-slate-500">
+                    <i class="fa-solid fa-seedling text-4xl text-slate-300 mb-3"></i>
+                    <p class="font-semibold">${PRODUCTS_DATA.length ? 'Không tìm thấy sản phẩm phù hợp bộ lọc.' : 'Chưa có nông sản nào được mở bán.'}</p></div>`;
+            } else {
+                grid.innerHTML = slice.map(p => {
+                    const cat = CATEGORIES.find(c => c.key === p.category);
+                    const inStock = p.stock > 0;
+                    const b2bPct = p.wholesale ? Math.round((1 - p.wholesale / p.price) * 100) : 0;
+                    return `<article class="bg-white rounded-3xl border border-slate-200 overflow-hidden flex flex-col hover:border-brand-500 hover:shadow-xl transition group">
+                        <a href="san-pham-chi-tiet.html?slug=${encodeURIComponent(p.slug)}" class="relative h-52 bg-gradient-to-br from-amber-50 to-emerald-50 flex items-center justify-center overflow-hidden" aria-label="Xem chi tiết ${esc(p.name)}">
+                            ${p.img
+                                ? `<img src="${esc(p.img)}" alt="${esc(p.name)}" loading="lazy" class="h-full w-full object-cover group-hover:scale-105 transition duration-300">`
+                                : `<span class="text-6xl" aria-hidden="true">🌱</span>`}
+                            ${state.b2b && p.wholesale ? `<span class="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-amber-500 text-white text-[11px] font-black">B2B SỈ -${b2bPct}%</span>` : ''}
+                            <span class="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-white/90 ${inStock ? 'text-brand-700' : 'text-red-600'} text-[11px] font-bold">${inStock ? 'Còn hàng' : 'Hết hàng'}</span>
+                        </a>
+                        <div class="p-5 flex-1 flex flex-col gap-3">
+                            <div>
+                                <div class="text-xs text-slate-400">${esc(cat ? cat.label : 'Nông sản')}${p.origin ? ' • ' + esc(p.origin) : ''}</div>
+                                <h3 class="font-extrabold text-slate-900 mt-1"><a href="san-pham-chi-tiet.html?slug=${encodeURIComponent(p.slug)}" class="hover:text-brand-700 transition">${esc(p.name)}</a></h3>
+                                ${ratingLine(p.ratingAvg, p.ratingCount)}
+                                ${p.desc ? `<p class="text-xs text-slate-500 mt-1 line-clamp-2">${esc(p.desc)}</p>` : ''}
+                                ${p.brix ? `<p class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-certificate text-amber-500 mr-1"></i>${esc(p.brix)}</p>` : ''}
+                            </div>
+                            <div class="mt-auto pt-3 border-t border-slate-100 flex items-end justify-between gap-2">
+                                <div>
+                                    <div class="text-xs text-slate-400">Giá bán lẻ:</div>
+                                    <span class="text-xl font-black text-slate-900">${fmt(p.price)}</span>
+                                    <span class="text-xs text-slate-400">/ ${esc(p.unit)}</span>
+                                </div>
+                                ${state.b2b && p.wholesale ? `<span class="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-lg text-right">Giá sỉ: ${fmt(p.wholesale)}<br><span class="font-medium">từ ${p.moq} ${esc(p.unit)}</span></span>` : ''}
+                            </div>
+                            <div class="grid ${p.wholesale && inStock ? 'grid-cols-2' : 'grid-cols-1'} gap-2">
+                                <button data-add="${esc(p.id)}" ${inStock ? '' : 'disabled'} class="py-2.5 rounded-2xl bg-brand-700 hover:bg-brand-800 text-white font-bold text-sm transition ${inStock ? '' : 'opacity-40 cursor-not-allowed'}"><i class="fa-solid fa-basket-shopping mr-1"></i>${inStock ? 'Thêm Giỏ' : 'Tạm hết hàng'}</button>
+                                ${p.wholesale && inStock ? `<button data-wholesale="${esc(p.id)}" class="py-2.5 rounded-2xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-sm transition"><i class="fa-solid fa-bolt mr-1"></i>Tính Sỉ</button>` : ''}
+                            </div>
+                        </div>
+                    </article>`;
+                }).join('');
+            }
+
+            document.getElementById('stat-total').textContent = PRODUCTS_DATA.length;
+            document.getElementById('stat-categories').textContent = CATEGORIES.filter(c => !c.parent).length;
+            document.getElementById('page-info').textContent = `Trang ${state.page} / ${pages} (Tổng ${list.length} sản phẩm)`;
+            const btn = (label, page, disabled, active) =>
+                `<button data-page="${page}" ${disabled ? 'disabled' : ''} class="min-w-9 h-9 px-3 rounded-xl text-sm font-semibold transition ${active ? 'bg-brand-700 text-white' : 'border border-slate-200 hover:bg-slate-50'} ${disabled ? 'opacity-40 cursor-not-allowed' : ''}">${label}</button>`;
+            let html = btn('← Trước', state.page - 1, state.page === 1, false);
+            for (let i = 1; i <= pages; i++) html += btn(i, i, false, i === state.page);
+            html += btn('Sau →', state.page + 1, state.page === pages, false);
+            document.getElementById('pagination').innerHTML = html;
+        }
+
+        function refresh() { renderSidebar(); renderGrid(); }
+
+        function setCategory(key) {
+            state.category = key;
+            state.page = 1;
+            // Giữ URL phản ánh bộ lọc đang chọn (chia sẻ/F5 vẫn đúng danh mục) — cùng nguyên tắc query string của dự án
+            const url = new URL(location.href);
+            if (key === 'all') url.searchParams.delete('danh-muc'); else url.searchParams.set('danh-muc', key);
+            history.replaceState(null, '', url);
+            refresh();
+        }
+
+        let toastTimer;
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.remove('opacity-0');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => t.classList.add('opacity-0'), 1800);
+        }
+
+        document.addEventListener('click', e => {
+            if (e.target.closest('[data-retry]')) return loadStore();
+            const cat = e.target.closest('[data-cat]');
+            if (cat) return setCategory(cat.dataset.cat);
+            const pg = e.target.closest('[data-page]');
+            if (pg && !pg.disabled) { state.page = Number(pg.dataset.page); renderGrid(); return window.scrollTo({ top: 0, behavior: 'smooth' }); }
+            const ws = e.target.closest('[data-wholesale]');
+            if (ws) {
+                const prod = PRODUCTS_DATA.find(x => x.id === ws.dataset.wholesale);
+                if (prod) AgriChain.wholesale.open(prod, (result, p, q) => showToast(result.limited ? `Đã đạt số lượng tối đa trong kho cho "${p.name}"` : `Đã thêm ${q} ${p.unit} "${p.name}" vào giỏ`));
+                return;
+            }
+            const add = e.target.closest('[data-add]');
+            // Giỏ hàng lưu localStorage, dùng chung với agriverse-3d.html (bấm icon giỏ ở header để xem)
+            if (add) {
+                const prod = PRODUCTS_DATA.find(x => x.id === add.dataset.add);
+                if (prod) {
+                    const result = addToCart(prod.name, prod.price, prod.img, prod.id, prod.wholesale, prod.moq, prod.stock);
+                    showToast(result.limited ? `Đã đạt số lượng tối đa trong kho cho "${prod.name}"` : `Đã thêm "${prod.name}" vào giỏ`);
+                }
+            }
+        });
+        document.addEventListener('change', e => {
+            if (e.target.name === 'price') { state.price = e.target.value; state.page = 1; refresh(); }
+            else if (e.target.closest('#standard-list')) {
+                e.target.checked ? state.standards.add(e.target.value) : state.standards.delete(e.target.value);
+                state.page = 1; refresh();
+            }
+        });
+        document.getElementById('b2b-toggle').addEventListener('change', e => { state.b2b = e.target.checked; renderGrid(); });
+        document.getElementById('sort-select').addEventListener('change', e => { state.sort = e.target.value; state.page = 1; renderGrid(); });
+        document.getElementById('search-input').addEventListener('input', e => { state.q = e.target.value; state.page = 1; renderGrid(); });
+
+
+        // Giỏ hàng dùng chung: js/agriverse-cart.js (localStorage + đồng bộ máy chủ khi đã đăng nhập)
+        const cart = window.AgriChain.cart;
+        // Dòng sao nhỏ trên thẻ sản phẩm (rating_avg/rating_count từ máy chủ)
+        function ratingLine(avg, count) {
+            if (!count) return '<div class="text-[11px] text-slate-400 mt-1">Chưa có đánh giá</div>';
+            let html = '';
+            for (let i = 1; i <= 5; i++) html += `<i class="fa-solid fa-star ${avg >= i - 0.25 ? 'text-amber-500' : (avg >= i - 0.75 ? 'text-amber-300' : 'text-slate-300')}" style="font-size:11px"></i>`;
+            return `<div class="flex items-center gap-1 mt-1">${html}<span class="text-[11px] text-slate-400">${avg.toFixed(1)} (${count})</span></div>`;
+        }
+
+        function updateCartBadge() {
+            document.getElementById('cart-count').textContent = cart.totals().lines;
+        }
+        // `id` = id sản phẩm trên máy chủ — BẮT BUỘC để đặt hàng thật (backend lấy giá theo id, không tin giá client).
+        function addToCart(name, price, img, id, wholesale, moq, stock) {
+            return cart.add({ id, name, price, img, wholesale, moq, stock });
+        }
+        cart.onChange(updateCartBadge);
+        window.addEventListener('load', () => { updateCartBadge(); cart.init(); });
+        document.getElementById('header-search').addEventListener('input', e => {
+            document.getElementById('search-input').value = e.target.value;
+            state.q = e.target.value; state.page = 1; renderGrid();
+        });
+        document.getElementById('search-input').addEventListener('input', e => {
+            document.getElementById('header-search').value = e.target.value;
+        });
+
+        // Nạp danh mục + sản phẩm từ backend (công khai, không cần đăng nhập). Phân trang hết (API tối đa 100/trang).
+        let storeStatus = 'loading';
+        async function fetchAll(fn, params) {
+            const items = [];
+            for (let page = 1; page <= 20; page++) {
+                const res = await fn(Object.assign({}, params, { page, page_size: 100 }));
+                items.push(...res.items);
+                if (items.length >= res.total || !res.items.length) break;
+            }
+            return items;
+        }
+
+        async function loadStore() {
+            storeStatus = 'loading';
+            refresh();
+            try {
+                const api = window.AgriChain.api;
+                const [cats, prods] = await Promise.all([
+                    fetchAll(api.categories.list, { type: 'product' }),
+                    fetchAll(api.products.list, {})
+                ]);
+                const byId = new Map(cats.map(c => [c.id, c]));
+                const bySlug = new Map(cats.map(c => [c.slug, c]));
+                CATEGORIES = cats
+                    .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, 'vi'))
+                    .map(c => ({
+                        key: c.slug, label: c.name, icon: c.icon,
+                        parent: c.parent_id && byId.has(c.parent_id) ? byId.get(c.parent_id).slug : null
+                    }));
+                // slug danh mục của sản phẩm + các danh mục cha của nó
+                const pathOf = slug => {
+                    const path = [];
+                    for (let c = bySlug.get(slug); c && !path.includes(c.slug); c = c.parent_id ? byId.get(c.parent_id) : null) path.push(c.slug);
+                    return path;
+                };
+                PRODUCTS_DATA = prods.map((p, i) => ({
+                    id: p.id, order: prods.length - i, name: p.name, category: p.category_slug || '', catPath: pathOf(p.category_slug),
+                    price: p.retail_price, wholesale: p.wholesale_price, moq: p.moq, unit: p.unit, stock: p.stock,
+                    origin: p.origin || '', brix: p.standards || '', img: p.thumbnail_url || '', desc: p.summary || p.description || '',
+                    slug: p.slug, ratingAvg: p.rating_avg, ratingCount: p.rating_count || 0
+                }));
+                storeStatus = 'ready';
+                // Đọc ?danh-muc= (từ thẻ danh mục ở agriverse-3d.html); khoá lạ thì rơi về "Tất cả"
+                const initial = new URLSearchParams(location.search).get('danh-muc');
+                state.category = initial && CATEGORIES.some(c => c.key === initial) ? initial : 'all';
+                // ?q= từ ô tìm kiếm ở header trang chủ sàn
+                const initialQuery = (new URLSearchParams(location.search).get('q') || '').trim();
+                if (initialQuery) {
+                    state.q = initialQuery;
+                    document.getElementById('search-input').value = initialQuery;
+                    document.getElementById('header-search').value = initialQuery;
+                }
+            } catch (err) {
+                console.error('[san-pham] Không tải được dữ liệu sàn:', err);
+                storeStatus = 'error';
+            }
+            refresh();
+        }
+        loadStore();
+    </script>
+</body>
+</html>

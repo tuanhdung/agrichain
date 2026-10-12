@@ -3,6 +3,25 @@
 Nền tảng truy xuất nguồn gốc nông sản bằng blockchain kết hợp AI.
 HTML/CSS/JS thuần — **không dùng framework, không dùng build tool** (không Webpack/Vite/npm build).
 
+## Bố cục workspace trên máy dev (cập nhật 2026-10-12)
+
+```
+D:\Exabyte\Dự án\
+  agrichain\        # repo FRONTEND này (site tĩnh ở gốc + SPA React trong app/)
+  agrichain-api\    # repo BACKEND (FastAPI) — repo riêng, tên trùng repo GitHub
+  tai-lieu\         # ảnh/pdf/video/mẫu tham khảo rời, KHÔNG thuộc repo nào
+  start-agrichain.ps1  # bật Docker + Postgres + backend + SPA + mở VS Code
+```
+Dev bắt buộc qua domain giả `agrichain.local`/`app.agrichain.local`/`api.agrichain.local` (hosts file),
+không dùng `localhost` — xem mục "Phiên chỉ nằm trong cookie httpOnly".
+
+> **⚠️ Các trang `thuong-mai-*.html` + `js/thuong-mai-*.js` + `js/ecommerce.js` ĐÃ BỊ XOÁ khỏi dự án
+> (2026-10-12, nhánh `integration/cookie-tmdt`)** — khu thương mại điện tử thật nằm ở SPA
+> (`app/src/pages/tmdt/`, route `/tmdt/*`, chỉ platform_admin) và sàn công khai (`agriverse-3d.html`,
+> `san-pham*.html`, `thanh-toan.html`). Các đoạn bên dưới còn nhắc tới các trang đã xoá đó (mô tả
+> `thuong-mai-*`, `requireDistributor()`, collection `shops`/`products`/`orders` trong `store.js`) chỉ còn
+> giá trị lịch sử, chưa được dọn khỏi tài liệu.
+
 ## Ngôn ngữ giao tiếp
 
 - Luôn trả lời và giải thích bằng **tiếng Việt**.
@@ -1155,6 +1174,8 @@ SỐ NHÁNH viết trong code).
 
 ### `js/api.js`
 
+> **⚠️ Phần "Lưu phiên", "Checkbox Ghi nhớ đăng nhập" và "Cookie httpOnly dùng chung" bên dưới mô tả cơ chế TRƯỚC 2026-10-12** (token trong Web Storage + header `Authorization` dự phòng). Hiện đã bỏ hẳn — xem mục "Phiên chỉ nằm trong cookie httpOnly" ở cuối phần "Kết nối backend".
+
 Nạp SAU `api-config.js`, ở mọi trang, **không `defer`** (một số trang cần gọi
 `AgriChain.api.requireAuth()` ngay trong `<head>` để chặn hiển thị trước khi kịp chuyển
 hướng — script `defer` chạy quá trễ cho việc đó).
@@ -1478,22 +1499,35 @@ xoá mềm). `js/api.js` bọc thêm `api.farms.*`/`api.seasons.*`/`api.logs.*`/
   `api.supplies.list()`, tải 1 lần lúc trang khởi động — không đọc `store.js` nữa, nếu không
   id vật tư chọn được sẽ không khớp bản ghi thật trong DB.
 
-### Nợ kỹ thuật đã biết
+### Phiên chỉ nằm trong cookie httpOnly (2026-10-12, nhánh `feat/cookie-only-auth`)
 
-**Lưu access/refresh token trong `localStorage`/`sessionStorage` không an toàn trước tấn
-công XSS** (bất kỳ đoạn JS nào chạy được trên trang, kể cả từ thư viện ngoài bị lỗi, cũng
-đọc được token). **Đã giảm nhẹ MỘT PHẦN (2026-09-25)**: cookie `httpOnly` chứa access token
-đã có (xem mục "Kết nối backend" → "Cookie httpOnly dùng chung phiên đăng nhập") — cookie
-`httpOnly` tự nó không đọc được bằng JS nên an toàn hơn trước XSS, nhưng đây **KHÔNG phải
-"backend set cookie, frontend không đụng tới token nữa" như dự tính ban đầu** — quyết định
-CHỦ ĐỘNG giữ nguyên cả 2 cơ chế song song (cookie ưu tiên, Web Storage/header làm dự phòng)
-để không phá luồng hiện có, nên `localStorage`/`sessionStorage` VẪN còn giữ access/refresh
-token y như cũ, VẪN đọc được bởi mọi JS chạy trên trang — lỗ hổng XSS với 2 storage này vẫn
-CÒN NGUYÊN. Refresh token đặc biệt CHƯA từng đưa vào cookie (chỉ access token) — vẫn hoàn
-toàn dựa vào Web Storage. **Bắt buộc phải dọn hẳn Web Storage khỏi luồng token (chỉ còn
-cookie `httpOnly` + `Secure` + `SameSite`) trước khi lên production** nếu muốn giải quyết
-dứt điểm lỗ hổng này — ngoài phạm vi đợt thêm cookie 2026-09-25 (chủ đích chỉ cộng thêm, chưa
-thay thế).
+Đã GIẢI QUYẾT nợ kỹ thuật "token trong Web Storage": access token VÀ refresh token giờ
+chỉ nằm trong cookie httpOnly do backend đặt (`access_token` Path=/, `refresh_token`
+Path=/auth, SameSite=Lax, Secure/Domain theo cấu hình) — JS không đọc được. `js/api.js` và
+`app/src/api/*` không còn lưu/đọc token, không còn header `Authorization`; mọi fetch dùng
+`credentials: 'include'`. Backend: xem `agrichain-api/CLAUDE.md` mục "Cookie-only auth".
+
+- **Web Storage chỉ còn giữ `agrichain.user`** (hồ sơ + quyền, KHÔNG phải bí mật) làm GỢI Ý
+  để `requireAuth()`/`isBusiness()`/`hasPermission()` chạy ĐỒNG BỘ lúc tải trang, và cờ
+  `agrichain.storage_mode` ("Ghi nhớ đăng nhập": localStorage hay sessionStorage). Gợi ý này
+  KHÔNG phải xác thực — quyền thật do backend quyết định, gợi ý bị xoá khi 401 không làm
+  mới được. `isLoggedIn()` = "có gợi ý", không còn nghĩa "có access token".
+- **Di trú**: lúc tải trang `purgeLegacyTokens()` xoá `agrichain.access_token`/
+  `agrichain.refresh_token` còn sót trong cả 2 storage (idempotent). `js/store.js` KHÔNG bị
+  đụng: `agrichain:session` ở đó là phiên GIẢ LẬP cũ, không chứa token thật.
+- **"Ghi nhớ đăng nhập"** gửi `remember` lên `/auth/login`: true -> cookie sống đủ hạn (access
+  15 phút, refresh 7 ngày), false -> cookie phiên. Lần `/auth/refresh` giữ đúng kiểu.
+- **SPA tự làm mới được**: `bootstrapFromCookie()` gặp 401 thì thử `/auth/refresh` đúng 1 lần
+  rồi dò lại `/auth/me` — người dùng quay lại sau > 15 phút không bị ép đăng nhập lại.
+- **CSRF**: backend kiểm `Origin`/`Referer` ∈ `CORS_ORIGINS` cho POST/PUT/PATCH/DELETE khi
+  dựa vào cookie (trình duyệt tự gửi `Origin` cho fetch cross-origin). Origin của site tĩnh và
+  SPA PHẢI nằm trong `CORS_ORIGINS` của backend, nếu không mọi request ghi bị 403.
+- **Dev bắt buộc qua domain giả** `agrichain.local`/`app.agrichain.local`/
+  `api.agrichain.local` (hosts file, `COOKIE_DOMAIN=.agrichain.local`): không còn header
+  `Authorization` làm dự phòng, và cookie SameSite=Lax không đi kèm fetch giữa `localhost` và
+  `127.0.0.1` (khác site) nên dev qua `localhost`/`127.0.0.1` KHÔNG còn đăng nhập được.
+- Còn lại: nếu XSS chạy được trên trang, kẻ tấn công vẫn gọi được API NHƯ người dùng (cookie
+  tự gửi) trong lúc trang còn mở, nhưng không đánh cắp được token mang đi dùng nơi khác.
 
 ## Quy ước CSS
 
@@ -2375,6 +2409,29 @@ Link "Ghé thăm cửa hàng"/"Xem chi tiết" sản phẩm/mục "Cửa hàng"/
 `href="#"` — chưa có trang chi tiết 1 cửa hàng, trang chi tiết 1 sản phẩm, hay trang danh sách
 riêng cho các mục này (xem "Việc chưa làm" phía trên).
 
+## Sàn TMĐT — danh mục & sản phẩm đã nối API thật (2026-10-09)
+
+Trước đây SPA (`/tmdt/danh-muc`, `/tmdt/san-pham`) lưu vào localStorage của origin `:5173` còn
+`agriverse-3d.html`/`san-pham.html` hard-code dữ liệu — hai bên KHÔNG chung dữ liệu nên thêm ở
+quản trị không hiện ở sàn. Giờ cả hai cùng đọc backend (`agrichain-api`, bảng `categories`/`products`):
+
+- **Quản trị (SPA):** `app/src/api/categories.ts`, `products.ts` (gom vào `api.system.categories|products`,
+  GHI qua `/system/categories|products`, chỉ platform_admin). `DanhMucPage.tsx`, `SanPhamPage.tsx`,
+  `TongQuanPage.tsx` (số liệu sản phẩm) và `BaiVietPage.tsx` (chuyên mục) đọc API, không còn đọc
+  `store.ts` cho danh mục/sản phẩm. **Đơn hàng, bài viết vẫn là demo localStorage** (backend chưa có bảng).
+  Nút "Nạp dữ liệu mẫu" gọi API tạo từng bản ghi (bỏ qua cái đã có theo slug/SKU).
+- **Sàn công khai:** `js/api.js` thêm `AgriChain.api.categories.list/getBySlug` và
+  `AgriChain.api.products.list/getBySlug` (đều `auth:false`). `agriverse-3d.html` render thẻ danh mục + pill +
+  lưới sản phẩm; `san-pham.html` render sidebar danh mục (2 cấp), lưới, lọc/sắp xếp. Chỉ thấy danh mục
+  `is_active` và sản phẩm `status='selling'`. Lọc theo danh mục cha gồm cả sản phẩm của danh mục con.
+- **Màu thẻ danh mục là việc hiển thị:** bảng màu xoay vòng theo thứ tự trong `agriverse-3d.html`
+  (`CATEGORY_GRADIENTS`), backend không có cột màu. Icon là emoji (`categories.icon`), nhãn góc thẻ là `badge`.
+- **Chưa có:** liên kết sản phẩm ↔ lô hàng/mã QR (nút "Mã QR" và "Mã Lô" trên sàn đã bỏ vì không có dữ liệu),
+  tên gian hàng (`stall`), giá cũ gạch ngang, ảnh gallery. Giá sỉ B2B hiện đúng `wholesale_price`/`moq` thật
+  (trước là giảm 8% giả lập).
+- Ảnh chọn từ máy ở form sản phẩm được thu nhỏ + nén JPEG ≲ 400KB phía trình duyệt rồi gửi dạng data URL
+  (backend nhận ≤ 2MB, jpeg/png/webp).
+
 ## Dữ liệu hành chính (tỉnh/thành, phường/xã)
 
 `data/provinces.json` (34 tỉnh/thành) và `data/wards/{provinceCode}.json` (1 file/tỉnh,
@@ -2420,3 +2477,76 @@ nghi phạm mới — đích đến `#tinh-nang` là phần tử `[data-reveal]`
 cuộn theo vị trí BỐ CỤC (cộng dồn `offsetTop` theo `offsetParent`, không bị transform ảnh
 hưởng) trừ `header.offsetHeight`, và dùng CHUNG vòng "cuộn lại tới khi đứng yên" cho cả lúc bấm
 link lẫn lúc tải trang kèm `#hash`. Nếu vẫn lệch sau bản này, mục này vẫn còn mở.
+
+## Sàn TMĐT — đặt hàng, địa chỉ, quản trị TMĐT (2026-10-10)
+
+Toàn bộ chạy trên backend thật (xem `agrichain-api/CLAUDE.md` mục "Đơn hàng, sổ địa chỉ, bài viết…"); không còn
+dữ liệu TMĐT nào chỉ nằm trong localStorage ngoại trừ **giỏ hàng** (`agriverse:cart`) và vài trường phụ của Hồ sơ
+(`agriverse:profile-extra:<userId>` — khu vực/doanh nghiệp/ghi chú, backend chưa có cột).
+
+- **Trang công khai/khách (Tailwind, tự chứa riêng)**: `agriverse-3d.html` (trang chủ sàn + ngăn kéo giỏ),
+  `san-pham.html` (lọc/tìm/phân trang), `thanh-toan.html` (đặt hàng), `tai-khoan-khach-hang.html` (Hồ sơ, Đơn mua,
+  Sổ địa chỉ, Bảo mật). Header + khu tài khoản dùng chung `js/agriverse-account.js`.
+- **Giỏ hàng** lưu `{id, name, price, qty, img, selected}`; `id` = id sản phẩm trên máy chủ, BẮT BUỘC để đặt hàng
+  (giỏ cũ thiếu `id` bị bỏ qua ở trang thanh toán kèm cảnh báo). "Tiến Hành Đặt Hàng" → `thanh-toan.html`, chỉ đặt
+  các món đang tick; thành công thì chỉ xoá các món vừa đặt khỏi giỏ.
+- `thanh-toan.html` cần đăng nhập (`requireAuth()`, KHÔNG `requireBusiness()` — khách `customer` vẫn đặt được).
+  Số tiền hiển thị trước khi đặt chỉ để xem trước; đơn thật dùng số backend tính lại. `BANK_INFO` trong script
+  của trang này để TRỐNG có chủ đích — chưa có tài khoản ngân hàng thật, KHÔNG điền số bịa.
+- `js/api.js` thêm `api.addresses.*`, `api.orders.*`, `api.articles.*` (công khai).
+- **Blog**: `js/blog-data.js` gộp `data/blog-posts.json` (bài tĩnh) + `GET /articles` (bài quản trị soạn); API lỗi
+  thì vẫn hiện bài tĩnh. Nội dung bài viết là văn bản thuần: đoạn cách nhau 1 dòng trống, `## ` = tiêu đề phụ,
+  dòng `- ` = gạch đầu dòng.
+- **SPA `app/src/pages/tmdt/`** (nhóm menu "Thương mại điện tử", CHỈ `platform_admin`, route `/tmdt/*`):
+  Tổng quan, Đơn hàng, Cây danh mục, Bài viết, Sản phẩm, Tài khoản — tất cả đọc/ghi qua `api.system.*`
+  (`app/src/api/{orders,articles,categories,products}.ts`). `store.ts` giờ chỉ còn `slugify()` + nông sản mẫu.
+- Menu tài khoản: "Trang Quản Trị" (→ `/tmdt/tong-quan`) chỉ `platform_admin`; "Khu Quản Lý" (→ `/nong-trai`)
+  cho `business` + `platform_admin`.
+
+### Cập nhật 2026-10-10 (nâng cấp)
+
+- **Ảnh tải lên máy chủ**: các form danh mục/sản phẩm/bài viết ở SPA dùng `uploadImage()` (`app/src/pages/tmdt/imageUtil.ts`)
+  — thu nhỏ + nén rồi `POST /system/uploads/images` (qua `request({ rawBody })` ở `app/src/api/http.ts`), lưu URL
+  trả về thay vì nhúng base64. Ô "dán URL" vẫn dùng được.
+- **Giá sỉ trong giỏ**: mục giỏ lưu thêm `wholesale` + `moq`; `unitPrice(item)` (agriverse-3d.html, thanh-toan.html) áp
+  giá sỉ khi `qty >= moq`, giỏ hiện gợi ý "Mua từ N để được giá sỉ".
+- **Menu điện thoại**: 4 trang AgriVerse có thêm hàng menu `md:hidden` (Trang Chủ / Sản Phẩm) dưới header.
+- **Tìm kiếm header** ở `agriverse-3d.html`: Enter → `san-pham.html?q=...` (trang sản phẩm đọc `?q=`).
+
+- **Tiến trình đơn**: tab "Đơn Mua Của Tôi" (`tai-khoan-khach-hang.html`) hiện 4 mốc Đã tiếp nhận → Chuẩn bị hàng →
+  Đang giao → Đã giao kèm thời điểm (từ `order.events`); đơn huỷ hiện 2 mốc. Modal đơn ở SPA có mục "Lịch sử trạng thái".
+- **Cổng quyền của trang TMĐT**: mỗi trang `app/src/pages/tmdt/*` tách `XContent` (có lời gọi API) khỏi wrapper
+  `X` bọc `<PlatformAdminOnly>` — tài khoản khác không gửi request nào tới `/system/*`. Test: `DonHangPage.test.tsx`.
+
+### Giỏ hàng dùng chung + trang chi tiết sản phẩm + đánh giá (2026-10-10)
+
+- **`js/agriverse-cart.js`** (`AgriChain.cart`) là NGUỒN DUY NHẤT của giỏ hàng cho `agriverse-3d.html`, `san-pham.html`,
+  `san-pham-chi-tiet.html`, `thanh-toan.html`, `tai-khoan-khach-hang.html` (trước đây mỗi trang chép logic riêng).
+  Nạp sau `js/api.js`, KHÔNG defer; mỗi trang gọi `cart.init()` lúc tải. Chưa đăng nhập: chỉ localStorage
+  (`agriverse:cart`). Đã đăng nhập: đồng bộ `GET/PUT /me/cart` (đẩy sau 400ms; lần đầu sau đăng nhập GỘP giỏ máy này
+  vào giỏ máy chủ — cùng sản phẩm lấy số lượng lớn hơn; các lần sau máy chủ là nguồn sự thật). Số lượng bị chặn ở mức
+  tồn kho. Đăng xuất gọi `cart.clearLocal()` (trong `js/agriverse-account.js`). `thanh-toan.html` đợi `cart.init()` xong
+  mới dựng trang. Dòng giỏ cũ không có `id` sản phẩm bị bỏ khi đọc.
+- **`san-pham-chi-tiet.html?slug=...`**: ảnh, giá lẻ/giá sỉ, tồn kho, mô tả, chọn số lượng, thêm giỏ + khu đánh giá
+  (trung bình, phân bố sao, danh sách phân trang, viết/sửa/xoá đánh giá của mình khi đủ điều kiện). Thẻ sản phẩm ở
+  trang chủ sàn và trang Sản phẩm link sang đây và hiện sao trung bình.
+- `js/api.js` thêm `api.cart.*`, `api.products.reviews/myReview/createReview/updateMyReview/deleteMyReview`.
+- Chưa có giao diện quản trị đánh giá trong SPA (API `/system/reviews` đã có).
+
+### Ngăn kéo giỏ dùng chung, hộp thoại "Tính Sỉ", chống mất giỏ (2026-10-10)
+
+- **`js/agriverse-cart-drawer.js`** (`AgriChain.cartDrawer.open/close`): ngăn kéo giỏ dùng chung cho `san-pham.html`,
+  `san-pham-chi-tiet.html`, `tai-khoan-khach-hang.html` — tự gắn vào mọi link `a[href*="gio-hang=1"]` để mở tại chỗ thay vì
+  đá về trang chủ sàn. `agriverse-3d.html` giữ ngăn kéo riêng (`#cart-modal`); `thanh-toan.html` KHÔNG dùng (giữ link cũ).
+  Link giỏ chèn động sau `DOMContentLoaded` phải gọi `AgriChain.cartDrawer.open()` thủ công (không tự được gắn).
+- **`js/agriverse-wholesale.js`** (`AgriChain.wholesale.open(product, onAdded)`): hộp thoại "Tính Sỉ" — nhập số lượng, xem giá
+  áp dụng/tổng/tiền tiết kiệm rồi thêm giỏ đúng số lượng. Nút "Tính Sỉ" có ở thẻ sản phẩm (`san-pham.html`, `agriverse-3d.html`)
+  và trang chi tiết, chỉ với sản phẩm có giá sỉ + còn hàng.
+- **Số trên biểu tượng giỏ = số LOẠI sản phẩm** (`cart.totals().lines`), không phải tổng số lượng — khớp "N món" trong ngăn kéo.
+- **Chống mất giỏ**: `agriverse-cart.js` đánh cờ `agriverse:cart:dirty` mỗi lần giỏ đổi và chỉ xoá sau khi đẩy máy chủ thành công;
+  `init()` thấy cờ còn thì đẩy giỏ ở máy lên TRƯỚC (trước đây rời trang trong 400ms đầu rồi tải lại sẽ bị giỏ máy chủ rỗng ghi đè).
+  Rời trang (`pagehide`/ẩn tab) gửi ngay bằng `keepalive` (`api.cart.replace(items, { keepalive: true })`).
+- **Test**: `app/src/test/agriverseCart.test.ts` nạp thẳng 2 file JS trên vào jsdom (không cần trình duyệt) — chạy `npx vitest run` trong `app/`.
+- **SPA**: thêm trang `/tmdt/danh-gia` (Quản lý đánh giá, `app/src/pages/tmdt/DanhGiaPage.tsx`, `api/reviews.ts`) — xem và gỡ đánh giá vi phạm.
+- **Dọn code cũ (CHƯA xoá file)**: `ecommerce.html` đã không còn; còn 7 `thuong-mai-*.html` + 7 `js/thuong-mai-*.js` + `js/ecommerce.js`,
+  không trang nào ngoài chính chúng trỏ tới (xác nhận bằng grep) — chờ người dùng tự xoá hoặc cho phép.

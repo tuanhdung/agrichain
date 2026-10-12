@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tài Khoản Của Tôi - AgriVerse</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Cùng cấu hình Tailwind với agriverse-3d.html (mỗi trang tự chứa riêng)
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#14532d', 950: '#052e18' },
+                        amber: { 500: '#f59e0b', 600: '#d97706' }
+                    },
+                    fontFamily: { sans: ['Lexend', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Lexend', sans-serif; background-color: #fafaf8; }
+        .field-input { width: 100%; padding: .7rem 1rem; border-radius: .9rem; border: 1px solid #e2e8f0; background: #fff; font-size: .875rem; transition: border-color .15s, box-shadow .15s; }
+        .field-input:focus { outline: none; border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.15); }
+        .field-input[readonly] { background: #f8fafc; color: #64748b; }
+        .field-input[aria-invalid="true"] { border-color: #ef4444; }
+        .field-error { color: #dc2626; font-size: .75rem; margin-top: .25rem; }
+    </style>
+
+    <script src="js/api-config.js?v=2"></script>
+    <script src="js/app-config.js?v=2"></script>
+    <script src="js/api.js?v=24"></script>
+    <script src="js/agriverse-cart.js?v=3"></script>
+    <script src="js/agriverse-cart-drawer.js?v=1"></script>
+    <script src="js/password-field.js?v=1"></script>
+    <script src="js/agriverse-account.js?v=1" defer></script>
+    <!-- Trang này CẦN đăng nhập (khác agriverse-3d.html/san-pham.html công khai) — khách chưa đăng
+         nhập bị đưa sang dang-nhap.html?redirect=tai-khoan-khach-hang.html. KHÔNG gọi
+         requireBusiness(): đây là trang dành cho MỌI loại tài khoản kể cả customer. -->
+    <script>AgriChain.api.requireAuth();</script>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-emerald-100 shadow-sm">
+        <div class="px-4 sm:px-6">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex items-center space-x-3 sm:space-x-4">
+                    <a href="index.html" class="flex items-center space-x-1.5 pr-3 sm:pr-4 border-r border-slate-200 text-slate-500 hover:text-brand-700 font-semibold text-xs transition flex-shrink-0" aria-label="Về trang giới thiệu AgriChain">
+                        <i class="fa-solid fa-arrow-left-long"></i>
+                        <span class="hidden sm:inline">Về AgriChain</span>
+                    </a>
+                    <a href="agriverse-3d.html" class="flex items-center space-x-3">
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-700 via-emerald-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+                            <i class="fa-solid fa-cube text-2xl"></i>
+                        </div>
+                        <span class="text-2xl font-black bg-gradient-to-r from-brand-800 via-emerald-600 to-amber-600 bg-clip-text text-transparent tracking-tight">AgriVerse</span>
+                    </a>
+                </div>
+                <nav class="hidden md:flex flex-1 items-center justify-center gap-2 lg:gap-4 px-2">
+                    <a href="agriverse-3d.html" class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-600 border-b-2 border-transparent hover:text-brand-700 hover:border-emerald-300 transition">
+                        <i class="fa-solid fa-house"></i> Trang Chủ
+                    </a>
+                    <a href="san-pham.html" class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-600 border-b-2 border-transparent hover:text-brand-700 hover:border-emerald-300 transition">
+                        <i class="fa-solid fa-leaf"></i> Sản Phẩm
+                    </a>
+                </nav>
+                <div class="flex items-center space-x-3">
+                    <a href="agriverse-3d.html?gio-hang=1" class="relative p-2.5 rounded-full hover:bg-slate-100 text-slate-700 transition" aria-label="Giỏ hàng">
+                        <i class="fa-solid fa-basket-shopping text-xl"></i>
+                        <span id="cart-count" class="absolute -top-1 -right-1 bg-amber-500 text-slate-950 font-black text-xs w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow">0</span>
+                    </a>
+                    <div id="account-area" class="relative"></div>
+                </div>
+            </div>
+        </div>
+        <!-- Menu cho màn hình nhỏ (< 768px): menu chính ở giữa header chỉ hiện từ md trở lên -->
+        <nav class="md:hidden flex border-t border-slate-100 text-sm" aria-label="Menu chính">
+            <a href="agriverse-3d.html" class="flex-1 text-center py-2.5 font-semibold text-slate-600 border-b-2 border-transparent hover:text-brand-700"><i class="fa-solid fa-house mr-1.5"></i>Trang Chủ</a>
+            <a href="san-pham.html" class="flex-1 text-center py-2.5 font-semibold text-slate-600 border-b-2 border-transparent hover:text-brand-700"><i class="fa-solid fa-leaf mr-1.5"></i>Sản Phẩm</a>
+        </nav>
+    </header>
+
+    <!-- Hero -->
+    <section class="relative overflow-hidden bg-gradient-to-br from-emerald-900 via-brand-800 to-emerald-950 text-white">
+        <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#22c55e_1px,transparent_1px)] [background-size:18px_18px]"></div>
+        <div class="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-amber-500/20 blur-3xl"></div>
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-5">
+            <nav class="text-sm text-emerald-100/80">
+                <a href="agriverse-3d.html" class="hover:text-white"><i class="fa-solid fa-house mr-1"></i>Trang Chủ</a>
+                <span class="mx-2">/</span>
+                <span class="font-semibold text-white">Tài Khoản Người Mua</span>
+            </nav>
+            <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+                <div class="space-y-3 max-w-3xl">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <h1 class="text-3xl sm:text-4xl font-black">Trung Tâm Tài Khoản Khách Hàng</h1>
+                        <span class="px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-bold"><span class="inline-block w-2 h-2 rounded-full bg-emerald-400 mr-1.5"></span>Chỉ Dành Cho Người Mua</span>
+                    </div>
+                    <p class="text-emerald-50/90 text-sm sm:text-base">Quản lý hồ sơ đặt mua nông sản chất lượng cao, thiết lập sổ địa chỉ nhận hàng, bảo mật tài khoản và tra cứu tiến trình đơn hàng.</p>
+                </div>
+                <div class="px-5 py-3 rounded-2xl bg-white/10 border border-white/20 text-sm">
+                    <span class="text-emerald-100/80 mr-2">Vai trò:</span><strong id="hero-role">—</strong>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <main class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex-1 grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8 items-start">
+
+        <!-- Sidebar -->
+        <aside class="space-y-4 lg:sticky lg:top-24">
+            <div class="bg-white rounded-3xl border border-slate-200 p-5 flex items-center gap-4">
+                <span id="side-initials" class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-700 to-emerald-500 text-white flex items-center justify-center text-lg font-black flex-shrink-0"></span>
+                <div class="min-w-0">
+                    <p id="side-name" class="font-black text-slate-900 truncate"></p>
+                    <p id="side-email" class="text-xs text-slate-400 truncate"></p>
+                    <span id="side-role" class="inline-block mt-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-brand-700 text-[11px] font-bold"></span>
+                </div>
+            </div>
+
+            <nav class="bg-white rounded-3xl border border-slate-200 p-3 space-y-1" id="tab-nav">
+                <button data-tab="profile" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition"><i class="fa-solid fa-user w-5 text-center"></i><span class="flex-1 text-left">Hồ Sơ Của Tôi</span></button>
+                <button data-tab="orders" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition"><i class="fa-solid fa-bag-shopping w-5 text-center"></i><span class="flex-1 text-left">Đơn Mua Của Tôi</span><span id="order-count" class="min-w-6 h-6 px-1.5 rounded-full bg-emerald-100 text-brand-700 text-xs font-black flex items-center justify-center" hidden>0</span></button>
+                <button data-tab="addresses" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition"><i class="fa-solid fa-location-dot w-5 text-center"></i><span class="flex-1 text-left">Sổ Địa Chỉ Nhận Hàng</span><span id="addr-count" class="min-w-6 h-6 px-1.5 rounded-full bg-emerald-100 text-brand-700 text-xs font-black flex items-center justify-center" hidden>0</span></button>
+                <button data-tab="security" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition"><i class="fa-solid fa-shield-halved w-5 text-center"></i><span class="flex-1 text-left">Mật Khẩu &amp; Bảo Mật</span></button>
+            </nav>
+
+            <!-- Trang Quản Trị (TMĐT) — CHỈ platform_admin -->
+            <a id="admin-link" href="#" hidden class="flex items-center justify-between px-5 py-3.5 rounded-2xl bg-brand-900 hover:bg-brand-950 text-white text-sm font-bold transition">
+                <span><i class="fa-solid fa-shield mr-2"></i>Vào Trang Quản Trị Hệ Thống</span><i class="fa-solid fa-arrow-right"></i>
+            </a>
+            <!-- Khu Quản Lý (nông trại/vật tư/lô hàng) — business và platform_admin -->
+            <a id="manage-link" href="#" hidden class="flex items-center justify-between px-5 py-3.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-brand-800 text-sm font-bold transition">
+                <span><i class="fa-solid fa-seedling mr-2"></i>Vào Khu Quản Lý</span><i class="fa-solid fa-arrow-right"></i>
+            </a>
+            <a href="san-pham.html" class="flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-white border border-slate-200 hover:border-brand-500 text-slate-800 text-sm font-bold transition">
+                <i class="fa-solid fa-arrow-left"></i> Quay Lại Cửa Hàng Nông Sản
+            </a>
+        </aside>
+
+        <!-- Nội dung các tab -->
+        <section class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 min-w-0">
+
+            <!-- Hồ sơ -->
+            <div data-panel="profile" hidden>
+                <div class="flex flex-wrap items-start justify-between gap-3 pb-5 border-b border-slate-100">
+                    <div>
+                        <h2 class="text-xl font-black text-slate-900">Hồ Sơ Người Mua Hàng <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 align-middle"></span></h2>
+                        <p class="text-sm text-slate-500 mt-1">Thông tin liên lạc nhận hàng và xuất hóa đơn giao dịch nông sản sạch.</p>
+                    </div>
+                    <span id="profile-type-chip" class="px-3 py-1.5 rounded-full bg-emerald-50 text-brand-700 text-xs font-bold border border-emerald-100"></span>
+                </div>
+
+                <form id="profile-form" class="space-y-6 mt-6" novalidate>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label for="p-name" class="block text-sm font-bold text-slate-700 mb-1.5">Họ và Tên Người Mua <span class="text-red-500">*</span></label>
+                            <input id="p-name" class="field-input" type="text" autocomplete="name">
+                            <p class="field-error" data-error-for="p-name" hidden></p>
+                        </div>
+                        <div>
+                            <label for="p-phone" class="block text-sm font-bold text-slate-700 mb-1.5">Số Điện Thoại Nhận Hàng</label>
+                            <input id="p-phone" class="field-input" type="tel" autocomplete="tel">
+                            <p class="field-error" data-error-for="p-phone" hidden></p>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="p-email" class="block text-sm font-bold text-slate-700 mb-1.5">Email Đăng Ký (Không thể đổi)</label>
+                        <input id="p-email" class="field-input" type="email" readonly>
+                    </div>
+
+                    <!-- ⚠️ Các mục dưới đây KHÔNG có field tương ứng ở backend (MeUpdate chỉ nhận full_name/phone)
+                         nên chỉ lưu trong trình duyệt này (localStorage, theo từng tài khoản) — xem js bên dưới. -->
+                    <div class="rounded-2xl border border-slate-200 p-5 space-y-4">
+                        <h3 class="text-xs font-extrabold text-slate-700 uppercase tracking-widest"><i class="fa-solid fa-map-location-dot text-brand-600 mr-2"></i>Khu vực giao nhận</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="p-province" class="block text-sm font-bold text-slate-700 mb-1.5">Tỉnh / Thành Phố</label>
+                                <select id="p-province" class="field-input"><option value="">-- Chọn Tỉnh / Thành Phố --</option></select>
+                            </div>
+                            <div>
+                                <label for="p-ward" class="block text-sm font-bold text-slate-700 mb-1.5">Xã / Phường</label>
+                                <select id="p-ward" class="field-input" disabled><option value="">-- Chọn Xã / Phường --</option></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <h3 class="text-sm font-black text-slate-900"><i class="fa-solid fa-building text-slate-500 mr-2"></i>Thông Tin Doanh Nghiệp / Đơn Vị Thu Mua (B2B)</h3>
+                            <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-[11px] font-bold">Áp dụng giá sỉ MOQ ≥ 2</span>
+                        </div>
+                        <input id="p-company" class="field-input" type="text" placeholder="VD: Chuỗi Siêu Thị Thực Phẩm Sạch GreenMart, Nhà Hàng Farm-to-Table...">
+                    </div>
+
+                    <div>
+                        <label for="p-address" class="block text-sm font-bold text-slate-700 mb-1.5">Địa Chỉ Nhận Hàng Chính</label>
+                        <input id="p-address" class="field-input" type="text" placeholder="Số nhà, tên đường...">
+                    </div>
+                    <div>
+                        <label for="p-note" class="block text-sm font-bold text-slate-700 mb-1.5">Ghi Chú Yêu Cầu Giao Hàng Đặc Biệt</label>
+                        <textarea id="p-note" rows="3" class="field-input" placeholder="VD: Ưu tiên giao hàng xe lạnh bảo quản dưới 6°C."></textarea>
+                    </div>
+
+                    <p class="text-xs text-slate-400"><i class="fa-solid fa-circle-info mr-1"></i>Họ tên và số điện thoại được lưu vào tài khoản. Khu vực giao nhận, doanh nghiệp, địa chỉ và ghi chú hiện chỉ lưu trên trình duyệt này.</p>
+
+                    <div class="flex justify-end">
+                        <button id="profile-submit" type="submit" class="px-6 py-3 rounded-2xl bg-brand-900 hover:bg-brand-950 text-white font-bold text-sm transition disabled:opacity-60">Lưu Thay Đổi Hồ Sơ</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Đơn mua -->
+            <div data-panel="orders" hidden>
+                <div class="pb-5 border-b border-slate-100">
+                    <h2 class="text-xl font-black text-slate-900">Đơn Mua Của Tôi</h2>
+                    <p class="text-sm text-slate-500 mt-1">Các đơn bạn đã đặt trên AgriVerse.</p>
+                </div>
+                <div id="order-list" class="space-y-5 mt-6"></div>
+                <div id="order-empty" class="text-center py-14 text-slate-500" hidden>
+                    <i class="fa-solid fa-bag-shopping text-5xl text-slate-200 mb-4"></i>
+                    <p class="font-bold text-slate-700">Chưa có đơn hàng nào</p>
+                    <a href="san-pham.html" class="inline-block mt-5 px-5 py-2.5 rounded-2xl bg-brand-700 hover:bg-brand-800 text-white text-sm font-bold transition">Khám phá nông sản</a>
+                </div>
+            </div>
+
+            <!-- Sổ địa chỉ -->
+            <div data-panel="addresses" hidden>
+                <div class="flex flex-wrap items-start justify-between gap-3 pb-5 border-b border-slate-100">
+                    <div>
+                        <h2 class="text-xl font-black text-slate-900">Sổ Địa Chỉ Nhận Hàng Nông Sản</h2>
+                        <p class="text-sm text-slate-500 mt-1">Quản lý các địa điểm giao hàng nông sản (nhà riêng, nhà hàng, kho bãi).</p>
+                    </div>
+                    <button type="button" id="addr-add" class="px-5 py-2.5 rounded-2xl bg-brand-900 hover:bg-brand-950 text-white font-bold text-sm transition">+ Thêm Địa Chỉ Mới</button>
+                </div>
+                <div id="addr-list" class="grid grid-cols-1 xl:grid-cols-2 gap-5 mt-6"></div>
+                <div id="addr-empty" class="text-center py-14 text-slate-500" hidden>
+                    <i class="fa-solid fa-location-dot text-5xl text-slate-200 mb-4"></i>
+                    <p class="font-bold text-slate-700">Chưa có địa chỉ nhận hàng nào</p>
+                    <p class="text-sm mt-1">Thêm địa chỉ để đặt hàng nhanh hơn.</p>
+                </div>
+            </div>
+
+            <!-- Bảo mật -->
+            <div data-panel="security" hidden>
+                <h2 class="text-xl font-black text-slate-900">Mật Khẩu &amp; Bảo Mật</h2>
+                <p class="text-sm text-slate-500 mt-1">Đổi mật khẩu đăng nhập. Xác thực 2 lớp (2FA) chưa được hỗ trợ.</p>
+                <form id="security-form" class="space-y-5 mt-6 max-w-lg" novalidate>
+                    <div>
+                        <label for="s-old" class="block text-sm font-bold text-slate-700 mb-1.5">Mật khẩu hiện tại</label>
+                        <input id="s-old" class="field-input" type="password" autocomplete="current-password">
+                        <p class="field-error" data-error-for="s-old" hidden></p>
+                    </div>
+                    <div>
+                        <label for="s-new" class="block text-sm font-bold text-slate-700 mb-1.5">Mật khẩu mới</label>
+                        <input id="s-new" class="field-input" type="password" autocomplete="new-password">
+                        <p class="text-xs text-slate-400 mt-1">Ít nhất 8 ký tự, gồm 1 chữ hoa, 1 chữ số và 1 ký tự đặc biệt.</p>
+                        <p class="field-error" data-error-for="s-new" hidden></p>
+                    </div>
+                    <div>
+                        <label for="s-confirm" class="block text-sm font-bold text-slate-700 mb-1.5">Xác nhận mật khẩu mới</label>
+                        <input id="s-confirm" class="field-input" type="password" autocomplete="new-password">
+                        <p class="field-error" data-error-for="s-confirm" hidden></p>
+                    </div>
+                    <button id="security-submit" type="submit" class="px-6 py-3 rounded-2xl bg-brand-900 hover:bg-brand-950 text-white font-bold text-sm transition disabled:opacity-60">Đổi Mật Khẩu</button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-brand-950 text-emerald-100/80 text-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row justify-between gap-2">
+            <span>© 2026 AgriChain. Nền tảng truy xuất nguồn gốc nông sản bằng Blockchain.</span>
+            <a href="index.html" class="hover:text-white">Về trang giới thiệu AgriChain</a>
+        </div>
+    </footer>
+
+    <dialog id="addr-modal" class="rounded-3xl p-0 w-[92vw] max-w-lg shadow-2xl backdrop:bg-black/50 backdrop:backdrop-blur-sm">
+        <form id="addr-form" class="p-6 space-y-4" novalidate>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 id="addr-modal-title" class="text-lg font-black text-slate-900">Thêm Địa Chỉ Nhận Hàng Mới</h3>
+                <button type="button" data-addr-close class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-500" aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div>
+                <label for="a-name" class="block text-sm font-bold text-slate-700 mb-1.5">Tên Người Nhận</label>
+                <input id="a-name" class="field-input" type="text" autocomplete="off">
+                <p class="field-error" data-error-for="a-name" hidden></p>
+            </div>
+            <div>
+                <label for="a-phone" class="block text-sm font-bold text-slate-700 mb-1.5">Số Điện Thoại</label>
+                <input id="a-phone" class="field-input" type="tel" autocomplete="off">
+                <p class="field-error" data-error-for="a-phone" hidden></p>
+            </div>
+            <div>
+                <label for="a-type" class="block text-sm font-bold text-slate-700 mb-1.5">Loại Địa Chỉ</label>
+                <select id="a-type" class="field-input">
+                    <option value="home">Nhà Riêng</option>
+                    <option value="restaurant">Nhà Hàng</option>
+                    <option value="warehouse">Kho Hàng</option>
+                </select>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="a-province" class="block text-sm font-bold text-slate-700 mb-1.5">Tỉnh / Thành Phố <span class="text-slate-400 font-normal">(tuỳ chọn)</span></label>
+                    <select id="a-province" class="field-input"><option value="">-- Chọn Tỉnh / Thành Phố --</option></select>
+                </div>
+                <div>
+                    <label for="a-ward" class="block text-sm font-bold text-slate-700 mb-1.5">Xã / Phường <span class="text-slate-400 font-normal">(tuỳ chọn)</span></label>
+                    <select id="a-ward" class="field-input" disabled><option value="">-- Chọn Xã / Phường --</option></select>
+                </div>
+            </div>
+            <div>
+                <label for="a-detail" class="block text-sm font-bold text-slate-700 mb-1.5">Địa Chỉ Chi Tiết</label>
+                <input id="a-detail" class="field-input" type="text" placeholder="Số nhà, tên đường, phường, quận..." autocomplete="off">
+                <p class="field-error" data-error-for="a-detail" hidden></p>
+            </div>
+            <label class="flex items-center gap-2 text-sm text-slate-700"><input id="a-default" type="checkbox" class="w-4 h-4 accent-brand-600"> Đặt làm địa chỉ mặc định</label>
+            <div class="flex justify-end gap-3 pt-2">
+                <button type="button" data-addr-close class="px-5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition">Hủy</button>
+                <button id="addr-submit" type="submit" class="px-5 py-2.5 rounded-2xl bg-brand-900 hover:bg-brand-950 text-white font-bold text-sm transition disabled:opacity-60">Lưu Địa Chỉ</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="addr-confirm" class="rounded-3xl p-0 w-[92vw] max-w-sm shadow-2xl backdrop:bg-black/50 backdrop:backdrop-blur-sm">
+        <div class="p-6 space-y-4">
+            <h3 class="text-lg font-black text-slate-900">Xóa địa chỉ này?</h3>
+            <p id="addr-confirm-text" class="text-sm text-slate-500"></p>
+            <div class="flex justify-end gap-3">
+                <button type="button" id="addr-confirm-no" class="px-5 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition">Hủy</button>
+                <button type="button" id="addr-confirm-yes" class="px-5 py-2.5 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition">Xóa</button>
+            </div>
+        </div>
+    </dialog>
+
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl bg-slate-900 text-white text-sm font-semibold shadow-xl opacity-0 pointer-events-none transition z-50"></div>
+
+    <script>
+        (function () {
+            var api = AgriChain.api;
+            var TABS = ['profile', 'orders', 'addresses', 'security'];
+            var ROLE_LABELS = { platform_admin: 'Quản Trị Hệ Thống', business: 'Doanh Nghiệp', customer: 'Khách Mua Lẻ (B2C)' };
+            var user = api.getUser() || {};
+            var accountType = user.account_type;
+
+            var $ = function (id) { return document.getElementById(id); };
+
+            // ---- Sidebar / hero ----
+            var fullName = user.full_name || 'Tài khoản';
+            var initials = fullName.trim().split(/\s+/).map(function (w) { return w[0]; }).slice(-2).join('').toUpperCase() || '?';
+            var roleLabel = ROLE_LABELS[accountType] || 'Tài khoản';
+            function fillIdentity() {
+                $('side-initials').textContent = initials;
+                $('side-name').textContent = fullName;
+                $('side-email').textContent = user.email || '';
+                $('side-role').textContent = roleLabel;
+                $('hero-role').textContent = roleLabel;
+                $('profile-type-chip').textContent = 'Tài Khoản ' + roleLabel;
+            }
+            fillIdentity();
+
+            // "Vào Trang Quản Trị Hệ Thống" (TMĐT) CHỈ cho platform_admin; "Vào Khu Quản Lý" cho business + platform_admin
+            if (api.isPlatformAdmin()) {
+                var adminLink = $('admin-link');
+                adminLink.href = (AgriChain.APP_SPA_URL || '') + '/tmdt/tong-quan';
+                adminLink.hidden = false;
+            }
+            if (api.isBusiness() || api.isPlatformAdmin()) {
+                var manage = $('manage-link');
+                manage.href = (AgriChain.APP_SPA_URL || '') + '/nong-trai';
+                manage.hidden = false;
+            }
+
+            // ---- Toast ----
+            var toastTimer;
+            function toast(msg) {
+                var t = $('toast');
+                t.textContent = msg;
+                t.classList.remove('opacity-0');
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(function () { t.classList.add('opacity-0'); }, 2400);
+            }
+
+            // ---- Tabs (?tab=...) ----
+            function showTab(name) {
+                if (TABS.indexOf(name) < 0) name = 'profile';
+                document.querySelectorAll('[data-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-panel') !== name; });
+                document.querySelectorAll('.tab-btn').forEach(function (b) {
+                    var active = b.getAttribute('data-tab') === name;
+                    b.className = 'tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition ' +
+                        (active ? 'bg-brand-900 text-white shadow' : 'text-slate-700 hover:bg-emerald-50');
+                });
+                var url = new URL(location.href);
+                url.searchParams.set('tab', name);
+                history.replaceState(null, '', url);
+            }
+            document.addEventListener('click', function (e) {
+                var b = e.target.closest('[data-tab],[data-goto-tab]');
+                if (b) showTab(b.getAttribute('data-tab') || b.getAttribute('data-goto-tab'));
+            });
+            showTab(new URLSearchParams(location.search).get('tab'));
+
+            // ---- Lỗi theo ô ----
+            function setError(id, msg) {
+                var input = $(id), err = document.querySelector('[data-error-for="' + id + '"]');
+                if (input) input.setAttribute('aria-invalid', msg ? 'true' : 'false');
+                if (err) { err.textContent = msg || ''; err.hidden = !msg; }
+            }
+            function clearErrors(ids) { ids.forEach(function (id) { setError(id, ''); }); }
+
+            // ---- Hồ sơ ----
+            var EXTRA_KEY = 'agriverse:profile-extra:' + (user.id || 'me');
+            function loadExtra() {
+                try { return JSON.parse(localStorage.getItem(EXTRA_KEY) || '{}') || {}; } catch (e) { return {}; }
+            }
+            var extra = loadExtra();
+
+            $('p-name').value = user.full_name || '';
+            $('p-phone').value = user.phone || '';
+            $('p-email').value = user.email || '';
+            $('p-company').value = extra.company || '';
+            $('p-address').value = extra.address || '';
+            $('p-note').value = extra.note || '';
+
+            var provinceSel = $('p-province'), wardSel = $('p-ward');
+            var provinces = [];
+            function loadWards(provinceName, selectedWard) {
+                wardSel.innerHTML = '<option value="">-- Chọn Xã / Phường --</option>';
+                var p = provinces.find(function (x) { return x.name === provinceName; });
+                if (!p) { wardSel.disabled = true; return Promise.resolve(); }
+                wardSel.disabled = true;
+                return fetch('data/wards/' + p.id + '.json').then(function (r) { return r.json(); }).then(function (wards) {
+                    wards.forEach(function (w) {
+                        var o = document.createElement('option');
+                        o.value = w.name; o.textContent = w.name;
+                        wardSel.appendChild(o);
+                    });
+                    wardSel.disabled = false;
+                    if (selectedWard) wardSel.value = selectedWard;
+                }).catch(function () { toast('Không tải được danh sách xã/phường.'); });
+            }
+            fetch('data/provinces.json').then(function (r) { return r.json(); }).then(function (list) {
+                provinces = list;
+                list.forEach(function (p) {
+                    var o = document.createElement('option');
+                    o.value = p.name; o.textContent = p.name;
+                    provinceSel.appendChild(o);
+                });
+                if (extra.province) { provinceSel.value = extra.province; return loadWards(extra.province, extra.ward); }
+            }).catch(function () { toast('Không tải được danh sách tỉnh/thành.'); });
+            provinceSel.addEventListener('change', function () { loadWards(provinceSel.value); });
+
+            $('profile-form').addEventListener('submit', function (e) {
+                e.preventDefault();
+                clearErrors(['p-name', 'p-phone']);
+                var name = $('p-name').value.trim();
+                var phone = $('p-phone').value.trim();
+                if (!name) { setError('p-name', 'Vui lòng nhập họ và tên.'); $('p-name').focus(); return; }
+
+                var btn = $('profile-submit');
+                btn.disabled = true; btn.textContent = 'Đang lưu...';
+                api.auth.updateMe({ full_name: name, phone: phone || null }).then(function (updated) {
+                    user = api.getUser() || updated || user;
+                    fullName = user.full_name || name;
+                    initials = fullName.trim().split(/\s+/).map(function (w) { return w[0]; }).slice(-2).join('').toUpperCase() || '?';
+                    fillIdentity();
+                    if (window.AgriVerseAccount) window.AgriVerseAccount.render();
+                    try {
+                        localStorage.setItem(EXTRA_KEY, JSON.stringify({
+                            province: provinceSel.value, ward: wardSel.value,
+                            company: $('p-company').value.trim(), address: $('p-address').value.trim(), note: $('p-note').value.trim()
+                        }));
+                    } catch (err) { /* bỏ qua — chỉ mất phần nhớ cục bộ */ }
+                    toast('Đã lưu thay đổi hồ sơ.');
+                }).catch(function (err) {
+                    var field = err && err.details && err.details.field;
+                    if (field === 'phone') setError('p-phone', err.message);
+                    else if (field === 'full_name') setError('p-name', err.message);
+                    else toast((err && err.message) || 'Không lưu được hồ sơ.');
+                }).then(function () {
+                    btn.disabled = false; btn.textContent = 'Lưu Thay Đổi Hồ Sơ';
+                });
+            });
+
+            // ---- Đổi mật khẩu ----
+            $('security-form').addEventListener('submit', function (e) {
+                e.preventDefault();
+                clearErrors(['s-old', 's-new', 's-confirm']);
+                var oldPw = $('s-old').value, newPw = $('s-new').value, confirmPw = $('s-confirm').value;
+                if (!oldPw) { setError('s-old', 'Vui lòng nhập mật khẩu hiện tại.'); return; }
+                var problems = AgriChain.passwordProblems(newPw);
+                if (problems.length) { setError('s-new', 'Mật khẩu mới cần: ' + problems.join(', ') + '.'); return; }
+                if (newPw !== confirmPw) { setError('s-confirm', 'Mật khẩu xác nhận không khớp.'); return; }
+
+                var btn = $('security-submit');
+                btn.disabled = true; btn.textContent = 'Đang đổi...';
+                api.auth.changePassword(oldPw, newPw).then(function () {
+                    $('security-form').reset();
+                    toast('Đã đổi mật khẩu thành công.');
+                }).catch(function (err) {
+                    var field = err && err.details && err.details.field;
+                    if (field === 'old_password') setError('s-old', err.message);
+                    else if (field === 'new_password') setError('s-new', err.message);
+                    else toast((err && err.message) || 'Không đổi được mật khẩu.');
+                }).then(function () {
+                    btn.disabled = false; btn.textContent = 'Đổi Mật Khẩu';
+                });
+            });
+
+            // ---- Sổ địa chỉ nhận hàng (CRUD qua API /me/addresses — lưu trên máy chủ theo tài khoản) ----
+            var ADDR_TYPES = {
+                home: { label: 'Nhà Riêng', cls: 'bg-slate-100 text-slate-600' },
+                restaurant: { label: 'Nhà Hàng', cls: 'bg-sky-100 text-sky-700' },
+                warehouse: { label: 'Kho Hàng', cls: 'bg-amber-100 text-amber-700' }
+            };
+            var addresses = [];
+            function esc(t) {
+                return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+            }
+            function apiMessage(err, fallback) { return (err && err.message) || fallback; }
+
+            function renderAddresses() {
+                var list = $('addr-list');
+                $('addr-empty').hidden = addresses.length > 0;
+                var count = $('addr-count');
+                count.hidden = addresses.length === 0;
+                count.textContent = addresses.length;
+                list.innerHTML = addresses.map(function (a) {
+                    var t = ADDR_TYPES[a.address_type] || ADDR_TYPES.home;
+                    var where = [a.detail, a.ward, a.province].filter(Boolean).join(', ');
+                    return '<div class="rounded-2xl border p-5 flex flex-col gap-3 ' + (a.is_default ? 'border-brand-600 ring-1 ring-brand-600' : 'border-slate-200') + '">' +
+                        '<div class="flex items-center justify-between gap-2">' +
+                            '<div class="flex items-center gap-2 min-w-0"><strong class="truncate">' + esc(a.recipient_name) + '</strong>' +
+                            '<span class="px-2 py-0.5 rounded-md text-[11px] font-bold ' + t.cls + '">' + t.label + '</span></div>' +
+                            (a.is_default ? '<span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-brand-700 text-xs font-bold">● Mặc định</span>' : '') +
+                        '</div>' +
+                        '<p class="text-sm text-slate-700">SĐT: ' + esc(a.phone) + '</p>' +
+                        '<p class="text-sm text-slate-500">' + esc(where) + '</p>' +
+                        '<div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between text-sm font-bold">' +
+                            (a.is_default ? '<span></span>' : '<button type="button" data-addr-default="' + a.id + '" class="text-slate-500 hover:text-brand-700">Đặt làm mặc định</button>') +
+                            '<span class="flex gap-4"><button type="button" data-addr-edit="' + a.id + '" class="text-brand-700 hover:underline">Sửa</button>' +
+                            '<button type="button" data-addr-delete="' + a.id + '" class="text-red-600 hover:underline">Xóa</button></span>' +
+                        '</div></div>';
+                }).join('');
+            }
+
+            function loadAddresses() {
+                return api.addresses.list().then(function (list) {
+                    addresses = list || [];
+                    renderAddresses();
+                }).catch(function (err) {
+                    $('addr-list').innerHTML = '<p class="col-span-full text-sm text-red-600">' + esc(apiMessage(err, 'Không tải được sổ địa chỉ.')) + '</p>';
+                });
+            }
+
+            var addrModal = $('addr-modal'), addrConfirm = $('addr-confirm');
+            var editingId = null, deletingId = null;
+            var ADDR_FIELDS = ['a-name', 'a-phone', 'a-detail'];
+            var ADDR_SERVER_FIELDS = { recipient_name: 'a-name', phone: 'a-phone', detail: 'a-detail' };
+
+            // Tỉnh / Phường trong popup địa chỉ (tuỳ chọn) — cùng dữ liệu data/ của site tĩnh
+            var aProvinces = [];
+            var aProvinceSel = $('a-province'), aWardSel = $('a-ward');
+            function loadAddrWards(name, selectedWard) {
+                aWardSel.innerHTML = '<option value="">-- Chọn Xã / Phường --</option>';
+                var p = aProvinces.find(function (x) { return x.name === name; });
+                aWardSel.disabled = true;
+                if (!p) return Promise.resolve();
+                return fetch('data/wards/' + p.id + '.json').then(function (r) { return r.json(); }).then(function (wards) {
+                    wards.forEach(function (w) { var o = document.createElement('option'); o.value = w.name; o.textContent = w.name; aWardSel.appendChild(o); });
+                    aWardSel.disabled = false;
+                    if (selectedWard) aWardSel.value = selectedWard;
+                }).catch(function () { /* bỏ qua — phường/xã là tuỳ chọn */ });
+            }
+            fetch('data/provinces.json').then(function (r) { return r.json(); }).then(function (list) {
+                aProvinces = list;
+                list.forEach(function (p) { var o = document.createElement('option'); o.value = p.name; o.textContent = p.name; aProvinceSel.appendChild(o); });
+            }).catch(function () { /* bỏ qua */ });
+            aProvinceSel.addEventListener('change', function () { loadAddrWards(aProvinceSel.value); });
+
+            function openAddrForm(id) {
+                editingId = id;
+                clearErrors(ADDR_FIELDS);
+                var a = id ? addresses.find(function (x) { return x.id === id; }) : null;
+                $('addr-modal-title').textContent = a ? 'Sửa Địa Chỉ Nhận Hàng' : 'Thêm Địa Chỉ Nhận Hàng Mới';
+                $('a-name').value = a ? a.recipient_name : (user.full_name || '');
+                $('a-phone').value = a ? a.phone : (user.phone || '');
+                $('a-type').value = a ? a.address_type : 'home';
+                $('a-detail').value = a ? a.detail : '';
+                aProvinceSel.value = a && a.province ? a.province : '';
+                loadAddrWards(aProvinceSel.value, a ? a.ward : '');
+                $('a-default').checked = a ? a.is_default : addresses.length === 0;
+                $('a-default').disabled = !!(a && a.is_default); // phải luôn còn 1 địa chỉ mặc định
+                addrModal.showModal();
+            }
+
+            $('addr-add').addEventListener('click', function () { openAddrForm(null); });
+            document.querySelectorAll('[data-addr-close]').forEach(function (b) { b.addEventListener('click', function () { addrModal.close(); }); });
+
+            $('addr-form').addEventListener('submit', function (e) {
+                e.preventDefault();
+                clearErrors(ADDR_FIELDS);
+                var name = $('a-name').value.trim(), phone = $('a-phone').value.trim(), detail = $('a-detail').value.trim();
+                var bad = false;
+                if (!name) { setError('a-name', 'Vui lòng nhập tên người nhận.'); bad = true; }
+                if (!/^[0-9+()\s.-]{8,15}$/.test(phone)) { setError('a-phone', 'Số điện thoại không hợp lệ (8–15 chữ số).'); bad = true; }
+                if (!detail) { setError('a-detail', 'Vui lòng nhập địa chỉ chi tiết.'); bad = true; }
+                if (bad) return;
+
+                var body = {
+                    recipient_name: name, phone: phone, address_type: $('a-type').value, detail: detail,
+                    province: aProvinceSel.value || null, ward: aWardSel.value || null
+                };
+                if ($('a-default').checked) body.is_default = true;
+                var wasEditing = !!editingId;
+                var request = wasEditing ? api.addresses.update(editingId, body) : api.addresses.create(body);
+                var submit = $('addr-submit');
+                submit.disabled = true;
+                request.then(function () {
+                    addrModal.close();
+                    toast(wasEditing ? 'Đã cập nhật địa chỉ.' : 'Đã thêm địa chỉ.');
+                    return loadAddresses();
+                }).catch(function (err) {
+                    var field = err && err.details && err.details.field;
+                    if (field && ADDR_SERVER_FIELDS[field]) setError(ADDR_SERVER_FIELDS[field], err.message);
+                    else toast(apiMessage(err, 'Không lưu được địa chỉ.'));
+                }).then(function () { submit.disabled = false; });
+            });
+
+            $('addr-list').addEventListener('click', function (e) {
+                var edit = e.target.closest('[data-addr-edit]'), del = e.target.closest('[data-addr-delete]'), def = e.target.closest('[data-addr-default]');
+                if (edit) openAddrForm(edit.getAttribute('data-addr-edit'));
+                if (def) {
+                    api.addresses.update(def.getAttribute('data-addr-default'), { is_default: true }).then(function () {
+                        toast('Đã đặt làm địa chỉ mặc định.');
+                        return loadAddresses();
+                    }).catch(function (err) { toast(apiMessage(err, 'Không đổi được địa chỉ mặc định.')); });
+                }
+                if (del) {
+                    deletingId = del.getAttribute('data-addr-delete');
+                    var a = addresses.find(function (x) { return x.id === deletingId; });
+                    $('addr-confirm-text').textContent = a ? a.recipient_name + ' — ' + a.detail : '';
+                    addrConfirm.showModal();
+                }
+            });
+            $('addr-confirm-no').addEventListener('click', function () { addrConfirm.close(); });
+            $('addr-confirm-yes').addEventListener('click', function () {
+                api.addresses.remove(deletingId).then(function () {
+                    addrConfirm.close();
+                    toast('Đã xóa địa chỉ.');
+                    return loadAddresses();
+                }).catch(function (err) { addrConfirm.close(); toast(apiMessage(err, 'Không xoá được địa chỉ.')); });
+            });
+            loadAddresses();
+
+            // ---- Đơn mua của tôi (qua API /orders — đơn thật trên máy chủ) ----
+            var ORDER_STATUS = {
+                received: { label: 'Đã tiếp nhận', cls: 'bg-sky-100 text-sky-700' },
+                packing: { label: 'Đang chuẩn bị hàng', cls: 'bg-amber-100 text-amber-700' },
+                shipping: { label: 'Đang giao xe lạnh', cls: 'bg-emerald-100 text-brand-700' },
+                delivered: { label: 'Giao thành công', cls: 'bg-slate-100 text-slate-600' },
+                cancelled: { label: 'Đã huỷ', cls: 'bg-red-100 text-red-700' }
+            };
+            var myOrders = [];
+            function fmtMoney(n) { return Number(n).toLocaleString('vi-VN') + ' đ'; }
+            function fmtDate(iso) {
+                var d = new Date(iso); if (isNaN(d)) return '';
+                var p = function (n) { return String(n).padStart(2, '0'); };
+                return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear();
+            }
+            // Tiến trình đơn: mốc nào đã tới thì tô xanh kèm thời điểm (từ order.events của máy chủ)
+            var FLOW = [['received', 'Đã tiếp nhận'], ['packing', 'Chuẩn bị hàng'], ['shipping', 'Đang giao'], ['delivered', 'Đã giao']];
+            function fmtDateTime(iso) {
+                var d = new Date(iso); if (isNaN(d)) return '';
+                var p = function (n) { return String(n).padStart(2, '0'); };
+                return p(d.getDate()) + '/' + p(d.getMonth() + 1) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+            }
+            function timelineHtml(o) {
+                var at = {};
+                (o.events || []).forEach(function (e) { at[e.status] = e.created_at; });
+                var steps = o.status === 'cancelled'
+                    ? [['received', 'Đã tiếp nhận'], ['cancelled', 'Đã huỷ']]
+                    : FLOW;
+                var cell = function (step, i) {
+                    var reached = !!at[step[0]];
+                    var bad = step[0] === 'cancelled';
+                    var dot = reached ? (bad ? 'bg-red-500 text-white' : 'bg-brand-600 text-white') : 'bg-slate-100 text-slate-300';
+                    return '<li class="flex-1 flex flex-col items-center text-center relative min-w-0">' +
+                        (i > 0 ? '<span class="absolute top-3.5 right-1/2 w-full h-0.5 ' + (reached ? (bad ? 'bg-red-300' : 'bg-brand-600') : 'bg-slate-200') + '" aria-hidden="true"></span>' : '') +
+                        '<span class="relative z-10 w-7 h-7 rounded-full flex items-center justify-center text-xs ' + dot + '">' + (reached ? (bad ? '✕' : '✓') : (i + 1)) + '</span>' +
+                        '<span class="mt-1.5 text-[11px] font-bold ' + (reached ? (bad ? 'text-red-600' : 'text-slate-800') : 'text-slate-400') + '">' + step[1] + '</span>' +
+                        '<span class="text-[10px] text-slate-400">' + (reached ? fmtDateTime(at[step[0]]) : '') + '</span></li>';
+                };
+                return '<ol class="flex items-start">' + steps.map(cell).join('') + '</ol>';
+            }
+            function renderOrders() {
+                $('order-empty').hidden = myOrders.length > 0;
+                var oc = $('order-count');
+                oc.hidden = myOrders.length === 0;
+                oc.textContent = myOrders.length;
+                $('order-list').innerHTML = myOrders.map(function (o) {
+                    var st = ORDER_STATUS[o.status] || ORDER_STATUS.received;
+                    var where = [o.detail, o.ward, o.province].filter(Boolean).join(', ');
+                    return '<div class="rounded-2xl border border-slate-200 overflow-hidden">' +
+                        '<div class="flex flex-wrap items-center justify-between gap-2 px-5 py-4 bg-slate-50/70 border-b border-slate-100">' +
+                            '<div><strong class="font-mono">' + esc(o.code) + '</strong><span class="text-sm text-slate-400 ml-2">' + fmtDate(o.created_at) + '</span>' +
+                            '<p class="text-xs text-slate-500 mt-0.5">' + (o.payment_method === 'cod' ? 'Thanh toán khi nhận hàng (COD)' : 'Chuyển khoản VietQR') +
+                            ' • ' + (o.payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán') + '</p></div>' +
+                            '<span class="px-3 py-1 rounded-full text-xs font-bold ' + st.cls + '">' + st.label + '</span></div>' +
+                        '<div class="px-5 py-4 space-y-2">' +
+                            (o.items || []).map(function (i) {
+                                return '<div class="flex items-center justify-between gap-3 text-sm"><span class="min-w-0"><strong class="text-slate-900">' + esc(i.product_name) +
+                                    '</strong><span class="text-slate-500"> × ' + i.quantity + ' ' + esc(i.unit) + '</span></span>' +
+                                    '<strong class="font-mono">' + fmtMoney(i.unit_price * i.quantity) + '</strong></div>';
+                            }).join('') +
+                        '</div>' +
+                        '<div class="px-5 pb-4">' + timelineHtml(o) + '</div>' +
+                        '<div class="flex flex-wrap items-end justify-between gap-3 px-5 py-4 border-t border-slate-100">' +
+                            '<p class="text-xs text-slate-500 max-w-md">Giao tới: <strong class="text-slate-700">' + esc(o.receiver_name) + '</strong> • ' + esc(o.receiver_phone) + '<br>' + esc(where) + '</p>' +
+                            '<div class="text-right"><p class="text-xs text-slate-400">Tổng thanh toán' + (o.shipping_fee ? ' (đã gồm ship ' + fmtMoney(o.shipping_fee) + ')' : ' (miễn phí ship)') + '</p>' +
+                            '<p class="text-lg font-black font-mono text-brand-700">' + fmtMoney(o.total) + '</p>' +
+                            (o.status === 'received' ? '<button type="button" data-order-cancel="' + o.id + '" class="mt-2 text-sm font-bold text-red-600 hover:underline">Huỷ đơn</button>' : '') +
+                            '</div>' +
+                        '</div></div>';
+                }).join('');
+            }
+            function loadOrders() {
+                return api.orders.list({ page_size: 50 }).then(function (page) {
+                    myOrders = (page && page.items) || [];
+                    renderOrders();
+                }).catch(function (err) {
+                    $('order-empty').hidden = true;
+                    $('order-list').innerHTML = '<p class="text-sm text-red-600">' + esc(apiMessage(err, 'Không tải được đơn hàng.')) + '</p>';
+                });
+            }
+            $('order-list').addEventListener('click', function (e) {
+                var cancel = e.target.closest('[data-order-cancel]');
+                if (!cancel) return;
+                if (!window.confirm('Huỷ đơn hàng này? Hàng sẽ được hoàn lại kho.')) return;
+                api.orders.cancel(cancel.getAttribute('data-order-cancel')).then(function () {
+                    toast('Đã huỷ đơn hàng.');
+                    return loadOrders();
+                }).catch(function (err) { toast(apiMessage(err, 'Không huỷ được đơn hàng.')); });
+            });
+            loadOrders();
+
+            // ---- Số món trong giỏ (module dùng chung js/agriverse-cart.js, đồng bộ máy chủ khi đã đăng nhập) ----
+            var cartApi = AgriChain.cart;
+            function refreshCartCount() { $('cart-count').textContent = cartApi.totals().lines; }
+            cartApi.onChange(refreshCartCount);
+            refreshCartCount();
+            cartApi.init();
+        })();
+    </script>
+</body>
+</html>
