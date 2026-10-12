@@ -2382,6 +2382,29 @@ Link "Ghé thăm cửa hàng"/"Xem chi tiết" sản phẩm/mục "Cửa hàng"/
 `href="#"` — chưa có trang chi tiết 1 cửa hàng, trang chi tiết 1 sản phẩm, hay trang danh sách
 riêng cho các mục này (xem "Việc chưa làm" phía trên).
 
+## Sàn TMĐT — danh mục & sản phẩm đã nối API thật (2026-10-09)
+
+Trước đây SPA (`/tmdt/danh-muc`, `/tmdt/san-pham`) lưu vào localStorage của origin `:5173` còn
+`agriverse-3d.html`/`san-pham.html` hard-code dữ liệu — hai bên KHÔNG chung dữ liệu nên thêm ở
+quản trị không hiện ở sàn. Giờ cả hai cùng đọc backend (`agrichain-api`, bảng `categories`/`products`):
+
+- **Quản trị (SPA):** `app/src/api/categories.ts`, `products.ts` (gom vào `api.system.categories|products`,
+  GHI qua `/system/categories|products`, chỉ platform_admin). `DanhMucPage.tsx`, `SanPhamPage.tsx`,
+  `TongQuanPage.tsx` (số liệu sản phẩm) và `BaiVietPage.tsx` (chuyên mục) đọc API, không còn đọc
+  `store.ts` cho danh mục/sản phẩm. **Đơn hàng, bài viết vẫn là demo localStorage** (backend chưa có bảng).
+  Nút "Nạp dữ liệu mẫu" gọi API tạo từng bản ghi (bỏ qua cái đã có theo slug/SKU).
+- **Sàn công khai:** `js/api.js` thêm `AgriChain.api.categories.list/getBySlug` và
+  `AgriChain.api.products.list/getBySlug` (đều `auth:false`). `agriverse-3d.html` render thẻ danh mục + pill +
+  lưới sản phẩm; `san-pham.html` render sidebar danh mục (2 cấp), lưới, lọc/sắp xếp. Chỉ thấy danh mục
+  `is_active` và sản phẩm `status='selling'`. Lọc theo danh mục cha gồm cả sản phẩm của danh mục con.
+- **Màu thẻ danh mục là việc hiển thị:** bảng màu xoay vòng theo thứ tự trong `agriverse-3d.html`
+  (`CATEGORY_GRADIENTS`), backend không có cột màu. Icon là emoji (`categories.icon`), nhãn góc thẻ là `badge`.
+- **Chưa có:** liên kết sản phẩm ↔ lô hàng/mã QR (nút "Mã QR" và "Mã Lô" trên sàn đã bỏ vì không có dữ liệu),
+  tên gian hàng (`stall`), giá cũ gạch ngang, ảnh gallery. Giá sỉ B2B hiện đúng `wholesale_price`/`moq` thật
+  (trước là giảm 8% giả lập).
+- Ảnh chọn từ máy ở form sản phẩm được thu nhỏ + nén JPEG ≲ 400KB phía trình duyệt rồi gửi dạng data URL
+  (backend nhận ≤ 2MB, jpeg/png/webp).
+
 ## Dữ liệu hành chính (tỉnh/thành, phường/xã)
 
 `data/provinces.json` (34 tỉnh/thành) và `data/wards/{provinceCode}.json` (1 file/tỉnh,
@@ -2419,3 +2442,76 @@ giữ bố cục section đúng tỉ lệ (không "đôn" `padding-top` lên đ�
 dung xuống quá xa header). Nếu quay lại xử lý: cân nhắc dùng `getBoundingClientRect()` +
 `ResizeObserver`/`MutationObserver` để phát hiện đúng lúc layout ngừng đổi thay vì đoán
 mốc thời gian hoặc polling cố định.
+
+## Sàn TMĐT — đặt hàng, địa chỉ, quản trị TMĐT (2026-10-10)
+
+Toàn bộ chạy trên backend thật (xem `agrichain-api/CLAUDE.md` mục "Đơn hàng, sổ địa chỉ, bài viết…"); không còn
+dữ liệu TMĐT nào chỉ nằm trong localStorage ngoại trừ **giỏ hàng** (`agriverse:cart`) và vài trường phụ của Hồ sơ
+(`agriverse:profile-extra:<userId>` — khu vực/doanh nghiệp/ghi chú, backend chưa có cột).
+
+- **Trang công khai/khách (Tailwind, tự chứa riêng)**: `agriverse-3d.html` (trang chủ sàn + ngăn kéo giỏ),
+  `san-pham.html` (lọc/tìm/phân trang), `thanh-toan.html` (đặt hàng), `tai-khoan-khach-hang.html` (Hồ sơ, Đơn mua,
+  Sổ địa chỉ, Bảo mật). Header + khu tài khoản dùng chung `js/agriverse-account.js`.
+- **Giỏ hàng** lưu `{id, name, price, qty, img, selected}`; `id` = id sản phẩm trên máy chủ, BẮT BUỘC để đặt hàng
+  (giỏ cũ thiếu `id` bị bỏ qua ở trang thanh toán kèm cảnh báo). "Tiến Hành Đặt Hàng" → `thanh-toan.html`, chỉ đặt
+  các món đang tick; thành công thì chỉ xoá các món vừa đặt khỏi giỏ.
+- `thanh-toan.html` cần đăng nhập (`requireAuth()`, KHÔNG `requireBusiness()` — khách `customer` vẫn đặt được).
+  Số tiền hiển thị trước khi đặt chỉ để xem trước; đơn thật dùng số backend tính lại. `BANK_INFO` trong script
+  của trang này để TRỐNG có chủ đích — chưa có tài khoản ngân hàng thật, KHÔNG điền số bịa.
+- `js/api.js` thêm `api.addresses.*`, `api.orders.*`, `api.articles.*` (công khai).
+- **Blog**: `js/blog-data.js` gộp `data/blog-posts.json` (bài tĩnh) + `GET /articles` (bài quản trị soạn); API lỗi
+  thì vẫn hiện bài tĩnh. Nội dung bài viết là văn bản thuần: đoạn cách nhau 1 dòng trống, `## ` = tiêu đề phụ,
+  dòng `- ` = gạch đầu dòng.
+- **SPA `app/src/pages/tmdt/`** (nhóm menu "Thương mại điện tử", CHỈ `platform_admin`, route `/tmdt/*`):
+  Tổng quan, Đơn hàng, Cây danh mục, Bài viết, Sản phẩm, Tài khoản — tất cả đọc/ghi qua `api.system.*`
+  (`app/src/api/{orders,articles,categories,products}.ts`). `store.ts` giờ chỉ còn `slugify()` + nông sản mẫu.
+- Menu tài khoản: "Trang Quản Trị" (→ `/tmdt/tong-quan`) chỉ `platform_admin`; "Khu Quản Lý" (→ `/nong-trai`)
+  cho `business` + `platform_admin`.
+
+### Cập nhật 2026-10-10 (nâng cấp)
+
+- **Ảnh tải lên máy chủ**: các form danh mục/sản phẩm/bài viết ở SPA dùng `uploadImage()` (`app/src/pages/tmdt/imageUtil.ts`)
+  — thu nhỏ + nén rồi `POST /system/uploads/images` (qua `request({ rawBody })` ở `app/src/api/http.ts`), lưu URL
+  trả về thay vì nhúng base64. Ô "dán URL" vẫn dùng được.
+- **Giá sỉ trong giỏ**: mục giỏ lưu thêm `wholesale` + `moq`; `unitPrice(item)` (agriverse-3d.html, thanh-toan.html) áp
+  giá sỉ khi `qty >= moq`, giỏ hiện gợi ý "Mua từ N để được giá sỉ".
+- **Menu điện thoại**: 4 trang AgriVerse có thêm hàng menu `md:hidden` (Trang Chủ / Sản Phẩm) dưới header.
+- **Tìm kiếm header** ở `agriverse-3d.html`: Enter → `san-pham.html?q=...` (trang sản phẩm đọc `?q=`).
+
+- **Tiến trình đơn**: tab "Đơn Mua Của Tôi" (`tai-khoan-khach-hang.html`) hiện 4 mốc Đã tiếp nhận → Chuẩn bị hàng →
+  Đang giao → Đã giao kèm thời điểm (từ `order.events`); đơn huỷ hiện 2 mốc. Modal đơn ở SPA có mục "Lịch sử trạng thái".
+- **Cổng quyền của trang TMĐT**: mỗi trang `app/src/pages/tmdt/*` tách `XContent` (có lời gọi API) khỏi wrapper
+  `X` bọc `<PlatformAdminOnly>` — tài khoản khác không gửi request nào tới `/system/*`. Test: `DonHangPage.test.tsx`.
+
+### Giỏ hàng dùng chung + trang chi tiết sản phẩm + đánh giá (2026-10-10)
+
+- **`js/agriverse-cart.js`** (`AgriChain.cart`) là NGUỒN DUY NHẤT của giỏ hàng cho `agriverse-3d.html`, `san-pham.html`,
+  `san-pham-chi-tiet.html`, `thanh-toan.html`, `tai-khoan-khach-hang.html` (trước đây mỗi trang chép logic riêng).
+  Nạp sau `js/api.js`, KHÔNG defer; mỗi trang gọi `cart.init()` lúc tải. Chưa đăng nhập: chỉ localStorage
+  (`agriverse:cart`). Đã đăng nhập: đồng bộ `GET/PUT /me/cart` (đẩy sau 400ms; lần đầu sau đăng nhập GỘP giỏ máy này
+  vào giỏ máy chủ — cùng sản phẩm lấy số lượng lớn hơn; các lần sau máy chủ là nguồn sự thật). Số lượng bị chặn ở mức
+  tồn kho. Đăng xuất gọi `cart.clearLocal()` (trong `js/agriverse-account.js`). `thanh-toan.html` đợi `cart.init()` xong
+  mới dựng trang. Dòng giỏ cũ không có `id` sản phẩm bị bỏ khi đọc.
+- **`san-pham-chi-tiet.html?slug=...`**: ảnh, giá lẻ/giá sỉ, tồn kho, mô tả, chọn số lượng, thêm giỏ + khu đánh giá
+  (trung bình, phân bố sao, danh sách phân trang, viết/sửa/xoá đánh giá của mình khi đủ điều kiện). Thẻ sản phẩm ở
+  trang chủ sàn và trang Sản phẩm link sang đây và hiện sao trung bình.
+- `js/api.js` thêm `api.cart.*`, `api.products.reviews/myReview/createReview/updateMyReview/deleteMyReview`.
+- Chưa có giao diện quản trị đánh giá trong SPA (API `/system/reviews` đã có).
+
+### Ngăn kéo giỏ dùng chung, hộp thoại "Tính Sỉ", chống mất giỏ (2026-10-10)
+
+- **`js/agriverse-cart-drawer.js`** (`AgriChain.cartDrawer.open/close`): ngăn kéo giỏ dùng chung cho `san-pham.html`,
+  `san-pham-chi-tiet.html`, `tai-khoan-khach-hang.html` — tự gắn vào mọi link `a[href*="gio-hang=1"]` để mở tại chỗ thay vì
+  đá về trang chủ sàn. `agriverse-3d.html` giữ ngăn kéo riêng (`#cart-modal`); `thanh-toan.html` KHÔNG dùng (giữ link cũ).
+  Link giỏ chèn động sau `DOMContentLoaded` phải gọi `AgriChain.cartDrawer.open()` thủ công (không tự được gắn).
+- **`js/agriverse-wholesale.js`** (`AgriChain.wholesale.open(product, onAdded)`): hộp thoại "Tính Sỉ" — nhập số lượng, xem giá
+  áp dụng/tổng/tiền tiết kiệm rồi thêm giỏ đúng số lượng. Nút "Tính Sỉ" có ở thẻ sản phẩm (`san-pham.html`, `agriverse-3d.html`)
+  và trang chi tiết, chỉ với sản phẩm có giá sỉ + còn hàng.
+- **Số trên biểu tượng giỏ = số LOẠI sản phẩm** (`cart.totals().lines`), không phải tổng số lượng — khớp "N món" trong ngăn kéo.
+- **Chống mất giỏ**: `agriverse-cart.js` đánh cờ `agriverse:cart:dirty` mỗi lần giỏ đổi và chỉ xoá sau khi đẩy máy chủ thành công;
+  `init()` thấy cờ còn thì đẩy giỏ ở máy lên TRƯỚC (trước đây rời trang trong 400ms đầu rồi tải lại sẽ bị giỏ máy chủ rỗng ghi đè).
+  Rời trang (`pagehide`/ẩn tab) gửi ngay bằng `keepalive` (`api.cart.replace(items, { keepalive: true })`).
+- **Test**: `app/src/test/agriverseCart.test.ts` nạp thẳng 2 file JS trên vào jsdom (không cần trình duyệt) — chạy `npx vitest run` trong `app/`.
+- **SPA**: thêm trang `/tmdt/danh-gia` (Quản lý đánh giá, `app/src/pages/tmdt/DanhGiaPage.tsx`, `api/reviews.ts`) — xem và gỡ đánh giá vi phạm.
+- **Dọn code cũ (CHƯA xoá file)**: `ecommerce.html` đã không còn; còn 7 `thuong-mai-*.html` + 7 `js/thuong-mai-*.js` + `js/ecommerce.js`,
+  không trang nào ngoài chính chúng trỏ tới (xác nhận bằng grep) — chờ người dùng tự xoá hoặc cho phép.

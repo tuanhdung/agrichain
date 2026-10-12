@@ -9,6 +9,12 @@
 // khi trang tương ứng được migrate, theo ĐÚNG mẫu dưới đây (xem
 // app/CLAUDE.md mục "Thêm 1 trang mới").
 import { request } from './http';
+import { systemCategories } from './categories';
+import { systemProducts } from './products';
+import { systemOrders, systemUsers } from './orders';
+import { systemArticles } from './articles';
+import { systemReviews } from './reviews';
+import { systemUploads } from './uploads';
 import type { Page } from './types';
 import type { Supply } from './supplies';
 import type { WorkflowTemplate } from './workflowTemplates';
@@ -33,6 +39,15 @@ export interface SystemListParams {
 }
 
 export const system = {
+  // Ghi được (khác các domain còn lại trong file này, chỉ đọc): danh mục và sản phẩm
+  // sàn TMĐT là dữ liệu toàn hệ thống do platform_admin quản lý.
+  categories: systemCategories,
+  products: systemProducts,
+  orders: systemOrders,
+  users: systemUsers,
+  articles: systemArticles,
+  reviews: systemReviews,
+  uploads: systemUploads,
   supplies: {
     list: (params?: SystemListParams) =>
       request<Page<SupplySystemRow>>('GET', '/system/supplies', { query: params })

@@ -105,7 +105,8 @@
     fillField('[data-post-read-time]', post.readTime);
 
     var cover = document.querySelector('[data-post-cover]');
-    cover.src = post.cover;
+    if (post.cover) cover.src = post.cover;
+    cover.hidden = !post.cover;
 
     renderBody(post);
     renderTags(post);
@@ -115,13 +116,9 @@
   document.addEventListener('DOMContentLoaded', function () {
     var slug = new URLSearchParams(global.location.search).get('slug') || '';
 
-    fetch('data/blog-posts.json')
-      .then(function (res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      })
-      .then(function (posts) {
-        var post = posts.find(function (item) { return item.slug === slug; });
+    // Bài tĩnh trước, không có thì hỏi máy chủ (bài đã xuất bản) — xem js/blog-data.js
+    global.AgriChain.loadBlogPost(slug)
+      .then(function (post) {
         if (!post) {
           showNotFound();
           return;

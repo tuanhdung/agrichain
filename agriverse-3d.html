@@ -85,16 +85,26 @@
          dưới) — trỏ sang SPA thay vì nong-trai.html (đã xoá, xem CLAUDE.md
          gốc mục "Kết nối backend"). -->
     <script src="js/app-config.js?v=2"></script>
-    <script src="js/api.js?v=19"></script>
+    <script src="js/api.js?v=24"></script>
+    <script src="js/agriverse-cart.js?v=3"></script>
+    <script src="js/agriverse-wholesale.js?v=1"></script>
+    <script src="js/agriverse-account.js?v=1" defer></script>
 </head>
 <body class="text-slate-800 bg-[#fbfbfa] min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
 
     <!-- Navigation Header -->
     <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-emerald-100 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="px-4 sm:px-6">
             <div class="flex items-center justify-between h-20">
                 <!-- Logo & Slogan (No 3D on badges) + link về trang giới thiệu -->
                 <div class="flex items-center space-x-3 sm:space-x-4">
+                    <!-- Về trang giới thiệu AgriChain (index.html): điểm quay về DUY NHẤT cho khách vào
+                         thẳng trang này (VD từ đích đăng nhập customer, xem redirectTarget() trong
+                         js/auth.js), hiện với MỌI account_type. Icon luôn hiện, chữ từ sm. -->
+                    <a href="index.html" class="flex items-center space-x-1.5 pr-3 sm:pr-4 border-r border-slate-200 text-slate-500 hover:text-brand-700 font-semibold text-xs transition flex-shrink-0" aria-label="Về trang giới thiệu AgriChain">
+                        <i class="fa-solid fa-arrow-left-long"></i>
+                        <span class="hidden sm:inline">Về AgriChain</span>
+                    </a>
                     <div class="flex items-center space-x-3 cursor-pointer" onclick="window.scrollTo({top:0, behavior:'smooth'})">
                         <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-700 via-emerald-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
                             <i class="fa-solid fa-cube text-2xl"></i>
@@ -103,29 +113,25 @@
                             <div class="flex items-center space-x-2">
                                 <span class="text-2xl font-black bg-gradient-to-r from-brand-800 via-emerald-600 to-amber-600 bg-clip-text text-transparent tracking-tight">AgriVerse</span>
                             </div>
-                            <p class="text-xs text-slate-500 font-medium">Sàn Dưa Lưới Tiến Phát • Quét Mã QR Chuẩn 100%</p>
+                            <p class="hidden xl:block whitespace-nowrap text-xs text-slate-500 font-medium">Sàn Dưa Lưới Tiến Phát • Quét Mã QR Chuẩn 100%</p>
                         </div>
                     </div>
-
-                    <!-- Về trang giới thiệu công ty AgriChain (index.html) — điểm quay về
-                         DUY NHẤT cho khách vào thẳng trang này (VD từ đích đăng nhập
-                         customer, xem redirectTarget() trong js/auth.js) mà không qua
-                         index.html trước, không có lịch sử trình duyệt để bấm Back. Hiện
-                         với MỌI người dùng bất kể đã đăng nhập hay account_type nào — khác
-                         "Khu Quản Lý" trong #account-area (chỉ hiện cho business/platform_admin),
-                         đây là điều hướng chung, không phải chức năng theo vai trò. Icon luôn hiện
-                         (kể cả màn hình nhỏ nhất), chữ chỉ hiện từ sm — cùng mẫu nút "Trợ Lý
-                         AI Tiến Phát" ngay trong div "Nav Actions" bên dưới. -->
-                    <a href="index.html" class="flex items-center space-x-1.5 pl-3 sm:pl-4 border-l border-slate-200 text-slate-500 hover:text-brand-700 font-semibold text-xs transition flex-shrink-0" aria-label="Về trang giới thiệu AgriChain">
-                        <i class="fa-solid fa-arrow-left-long"></i>
-                        <span class="hidden sm:inline">Về AgriChain</span>
-                    </a>
                 </div>
 
+                <!-- Menu chính: Trang chủ (trang này) + Sản phẩm (san-pham.html) -->
+                <nav class="hidden md:flex flex-1 items-center justify-center gap-2 lg:gap-4 px-2">
+                    <a href="agriverse-3d.html" class="flex items-center gap-2 px-4 py-2 text-sm font-bold text-brand-700 border-b-2 border-brand-600">
+                        <i class="fa-solid fa-house"></i> Trang Chủ
+                    </a>
+                    <a href="san-pham.html" class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-600 border-b-2 border-transparent hover:text-brand-700 hover:border-emerald-300 transition">
+                        <i class="fa-solid fa-leaf"></i> Sản Phẩm
+                    </a>
+                </nav>
+
                 <!-- Global Search Bar -->
-                <div class="hidden md:flex flex-1 max-w-md mx-8">
+                <div class="hidden xl:flex w-64 mr-4">
                     <div class="relative w-full">
-                        <input type="text" placeholder="Tìm Dưa lưới Tiến Phát, Cà phê Kơho, Mít sấy OCOP..." 
+                        <input id="header-search" type="text" placeholder="Tìm nông sản..." aria-label="Tìm nông sản" 
                             class="w-full pl-11 pr-4 py-2.5 bg-slate-100/90 rounded-full text-sm border border-transparent focus:border-brand-500 focus:bg-white focus:outline-none transition-all shadow-inner">
                         <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400"></i>
                     </div>
@@ -133,10 +139,6 @@
 
                 <!-- Nav Actions & VR Tour Trigger -->
                 <div class="flex items-center space-x-3">
-                    <button onclick="toggleAIChat()" class="flex items-center space-x-2 px-3.5 py-2 rounded-full bg-emerald-50 text-brand-700 font-semibold text-xs border border-emerald-200 hover:bg-emerald-100 transition">
-                        <i class="fa-solid fa-robot text-brand-600 animate-bounce"></i>
-                        <span class="hidden sm:inline">Trợ Lý AI Tiến Phát</span>
-                    </button>
                     <button class="relative p-2.5 rounded-full hover:bg-slate-100 text-slate-700 transition" onclick="openCartModal()">
                         <i class="fa-solid fa-basket-shopping text-xl"></i>
                         <span id="cart-count" class="absolute -top-1 -right-1 bg-amber-500 text-slate-950 font-black text-xs w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow">0</span>
@@ -155,6 +157,11 @@
                 </div>
             </div>
         </div>
+        <!-- Menu cho màn hình nhỏ (< 768px): menu chính ở giữa header chỉ hiện từ md trở lên -->
+        <nav class="md:hidden flex border-t border-slate-100 text-sm" aria-label="Menu chính">
+            <a href="agriverse-3d.html" class="flex-1 text-center py-2.5 font-semibold text-brand-700 border-b-2 border-brand-600"><i class="fa-solid fa-house mr-1.5"></i>Trang Chủ</a>
+            <a href="san-pham.html" class="flex-1 text-center py-2.5 font-semibold text-slate-600 border-b-2 border-transparent hover:text-brand-700"><i class="fa-solid fa-leaf mr-1.5"></i>Sản Phẩm</a>
+        </nav>
     </header>
 
     <!-- Hero Section with Interactive Melon 360 & Clean Badges -->
@@ -242,285 +249,27 @@
     <!-- Main Content Container -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 space-y-16">
 
-        <!-- Category Filter Pills -->
-        <section class="flex items-center space-x-3 overflow-x-auto pb-2 custom-scrollbar">
-            <button onclick="filterCategory('all')" class="cat-pill active px-5 py-2.5 rounded-full bg-brand-700 text-white font-bold text-sm whitespace-nowrap shadow-md shadow-brand-700/20">
-                <i class="fa-solid fa-border-all mr-1.5"></i> Tất Cả Nông Sản
-            </button>
-            <button onclick="filterCategory('melon')" class="cat-pill px-5 py-2.5 rounded-full bg-white text-slate-700 hover:bg-emerald-50 hover:text-brand-700 font-semibold text-sm whitespace-nowrap border border-slate-200 transition shadow-sm">
-                <i class="fa-solid fa-cloud-sun text-amber-500 mr-1.5"></i> Dưa Lưới Tiến Phát
-            </button>
-            <button onclick="filterCategory('coffee')" class="cat-pill px-5 py-2.5 rounded-full bg-white text-slate-700 hover:bg-emerald-50 hover:text-brand-700 font-semibold text-sm whitespace-nowrap border border-slate-200 transition shadow-sm">
-                <i class="fa-solid fa-mug-hot text-amber-700 mr-1.5"></i> Cà Phê & Cacao Đặc Sản
-            </button>
-            <button onclick="filterCategory('dried-fruit')" class="cat-pill px-5 py-2.5 rounded-full bg-white text-slate-700 hover:bg-emerald-50 hover:text-brand-700 font-semibold text-sm whitespace-nowrap border border-slate-200 transition shadow-sm">
-                <i class="fa-solid fa-sun text-amber-600 mr-1.5"></i> Hoa Quả Sấy Khô Dẻo
-            </button>
-            <button onclick="filterCategory('honey')" class="cat-pill px-5 py-2.5 rounded-full bg-white text-slate-700 hover:bg-emerald-50 hover:text-brand-700 font-semibold text-sm whitespace-nowrap border border-slate-200 transition shadow-sm">
-                <i class="fa-solid fa-jar text-emerald-600 mr-1.5"></i> Mật Chiết & Gia Vị
-            </button>
-            <button onclick="filterCategory('ocop')" class="cat-pill px-5 py-2.5 rounded-full bg-white text-slate-700 hover:bg-emerald-50 hover:text-brand-700 font-semibold text-sm whitespace-nowrap border border-slate-200 transition shadow-sm">
-                <i class="fa-solid fa-star text-amber-500 mr-1.5"></i> OCOP & Vùng Miền
-            </button>
+
+        <!-- Danh mục nông sản công nghệ cao (thay khối "Gian Hàng Doanh Nghiệp Nổi Bật" cũ) -->
+        <section id="categories" class="space-y-8">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div class="space-y-3">
+                    <span class="inline-block px-3 py-1 rounded-full bg-emerald-50 text-brand-700 text-xs font-extrabold uppercase tracking-widest">Hệ thống phân loại</span>
+                    <h2 class="text-3xl sm:text-4xl font-black text-slate-900">Danh Mục Nông Sản Công Nghệ Cao</h2>
+                    <p class="text-slate-500 text-sm max-w-xl">Nông sản chọn lọc từ các hợp tác xã ứng dụng công nghệ nhà màng, thủy canh và cảm biến vi khí hậu thông minh.</p>
+                </div>
+                <a href="san-pham.html" class="text-brand-700 font-bold text-sm hover:underline whitespace-nowrap">
+                    Xem Tất Cả Phân Loại <i class="fa-solid fa-chevron-right ml-1 text-xs"></i>
+                </a>
+            </div>
+
+            <!-- Thẻ danh mục render từ GET /categories (renderCategoryCards() ở script cuối trang) -->
+            <div id="category-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
         </section>
 
-        <!-- Featured Enterprise Stalls Section -->
-        <section id="featured-stalls" class="space-y-6">
-            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div>
-                    <span class="text-xs font-extrabold text-brand-700 uppercase tracking-widest">Multi-Vendor Showroom VR</span>
-                    <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Gian Hàng Doanh Nghiệp Nổi Bật</h2>
-                    <p class="text-slate-500 text-sm mt-1">Mỗi gian hàng có <strong>nhiều sản phẩm</strong>, mỗi sản phẩm đính kèm <strong>mã QR truy xuất nguồn gốc</strong> độc lập.</p>
-                </div>
-            </div>
-
-            <!-- Stall Cards Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
-                <!-- Stall 1: HTX Nông Nghiệp Xanh Tiến Phát -->
-                <div class="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden flex flex-col justify-between hover:border-brand-500 transition group">
-                    <div>
-                        <!-- Stall Header -->
-                        <div class="bg-amber-50 p-6 space-y-3 relative">
-                            <div class="flex justify-between items-start">
-                                <span class="px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold border border-slate-200 text-slate-600">
-                                    <i class="fa-solid fa-location-dot mr-1"></i> Trang Trại Tiến Phát
-                                </span>
-                                <span class="px-2.5 py-1 bg-slate-100 text-slate-700 font-black text-xs rounded-lg border border-slate-200">
-                                    VietGAP / GlobalGAP
-                                </span>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-extrabold text-slate-900">HTX Nông Nghiệp Tiến Phát</h3>
-                                <p class="text-xs text-slate-500 mt-0.5">Chuyên dưa lưới công nghệ cao • 2 Mẫu dưa chủ đạo</p>
-                            </div>
-
-                            <!-- AI Agent Badge for Stall -->
-                            <div class="p-2.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold text-sm shadow ai-pulse">
-                                        <i class="fa-solid fa-robot"></i>
-                                    </div>
-                                    <span class="text-xs font-bold text-slate-700">Bé Dưa Tiến Phát AI</span>
-                                </div>
-                                <button onclick="startStallAIChat('HTX Nông Nghiệp Tiến Phát', 'Bé Dưa Tiến Phát')" class="px-2.5 py-1 rounded-lg bg-brand-700 hover:bg-brand-800 text-white font-black text-[11px] transition">
-                                    Hỏi AI
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Multi-Product List within Stall -->
-                        <div class="p-5 space-y-4">
-                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Sản phẩm thuộc gian hàng (2):</p>
-
-                            <!-- Product 1 -->
-                            <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 hover:border-brand-500 transition space-y-2">
-                                <div class="flex items-center space-x-3">
-                                    <img src="https://images.unsplash.com/photo-1595855759920-86582396756a?auto=format&fit=crop&w=300&q=80" alt="Dưa Lưới Tiến Phát Hữu Cơ" class="w-14 h-14 object-cover rounded-xl border border-slate-200">
-                                    <div class="flex-1 min-w-0">
-                                        <h4 class="text-xs font-bold text-slate-900 truncate">1. Dưa Lưới Tiến Phát Hữu Cơ</h4>
-                                        <p class="text-[11px] text-slate-500 font-mono">Lô: V3-V2-2026 • Brix 15°</p>
-                                        <p class="text-xs font-black text-brand-700 mt-0.5">145.000đ / Trái</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
-                                    <button onclick="openQRModal('melon1')" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[11px] transition flex items-center space-x-1 shadow-sm">
-                                        <i class="fa-solid fa-qrcode"></i>
-                                        <span>Xem Mã QR Lô V3-V2</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Product 2 -->
-                            <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 hover:border-brand-500 transition space-y-2">
-                                <div class="flex items-center space-x-3">
-                                    <img src="https://images.unsplash.com/photo-1571575173700-afb9492e6a50?auto=format&fit=crop&w=300&q=80" alt="Dưa Lưới Huỳnh Long Tiến Phát" class="w-14 h-14 object-cover rounded-xl border border-slate-200">
-                                    <div class="flex-1 min-w-0">
-                                        <h4 class="text-xs font-bold text-slate-900 truncate">2. Dưa Lưới Huỳnh Long Tiến Phát</h4>
-                                        <p class="text-[11px] text-slate-500 font-mono">Lô: HL-TP-2026 • Vỏ Vàng Giòn</p>
-                                        <p class="text-xs font-black text-brand-700 mt-0.5">165.000đ / Trái</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
-                                    <button onclick="openQRModal('melon2')" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[11px] transition flex items-center space-x-1 shadow-sm">
-                                        <i class="fa-solid fa-qrcode"></i>
-                                        <span>Xem Mã QR Lô HL-TP</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-
-                    <!-- Stall Footer -->
-                    <div class="p-4 bg-slate-50 border-t border-slate-100">
-                        <span class="text-xs text-slate-500"><strong class="text-slate-800">2</strong> Sản Phẩm Đã Xác Thực QR</span>
-                    </div>
-                </div>
-
-                <!-- Stall 2: Kơho Speciality Coffee -->
-                <div class="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden flex flex-col justify-between hover:border-amber-500 transition group">
-                    <div>
-                        <!-- Stall Header -->
-                        <div class="bg-amber-50 p-6 space-y-3 relative">
-                            <div class="flex justify-between items-start">
-                                <span class="px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold border border-slate-200 text-slate-600">
-                                    <i class="fa-solid fa-location-dot mr-1"></i> Langbiang (1,500m)
-                                </span>
-                                <span class="px-2.5 py-1 bg-slate-100 text-slate-700 font-black text-xs rounded-lg border border-slate-200">
-                                    Specialty 86+
-                                </span>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-extrabold text-slate-900">Kơho Speciality Coffee</h3>
-                                <p class="text-xs text-slate-500 mt-0.5">Cà phê Arabica rừng nguyên sinh • Hái chín tay 100%</p>
-                            </div>
-
-                            <!-- AI Agent Badge for Stall -->
-                            <div class="p-2.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold text-sm shadow ai-pulse">
-                                        <i class="fa-solid fa-mug-saucer"></i>
-                                    </div>
-                                    <span class="text-xs font-bold text-slate-700">AI Sommelier Kơho</span>
-                                </div>
-                                <button onclick="startStallAIChat('Kơho Speciality Coffee', 'AI Sommelier Kơho')" class="px-2.5 py-1 rounded-lg bg-brand-700 hover:bg-brand-800 text-white font-black text-[11px] transition">
-                                    Hỏi AI
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Multi-Product List within Stall -->
-                        <div class="p-5 space-y-4">
-                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Sản phẩm thuộc gian hàng (2):</p>
-
-                            <!-- Product 1 -->
-                            <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 hover:border-amber-500 transition space-y-2">
-                                <div class="flex items-center space-x-3">
-                                    <img src="https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=300&q=80" alt="Cà Phê Moka Langbiang" class="w-14 h-14 object-cover rounded-xl border border-slate-200">
-                                    <div class="flex-1 min-w-0">
-                                        <h4 class="text-xs font-bold text-slate-900 truncate">1. Cà Phê Moka Langbiang Rang Mộc</h4>
-                                        <p class="text-[11px] text-slate-500 font-mono">Lô: MK-LB-2026 • Gói 250g</p>
-                                        <p class="text-xs font-black text-amber-800 mt-0.5">245.000đ / Hũ</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
-                                    <button onclick="openQRModal('coffee1')" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[11px] transition flex items-center space-x-1 shadow-sm">
-                                        <i class="fa-solid fa-qrcode"></i>
-                                        <span>Xem Mã QR Lô MK-LB</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Product 2 -->
-                            <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 hover:border-amber-500 transition space-y-2">
-                                <div class="flex items-center space-x-3">
-                                    <img src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=300&q=80" alt="Fine Robusta Honey Kơho" class="w-14 h-14 object-cover rounded-xl border border-slate-200">
-                                    <div class="flex-1 min-w-0">
-                                        <h4 class="text-xs font-bold text-slate-900 truncate">2. Cà Phê Fine Robusta Honey</h4>
-                                        <p class="text-[11px] text-slate-500 font-mono">Lô: RB-HN-2026 • Lên men tự nhiên</p>
-                                        <p class="text-xs font-black text-amber-800 mt-0.5">180.000đ / Hũ</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
-                                    <button onclick="openQRModal('coffee2')" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[11px] transition flex items-center space-x-1 shadow-sm">
-                                        <i class="fa-solid fa-qrcode"></i>
-                                        <span>Xem Mã QR Lô RB-HN</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-
-                    <!-- Stall Footer -->
-                    <div class="p-4 bg-slate-50 border-t border-slate-100">
-                        <span class="text-xs text-slate-500"><strong class="text-slate-800">2</strong> Sản Phẩm Đã Xác Thực QR</span>
-                    </div>
-                </div>
-
-                <!-- Stall 3: Nông Sản Sấy Đồng Tháp OCOP -->
-                <div class="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden flex flex-col justify-between hover:border-orange-500 transition group">
-                    <div>
-                        <!-- Stall Header -->
-                        <div class="bg-amber-50 p-6 space-y-3 relative">
-                            <div class="flex justify-between items-start">
-                                <span class="px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold border border-slate-200 text-slate-600">
-                                    <i class="fa-solid fa-location-dot mr-1"></i> Đồng Tháp
-                                </span>
-                                <span class="px-2.5 py-1 bg-slate-100 text-slate-700 font-black text-xs rounded-lg border border-slate-200">
-                                    OCOP 4-5 SAO
-                                </span>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-extrabold text-slate-900">Nông Sản Sấy Đồng Tháp</h3>
-                                <p class="text-xs text-slate-500 mt-0.5">Trái cây sấy dẻo công nghệ sấy lạnh HACCP</p>
-                            </div>
-
-                            <!-- AI Agent Badge for Stall -->
-                            <div class="p-2.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-sm shadow ai-pulse">
-                                        <i class="fa-solid fa-robot"></i>
-                                    </div>
-                                    <span class="text-xs font-bold text-slate-700">AI Chuyên Gia Sấy Khô</span>
-                                </div>
-                                <button onclick="startStallAIChat('Nông Sản Sấy Đồng Tháp', 'AI Chuyên Gia Sấy Khô')" class="px-2.5 py-1 rounded-lg bg-brand-700 hover:bg-brand-800 text-white font-black text-[11px] transition">
-                                    Hỏi AI
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Multi-Product List within Stall -->
-                        <div class="p-5 space-y-4">
-                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Sản phẩm thuộc gian hàng (2):</p>
-
-                            <!-- Product 1 -->
-                            <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 hover:border-orange-500 transition space-y-2">
-                                <div class="flex items-center space-x-3">
-                                    <img src="https://images.unsplash.com/photo-1601039641847-7857b994d701?auto=format&fit=crop&w=300&q=80" alt="Mít Thái Sấy Dẻo" class="w-14 h-14 object-cover rounded-xl border border-slate-200">
-                                    <div class="flex-1 min-w-0">
-                                        <h4 class="text-xs font-bold text-slate-900 truncate">1. Mít Thái Sấy Dẻo Ít Đường</h4>
-                                        <p class="text-[11px] text-slate-500 font-mono">Lô: MT-DT-2026 • Túi 500g</p>
-                                        <p class="text-xs font-black text-orange-700 mt-0.5">120.000đ / Túi</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
-                                    <button onclick="openQRModal('dryfruit1')" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[11px] transition flex items-center space-x-1 shadow-sm">
-                                        <i class="fa-solid fa-qrcode"></i>
-                                        <span>Xem Mã QR Lô MT-DT</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Product 2 -->
-                            <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 hover:border-orange-500 transition space-y-2">
-                                <div class="flex items-center space-x-3">
-                                    <img src="https://images.unsplash.com/photo-1550258987-190a2d41a8ba?auto=format&fit=crop&w=300&q=80" alt="Xoài Cát Chu Sấy Dẻo" class="w-14 h-14 object-cover rounded-xl border border-slate-200">
-                                    <div class="flex-1 min-w-0">
-                                        <h4 class="text-xs font-bold text-slate-900 truncate">2. Xoài Cát Chu Sấy Dẻo OCOP</h4>
-                                        <p class="text-[11px] text-slate-500 font-mono">Lô: XC-DT-2026 • Vị thơm ngọt nhẹ</p>
-                                        <p class="text-xs font-black text-orange-700 mt-0.5">110.000đ / Túi</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
-                                    <button onclick="openQRModal('dryfruit2')" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[11px] transition flex items-center space-x-1 shadow-sm">
-                                        <i class="fa-solid fa-qrcode"></i>
-                                        <span>Xem Mã QR Lô XC-DT</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-
-                    <!-- Stall Footer -->
-                    <div class="p-4 bg-slate-50 border-t border-slate-100">
-                        <span class="text-xs text-slate-500"><strong class="text-slate-800">2</strong> Sản Phẩm Đã Xác Thực QR</span>
-                    </div>
-                </div>
-
-            </div>
+        <!-- Category Filter Pills -->
+        <section id="category-pills" class="flex items-center space-x-3 overflow-x-auto pb-2 custom-scrollbar">
+            <!-- Render từ GET /categories (renderCategoryPills()) -->
         </section>
 
         <!-- Main Products Showcase Grid -->
@@ -600,32 +349,57 @@
     </div>
 
     <!-- Shopping Cart Drawer Modal -->
-    <div id="cart-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-md hidden justify-end transition-opacity">
-        <div class="w-full max-w-md bg-white h-full shadow-2xl p-6 flex flex-col justify-between">
-            <div class="space-y-4">
-                <div class="flex justify-between items-center border-b border-slate-100 pb-4">
-                    <h3 class="text-lg font-black text-slate-900 flex items-center space-x-2">
-                        <i class="fa-solid fa-basket-shopping text-brand-600"></i>
-                        <span>Giỏ Hàng Nông Sản</span>
-                    </h3>
-                    <button onclick="closeCartModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
+    <div id="cart-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden justify-end transition-opacity" onclick="closeCartModal()">
+        <div class="w-full max-w-md bg-white h-full shadow-2xl flex flex-col" onclick="event.stopPropagation()">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-emerald-900 to-brand-800 text-white p-5 flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-bag-shopping"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-lg font-black">Giỏ Hàng Mua Sắm</h3>
+                            <span id="cart-count-pill" class="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-xs font-black">0 món</span>
+                        </div>
+                        <p class="text-xs text-emerald-100/90 mt-0.5">Nông sản sạch xác thực nguồn gốc Blockchain</p>
+                    </div>
                 </div>
+                <button onclick="closeCartModal()" class="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center text-lg" aria-label="Đóng giỏ hàng">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
 
-                <div id="cart-items-container" class="space-y-3 overflow-y-auto max-h-[60vh] custom-scrollbar">
-                    <!-- Cart Items populated via JS -->
+            <!-- Thanh tiến độ miễn phí vận chuyển -->
+            <div class="px-5 py-3 bg-emerald-50 border-b border-emerald-100">
+                <div class="flex items-center justify-between text-sm">
+                    <span id="cart-ship-text" class="text-slate-700"></span>
+                    <span id="cart-ship-percent" class="text-xs font-bold text-brand-700"></span>
+                </div>
+                <div class="mt-2 h-1.5 rounded-full bg-emerald-100 overflow-hidden">
+                    <div id="cart-ship-bar" class="h-full bg-brand-600 rounded-full transition-all duration-300" style="width:0%"></div>
                 </div>
             </div>
 
-            <div class="space-y-3 pt-4 border-t border-slate-100">
-                <div class="flex justify-between items-center text-sm font-bold text-slate-800">
-                    <span>Tổng tiền thanh toán:</span>
-                    <span id="cart-total-price" class="text-xl font-black text-brand-700">0đ</span>
+            <p id="cart-notice" class="hidden mx-5 mt-3 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-700" role="status"></p>
+
+            <!-- Danh sách món -->
+            <div id="cart-items-container" class="flex-1 overflow-y-auto custom-scrollbar px-5 divide-y divide-slate-100"></div>
+
+            <!-- Tổng kết -->
+            <div class="px-5 pt-4 pb-5 border-t border-slate-100 bg-slate-50/60 space-y-3">
+                <div class="space-y-1.5 text-sm text-slate-600">
+                    <div class="flex justify-between"><span id="cart-subtotal-label">Tạm tính (0 món được chọn):</span><strong id="cart-subtotal" class="font-mono text-slate-900">0 đ</strong></div>
+                    <div class="flex justify-between"><span>Phí vận chuyển dự kiến:</span><strong id="cart-shipping" class="font-mono text-slate-900">0 đ</strong></div>
                 </div>
-                <button onclick="checkoutCart()" class="w-full py-3.5 bg-gradient-to-r from-brand-600 to-emerald-600 hover:from-brand-700 hover:to-emerald-700 text-white font-bold text-sm rounded-2xl shadow-lg transition">
-                    Thanh Toán Đơn Hàng
+                <div class="flex justify-between items-center pt-2 border-t border-slate-200">
+                    <span class="font-black text-slate-900">Tổng thanh toán:</span>
+                    <span id="cart-total-price" class="text-2xl font-black font-mono text-brand-700">0 đ</span>
+                </div>
+                <button onclick="checkoutCart()" class="w-full py-3.5 bg-brand-700 hover:bg-brand-800 text-white font-bold rounded-2xl shadow-lg transition">
+                    Tiến Hành Đặt Hàng <i class="fa-solid fa-arrow-right ml-1"></i>
                 </button>
+                <p class="text-center text-[11px] text-slate-500"><i class="fa-solid fa-shield-halved text-brand-600 mr-1"></i>Cam kết bảo chứng nguồn gốc Blockchain AgriChain</p>
             </div>
         </div>
     </div>
@@ -671,152 +445,201 @@
 
     <!-- JavaScript Application Logic -->
     <script>
-        // Data Products Array with Traceability Codes & Categories
-        const PRODUCTS_DATA = [
-            {
-                id: 'melon1',
-                name: 'Dưa Lưới Tiến Phát Hữu Cơ',
-                stall: 'HTX Nông Nghiệp Tiến Phát',
-                category: 'melon',
-                price: 145000,
-                oldPrice: 170000,
-                batch: 'V3-V2-2026',
-                qrId: '9b0e26ae',
-                brix: '15° Brix',
-                img: 'https://images.unsplash.com/photo-1595855759920-86582396756a?auto=format&fit=crop&w=600&q=80',
-                desc: 'Dưa Lưới Tiến Phát vỏ vân lưới đều đặn, ruột cam giòn ngọt mọng nước. Trồng nhà màng công nghệ cao đạt chuẩn VietGAP.'
-            },
-            {
-                id: 'melon2',
-                name: 'Dưa Lưới Huỳnh Long Tiến Phát',
-                stall: 'HTX Nông Nghiệp Tiến Phát',
-                category: 'melon',
-                price: 165000,
-                oldPrice: 190000,
-                batch: 'HL-TP-2026',
-                qrId: 'hl-789a23',
-                brix: '16° Brix',
-                img: 'https://images.unsplash.com/photo-1571575173700-afb9492e6a50?auto=format&fit=crop&w=600&q=80',
-                desc: 'Dưa Lưới Huỳnh Long ruột vàng óng, độ giòn cao, hương thơm tự nhiên đậm đà, tích hợp mã QR xuất xứ.'
-            },
-            {
-                id: 'coffee1',
-                name: 'Cà Phê Moka Langbiang Rang Mộc',
-                stall: 'Kơho Speciality Coffee',
-                category: 'coffee',
-                price: 245000,
-                oldPrice: 0,
-                batch: 'MK-LB-2026',
-                qrId: 'mk-456b12',
-                brix: 'Specialty 86+',
-                img: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&w=600&q=80',
-                desc: 'Hạt Moka chín đỏ hái tay 100% tại đỉnh núi Langbiang cao 1,500m, rang mộc độ vừa tỏa vị trái cây mượt mà.'
-            },
-            {
-                id: 'coffee2',
-                name: 'Cà Phê Fine Robusta Honey',
-                stall: 'Kơho Speciality Coffee',
-                category: 'coffee',
-                price: 180000,
-                oldPrice: 200000,
-                batch: 'RB-HN-2026',
-                qrId: 'rb-901c34',
-                brix: 'Fine Grade',
-                img: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80',
-                desc: 'Robusta sấy mật ong ngọt hậu, kem dày, hương chocolate thanh nhẹ.'
-            },
-            {
-                id: 'dryfruit1',
-                name: 'Mít Thái Sấy Dẻo Ít Đường',
-                stall: 'Nông Sản Sấy Đồng Tháp',
-                category: 'dried-fruit',
-                price: 120000,
-                oldPrice: 140000,
-                batch: 'MT-DT-2026',
-                qrId: 'mt-123c89',
-                brix: 'Sấy Lạnh HACCP',
-                img: 'https://images.unsplash.com/photo-1601039641847-7857b994d701?auto=format&fit=crop&w=600&q=80',
-                desc: 'Mít sấy dẻo giữ nguyên màu vàng tự nhiên và vitamin tươi ngon, túi zipper 500g đạt chuẩn OCOP.'
-            },
-            {
-                id: 'dryfruit2',
-                name: 'Xoài Cát Chu Sấy Dẻo OCOP',
-                stall: 'Nông Sản Sấy Đồng Tháp',
-                category: 'dried-fruit',
-                price: 110000,
-                oldPrice: 130000,
-                batch: 'XC-DT-2026',
-                qrId: 'xc-567d45',
-                brix: 'OCOP 4 Sao',
-                img: 'https://images.unsplash.com/photo-1550258987-190a2d41a8ba?auto=format&fit=crop&w=600&q=80',
-                desc: 'Xoài Cát Chu Cao Lãnh sấy dẻo dẻo quánh, chua ngọt hài hòa.'
-            },
-            {
-                id: 'honey1',
-                name: 'Mật Chiết Hoa Dưa Lưới & Bạc Hà',
-                stall: 'Trang Trại Tiến Phát',
-                category: 'honey',
-                price: 210000,
-                oldPrice: 0,
-                batch: 'MC-TP-2026',
-                qrId: 'mc-888e12',
-                brix: 'Nguyên Chất 100%',
-                img: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=600&q=80',
-                desc: 'Mật thu hoạch từ nông trại dưa lưới kết hợp hoa hoa thảo mộc tự nhiên.'
-            }
-        ];
+        // Dữ liệu THẬT từ backend (GET /categories + GET /products, công khai) — cùng nguồn với trang quản trị
+        // và san-pham.html. Nạp ở loadStore() (cuối file). Sản phẩm trên sàn chưa gắn lô hàng/mã QR truy xuất
+        // (backend `products` chưa liên kết `batches`), nên các nút "Mã QR" tạm không hiện.
+        let PRODUCTS_DATA = [];
+        // Danh mục gốc đang hiện: { key: slug, label, icon (emoji), badge, description, children: [slug...] }
+        let STORE_CATEGORIES = [];
+        let storeStatus = 'loading';
 
-        let cartItems = [];
-        let currentQRProduct = PRODUCTS_DATA[0];
+        // Giỏ hàng: module dùng chung js/agriverse-cart.js (localStorage + đồng bộ máy chủ khi đã đăng nhập).
+        const cart = window.AgriChain.cart;
+        let currentQRProduct = null;
+
+        // Dòng sao nhỏ trên thẻ sản phẩm (rating_avg/rating_count từ máy chủ)
+        function ratingLine(avg, count) {
+            if (!count) return '<div class="text-[11px] text-slate-400 mt-1">Chưa có đánh giá</div>';
+            let html = '';
+            for (let i = 1; i <= 5; i++) html += `<i class="fa-solid fa-star ${avg >= i - 0.25 ? 'text-amber-500' : (avg >= i - 0.75 ? 'text-amber-300' : 'text-slate-300')}" style="font-size:11px"></i>`;
+            return `<div class="flex items-center gap-1 mt-1">${html}<span class="text-[11px] text-slate-400">${avg.toFixed(1)} (${count})</span></div>`;
+        }
 
         // Render Product Cards Grid
         function renderProductGrid(filter = 'all') {
             const container = document.getElementById('product-grid');
             container.innerHTML = '';
 
-            const filtered = filter === 'all' 
-                ? PRODUCTS_DATA 
-                : PRODUCTS_DATA.filter(p => p.category === filter || (filter === 'ocop' && p.brix.includes('OCOP')));
+            if (storeStatus === 'loading' || storeStatus === 'error') {
+                container.innerHTML = storeStatus === 'loading'
+                    ? `<p class="col-span-full text-center py-16 text-slate-400"><i class="fa-solid fa-spinner fa-spin text-3xl mb-3 block"></i>Đang tải nông sản...</p>`
+                    : `<div class="col-span-full text-center py-16 text-slate-500"><i class="fa-solid fa-triangle-exclamation text-4xl text-amber-400 mb-3 block"></i>
+                        <p class="font-semibold">Không tải được danh sách nông sản.</p>
+                        <button onclick="loadStore()" class="mt-4 px-5 py-2 rounded-2xl bg-brand-700 hover:bg-brand-800 text-white font-bold text-sm transition">Thử lại</button></div>`;
+                return;
+            }
+
+            const filtered = filter === 'all'
+                ? PRODUCTS_DATA
+                : PRODUCTS_DATA.filter(p => p.catPath.includes(filter));
+
+            if (!filtered.length) {
+                container.innerHTML = `<p class="col-span-full text-center py-16 text-slate-400"><i class="fa-solid fa-seedling text-4xl text-slate-200 mb-3 block"></i>${PRODUCTS_DATA.length ? 'Danh mục này chưa có nông sản.' : 'Chưa có nông sản nào được mở bán.'}</p>`;
+                return;
+            }
 
             filtered.forEach(p => {
+                const inStock = p.stock > 0;
                 const card = document.createElement('div');
                 card.className = "bg-white rounded-3xl border border-slate-200 p-5 space-y-4 hover:border-brand-500 hover:shadow-xl transition flex flex-col justify-between group";
-                
+
                 card.innerHTML = `
                     <div class="space-y-3">
-                        <div class="relative rounded-2xl bg-gradient-to-br from-amber-50 to-emerald-50 h-52 flex items-center justify-center overflow-hidden">
-                            <img src="${p.img}" alt="${p.name}" class="h-44 object-contain group-hover:scale-105 transition duration-300">
-
-                            <button onclick="openQRModal('${p.id}')" class="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 shadow text-slate-800 hover:bg-amber-500 hover:text-slate-950 flex items-center justify-center transition" title="Quét Mã QR Truy Xuất">
-                                <i class="fa-solid fa-qrcode text-base"></i>
-                            </button>
-                        </div>
+                        <a href="san-pham-chi-tiet.html?slug=${encodeURIComponent(p.slug)}" class="relative rounded-2xl bg-gradient-to-br from-amber-50 to-emerald-50 h-52 flex items-center justify-center overflow-hidden" aria-label="Xem chi tiết ${escHtml(p.name)}">
+                            ${p.img
+                                ? `<img src="${escHtml(p.img)}" alt="${escHtml(p.name)}" loading="lazy" class="h-44 object-contain group-hover:scale-105 transition duration-300">`
+                                : `<span class="text-6xl" aria-hidden="true">🌱</span>`}
+                            <span class="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-white/90 ${inStock ? 'text-brand-700' : 'text-red-600'} text-[11px] font-bold">${inStock ? 'Còn hàng' : 'Hết hàng'}</span>
+                        </a>
 
                         <div>
-                            <span class="text-[11px] font-bold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-md">${p.stall}</span>
-                            <h3 class="font-bold text-slate-900 text-base mt-1.5">${p.name}</h3>
-                            <p class="text-xs text-slate-500 mt-0.5">Mã Lô: <strong class="text-slate-800 font-mono">${p.batch}</strong> • ${p.brix}</p>
+                            <span class="text-[11px] font-bold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-md">${escHtml(p.categoryName || 'Nông sản')}</span>
+                            <h3 class="font-bold text-slate-900 text-base mt-1.5"><a href="san-pham-chi-tiet.html?slug=${encodeURIComponent(p.slug)}" class="hover:text-brand-700 transition">${escHtml(p.name)}</a></h3>
+                            ${ratingLine(p.ratingAvg, p.ratingCount)}
+                            <p class="text-xs text-slate-500 mt-0.5">${p.origin ? escHtml(p.origin) : ''}${p.origin && p.standards ? ' • ' : ''}${p.standards ? escHtml(p.standards) : ''}</p>
+                            ${p.summary ? `<p class="text-xs text-slate-500 mt-1 line-clamp-2">${escHtml(p.summary)}</p>` : ''}
                         </div>
                     </div>
 
                     <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
                         <div>
                             <span class="text-xl font-black text-slate-900">${p.price.toLocaleString('vi-VN')}đ</span>
-                            ${p.oldPrice ? `<span class="text-xs text-slate-400 line-through ml-1">${p.oldPrice.toLocaleString('vi-VN')}đ</span>` : ''}
+                            <span class="text-xs text-slate-400">/ ${escHtml(p.unit)}</span>
                         </div>
-                        <div class="flex items-center space-x-2">
-                            <button onclick="openQRModal('${p.id}')" class="px-3 py-2 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs flex items-center space-x-1 shadow-sm transition">
-                                <i class="fa-solid fa-qrcode"></i>
-                                <span>Mã QR</span>
-                            </button>
-                            <button onclick="addToCart('${p.name}', ${p.price})" class="w-10 h-10 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white flex items-center justify-center shadow-md shadow-brand-600/30 transition">
-                                <i class="fa-solid fa-plus text-base"></i>
-                            </button>
+                        <div class="flex items-center gap-2">
+                        ${p.wholesale && inStock ? `<button data-wholesale-id="${escHtml(p.id)}" class="h-10 px-3 rounded-2xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold transition" title="Tính giá sỉ"><i class="fa-solid fa-bolt mr-1"></i>Tính Sỉ</button>` : ''}
+                        <button data-add-id="${escHtml(p.id)}" ${inStock ? '' : 'disabled'} class="w-10 h-10 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white flex items-center justify-center shadow-md shadow-brand-600/30 transition ${inStock ? '' : 'opacity-40 cursor-not-allowed'}" title="${inStock ? 'Thêm vào giỏ' : 'Tạm hết hàng'}">
+                            <i class="fa-solid fa-plus text-base"></i>
+                        </button>
                         </div>
                     </div>
                 `;
                 container.appendChild(card);
             });
+        }
+
+        // Thêm giỏ qua id sản phẩm (tên/ảnh có thể chứa dấu nháy — không nhét thẳng vào thuộc tính onclick).
+        document.addEventListener('click', e => {
+            const wsBtn = e.target.closest('[data-wholesale-id]');
+            if (wsBtn) {
+                const wp = PRODUCTS_DATA.find(x => x.id === wsBtn.dataset.wholesaleId);
+                if (wp) AgriChain.wholesale.open(wp, (result, p) => { openCartModal(); if (result.limited) showCartNotice(`Chỉ còn ${p.stock} sản phẩm trong kho, đã đặt tối đa.`); });
+                return;
+            }
+            const btn = e.target.closest('[data-add-id]');
+            if (!btn || btn.disabled) return;
+            const p = PRODUCTS_DATA.find(x => x.id === btn.dataset.addId);
+            if (p) addToCart(p.name, p.price, p.img, p.id, p.wholesale, p.moq, p.stock);
+        });
+
+        // Màu nền thẻ danh mục: bảng màu xoay vòng theo thứ tự (màu là việc HIỂN THỊ, backend không lưu).
+        const CATEGORY_GRADIENTS = [
+            'from-lime-400 to-emerald-600', 'from-amber-700 to-stone-800', 'from-orange-400 to-amber-600',
+            'from-yellow-400 to-amber-500', 'from-emerald-500 to-teal-700', 'from-sky-400 to-blue-600',
+            'from-rose-400 to-pink-600', 'from-violet-400 to-purple-600'
+        ];
+
+        function renderCategoryCards() {
+            const box = document.getElementById('category-cards');
+            if (!box) return;
+            if (storeStatus !== 'ready' || !STORE_CATEGORIES.length) {
+                box.innerHTML = storeStatus === 'loading'
+                    ? `<p class="col-span-full text-center text-slate-400 py-10"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Đang tải danh mục...</p>`
+                    : `<p class="col-span-full text-center text-slate-400 py-10">${storeStatus === 'error' ? 'Không tải được danh mục.' : 'Chưa có danh mục nào.'}</p>`;
+                return;
+            }
+            box.innerHTML = STORE_CATEGORIES.slice(0, 8).map((c, i) => `
+                <a href="san-pham.html?danh-muc=${encodeURIComponent(c.key)}" class="block text-left bg-white rounded-3xl border border-slate-200 shadow-lg shadow-slate-200/50 overflow-hidden hover:border-brand-500 hover:-translate-y-1 transition group">
+                    <div class="relative h-44 overflow-hidden bg-gradient-to-br ${CATEGORY_GRADIENTS[i % CATEGORY_GRADIENTS.length]} flex items-center justify-center">
+                        ${c.image
+                            ? `<img src="${escHtml(c.image)}" alt="${escHtml(c.label)}" loading="lazy" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300">`
+                            : `<span class="text-6xl group-hover:scale-110 transition" aria-hidden="true">${escHtml(c.icon || '🌿')}</span>`}
+                        ${c.badge ? `<span class="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-black/50 text-white text-[11px] font-bold">${escHtml(c.badge)}</span>` : ''}
+                    </div>
+                    <div class="p-5 space-y-2">
+                        <h3 class="text-lg font-extrabold text-slate-900">${escHtml(c.label)}</h3>
+                        <p class="text-xs text-slate-500">${escHtml(c.description || 'Nông sản chọn lọc, truy xuất nguồn gốc rõ ràng.')}</p>
+                        <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-sm font-bold text-brand-700">
+                            Khám phá ngay <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                    </div>
+                </a>`).join('');
+        }
+
+        function renderCategoryPills() {
+            const box = document.getElementById('category-pills');
+            if (!box) return;
+            const pill = (key, label, icon, active) =>
+                `<button onclick="filterCategory('${escHtml(key)}')" class="cat-pill px-5 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap border transition shadow-sm ${active ? 'active bg-brand-700 text-white border-brand-700 font-bold shadow-md shadow-brand-700/20' : 'bg-white text-slate-700 hover:bg-emerald-50 hover:text-brand-700 border-slate-200'}"><span class="mr-1.5">${escHtml(icon)}</span>${escHtml(label)}</button>`;
+            box.innerHTML = pill('all', 'Tất Cả Nông Sản', '🛒', true) +
+                STORE_CATEGORIES.map(c => pill(c.key, c.label, c.icon || '🗂️', false)).join('');
+        }
+
+        async function fetchAllPages(fn, params) {
+            const items = [];
+            for (let page = 1; page <= 20; page++) {
+                const res = await fn(Object.assign({}, params, { page, page_size: 100 }));
+                items.push(...res.items);
+                if (items.length >= res.total || !res.items.length) break;
+            }
+            return items;
+        }
+
+        async function loadStore() {
+            storeStatus = 'loading';
+            renderCategoryCards();
+            renderProductGrid('all');
+            try {
+                const api = window.AgriChain.api;
+                const [cats, prods] = await Promise.all([
+                    fetchAllPages(api.categories.list, { type: 'product' }),
+                    fetchAllPages(api.products.list, {})
+                ]);
+                const byId = new Map(cats.map(c => [c.id, c]));
+                const bySlug = new Map(cats.map(c => [c.slug, c]));
+                const byOrder = (a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, 'vi');
+                STORE_CATEGORIES = cats.filter(c => !c.parent_id).sort(byOrder).map(c => ({
+                    key: c.slug, label: c.name, icon: c.icon, image: c.image_url, badge: c.badge, description: c.description
+                }));
+                // slug danh mục của sản phẩm + các danh mục cha của nó → lọc theo danh mục cha gồm cả sản phẩm của danh mục con
+                const pathOf = slug => {
+                    const path = [];
+                    for (let c = bySlug.get(slug); c && !path.includes(c.slug); c = c.parent_id ? byId.get(c.parent_id) : null) path.push(c.slug);
+                    return path;
+                };
+                PRODUCTS_DATA = prods.map(p => ({
+                    id: p.id, name: p.name, price: p.retail_price, wholesale: p.wholesale_price, moq: p.moq, unit: p.unit, stock: p.stock, origin: p.origin || '',
+                    standards: p.standards || '', summary: p.summary || '', img: p.thumbnail_url || '', slug: p.slug, ratingAvg: p.rating_avg, ratingCount: p.rating_count || 0,
+                    categoryName: p.category_name || '', catPath: pathOf(p.category_slug)
+                }));
+                storeStatus = 'ready';
+            } catch (err) {
+                console.error('[agriverse] Không tải được dữ liệu sàn:', err);
+                storeStatus = 'error';
+            }
+            renderCategoryCards();
+            renderCategoryPills();
+            renderProductGrid('all');
+        }
+
+        // Bấm 1 thẻ "Danh Mục Nông Sản Công Nghệ Cao": bấm giúp pill lọc tương ứng
+        // (để trạng thái active của pill luôn khớp) rồi cuộn xuống lưới sản phẩm.
+        function scrollToProducts(cat) {
+            const pill = Array.from(document.querySelectorAll('.cat-pill'))
+                .find(btn => (btn.getAttribute('onclick') || '').includes(`'${cat}'`));
+            if (pill) pill.click();
+            const grid = document.getElementById('product-grid');
+            if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         function filterCategory(cat) {
@@ -839,7 +662,8 @@
         }
 
         function openQRModal(productId) {
-            const product = PRODUCTS_DATA.find(p => p.id === productId) || PRODUCTS_DATA[0];
+            const product = PRODUCTS_DATA.find(p => p.id === productId);
+            if (!product || !product.qrId) return; // sản phẩm sàn chưa gắn lô hàng/mã QR
             currentQRProduct = product;
 
             document.getElementById('qr-modal-title').innerText = product.name;
@@ -872,57 +696,100 @@
             alert('Đã sao chép liên kết mã QR thành công!');
         }
 
-        // Cart Drawer Operations
-        function addToCart(name, price) {
-            const existing = cartItems.find(i => i.name === name);
-            if (existing) {
-                existing.qty++;
-            } else {
-                cartItems.push({ name, price, qty: 1 });
-            }
-            updateCartUI();
+        // Cart Drawer Operations — dữ liệu & quy tắc giá ở js/agriverse-cart.js, ở đây chỉ vẽ ngăn kéo.
+        const money = n => n.toLocaleString('vi-VN') + ' đ';
+        const escHtml = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const FREESHIP_THRESHOLD = cart.FREESHIP_THRESHOLD;
+
+        // `id` = id sản phẩm trên máy chủ (BẮT BUỘC để đặt hàng thật — backend lấy giá theo id, không tin giá client).
+        function addToCart(name, price, img, id, wholesale, moq, stock) {
+            const result = cart.add({ id, name, price, img, wholesale, moq, stock });
+            if (!result.ok) return;
             openCartModal();
+            if (result.limited) showCartNotice(`Chỉ còn ${stock} sản phẩm trong kho, đã đặt tối đa.`);
+        }
+
+        function showCartNotice(message) {
+            const box = document.getElementById('cart-notice');
+            if (!box) return;
+            box.textContent = message;
+            box.classList.remove('hidden');
+            clearTimeout(showCartNotice.timer);
+            showCartNotice.timer = setTimeout(() => box.classList.add('hidden'), 3000);
         }
 
         function updateCartUI() {
-            const countBadge = document.getElementById('cart-count');
-            const totalQty = cartItems.reduce((acc, i) => acc + i.qty, 0);
-            countBadge.innerText = totalQty;
+            const items = cart.items();
+            const t = cart.totals();
+            document.getElementById('cart-count').innerText = t.lines;
+            document.getElementById('cart-count-pill').innerText = t.lines + ' món';
 
             const container = document.getElementById('cart-items-container');
             container.innerHTML = '';
-            let total = 0;
-
-            if (cartItems.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-8">Giỏ hàng của bạn đang trống.</p>`;
+            if (items.length === 0) {
+                container.innerHTML = `<p class="text-sm text-slate-400 text-center py-16"><i class="fa-solid fa-basket-shopping text-4xl text-slate-200 block mb-3"></i>Giỏ hàng của bạn đang trống.</p>`;
             } else {
-                cartItems.forEach((item, index) => {
-                    total += item.price * item.qty;
-                    const div = document.createElement('div');
-                    div.className = "flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs";
-                    div.innerHTML = `
-                        <div>
-                            <p class="font-bold text-slate-900">${item.name}</p>
-                            <p class="text-slate-500">${item.price.toLocaleString('vi-VN')}đ x ${item.qty}</p>
+                items.forEach(item => {
+                    const wholesaleOn = item.wholesale && item.qty >= item.moq;
+                    const atStock = item.stock != null && item.stock > 0 && item.qty >= item.stock;
+                    const row = document.createElement('div');
+                    row.className = 'flex items-start gap-3 py-4';
+                    row.innerHTML = `
+                        <input type="checkbox" ${item.selected ? 'checked' : ''} data-cart-toggle="${escHtml(item.id)}" class="mt-8 w-5 h-5 accent-brand-600 flex-shrink-0">
+                        <div class="w-20 h-20 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center flex-shrink-0">
+                            ${item.img ? `<img src="${escHtml(item.img)}" alt="" class="w-full h-full object-cover">` : `<i class="fa-solid fa-seedling text-2xl text-slate-300"></i>`}
                         </div>
-                        <div class="flex items-center space-x-2">
-                            <button onclick="changeQty(${index}, -1)" class="w-6 h-6 rounded-lg bg-slate-200 hover:bg-slate-300 font-bold">-</button>
-                            <span class="font-mono font-bold">${item.qty}</span>
-                            <button onclick="changeQty(${index}, 1)" class="w-6 h-6 rounded-lg bg-slate-200 hover:bg-slate-300 font-bold">+</button>
-                        </div>
-                    `;
-                    container.appendChild(div);
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-start justify-between gap-2">
+                                <p class="font-bold text-slate-900 text-sm leading-snug">${escHtml(item.name)}</p>
+                                <button data-cart-remove="${escHtml(item.id)}" class="text-slate-300 hover:text-red-500 transition" aria-label="Xoá khỏi giỏ"><i class="fa-regular fa-trash-can"></i></button>
+                            </div>
+                            <p class="text-sm font-mono font-bold text-brand-700 mt-0.5">${money(cart.unitPrice(item))}
+                                ${wholesaleOn ? '<span class="ml-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-bold font-sans">Giá sỉ</span>' : ''}</p>
+                            ${item.wholesale && !wholesaleOn ? `<p class="text-[11px] text-amber-600 mt-0.5">Mua từ ${item.moq} để được giá sỉ ${money(item.wholesale)}</p>` : ''}
+                            <div class="flex items-center justify-between mt-3">
+                                <div class="inline-flex items-center rounded-full border border-slate-200">
+                                    <button data-cart-qty="${escHtml(item.id)}" data-delta="-1" class="w-8 h-8 font-bold text-slate-600 hover:text-brand-700" aria-label="Giảm">−</button>
+                                    <span class="w-8 text-center font-mono font-bold text-sm">${item.qty}</span>
+                                    <button data-cart-qty="${escHtml(item.id)}" data-delta="1" ${atStock ? 'disabled' : ''} class="w-8 h-8 font-bold text-slate-600 hover:text-brand-700 disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Tăng">+</button>
+                                </div>
+                                <span class="font-mono font-bold text-slate-900 text-sm">${money(cart.unitPrice(item) * item.qty)}</span>
+                            </div>
+                            ${atStock ? `<p class="text-[11px] text-slate-400 mt-1">Đã đạt tồn kho tối đa (${item.stock}).</p>` : ''}
+                        </div>`;
+                    container.appendChild(row);
                 });
             }
 
-            document.getElementById('cart-total-price').innerText = total.toLocaleString('vi-VN') + 'đ';
+            const subtotal = t.subtotal;
+            const percent = Math.min(100, Math.round(subtotal / FREESHIP_THRESHOLD * 100));
+            document.getElementById('cart-ship-text').innerHTML = subtotal >= FREESHIP_THRESHOLD
+                ? '<i class="fa-solid fa-truck-fast text-brand-600 mr-1.5"></i>Bạn được <strong>MIỄN PHÍ</strong> vận chuyển!'
+                : `<i class="fa-solid fa-truck-fast text-amber-500 mr-1.5"></i>Mua thêm <strong>${money(FREESHIP_THRESHOLD - subtotal)}</strong> để FREESHIP`;
+            document.getElementById('cart-ship-percent').innerText = percent + '%';
+            document.getElementById('cart-ship-bar').style.width = percent + '%';
+            document.getElementById('cart-subtotal-label').innerText = `Tạm tính (${t.selectedLines} món được chọn):`;
+            document.getElementById('cart-subtotal').innerText = money(subtotal);
+            document.getElementById('cart-shipping').innerText = money(t.shipping);
+            document.getElementById('cart-total-price').innerText = money(t.total);
         }
 
-        function changeQty(index, delta) {
-            cartItems[index].qty += delta;
-            if (cartItems[index].qty <= 0) cartItems.splice(index, 1);
-            updateCartUI();
-        }
+        // Uỷ quyền sự kiện cho các nút trong ngăn kéo (nút được vẽ lại mỗi lần giỏ đổi)
+        document.getElementById('cart-items-container').addEventListener('click', e => {
+            const qtyBtn = e.target.closest('[data-cart-qty]');
+            if (qtyBtn && !qtyBtn.disabled) {
+                const item = cart.items().find(i => i.id === qtyBtn.dataset.cartQty);
+                if (item) cart.setQty(item.id, item.qty + Number(qtyBtn.dataset.delta));
+                return;
+            }
+            const removeBtn = e.target.closest('[data-cart-remove]');
+            if (removeBtn) cart.remove(removeBtn.dataset.cartRemove);
+        });
+        document.getElementById('cart-items-container').addEventListener('change', e => {
+            const toggle = e.target.closest('[data-cart-toggle]');
+            if (toggle) cart.toggle(toggle.dataset.cartToggle);
+        });
+        cart.onChange(updateCartUI);
 
         function openCartModal() {
             document.getElementById('cart-modal').classList.remove('hidden');
@@ -935,125 +802,9 @@
         }
 
         function checkoutCart() {
-            if (cartItems.length === 0) return alert('Giỏ hàng trống!');
-            alert('Cảm ơn bạn đã đặt hàng nông sản Tiến Phát! Đơn hàng sẽ được chuyển tới quản lý trang trại.');
-            cartItems = [];
-            updateCartUI();
-            closeCartModal();
-        }
-
-        // Account Area Operations (B5, 2026-09-11) — trang public, không gọi
-        // requireAuth()/requireBusiness(), chỉ ĐỌC trạng thái đăng nhập hiện có
-        // (nếu có) để hiện đúng UI. AgriChain.api có thể chưa tồn tại nếu
-        // js/api.js lỗi tải (CDN chậm...) — mọi hàm dưới đây tự kiểm tra trước.
-        //
-        // LUÔN tự vẽ lại CẢ 2 trạng thái (đăng nhập/chưa đăng nhập) mỗi lần gọi
-        // — KHÔNG được early-return "coi như mặc định vẫn còn" ở nhánh chưa đăng
-        // nhập (bug đã vá 2026-09-11): renderAccountArea() còn được gọi lại từ
-        // listener 'pageshow' khi trang khôi phục từ bfcache (xem dưới), lúc đó
-        // DOM hiện tại có thể đang hiện avatar/dropdown CŨ (từ trước khi đăng
-        // xuất) dù access token đã mất thật — nếu chỉ return sớm, DOM cũ tưởng
-        // nhầm là "mặc định" sẽ bị bỏ lại y nguyên, hiện sai trạng thái.
-        function renderAccountArea() {
-            const area = document.getElementById('account-area');
-            if (!area) return;
-            const api = window.AgriChain && window.AgriChain.api;
-
-            if (!api || !api.isLoggedIn()) {
-                area.innerHTML = `
-                    <a href="dang-nhap.html" class="flex items-center space-x-2 px-3.5 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition">
-                        <i class="fa-solid fa-user"></i>
-                        <span class="hidden sm:inline">Đăng Nhập</span>
-                    </a>
-                `;
-                return;
-            }
-
-            const user = api.getUser() || {};
-            const fullName = user.full_name || 'Tài khoản';
-            const initials = fullName.trim().split(/\s+/).map(w => w[0]).slice(-2).join('').toUpperCase() || '?';
-            // "Khu Quản Lý" dẫn về khu quản trị chung — dùng được bởi CẢ
-            // business LẪN platform_admin (từ 2026-09-13, xem CLAUDE.md mục
-            // "Quản trị hệ thống (platform_admin)", dùng chung giao diện
-            // app-shell với business). Thiếu isPlatformAdmin() ở đây từng
-            // khiến platform_admin đăng nhập xong không có đường nào quay lại
-            // khu quản trị từ trang này, chỉ còn "Đăng Xuất" — bug đã vá.
-            const canManage = api.isBusiness() || api.isPlatformAdmin();
-            // /nong-trai giờ là route SPA (đã xoá nong-trai.html tĩnh, xem
-            // CLAUDE.md gốc mục "Kết nối backend") — dùng AgriChain.APP_SPA_URL
-            // (js/app-config.js, nạp ở <head>) thay vì href tương đối cũ.
-            const manageUrl = (window.AgriChain && window.AgriChain.APP_SPA_URL ? window.AgriChain.APP_SPA_URL : '') + '/nong-trai';
-
-            // Khung HTML tĩnh (do mình viết, an toàn) — fullName/email của người
-            // dùng gán riêng qua textContent bên dưới, KHÔNG nội suy thẳng vào
-            // chuỗi HTML này, tránh rủi ro XSS nếu giá trị đó từng lọt ký tự HTML.
-            area.innerHTML = `
-                <button type="button" onclick="toggleAccountMenu()" id="account-menu-trigger" class="flex items-center space-x-2 px-2 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition">
-                    <span id="account-menu-initials" class="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold text-[11px] flex-shrink-0"></span>
-                    <span id="account-menu-name" class="hidden sm:inline max-w-[110px] truncate"></span>
-                    <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 hidden sm:inline"></i>
-                </button>
-                <div id="account-menu-panel" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50">
-                    <div class="px-4 py-2 border-b border-slate-100 mb-1">
-                        <p id="account-menu-panel-name" class="text-xs font-bold text-slate-900 truncate"></p>
-                        <p id="account-menu-panel-email" class="text-[11px] text-slate-400 truncate"></p>
-                    </div>
-                    ${canManage ? `
-                    <a href="${manageUrl}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition">
-                        <i class="fa-solid fa-gauge w-4"></i>
-                        <span class="ml-2">Khu Quản Lý</span>
-                    </a>
-                    <div class="border-t border-slate-100 my-1"></div>
-                    ` : ''}
-                    <button type="button" onclick="handleAccountLogout()" class="w-full text-left px-4 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition">
-                        <i class="fa-solid fa-right-from-bracket w-4"></i>
-                        <span class="ml-2">Đăng Xuất</span>
-                    </button>
-                </div>
-            `;
-
-            document.getElementById('account-menu-initials').textContent = initials;
-            document.getElementById('account-menu-name').textContent = fullName;
-            document.getElementById('account-menu-panel-name').textContent = fullName;
-            document.getElementById('account-menu-panel-email').textContent = user.email || '';
-        }
-
-        // Bug bfcache đã vá (2026-09-11, cùng mẫu với listener 'pageshow' toàn
-        // cục trong js/api.js dùng cho requireAuth()/requireBusiness() ở 16
-        // trang quản trị): đăng xuất ở trang này xong bấm Back, trình duyệt có
-        // thể khôi phục lại trang từ bfcache thay vì tải lại thật — JS không
-        // chạy lại nên header vẫn hiện avatar/tên cũ dù access token đã bị xoá
-        // thật (mọi gọi API vẫn bị chặn đúng, đây CHỈ là bug hiển thị, không
-        // phải lỗ hổng bảo mật). 'pageshow' báo lại MỌI lần trang được hiển
-        // thị, kể cả khôi phục từ bfcache (`event.persisted === true`, không
-        // có ở lần tải trang bình thường) — gọi lại renderAccountArea() để vẽ
-        // lại đúng theo trạng thái đăng nhập THẬT tại thời điểm đó, không cần
-        // tải lại cả trang.
-        window.addEventListener('pageshow', (event) => {
-            if (event.persisted) renderAccountArea();
-        });
-
-        function toggleAccountMenu() {
-            const panel = document.getElementById('account-menu-panel');
-            if (panel) panel.classList.toggle('hidden');
-        }
-
-        // Đóng menu khi bấm ra ngoài — cùng kiểu xử lý đơn giản như toggleAIChat(),
-        // không dùng thư viện ngoài cho 1 dropdown nhỏ.
-        document.addEventListener('click', (event) => {
-            const panel = document.getElementById('account-menu-panel');
-            const trigger = document.getElementById('account-menu-trigger');
-            if (!panel || panel.classList.contains('hidden')) return;
-            if (panel.contains(event.target) || (trigger && trigger.contains(event.target))) return;
-            panel.classList.add('hidden');
-        });
-
-        function handleAccountLogout() {
-            const api = window.AgriChain && window.AgriChain.api;
-            if (!api) return;
-            api.auth.logout().then(() => {
-                window.location.href = 'agriverse-3d.html';
-            });
+            if (cart.totals().selectedLines === 0) return alert('Hãy chọn ít nhất 1 món để đặt hàng!');
+            // Ô tick đã lưu cùng giỏ (localStorage + máy chủ) -> trang thanh toán đọc lại từ module giỏ
+            window.location.href = 'thanh-toan.html';
         }
 
         // AI Chat Drawer Operations
@@ -1185,10 +936,13 @@
 
         // Initialize App on Window Load
         window.addEventListener('load', () => {
-            renderProductGrid('all');
+            loadStore();
+            updateCartUI();
+            cart.init(); // đồng bộ giỏ với máy chủ nếu đã đăng nhập
+            // san-pham.html bấm icon giỏ hàng -> về đây kèm ?gio-hang=1 để mở sẵn ngăn kéo giỏ
+            if (new URLSearchParams(location.search).get('gio-hang') === '1') openCartModal();
             // initHero3D() đã bỏ — khối quả dưa 3D xoay 360° ở hero đã xoá khỏi giao diện,
             // #hero-3d-canvas không còn tồn tại nên gọi hàm này sẽ ném lỗi.
-            renderAccountArea();
         });
 
         // Window Resize Handler
@@ -1200,6 +954,18 @@
                 heroRenderer.setSize(heroCont.clientWidth, heroCont.clientHeight);
             }
         });
+    </script>
+    <script>
+        // Tìm nông sản từ header: Enter -> mở trang Sản phẩm với từ khoá đã điền sẵn (san-pham.html đọc ?q=)
+        (function () {
+            var input = document.getElementById('header-search');
+            if (!input) return;
+            input.addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter') return;
+                var q = input.value.trim();
+                window.location.href = 'san-pham.html' + (q ? '?q=' + encodeURIComponent(q) : '');
+            });
+        })();
     </script>
 </body>
 </html>

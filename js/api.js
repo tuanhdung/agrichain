@@ -330,6 +330,8 @@
     // sẵn. KHÔNG còn header Authorization: phiên chỉ nằm trong cookie httpOnly.
     // `options.auth` giờ chỉ quyết định có tự làm mới token khi gặp 401 hay không.
     var fetchOptions = { method: method, headers: headers, credentials: 'include' };
+    // keepalive: yêu cầu vẫn được gửi đi khi trang đang đóng/chuyển (vd. đẩy giỏ hàng lúc rời trang)
+    if (options && options.keepalive) fetchOptions.keepalive = true;
 
     if (options.body !== undefined) {
       headers['Content-Type'] = 'application/json';
@@ -676,6 +678,105 @@
     }
   };
 
+  /* --- Sàn TMĐT: danh mục + sản phẩm — ĐỌC CÔNG KHAI (không cần đăng nhập) ----
+     GET /categories, GET /categories/by-slug/{slug}, GET /products,
+     GET /products/by-slug/{slug} — ngoại lệ public-read THỨ SÁU/BẢY ở backend
+     (xem CLAUDE.md agrichain-api). Luôn gửi auth:false: khách chưa đăng nhập
+     vẫn xem được sàn, và không bao giờ kích hoạt luồng refresh-token/đẩy sang
+     trang đăng nhập khi hết phiên. Chỉ trả danh mục đang hiện (is_active) và
+     sản phẩm đang mở bán (status='selling'). Ghi (tạo/sửa/xoá) KHÔNG ở đây —
+     do SPA quản trị gọi /system/categories, /system/products. */
+  var storeCategories = {
+    list: function (params) {
+      return request('GET', '/categories', { query: params, auth: false });
+    },
+    getBySlug: function (slug, type) {
+      return request('GET', '/categories/by-slug/' + encodeURIComponent(slug), {
+        query: { type: type || 'product' },
+        auth: false
+      });
+    }
+  };
+
+  var storeProducts = {
+    list: function (params) {
+      return request('GET', '/products', { query: params, auth: false });
+    },
+    getBySlug: function (slug) {
+      return request('GET', '/products/by-slug/' + encodeURIComponent(slug), { auth: false });
+    },
+    /* Đánh giá: đọc công khai; viết/sửa/xoá cần đăng nhập VÀ đã nhận hàng sản phẩm đó (backend kiểm). */
+    reviews: function (productId, params) {
+      return request('GET', '/products/' + productId + '/reviews', { query: params, auth: false });
+    },
+    myReview: function (productId) {
+      return request('GET', '/products/' + productId + '/reviews/me');
+    },
+    createReview: function (productId, data) {
+      return request('POST', '/products/' + productId + '/reviews', { body: data });
+    },
+    updateMyReview: function (productId, data) {
+      return request('PATCH', '/products/' + productId + '/reviews/me', { body: data });
+    },
+    deleteMyReview: function (productId) {
+      return request('DELETE', '/products/' + productId + '/reviews/me');
+    }
+  };
+
+  /* --- Bài viết (Blog) — ĐỌC CÔNG KHAI: GET /articles, GET /articles/by-slug/{slug}.
+     Chỉ bài đã xuất bản. Ghi (soạn/sửa/xoá) do SPA quản trị gọi /system/articles. */
+  var storeArticles = {
+    list: function (params) {
+      return request('GET', '/articles', { query: params, auth: false });
+    },
+    getBySlug: function (slug) {
+      return request('GET', '/articles/by-slug/' + encodeURIComponent(slug), { auth: false });
+    }
+  };
+
+  /* --- Sổ địa chỉ + đơn hàng của CHÍNH người đăng nhập (mọi account_type) ------
+     /me/addresses, /orders — xem agrichain-api app/routers/orders.py. Đơn hàng chỉ gửi
+     product_id + quantity; giá/tên/tồn kho do backend lấy từ database. */
+  var addresses = {
+    list: function () {
+      return request('GET', '/me/addresses');
+    },
+    create: function (data) {
+      return request('POST', '/me/addresses', { body: data });
+    },
+    update: function (id, data) {
+      return request('PATCH', '/me/addresses/' + id, { body: data });
+    },
+    remove: function (id) {
+      return request('DELETE', '/me/addresses/' + id);
+    }
+  };
+
+  /* Giỏ hàng trên máy chủ: GET /me/cart, PUT /me/cart (thay toàn bộ). Dùng bởi js/agriverse-cart.js. */
+  var cart = {
+    get: function () {
+      return request('GET', '/me/cart');
+    },
+    replace: function (items, opts) {
+      return request('PUT', '/me/cart', { body: { items: items }, keepalive: !!(opts && opts.keepalive) });
+    }
+  };
+
+  var orders = {
+    create: function (data) {
+      return request('POST', '/orders', { body: data });
+    },
+    list: function (params) {
+      return request('GET', '/orders', { query: params });
+    },
+    get: function (id) {
+      return request('GET', '/orders/' + id);
+    },
+    cancel: function (id) {
+      return request('POST', '/orders/' + id + '/cancel');
+    }
+  };
+
   /* --- system.* — 7 route CHỈ ĐỌC cho platform_admin, nhìn xuyên mọi Đơn vị -
      GET /system/farms|seasons|logs|certifications|supplies|workflow-templates|
      batches — backend chặn cứng bằng require_platform_admin (account_type
@@ -893,6 +994,12 @@
     certifications: certifications,
     workflowTemplates: workflowTemplates,
     batches: batches,
+    categories: storeCategories,
+    products: storeProducts,
+    articles: storeArticles,
+    addresses: addresses,
+    cart: cart,
+    orders: orders,
     system: system
   };
 })(window);
