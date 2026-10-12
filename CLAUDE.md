@@ -1464,17 +1464,16 @@ xoá mềm). `js/api.js` bọc thêm `api.farms.*`/`api.seasons.*`/`api.logs.*`/
   cầu của lần nối API này): `supply_id, code, name, unit, quantity, method, purpose`. `code`
   là BẮT BUỘC, đã cập nhật `SCHEMA-EXPORT.md` và `getMaterialRowsData()` trong
   `js/nong-trai-chi-tiet.js`.
-- **⚠️ Bug backend đang chờ sửa — `WorkflowStep.status` vs `done`**: dự án đã đổi tên field
+- **`WorkflowStep.done` — KHÔNG còn là bug (đã xác minh 2026-10-12)**: dự án đã đổi tên field
   tiến độ của 1 bước quy trình trong `seasons.workflow_steps[]` từ `status`
-  (`'pending'`/`'completed'`) thành `done` (boolean) để tránh trùng tên với `seasons.status`
-  (5 giá trị khác hẳn phạm vi). Backend hiện **VẪN CÒN dùng `status`** ở `WorkflowStep`
-  Pydantic model — gửi `done` lên sẽ bị Pydantic âm thầm bỏ qua, bước sẽ không thực sự được
-  đánh dấu hoàn thành phía server dù giao diện tưởng đã xong. `js/nong-trai-chi-tiet.js` vẫn
-  code đúng theo `done` (quyết định giữ nguyên phía frontend, KHÔNG lùi về `status`) — phần
-  hoàn thành bước quy trình (`completeWorkflowStep()`) vì vậy **chưa kiểm chứng được đầu-cuối
-  cho tới khi backend sửa xong**. Có banner "Thử lại cập nhật trạng thái bước"
-  (`[data-process-retry-notice]`) phòng trường hợp nhật ký tạo được nhưng PATCH mùa vụ lỗi —
-  không để trạng thái nửa vời trong im lặng.
+  (`'pending'`/`'completed'`) thành `done` (boolean) để tránh trùng tên với `seasons.status`.
+  Ghi chú cũ ở đây nói backend "vẫn dùng `status`, âm thầm bỏ qua `done`" đã LỖI THỜI: schema
+  `WorkflowStep` của `agrichain-api` dùng `done` từ giai đoạn 3 (`app/schemas/season.py`), và
+  test hồi quy `test_danh_dau_buoc_hoan_thanh_bang_done_duoc_luu_va_doc_lai`
+  (`tests/test_seasons.py`) chứng minh PATCH `done: true` + `completed_at` được lưu và đọc lại
+  đúng. Field `status` (tên cũ) gửi lên bị bỏ qua, KHÔNG được coi là hoàn thành bước. Còn banner
+  "Thử lại cập nhật trạng thái bước" (`[data-process-retry-notice]`) phòng trường hợp nhật ký
+  tạo được nhưng PATCH mùa vụ lỗi — không để trạng thái nửa vời trong im lặng.
 - **`batches` (lô hàng) CRUD ĐÃ CHUYỂN SANG API** (2026-09-12, hoàn tất giai đoạn 3) —
   `nong-trai-chi-tiet.js` (tạo/sửa/xoá) và `lo-hang.js` (danh sách + lọc) đều qua
   `api.batches.*`, xem mục "Kết nối backend" ở trên để biết đầy đủ chi tiết. Nút "Xác thực
@@ -1728,6 +1727,15 @@ AgriVerse, khác hệ thiết kế site-wide/app-shell/auth, cố tình để ng
 2. Nếu là component dùng lại nhiều nơi → thêm vào `components.css`.
 3. Cập nhật `styleguide.html` để mọi token/component mới đều xuất hiện trong trang demo —
    đây là nguồn tham chiếu trực quan duy nhất của design system, phải luôn đầy đủ.
+
+## CI (2026-10-12, nhánh `chore/ci`)
+
+`.github/workflows/ci.yml` chạy trên mỗi PR và push lên `main`: (1) SPA — `npm ci`, `npm run lint` (tsc), `npm test`,
+`npm run build` trong `app/` (build dùng `VITE_API_BASE_URL`/`VITE_MAIN_SITE_URL` GIẢ, chỉ để qua kiểm tra
+`src/api/config.ts`; build production thật vẫn dùng `app/.env.production` trên máy deploy); (2) site tĩnh — `node --check`
+mọi `js/*.js` (file có `export` như `login-redirect.js`/`next-target.js` kiểm bằng `--input-type=module`). Chỉ kiểm tra,
+KHÔNG deploy. Chưa từng chạy trên GitHub thật khi viết — lần chạy đầu lỗi thì sửa theo log thật. Không có test giao diện
+trình duyệt nào trong CI (cố ý, xem mục "Kiểm thử giao diện").
 
 ## Kiểm thử giao diện
 
@@ -2461,6 +2469,14 @@ giữ bố cục section đúng tỉ lệ (không "đôn" `padding-top` lên đ�
 dung xuống quá xa header). Nếu quay lại xử lý: cân nhắc dùng `getBoundingClientRect()` +
 `ResizeObserver`/`MutationObserver` để phát hiện đúng lúc layout ngừng đổi thay vì đoán
 mốc thời gian hoặc polling cố định.
+
+**Bản vá thử (2026-10-12, nhánh `fix/known-bugs`, CHƯA kiểm chứng trên trình duyệt thật)**:
+nghi phạm mới — đích đến `#tinh-nang` là phần tử `[data-reveal]` đang mang
+`transform: translateY(28px)` tới khi hiện xong, mà `scrollIntoView()`/`getBoundingClientRect()`
+(cả bản polling cũ) đều tính cả transform nên đo/cuộn lệch khỏi vị trí cuối. `js/header.js` giờ
+cuộn theo vị trí BỐ CỤC (cộng dồn `offsetTop` theo `offsetParent`, không bị transform ảnh
+hưởng) trừ `header.offsetHeight`, và dùng CHUNG vòng "cuộn lại tới khi đứng yên" cho cả lúc bấm
+link lẫn lúc tải trang kèm `#hash`. Nếu vẫn lệch sau bản này, mục này vẫn còn mở.
 
 ## Sàn TMĐT — đặt hàng, địa chỉ, quản trị TMĐT (2026-10-10)
 

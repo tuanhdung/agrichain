@@ -358,12 +358,9 @@ export function SeasonViewModal({ dialogRef, season, farmCode, supplies, openTok
     logModal.open();
   }
 
-  // ⚠️ Gửi `workflow_steps[].done` — backend hiện vẫn dùng `status`
-  // ('pending'/'completed'), đây là BUG backend đang chờ sửa (xem ghi chú ở
-  // WorkflowStep trong api/seasons.ts và CLAUDE.md gốc). Cho tới khi backend
-  // sửa xong, PATCH này có thể "thành công" nhưng KHÔNG thực sự đổi trạng
-  // thái bước phía server — chưa kiểm chứng được đầu-cuối, chỉ mới đúng theo
-  // hợp đồng dữ liệu đã chốt. Cứ viết đúng theo `done`, không tự ý đổi lại.
+  // Gửi `workflow_steps[].done` (KHÔNG phải `status` — tên cũ đã bỏ). Backend dùng
+  // `done` từ giai đoạn 3 và đã có test hồi quy xác nhận PATCH được lưu/đọc lại đúng
+  // (xem CLAUDE.md gốc, mục "WorkflowStep.done").
   function completeWorkflowStep(stepId: string, logId: string) {
     if (!season) return;
     const steps = (season.workflow_steps || []).map((s) => ({ ...s }));

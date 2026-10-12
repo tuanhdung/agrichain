@@ -128,15 +128,66 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Cuộn tới anchor (#id), để trình duyệt tự căn theo scroll-padding-top
-  // (đã khai báo ở base.css, bằng đúng chiều cao header) thay vì tự tính
-  // tay bằng window.scrollTo — scrollIntoView() theo chuẩn trình duyệt nên
-  // đáng tin cậy hơn khi kết hợp với thời điểm gọi trễ (sau khi font tải xong).
+  // Cuộn tới anchor (#id) theo vị trí BỐ CỤC (layout), không theo vị trí đã bị
+  // transform. Nguyên nhân khả dĩ của lỗi "cuộn dừng sớm, lộ hero phía trên":
+  // đích đến thường là phần tử [data-reveal] (VD #tinh-nang) đang mang
+  // `transform: translateY(28px)` cho tới khi hiện xong — scrollIntoView() và
+  // getBoundingClientRect() đều tính cả transform đó, nên vị trí đo/cuộn tới lệch
+  // khỏi vị trí cuối cùng (sau khi hiệu ứng chạy xong), và còn lệch tiếp khi font/
+  // ảnh làm layout đổi sau lúc bấm. offsetTop cộng dồn theo offsetParent KHÔNG bị
+  // ảnh hưởng bởi transform nên ổn định. (Chưa kiểm chứng trên trình duyệt thật —
+  // xem CLAUDE.md mục "Lỗi đã biết".)
+  function layoutTop(el) {
+    var y = 0;
+    while (el) {
+      y += el.offsetTop;
+      el = el.offsetParent;
+    }
+    return y;
+  }
+
+  function headerOffset() {
+    var header = document.querySelector('.site-header');
+    return header ? header.offsetHeight : 0;
+  }
+
   function scrollToHash(hash) {
     if (!hash || hash.length < 2) return;
     var target = document.querySelector(hash);
     if (!target) return;
-    target.scrollIntoView({ block: 'start' });
+    window.scrollTo(0, Math.max(0, layoutTop(target) - headerOffset()));
+  }
+
+  // Cuộn lại liên tục mỗi 100ms tới khi VỊ TRÍ BỐ CỤC của đích đứng yên 3 lần
+  // liên tiếp (tối đa 5 giây) — layout có thể còn "phình" sau lúc bấm/lúc 'load'
+  // (web font, ảnh), không đoán được mốc cố định.
+  function settleScroll(hash) {
+    var target = document.querySelector(hash);
+    if (!target) return;
+
+    var lastPos = null;
+    var stableTicks = 0;
+    var attempts = 0;
+    var maxAttempts = 50;
+
+    var settle = function () {
+      scrollToHash(hash);
+
+      var pos = layoutTop(target);
+      if (lastPos !== null && Math.abs(pos - lastPos) < 1) {
+        stableTicks++;
+      } else {
+        stableTicks = 0;
+      }
+      lastPos = pos;
+      attempts++;
+
+      if (stableTicks < 3 && attempts < maxAttempts) {
+        setTimeout(settle, 100);
+      }
+    };
+
+    settle();
   }
 
   document.addEventListener('click', function (event) {
@@ -145,46 +196,14 @@ document.addEventListener('DOMContentLoaded', function () {
     var hash = link.getAttribute('href');
     if (!hash || !document.querySelector(hash)) return;
     event.preventDefault();
-    scrollToHash(hash);
+    settleScroll(hash);
     history.pushState(null, '', hash);
   });
 
   if (window.location.hash) {
     var currentHash = window.location.hash;
-
-    // Layout trang có thể còn "phình" thêm một lúc sau khi 'load' bắn (không
-    // rõ nguồn chính xác — có thể web font, có thể thứ khác) nên không đoán
-    // một mốc thời gian cố định. Thay vào đó: cuộn lại liên tục mỗi 100ms và
-    // theo dõi vị trí thật (document-relative) của đích đến; khi vị trí đó
-    // đứng yên 3 lần liên tiếp mới coi là layout đã ổn định và dừng lại
-    // (tối đa 5 giây để tránh lặp vô hạn nếu có gì bất thường).
     window.addEventListener('load', function () {
-      var target = document.querySelector(currentHash);
-      if (!target) return;
-
-      var lastPos = null;
-      var stableTicks = 0;
-      var attempts = 0;
-      var maxAttempts = 50;
-
-      var settle = function () {
-        scrollToHash(currentHash);
-
-        var pos = target.getBoundingClientRect().top + window.pageYOffset;
-        if (lastPos !== null && Math.abs(pos - lastPos) < 1) {
-          stableTicks++;
-        } else {
-          stableTicks = 0;
-        }
-        lastPos = pos;
-        attempts++;
-
-        if (stableTicks < 3 && attempts < maxAttempts) {
-          setTimeout(settle, 100);
-        }
-      };
-
-      settle();
+      settleScroll(currentHash);
     });
   }
 });
