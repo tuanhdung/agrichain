@@ -3,6 +3,24 @@
 Nền tảng truy xuất nguồn gốc nông sản bằng blockchain kết hợp AI.
 HTML/CSS/JS thuần — **không dùng framework, không dùng build tool** (không Webpack/Vite/npm build).
 
+## Bố cục workspace trên máy dev (cập nhật 2026-10-12)
+
+```
+D:\Exabyte\Dự án  agrichain\        # repo FRONTEND này (site tĩnh ở gốc + SPA React trong app/)
+  agrichain-api\    # repo BACKEND (FastAPI) — repo riêng, tên trùng repo GitHub
+  tai-lieu\         # ảnh/pdf/video/mẫu tham khảo rời, KHÔNG thuộc repo nào
+  start-agrichain.ps1  # bật Docker + Postgres + backend + SPA + mở VS Code
+```
+Dev bắt buộc qua domain giả `agrichain.local`/`app.agrichain.local`/`api.agrichain.local` (hosts file),
+không dùng `localhost` — xem mục "Phiên chỉ nằm trong cookie httpOnly".
+
+> **⚠️ Các trang `thuong-mai-*.html` + `js/thuong-mai-*.js` + `js/ecommerce.js` ĐÃ BỊ XOÁ khỏi dự án
+> (2026-10-12, nhánh `integration/cookie-tmdt`)** — khu thương mại điện tử thật nằm ở SPA
+> (`app/src/pages/tmdt/`, route `/tmdt/*`, chỉ platform_admin) và sàn công khai (`agriverse-3d.html`,
+> `san-pham*.html`, `thanh-toan.html`). Các đoạn bên dưới còn nhắc tới các trang đã xoá đó (mô tả
+> `thuong-mai-*`, `requireDistributor()`, collection `shops`/`products`/`orders` trong `store.js`) chỉ còn
+> giá trị lịch sử, chưa được dọn khỏi tài liệu.
+
 ## Ngôn ngữ giao tiếp
 
 - Luôn trả lời và giải thích bằng **tiếng Việt**.
