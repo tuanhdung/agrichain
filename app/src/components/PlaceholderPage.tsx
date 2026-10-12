@@ -14,15 +14,22 @@ interface PlaceholderPageProps {
   icon: string;
   title: string;
   meta: string;
+  /** Mục cha ở breadcrumb — mặc định "Quản lý đơn vị" (2 trang gốc). */
+  parent?: { to: string; label: string };
 }
 
-export function PlaceholderPage({ icon, title, meta }: PlaceholderPageProps) {
+export function PlaceholderPage({
+  icon,
+  title,
+  meta,
+  parent = { to: '/tai-khoan', label: 'Quản lý đơn vị' }
+}: PlaceholderPageProps) {
   return (
     <>
       <nav className="breadcrumb" aria-label="Đường dẫn">
-        <Link className="breadcrumb__link" to="/tai-khoan">
+        <Link className="breadcrumb__link" to={parent.to}>
           <Icon name="shield-check" className="icon--sm" />
-          Quản lý đơn vị
+          {parent.label}
         </Link>
         <span className="breadcrumb__sep" aria-hidden="true">
           /

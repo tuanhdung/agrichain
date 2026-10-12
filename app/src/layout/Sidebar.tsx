@@ -33,6 +33,8 @@ function useNavSections(): NavSectionDef[] {
       label: 'Hoạt động sản xuất',
       items: [
         { to: '/nong-trai', icon: 'seedling', label: 'Nông trại' },
+        { to: '/ngan-hang', icon: 'credit-card', label: 'Ngân hàng' },
+        { to: '/bao-hiem', icon: 'shield-check', label: 'Bảo hiểm' },
         { to: '/vat-tu', icon: 'box', label: 'Vật tư' },
         { to: '/mau-quy-trinh', icon: 'workflow', label: 'Mẫu quy trình' },
         { to: '/lo-hang', icon: 'warehouse', label: 'Quản lý lô hàng' }

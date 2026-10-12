@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { AppShell } from './layout/AppShell';
+import { NganHangPage } from './pages/ngan-hang/NganHangPage';
+import { BaoHiemPage } from './pages/bao-hiem/BaoHiemPage';
 import { VatTuPage } from './pages/vat-tu/VatTuPage';
 import { MauQuyTrinhPage } from './pages/mau-quy-trinh/MauQuyTrinhPage';
 import { NongTraiPage } from './pages/nong-trai/NongTraiPage';
@@ -45,6 +47,26 @@ export default function App() {
           <ProtectedRoute>
             <AppShell>
               <NongTraiChiTietPage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ngan-hang"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <NganHangPage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/bao-hiem"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <BaoHiemPage />
             </AppShell>
           </ProtectedRoute>
         }
