@@ -2,12 +2,26 @@
 // đổi domain backend khi deploy chỉ cần sửa ĐÚNG 1 chỗ. Khác bản .js (hard-code
 // 1 dòng), bản React đọc qua biến môi trường Vite (VITE_API_BASE_URL, đặt
 // trong app/.env.local — xem app/.env.example) để dev có thể trỏ về backend
-// local (http://127.0.0.1:8000) mà không phải sửa code; build production nếu
-// không set biến này thì rơi về ĐÚNG domain đang dùng ở js/api-config.js hiện
-// tại, không tự bịa domain khác.
-export const API_BASE_URL: string =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
-  'https://agrichain-api-4mhf.onrender.com';
+// local (http://127.0.0.1:8000) mà không phải sửa code.
+//
+// ⚠️ CỐ TÌNH KHÔNG có fallback ngầm (2026-09-30, đã BỎ fallback cứng về domain
+// Render cũ `https://agrichain-api-4mhf.onrender.com` — backend đó KHÔNG còn
+// dùng cho production từ khi chuyển sang VPS + Nginx, xem CLAUDE.md gốc mục
+// "Kết nối backend") — cùng lý do/cùng mẫu với `MAIN_SITE_URL` bên dưới: 1
+// fallback ngầm về domain khác (dù từng là production) khiến thiếu biến môi
+// trường bị NUỐT ÂM THẦM, gọi nhầm sang backend đã ngừng dùng mà không có dấu
+// hiệu gì lúc code chạy — chỉ lộ ra khi ai đó để ý thấy request tới sai
+// domain. Throw ngay tại đây (module top-level, chạy sớm nhất) để lỗi cấu
+// hình lộ ra NGAY lúc khởi động (màn hình lỗi đỏ của Vite) thay vì âm thầm
+// gọi sai backend.
+const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+if (!rawApiBaseUrl) {
+  throw new Error(
+    'Thiếu VITE_API_BASE_URL — kiểm tra app/.env (dev) hoặc app/.env.production (build). ' +
+      'Xem app/.env.example để biết giá trị mẫu.'
+  );
+}
+export const API_BASE_URL: string = rawApiBaseUrl;
 
 // Domain của site TĨNH cũ (index.html, dang-nhap.html, agriverse-3d.html, và
 // 15 trang app-shell chưa migrate) — kiến trúc đã CHỐT là SUBDOMAIN riêng

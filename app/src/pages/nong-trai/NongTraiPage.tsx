@@ -138,7 +138,7 @@ export function NongTraiPage() {
           </p>
         </div>
         {canAdd && (
-          <button type="button" className="btn btn--primary btn--lg" onClick={openCreate}>
+          <button type="button" className="btn btn--primary btn--lg btn-shine" onClick={openCreate}>
             <Icon name="seedling" className="icon--sm" />
             Thêm nông trại
           </button>

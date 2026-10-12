@@ -147,7 +147,7 @@ export function MauQuyTrinhPage() {
           </p>
         </div>
         {canAdd && (
-          <button type="button" className="btn btn--primary btn--lg" onClick={openCreate}>
+          <button type="button" className="btn btn--primary btn--lg btn-shine" onClick={openCreate}>
             <Icon name="plus" className="icon--sm" />
             Tạo quy trình mới
           </button>

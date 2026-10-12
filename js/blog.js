@@ -17,13 +17,19 @@
     return node;
   }
 
-  function postCard(post) {
+  function postCard(post, index) {
     var detailUrl = 'blog-chi-tiet.html?slug=' + encodeURIComponent(post.slug);
 
     // Cả thẻ là 1 liên kết (<a>, không phải <article>) — bấm vào bất kỳ đâu
     // trong thẻ đều mở bài viết, không chỉ riêng chữ "Đọc tiếp"/tiêu đề.
     var article = el('a', 'post-card');
     article.href = detailUrl;
+    // Hiện dần khi cuộn tới, so le theo vị trí trong lưới (xem
+    // js/scroll-reveal.js) — chặn ở 3 mức trễ (0/100/200ms) bằng modulo,
+    // không tăng vô hạn theo số bài viết (nếu danh sách dài ra sau này, các
+    // hàng dưới không phải chờ hàng trên "chạy" xong theo kiểu domino).
+    article.setAttribute('data-reveal', '');
+    article.style.setProperty('--reveal-delay', (index % 3) * 100 + 'ms');
 
     var media = el('div', 'post-card__media');
     var cover = el('img', 'post-card__cover');
@@ -87,9 +93,16 @@
       })
       .then(function (posts) {
         gridNode.textContent = '';
-        posts.forEach(function (post) {
-          gridNode.appendChild(postCard(post));
+        posts.forEach(function (post, index) {
+          gridNode.appendChild(postCard(post, index));
         });
+        // Thẻ [data-reveal] vừa được thêm vào SAU thời điểm DOMContentLoaded
+        // (phải chờ fetch() xong) — lần quan sát tự động lúc tải trang của
+        // js/scroll-reveal.js không thấy được chúng, phải tự gọi lại đúng
+        // trong phạm vi lưới vừa dựng.
+        if (global.AgriChain && global.AgriChain.initScrollReveal) {
+          global.AgriChain.initScrollReveal(gridNode);
+        }
       })
       .catch(function () {
         gridNode.textContent = 'Không tải được danh sách bài viết.';

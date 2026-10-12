@@ -1,0 +1,70 @@
+/* Hiệu ứng RIÊNG cho thẻ mẫu quy trình (.template-card, gắn thêm cạnh
+   .card.card--hover có sẵn) — KHÔNG sửa .card/.icon-btn dùng chung trong
+   css/components.css, vì các class đó còn dùng ở FarmCard/SeasonCard/
+   CertificationCard và nhiều nơi khác trong toàn app-shell. Cùng mẫu
+   farm-card.css (app/src/pages/nong-trai/) — PAGE_SIZE=12 giống nhau nên
+   giữ nguyên luôn mốc so le 6 thẻ đầu.
+
+   --ease-emphasized (css/tokens.css) đã có sẵn vì app/ nạp CHUNG 4 file CSS
+   gốc của site tĩnh (xem app/src/main.tsx) — không cần định nghĩa lại. */
+
+@keyframes template-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.template-card {
+  /* "backwards" (KHÔNG phải "both"/"forwards") — cùng lý do đã ghi chú ở
+     farm-card.css: giữ "forwards" sẽ khiến :hover bên dưới (cũng đổi
+     transform) không bao giờ thắng được animation đã chạy xong. */
+  animation: template-card-in 500ms var(--ease-emphasized) backwards;
+  transition:
+    transform 300ms var(--ease-emphasized),
+    box-shadow 300ms var(--ease-emphasized),
+    border-color 300ms var(--ease-emphasized);
+}
+.template-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary);
+}
+
+.template-card:nth-child(1) { animation-delay: 0ms; }
+.template-card:nth-child(2) { animation-delay: 60ms; }
+.template-card:nth-child(3) { animation-delay: 120ms; }
+.template-card:nth-child(4) { animation-delay: 180ms; }
+.template-card:nth-child(5) { animation-delay: 240ms; }
+.template-card:nth-child(6) { animation-delay: 300ms; }
+
+.template-card:hover .card__title {
+  color: var(--color-primary);
+}
+.template-card .card__title {
+  transition: color 250ms var(--ease-emphasized);
+}
+
+.template-card .icon-btn {
+  transition:
+    transform 200ms var(--ease-emphasized),
+    background-color var(--transition-base),
+    color var(--transition-base);
+}
+.template-card .icon-btn:hover {
+  transform: scale(1.15);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .template-card {
+    animation: none;
+  }
+  .template-card:hover,
+  .template-card .icon-btn:hover {
+    transform: none;
+  }
+}

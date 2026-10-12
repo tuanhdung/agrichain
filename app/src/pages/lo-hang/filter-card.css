@@ -1,10 +1,12 @@
-/* Port nguyên văn phần .filter-card/.filter-card__title trong khối <style>
-   của lo-hang.html gốc — CSS chỉ dùng riêng cho trang này (khớp quy ước "CSS
-   chỉ dùng riêng cho 1 trang thì để trong <style> của chính trang đó"), tách
-   thành file .css riêng vì component React không có "thẻ trang" để nhúng
-   inline, cùng mẫu pages/tai-khoan/permission-table.css. Phần CSS của modal
-   QR trong file gốc CHƯA port — modal QR chưa có ở bản React này, xem
-   app/CLAUDE.md mục "Trang /lo-hang". */
+/* Port nguyên văn phần .filter-card/.filter-card__title + .qr-modal__* trong
+   khối <style> của lo-hang.html gốc — CSS chỉ dùng riêng cho trang này (khớp
+   quy ước "CSS chỉ dùng riêng cho 1 trang thì để trong <style> của chính
+   trang đó"), tách thành file .css riêng vì component React không có "thẻ
+   trang" để nhúng inline, cùng mẫu pages/tai-khoan/permission-table.css.
+   .qr-modal__* port lại ở Giai đoạn C (2026-09-28, xem QrModal.tsx) — CSS
+   giữ NGUYÊN văn bản gốc, chỉ khác biệt duy nhất: bản gốc dùng thư viện
+   qrcodejs (CDN, vẽ trực tiếp vào .qr-modal__canvas), bản React dùng npm
+   `qrcode` vẽ vào <canvas> lồng bên trong cùng class đó. */
 .filter-card {
   margin-bottom: var(--space-6);
 }
@@ -12,4 +14,31 @@
   font-size: var(--text-lg);
   font-weight: 700;
   margin-bottom: var(--space-4);
+}
+
+.qr-modal__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+.qr-modal__code {
+  font-weight: 700;
+}
+.qr-modal__canvas {
+  padding: var(--space-4);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.qr-modal__hint {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+.qr-modal__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  justify-content: center;
 }

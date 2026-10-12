@@ -129,6 +129,11 @@
 
   /* --- Chuyển động --- */
   --transition-base: 150ms ease;
+  /* Easing "nảy nhẹ rồi dừng êm" — dùng cho hiệu ứng hiện dần khi cuộn tới
+     ([data-reveal], components.css) và các hiệu ứng entrance/hover có chủ
+     đích nổi bật hơn --transition-base (vốn chỉ hợp cho hover/focus tức thời
+     kiểu đổi màu/viền). */
+  --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* --- Lớp phủ (z-index) --- */
   --z-sticky: 100;

@@ -1,0 +1,65 @@
+/* Hiệu ứng RIÊNG cho bảng người dùng ở trang Quản lý Tài khoản
+   (.user-table-panel/.user-row, gắn thêm cạnh .table-panel/.table có sẵn) —
+   KHÔNG sửa .table-panel/.table/.icon-btn/.avatar/.badge dùng chung trong
+   css/app-shell.css và css/components.css, vì các class đó còn dùng rộng khắp
+   toàn khung quản trị. Cùng mẫu vat-tu.css (app/src/pages/vat-tu/) — trang
+   đó cũng là 1 bảng dữ liệu dạng .table-panel > .table, áp lại đúng công
+   thức: cả khối bảng hiện dần 1 lần (không so le từng dòng — bảng người
+   dùng có thể nhiều dòng, so le sẽ làm chậm/rối trải nghiệm đọc), mỗi dòng
+   hover có viền trái nhấn màu thương hiệu + icon-btn/badge phóng to nhẹ.
+
+   --ease-emphasized (css/tokens.css) đã có sẵn vì app/ nạp CHUNG 4 file CSS
+   gốc của site tĩnh (xem app/src/main.tsx) — không cần định nghĩa lại. */
+
+@keyframes user-table-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.user-table-panel {
+  animation: user-table-in 450ms var(--ease-emphasized) backwards;
+  animation-delay: 120ms;
+}
+
+/* Viền đặt trên Ô ĐẦU TIÊN của dòng (không đặt thẳng trên <tr>) — .table
+   dùng border-collapse: collapse (css/components.css), border trên chính
+   <tr> không hiển thị nhất quán giữa các trình duyệt trong chế độ này, còn
+   border trên <td> thì luôn đáng tin cậy (cùng lý do đã ghi ở vat-tu.css). */
+.user-row td:first-child {
+  box-shadow: inset 3px 0 0 transparent;
+  transition: box-shadow 200ms var(--ease-emphasized);
+}
+.user-row:hover td:first-child {
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+.user-row .icon-btn {
+  transition: transform 200ms var(--ease-emphasized), background-color var(--transition-base),
+    color var(--transition-base);
+}
+.user-row:hover .icon-btn {
+  transform: scale(1.1);
+}
+.user-row .avatar,
+.user-row .badge {
+  transition: transform 200ms var(--ease-emphasized);
+}
+.user-row:hover .avatar,
+.user-row:hover .badge {
+  transform: scale(1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .user-table-panel {
+    animation: none;
+  }
+  .user-row:hover .icon-btn,
+  .user-row:hover .avatar,
+  .user-row:hover .badge {
+    transform: none;
+  }
+}

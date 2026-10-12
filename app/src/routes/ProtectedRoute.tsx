@@ -1,9 +1,12 @@
 // Thay thế AgriChain.api.requireAuth() + requireBusiness() (js/api.js gốc,
 // gọi trong <head> mọi trang app-shell) — giữ ĐÚNG logic chặn:
-//   - Chưa đăng nhập -> route NỘI BỘ /login?redirect=<đường dẫn hiện tại>
-//     (react-router, KHÔNG còn full navigation ra dang-nhap.html tĩnh nữa —
-//     xem app/CLAUDE.md mục "Nợ kỹ thuật": 2 origin khác nhau không chia sẻ
-//     được localStorage, nên SPA giờ có trang đăng nhập RIÊNG).
+//   - Chưa đăng nhập (bootstrap qua cookie xác nhận 401) -> full navigation
+//     RA NGOÀI, sang trang đăng nhập DUY NHẤT của site tĩnh, kèm `next` để
+//     quay lại đúng chỗ (xem redirectToLogin() ở session.ts — SPA không còn
+//     trang /login riêng từ 2026-09-29, xem app/CLAUDE.md mục "Giả định host").
+//   - Lỗi KHÁC 401 lúc dò phiên (mất mạng, CORS, backend 5xx) -> KHÔNG
+//     redirect (tránh vòng lặp redirect khi backend sập tạm thời) — hiện
+//     thông báo lỗi + nút "Thử lại" ngay tại chỗ.
 //   - Đã đăng nhập nhưng KHÔNG phải 'business' VÀ KHÔNG phải 'platform_admin'
 //     (tức là 'customer') -> agriverse-3d.html (site chính — SPA không có gì
 //     cho customer, đây VẪN là điều hướng RA NGOÀI SPA thật, full navigation).
@@ -11,9 +14,8 @@
 //     business, chỉ khác nguồn dữ liệu — xem CLAUDE.md gốc mục "Quản trị hệ
 //     thống (platform_admin)"), KHÔNG bị chặn bởi ProtectedRoute.
 import { useEffect, type ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { redirectToAgriverse } from '../api/session';
+import { redirectToAgriverse, redirectToLogin } from '../api/session';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -24,8 +26,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requireBusinessAccount = true }: ProtectedRouteProps) {
-  const { isLoggedIn, isBootstrapping, isBusiness, isPlatformAdmin } = useAuth();
-  const location = useLocation();
+  const { isLoggedIn, isBootstrapping, bootstrapError, retryBootstrap, isBusiness, isPlatformAdmin } = useAuth();
 
   const failsBusiness = isLoggedIn && requireBusinessAccount && !isBusiness && !isPlatformAdmin;
 
@@ -37,20 +38,49 @@ export function ProtectedRoute({ children, requireBusinessAccount = true }: Prot
     if (failsBusiness) redirectToAgriverse();
   }, [failsBusiness]);
 
+  // Chỉ redirect ra trang đăng nhập khi ĐÃ dò xong (không còn bootstrapping),
+  // KHÔNG có lỗi mạng/CORS/5xx nào (bootstrapError null — có lỗi thì rơi
+  // xuống nhánh hiện thông báo bên dưới, KHÔNG redirect), và xác nhận thật
+  // sự chưa đăng nhập (401). Gộp cả 3 điều kiện trong effect để chỉ gọi
+  // window.location MỘT LẦN, không phải mỗi lần render.
+  const shouldRedirectToLogin = !isBootstrapping && !bootstrapError && !isLoggedIn;
+  useEffect(() => {
+    if (shouldRedirectToLogin) redirectToLogin();
+  }, [shouldRedirectToLogin]);
+
   // Đang dò phiên qua cookie httpOnly (AuthContext, xem CLAUDE.md gốc mục
   // "Kết nối backend") — CHƯA kết luận được gì cả, kể cả "chưa đăng nhập".
-  // Kết luận sớm ở đây (rơi thẳng xuống nhánh !isLoggedIn bên dưới) sẽ đá
-  // NHẦM người dùng ra /login ngay cả khi họ ĐÃ đăng nhập ở site tĩnh và
-  // cookie sắp xác nhận thành công — chỉ là request /auth/me chưa kịp trả
-  // lời. Không vẽ gì (màn trắng thoáng qua, thường dưới 1 lần round-trip
-  // mạng) thay vì 1 spinner riêng — nhất quán với cách `failsBusiness` cũng
-  // trả `null` trong lúc đang điều hướng ra ngoài ở dưới.
-  if (isBootstrapping) return null;
-
-  if (!isLoggedIn) {
-    const redirectTo = `${location.pathname}${location.search}`;
-    return <Navigate to={`/login?redirect=${encodeURIComponent(redirectTo)}`} replace />;
+  // Hiện trạng thái loading rõ ràng (không phải màn trắng) — tránh nhấp nháy
+  // nội dung/form trong lúc chờ request /auth/me trả lời.
+  if (isBootstrapping) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: 'var(--color-text-muted)' }}>Đang tải...</p>
+      </div>
+    );
   }
+
+  // Lỗi mạng/CORS/backend sập khi dò phiên — KHÔNG kết luận "chưa đăng nhập",
+  // KHÔNG redirect (xem comment đầu file: tránh vòng lặp redirect). Người
+  // dùng tự quyết định thử lại khi nào (VD sau khi backend/mạng phục hồi).
+  if (bootstrapError) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-6)' }}>
+        <div className="card" style={{ width: '100%', maxWidth: 400, textAlign: 'center' }}>
+          <div className="card__body">
+            <p className="field__error" style={{ marginBottom: 'var(--space-4)' }}>
+              Không kết nối được máy chủ để kiểm tra phiên đăng nhập. Kiểm tra mạng rồi thử lại.
+            </p>
+            <button type="button" className="btn btn--primary" onClick={retryBootstrap}>
+              Thử lại
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isLoggedIn) return null; // đang điều hướng ra ngoài (trang đăng nhập site tĩnh)
 
   if (failsBusiness) return null; // đang điều hướng ra ngoài (agriverse-3d.html)
 

@@ -427,6 +427,15 @@
         <button class="btn btn--outline-inverse">Outline inverse</button>
         <button class="btn btn--outline-inverse btn--lg">Lớn</button>
       </div>
+
+      <p class="demo-section__desc" style="margin-top: var(--space-6); margin-bottom: var(--space-4);">
+        <code>.btn-shine</code> — gắn thêm cạnh <code>.btn</code>/<code>.btn--primary</code> cho
+        hiệu ứng ánh sáng lướt qua khi hover (di chuột vào nút bên dưới), dùng cho các CTA chính
+        cần nhấn mạnh hơn hiệu ứng nâng lên mặc định (VD nút "Bắt Đầu Ngay" ở Hero trang chủ).
+      </p>
+      <div class="btn-row">
+        <button class="btn btn--primary btn--lg btn-shine">Bắt Đầu Ngay</button>
+      </div>
     </div>
   </section>
 
@@ -908,6 +917,28 @@
     </div>
   </section>
 
+  <!-- Reveal on scroll -->
+  <section class="demo-section">
+    <div class="container">
+      <h2 class="demo-section__title">Hiện dần khi cuộn tới (Reveal on scroll)</h2>
+      <p class="demo-section__desc">
+        Đánh dấu bất kỳ phần tử nào bằng thuộc tính <code>[data-reveal]</code> — tự mờ + dịch
+        xuống 1 chút, rồi hiện đúng vị trí khi cuộn tới (qua <code>js/scroll-reveal.js</code>,
+        <code>AgriChain.initScrollReveal()</code>). Độ trễ so le giữa nhiều phần tử đặt qua biến
+        CSS <code>--reveal-delay</code> ngay trong <code>style=""</code>. Đã dùng ở
+        <code>index.html</code> (Hero/Tính Năng/Quy Trình/Lợi Ích/CTA/Liên Hệ) và
+        <code>blog.html</code>/<code>blog-chi-tiet.html</code> — cuộn xuống tới đây để xem 3 khối
+        dưới đây tự hiện dần so le (chỉ chạy 1 lần, không lặp lại khi cuộn qua cuộn lại).
+      </p>
+
+      <div class="grid grid--3">
+        <div class="box-demo" data-reveal style="width:100%; --reveal-delay: 0ms;">1</div>
+        <div class="box-demo" data-reveal style="width:100%; --reveal-delay: 120ms;">2</div>
+        <div class="box-demo" data-reveal style="width:100%; --reveal-delay: 240ms;">3</div>
+      </div>
+    </div>
+  </section>
+
   <!-- Grid -->
   <section class="demo-section" style="border-bottom: none;">
     <div class="container">
@@ -925,5 +956,6 @@
   </section>
 
   <script src="js/header.js?v=6" defer></script>
+  <script src="js/scroll-reveal.js?v=2" defer></script>
 </body>
 </html>

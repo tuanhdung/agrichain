@@ -42,7 +42,7 @@ export function BatchCard({ batch, isPlatformAdminMode, onEdit, onDelete }: Batc
   const status = batchStatusOf(batch.status);
 
   return (
-    <article className="card batch-card">
+    <article className="card batch-card detail-batch-card">
       <div className="batch-card__header">
         <h2 className="batch-card__code">{batch.code}</h2>
         <span className={`badge ${status.badge}`}>{status.label}</span>

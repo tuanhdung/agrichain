@@ -3,6 +3,7 @@
 // .icon-btn/.icon-btn--danger).
 import { Icon } from '../../icons';
 import type { WorkflowTemplate, WorkflowTemplateSystemRow } from '../../api';
+import './template-card.css';
 
 interface TemplateCardProps {
   template: WorkflowTemplate | WorkflowTemplateSystemRow;
@@ -24,7 +25,7 @@ export function TemplateCard({ template, isPlatformAdminMode, canEdit, canDelete
   const showEdit = isPlatformAdminMode || canEdit;
 
   return (
-    <div className="card card--hover">
+    <div className="card card--hover template-card">
       <div className="card__header">
         <h2 className="card__title">{template.name}</h2>
         <p className="card__subtitle">{stepCount} bước thực hiện</p>

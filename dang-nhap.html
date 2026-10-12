@@ -26,6 +26,8 @@
 </head>
 <body class="auth-page">
 
+  <span class="auth-page__decor" aria-hidden="true"></span>
+
   <main class="auth-card">
 
     <!-- Cột giới thiệu -->
@@ -77,19 +79,25 @@
 
         <div class="field">
           <label class="label" for="login-email">Email</label>
-          <input class="input" type="email" id="login-email" name="email"
-            autocomplete="email" required />
+          <div class="input-icon-wrap">
+            <svg class="icon icon--sm input-icon-wrap__icon"><use href="icons/sprite.svg#icon-mail"></use></svg>
+            <input class="input" type="email" id="login-email" name="email"
+              autocomplete="email" required />
+          </div>
         </div>
 
         <div class="field">
           <label class="label" for="login-password">Mật khẩu</label>
-          <div class="password-field">
-            <input class="input" type="password" id="login-password" name="password"
-              autocomplete="current-password" required />
-            <button type="button" class="password-toggle" data-password-toggle="login-password"
-              aria-label="Hiện mật khẩu">
-              <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-eye"></use></svg>
-            </button>
+          <div class="input-icon-wrap">
+            <svg class="icon icon--sm input-icon-wrap__icon"><use href="icons/sprite.svg#icon-key"></use></svg>
+            <div class="password-field">
+              <input class="input" type="password" id="login-password" name="password"
+                autocomplete="current-password" required />
+              <button type="button" class="password-toggle" data-password-toggle="login-password"
+                aria-label="Hiện mật khẩu">
+                <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-eye"></use></svg>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -101,7 +109,7 @@
           <a class="auth-link" href="#quen-mat-khau">Quên mật khẩu?</a>
         </div>
 
-        <button type="submit" class="btn btn--primary btn--lg">Đăng nhập</button>
+        <button type="submit" class="btn btn--primary btn--lg btn-shine">Đăng nhập</button>
       </form>
 
       <p class="auth-foot">
@@ -115,6 +123,16 @@
   <script src="js/chain.js?v=1" defer></script>
   <script src="js/store.js?v=12" defer></script>
   <script src="js/password-field.js?v=1" defer></script>
-  <script src="js/auth.js?v=11" defer></script>
+  <!-- type="module" — auth.js's redirectTarget() gọi
+       AgriChain.resolveNextTarget() (đọc/validate ?next=, xem
+       js/next-target.js) sau khi DOM sẵn sàng; module script mặc định đã
+       deferred nên vẫn chạy TRƯỚC auth.js đúng theo thứ tự khai báo. -->
+  <script type="module" src="js/next-target.js?v=1"></script>
+  <!-- type="module" — setupLogin() (auth.js) gọi
+       AgriChain.runLoginPageEntry() (quyết định hành vi lúc tải trang: đăng
+       xuất/buộc đăng nhập lại/tự vào SPA, xem js/login-redirect.js) — CHỈ ở
+       dang-nhap.html, dang-ky.html không có #login-form nên không cần nạp. -->
+  <script type="module" src="js/login-redirect.js?v=1"></script>
+  <script src="js/auth.js?v=14" defer></script>
 </body>
 </html>

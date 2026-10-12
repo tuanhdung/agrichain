@@ -8,16 +8,33 @@ route **`GET /batches/by-code/{code}/public`**.
 `011_batch_blockchain_fields.sql`, `app/schemas/public_batch.py`,
 `routers/batches.py::get_batch_public_traceability` — xem
 `agrichain-api/CLAUDE.md` mục "Xác thực blockchain lô hàng" để biết chi
-tiết). Đây MỚI CHỈ là phần migration + route đọc — route ghi blockchain thật
-(`POST /batches/{id}/verify-blockchain`, `app/blockchain.py`) CHƯA làm, đang
-chờ token testnet. `js/truy-xuat.js` hiện VẪN đọc dữ liệu MẪU từ
+tiết). `js/truy-xuat.js` hiện VẪN đọc dữ liệu MẪU từ
 `data/public-batch-mock.json` (cờ `USE_MOCK_DATA = true`) — việc đổi cờ này
-sang gọi route thật là việc CỦA REPO NÀY, chưa làm ở lần cập nhật này.
+sang gọi route thật là việc CỦA REPO NÀY, **VẪN CHƯA làm** ở lần cập nhật
+này (Giai đoạn C, xem mục "`POST /batches/{id}/verify-blockchain`" bên dưới,
+chỉ đụng tới SPA `app/`, không đụng `js/truy-xuat.js`).
 
-Khuôn JSON dưới đây khớp ĐÚNG với response thật, TRỪ 2 điểm sai khác đã ghi
-chú ngay tại chỗ: `certifications` route thật luôn trả mảng rỗng (không như
-mock có sẵn 2 chứng nhận mẫu), và mọi field blockchain (`contract_address`
-trở xuống) đều `null` vì chưa có lô hàng nào được anchor thật.
+**Cập nhật 2026-09-28 (Giai đoạn C): route GHI `POST
+/batches/{id}/verify-blockchain` cũng đã IMPLEMENT thật** — xem mục riêng
+ngay dưới đây. Vẫn còn 1 việc CHƯA làm ở phía backend: contract
+`AgriChainRegistry.sol` **CHƯA được deploy** lên Polygon Amoy thật (đang chờ
+token testnet) — mọi lần gọi route ghi ở MỌI môi trường hiện tại (kể cả local
+dev) đều trả **503**, KHÔNG có ca thành công thật nào để kiểm chứng được cho
+tới khi deploy xong (xem `agrichain-api/CLAUDE.md` mục "Xác thực blockchain
+lô hàng").
+
+Khuôn JSON dưới đây khớp ĐÚNG với response thật, TRỪ 1 điểm sai khác đã ghi
+chú ngay tại chỗ: mọi field blockchain (`contract_address` trở xuống) đều
+`null` vì chưa có lô hàng nào được anchor thật.
+
+**Cập nhật 2026-09-29: `certifications` ĐÃ NỐI DỮ LIỆU THẬT** — route giờ
+trả chứng nhận CỦA NÔNG TRẠI đang ở trạng thái `active` (chứng nhận
+`expired`/`suspended`/`revoked` KHÔNG hiện ra, tránh đánh lừa người quét QR
+tưởng nông trại vẫn còn giữ 1 chứng nhận đã hết hiệu lực), sắp xếp mới nhất
+trước, tối đa 50 bản ghi/nông trại. Mảng chỉ RỖNG khi nông trại đó thật sự
+chưa có (hoặc không còn) chứng nhận `active` nào — không còn CỐ TÌNH luôn
+rỗng như trước. Mỗi phần tử CHỈ có đúng 2 field an toàn công khai —
+`name`/`issuer` — xem khuôn mẫu bên dưới.
 
 Route public, KHÔNG cần đăng nhập — đúng khuôn 4 route public-read đã có
 (`GET /farms/{id}`, `GET /seasons/{id}`, `GET /batches/{id}`,
@@ -94,12 +111,12 @@ Route public, KHÔNG cần đăng nhập — đúng khuôn 4 route public-read �
     "logo_url": null
   },
 
-  // Chứng nhận CỦA NÔNG TRẠI — route thật (2026-09-27) CỐ TÌNH luôn trả
-  // MẢNG RỖNG ở bước này, KHÔNG query certifications thật (quyết định lúc
-  // implement: giữ đúng phạm vi ban đầu, tránh phải quyết thêm về filter/
-  // quyền cho một ngoại lệ public mới). Mock vẫn giữ 2 bản ghi mẫu bên dưới
-  // để dựng giao diện, nhưng khi đổi USE_MOCK_DATA sang false, phần này trên
-  // trang thật sẽ RỖNG cho tới khi làm riêng.
+  // Chứng nhận CỦA NÔNG TRẠI đang ở trạng thái `active` — ĐÃ NỐI DỮ LIỆU
+  // THẬT (2026-09-29, trước đó CỐ TÌNH luôn trả mảng rỗng). Chứng nhận
+  // `expired`/`suspended`/`revoked` KHÔNG hiện ở đây. Mảng RỖNG chỉ khi nông
+  // trại thật sự không có chứng nhận `active` nào — không còn là hành vi cố
+  // định nữa. Mock (data/public-batch-mock.json) vẫn giữ 2 bản ghi mẫu để
+  // dựng giao diện, không cần đổi theo vì đây chỉ là dữ liệu demo.
   "certifications": [
     { "name": "VietGAP", "issuer": "Trung tâm Chất lượng Nông lâm thuỷ sản" }
   ],
@@ -121,6 +138,52 @@ Route public, KHÔNG cần đăng nhập — đúng khuôn 4 route public-read �
   ]
 }
 ```
+
+## `POST /batches/{id}/verify-blockchain` (Giai đoạn C, 2026-09-28)
+
+Route GHI DUY NHẤT của tính năng blockchain — neo `data_hash` (tính tất định
+từ batch + season + logs, xem `app/blockchain.py::compute_data_hash()` phía
+`agrichain-api`) lên smart contract `AgriChainRegistry` (Polygon Amoy
+testnet). **Yêu cầu đăng nhập + quyền `batches.edit`** (dùng lại, KHÔNG có
+quyền riêng cho việc này) — khác `GET /batches/by-code/{code}/public` ở
+phần trên (route đó public, route này thì không). Gọi từ `app/`
+(`api.batches.verifyBlockchain(id)`, xem `app/CLAUDE.md` mục "Nút Xác thực
+blockchain"), KHÔNG gọi từ `js/lo-hang.js`/`js/nong-trai-chi-tiet.js` (2
+file site tĩnh đã BỎ HẲN khối "Xác thực blockchain" từ trước, xem
+`CLAUDE.md` gốc mục "Kết nối backend" — ngoài phạm vi Giai đoạn C này, chưa
+port lại cho site tĩnh).
+
+**Request**: không có body. **Response THÀNH CÔNG (200)**: `BatchOut` đầy đủ
+(cùng khuôn field `batch` ở trên, phẳng — không lồng trong object `batch`
+như response public), với 6 field blockchain đã điền:
+`verification_status: "anchored"`, `tx_hash`, `anchored_at`,
+`contract_address`, `signer_address`, `network` (cố định
+`"Polygon Amoy Testnet"`), `block_number`, `data_hash`.
+
+**Điều kiện + lỗi (đã xác nhận qua đọc source thật `routers/batches.py` +
+test tay bằng backend local, KHÔNG suy đoán):**
+
+| Điều kiện | HTTP | `error.code` | `error.message` |
+|---|---|---|---|
+| `batch.status` không thuộc `{harvested, processed, completed}` | 409 | `CONFLICT` | "Chỉ neo được lô hàng ở trạng thái đã thu hoạch, đang xử lý hoặc hoàn tất." |
+| `batch.verification_status` đã là `"anchored"` | 409 | `CONFLICT` | "Lô hàng này đã được xác thực blockchain trước đó." |
+| Thiếu `BLOCKCHAIN_PRIVATE_KEY`/`BLOCKCHAIN_CONTRACT_ADDRESS`, mất kết nối RPC, hoặc giao dịch bị revert | 503 | `SERVICE_UNAVAILABLE` | 1 trong vài câu tuỳ nguyên nhân (VD "Chưa cấu hình đủ BLOCKCHAIN_PRIVATE_KEY/BLOCKCHAIN_CONTRACT_ADDRESS — chưa thể neo hash lên blockchain.") — **KHÔNG BAO GIỜ** nội suy chi tiết kỹ thuật/exception gốc vào message |
+
+Lỗi 503 **KHÔNG ghi gì vào database** — transaction rollback hoàn toàn (xem
+`agrichain-api/CLAUDE.md`), batch giữ nguyên `verification_status='pending'`,
+gọi lại `POST /batches/{id}/verify-blockchain` ngay sau đó là an toàn, không
+có trạng thái nửa vời nào phải lo. Đây là lý do UI phía `app/` hiện thông
+báo lỗi 503 CỐ ĐỊNH ("Chưa xác thực được, vui lòng thử lại sau.") thay vì
+message kỹ thuật ở trên, và KHÔNG khoá nút vĩnh viễn sau khi lỗi.
+
+**Đã kiểm chứng thật** (2026-09-28, backend local, `BLOCKCHAIN_CONTRACT_ADDRESS`
+còn trống — đúng trạng thái mọi môi trường hiện tại): tạo batch trạng thái
+`harvested` qua API thật rồi gọi route này → nhận đúng 503 với message ở
+bảng trên; tạo batch trạng thái `planning` rồi gọi → nhận đúng 409 với đúng
+message dòng đầu bảng trên. Chưa kiểm chứng được nhánh 200 thành công (cần
+contract đã deploy) và nhánh 409 "đã anchored" (cần ít nhất 1 lần anchor
+thành công trước đó) — cả 2 phụ thuộc vào việc deploy contract thật, ngoài
+khả năng kiểm ở máy dev hiện tại.
 
 ## ⚠️ Danh mục hoạt động (`activity_type`) — DÙNG ĐÚNG 9 GIÁ TRỊ CỐ ĐỊNH, không tự thêm
 
@@ -167,10 +230,18 @@ thêm vào `js/enums.js` — ngoài phạm vi trang public này.
   tới khi anchor thật.
 - ~~`organizations.logo_url`/`organizations.tagline` — chưa có chỗ lưu~~ —
   **ĐÃ CÓ CHỖ LƯU** (migration 011), nhưng vẫn CHƯA có route ghi giá trị.
-- **Vẫn chưa làm**: route `POST /batches/{id}/verify-blockchain` +
-  `app/blockchain.py` (gọi chain thật, tính `data_hash`, điền 5 cột blockchain
-  + `verification_status='anchored'`) — đang chờ token testnet.
-- **Vẫn chưa làm**: ngoại lệ public thật cho phần `certifications` (hiện route
-  luôn trả mảng rỗng, xem ghi chú tại chỗ ở trên).
+- ~~route `POST /batches/{id}/verify-blockchain` + `app/blockchain.py`~~ —
+  **ĐÃ LÀM** (2026-09-28, Giai đoạn C — xem mục riêng ở trên), gọi từ SPA
+  `app/` qua `api.batches.verifyBlockchain()`. Vẫn còn 1 việc CHƯA làm:
+  **deploy contract thật lên Polygon Amoy** (đang chờ token testnet) —
+  không có contract thì MỌI lần gọi route này đều trả 503, không có ca
+  thành công thật nào để kiểm chứng cho tới lúc đó.
+- ~~ngoại lệ public thật cho phần `certifications`~~ — **ĐÃ LÀM** (2026-09-29,
+  xem ghi chú tại chỗ ở trên) — chỉ trả chứng nhận `active`, đúng 2 field
+  `name`/`issuer`.
 - **Chưa làm ở repo này**: đổi `USE_MOCK_DATA` sang `false` trong
-  `js/truy-xuat.js` để gọi route thật — route backend đã sẵn sàng.
+  `js/truy-xuat.js` để gọi route thật — route backend đã sẵn sàng. Route
+  ghi (`verify-blockchain`) cũng CHƯA được gọi lại từ site tĩnh
+  (`js/lo-hang.js`/`js/nong-trai-chi-tiet.js`) — Giai đoạn C chỉ thêm ở SPA
+  `app/`, khối "Xác thực blockchain" ở 2 file site tĩnh đó vẫn đang BỎ HẲN
+  như trước (xem `CLAUDE.md` gốc mục "Kết nối backend").

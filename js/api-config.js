@@ -17,7 +17,13 @@
      hosts file) -> backend local qua IP như cũ — cookie vẫn hoạt động
      same-origin, chỉ không chia sẻ được sang SPA (app.*) qua cookie, phiên
      đăng nhập vẫn tách rời như trước khi có cookie httpOnly.
-   - domain khác (production thật) -> backend production.
+   - hostname 'agrichain.org.vn'/'www.agrichain.org.vn' (production thật,
+     kiến trúc VPS + Nginx: agrichain.org.vn site tĩnh, app.agrichain.org.vn
+     SPA, api.agrichain.org.vn backend) -> backend production qua đúng
+     subdomain api.*, KHÔNG còn qua Render nữa (domain Render cũ chỉ dùng
+     tạm thời trước khi có VPS, đã ngừng dùng cho production).
+   - domain khác (dự phòng, chưa xác định trước) -> vẫn trỏ backend
+     production api.agrichain.org.vn, không rơi về Render.
    ========================================================================== */
 
 (function (global) {
@@ -31,7 +37,18 @@
     global.AgriChain.API_BASE_URL = 'http://api.agrichain.local:8000';
   } else if (hostname === 'localhost' || hostname === '127.0.0.1') {
     global.AgriChain.API_BASE_URL = 'http://127.0.0.1:8000';
+  } else if (hostname === 'agrichain.org.vn' || hostname === 'www.agrichain.org.vn') {
+    global.AgriChain.API_BASE_URL = 'https://api.agrichain.org.vn';
   } else {
-    global.AgriChain.API_BASE_URL = 'https://agrichain-api-4mhf.onrender.com';
+    global.AgriChain.API_BASE_URL = 'https://api.agrichain.org.vn';
   }
+
+  // Trang truy-xuat.html (truy xuất nguồn gốc công khai, js/truy-xuat.js) —
+  // đọc dữ liệu MẪU tĩnh (data/public-batch-mock.json) thay vì gọi API thật
+  // khi cờ này là true, hữu ích để demo/dev giao diện lúc backend chưa chạy.
+  // Mặc định false ở MỌI hostname (luôn ưu tiên dữ liệu thật) — bật true THỦ
+  // CÔNG ngay tại đây khi cần demo, KHÔNG sửa trực tiếp trong
+  // js/truy-xuat.js, cùng nguyên tắc "1 nơi cấu hình duy nhất" như
+  // API_BASE_URL ở trên.
+  global.AgriChain.USE_MOCK_TRACE_DATA = false;
 })(window);

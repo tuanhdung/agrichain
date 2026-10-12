@@ -16,9 +16,11 @@ import { api, ApiError } from '../../api';
 import type { Batch, BatchSystemRow, Farm, Season } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { useCascadingSelect } from '../../hooks/useCascadingSelect';
+import { useDialog } from '../../hooks/useDialog';
 import { useToast } from '../../components/ToastProvider';
 import { FETCH_PAGE_SIZE } from './constants';
 import { BatchCard } from './BatchCard';
+import { QrModal } from './QrModal';
 import './filter-card.css';
 
 type ViewState = 'loading' | 'error' | 'data' | 'empty';
@@ -86,6 +88,23 @@ export function LoHangPage() {
   useEffect(() => {
     loadBatches();
   }, [loadBatches]);
+
+  // Cập nhật ĐÚNG 1 phần tử trong danh sách sau khi xác thực blockchain
+  // thành công — không tải lại toàn bộ trang (loadBatches()), giữ nguyên vị
+  // trí/thứ tự các thẻ khác đang hiển thị.
+  const handleVerified = useCallback((updated: Batch) => {
+    setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+  }, []);
+
+  // Modal QR DÙNG CHUNG cho mọi thẻ (1 <dialog> duy nhất, không phải mỗi
+  // BatchCard tự có 1 cái) — cùng mẫu các modal khác trong app/ (useDialog()).
+  const qrDialog = useDialog<HTMLDialogElement>();
+  const [qrBatch, setQrBatch] = useState<Batch | BatchSystemRow | null>(null);
+
+  function handleOpenQr(batch: Batch | BatchSystemRow) {
+    setQrBatch(batch);
+    qrDialog.open();
+  }
 
   function handleFarmChange(nextFarmId: string) {
     setFarmId(nextFarmId);
@@ -182,7 +201,13 @@ export function LoHangPage() {
       {view === 'data' && (
         <div className="grid grid--3">
           {items.map((batch) => (
-            <BatchCard key={batch.id} batch={batch} isPlatformAdminMode={isPlatformAdmin} />
+            <BatchCard
+              key={batch.id}
+              batch={batch}
+              isPlatformAdminMode={isPlatformAdmin}
+              onVerified={handleVerified}
+              onOpenQr={handleOpenQr}
+            />
           ))}
         </div>
       )}
@@ -194,6 +219,8 @@ export function LoHangPage() {
           <p className="empty-state__desc">Đổi lại bộ lọc, hoặc vào trang chi tiết nông trại để thêm lô hàng mới cho một mùa vụ.</p>
         </div>
       )}
+
+      <QrModal dialogRef={qrDialog.ref} batch={qrBatch} onClose={qrDialog.close} />
     </>
   );
 }

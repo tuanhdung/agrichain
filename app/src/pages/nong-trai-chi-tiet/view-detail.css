@@ -1,6 +1,6 @@
 /* Port NGUYÊN VĂN khối <style> của nong-trai-chi-tiet.html gốc — CSS chỉ
    dùng riêng cho trang này (form-grid/tabs/view-field/empty-state/... dùng
-   chung đã có sẵn trong components.css/app-shell.css, không lặp lại ở đây).
+   chung đã có sẵn trong components.css và app-shell.css, không lặp lại ở đây).
    Import 1 lần trong NongTraiChiTietPage.tsx — mọi tab con (Chứng nhận/
    Timeline/Lô hàng/Quy trình mùa vụ, xem Bước 2-5) đều dùng chung file này,
    không tách nhỏ theo tab vì bản gốc cũng gộp chung 1 khối <style> duy nhất. */
@@ -10,6 +10,24 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
+  position: relative;
+  /* BẮT BUỘC (2026-09-29) — Leaflet tự đặt z-index RẤT cao cho nút zoom/lớp
+     nền (.leaflet-top/.leaflet-bottom: 1000, xem leaflet.css) mà KHÔNG tự
+     giới hạn phạm vi. `z-index: 0` một mình KHÔNG có tác dụng gì trên phần
+     tử `position: static` (mặc định, trước khi thêm dòng `position:
+     relative` ở trên) — z-index chỉ áp dụng cho phần tử đã "positioned",
+     nên khai báo cũ này thực chất là dead code, chưa từng bảo vệ được gì.
+     `isolation: isolate` mới là phần thật sự sửa lỗi: ép khối này tự tạo 1
+     "stacking context" RIÊNG, nhốt toàn bộ thang z-index nội bộ của Leaflet
+     (200-1000) ở BÊN TRONG khung bản đồ — không còn cạnh tranh được với
+     `.app-topbar` (position: sticky, z-index: var(--z-sticky) = 100, xem
+     css/app-shell.css) khi cuộn trang chi tiết nông trại tới tab "Thông
+     tin". Cùng bug + cùng cách vá đã áp dụng cho bản đồ ở truy-xuat.html
+     (site tĩnh, xem CLAUDE.md gốc mục "Kết nối backend") — 2 nơi DUY NHẤT
+     trong dự án render Leaflet trực tiếp trên trang cuộn (không phải trong
+     modal/`<dialog>` — `<dialog>` mở qua `showModal()` tự nằm trên "top
+     layer" của trình duyệt, KHÔNG bị lỗi này, xem BoundaryEditor.tsx). */
+  isolation: isolate;
   z-index: 0;
 }
 
@@ -510,6 +528,179 @@
 .qr-modal__hint {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
+}
+
+/* ================================================================
+   Hiệu ứng động cho các tab chi tiết nông trại (2026-09-29) — cùng
+   công thức đã dùng ở farm-card.css (/nong-trai) và vat-tu.css
+   (/vat-tu): entrance "backwards" (KHÔNG "both"/"forwards", để :hover
+   luôn thắng được animation đã chạy xong) + so le nhẹ theo vị trí +
+   hover polish trên icon/nút có sẵn. KHÔNG sửa .card/.data-card__* /
+   .batch-card/.icon-btn/.badge dùng chung trong css/components.css và
+   css/app-shell.css — chỉ gắn thêm class RIÊNG của trang này (đúng
+   quy ước "mỗi trang tự chứa CSS/JS riêng", khớp cách file này đã tự
+   chép lại .workflow-step* /.steps-header thay vì import chéo
+   pages/mau-quy-trinh/workflow-step.css).
+
+   --ease-emphasized (css/tokens.css) đã có sẵn vì app/ nạp CHUNG 4
+   file CSS gốc của site tĩnh (xem app/src/main.tsx). */
+
+@keyframes detail-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Thẻ Chứng nhận (CertificationCard) + Mùa vụ (SeasonCard) — 2 component
+   RIÊNG nhưng cùng hệt cấu trúc gốc (.card.card--hover + .data-card__*),
+   nên dùng chung 1 class .detail-card cho cả 2, không lặp lại CSS. */
+.detail-card {
+  animation: detail-card-in 500ms var(--ease-emphasized) backwards;
+  transition:
+    transform 300ms var(--ease-emphasized),
+    box-shadow 300ms var(--ease-emphasized),
+    border-color 300ms var(--ease-emphasized);
+}
+.detail-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary);
+}
+.detail-card:nth-child(1) { animation-delay: 0ms; }
+.detail-card:nth-child(2) { animation-delay: 60ms; }
+.detail-card:nth-child(3) { animation-delay: 120ms; }
+.detail-card:nth-child(4) { animation-delay: 180ms; }
+.detail-card:nth-child(5) { animation-delay: 240ms; }
+.detail-card:nth-child(6) { animation-delay: 300ms; }
+
+.detail-card:hover .data-card__title {
+  color: var(--color-primary);
+}
+.detail-card .data-card__title {
+  transition: color 250ms var(--ease-emphasized);
+}
+.detail-card .data-card__row .icon {
+  transition:
+    color 250ms var(--ease-emphasized),
+    transform 250ms var(--ease-emphasized);
+}
+.detail-card:hover .data-card__row .icon {
+  color: var(--color-primary);
+  transform: scale(1.1);
+}
+.detail-card .icon-btn {
+  transition:
+    transform 200ms var(--ease-emphasized),
+    background-color var(--transition-base),
+    color var(--transition-base);
+}
+.detail-card .icon-btn:hover {
+  transform: scale(1.15);
+}
+
+/* Thẻ Lô hàng bên trong modal xem mùa vụ (BatchCard RIÊNG của thư mục này,
+   khác pages/lo-hang/BatchCard.tsx — xem batch-card.css của trang đó) —
+   .batch-card gốc KHÔNG có ".card--hover" đi kèm nên hiệu ứng nhấc thẻ khi
+   hover hoàn toàn do class này cung cấp thêm, cùng công thức
+   lo-hang/batch-card.css. */
+.detail-batch-card {
+  animation: detail-card-in 500ms var(--ease-emphasized) backwards;
+  transition:
+    transform 300ms var(--ease-emphasized),
+    box-shadow 300ms var(--ease-emphasized),
+    border-color 300ms var(--ease-emphasized);
+}
+.detail-batch-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary);
+}
+.detail-batch-card:nth-child(1) { animation-delay: 0ms; }
+.detail-batch-card:nth-child(2) { animation-delay: 60ms; }
+.detail-batch-card:nth-child(3) { animation-delay: 120ms; }
+.detail-batch-card:nth-child(4) { animation-delay: 180ms; }
+.detail-batch-card:nth-child(5) { animation-delay: 240ms; }
+.detail-batch-card:nth-child(6) { animation-delay: 300ms; }
+.detail-batch-card .icon-btn {
+  transition: transform 200ms var(--ease-emphasized), background-color var(--transition-base),
+    color var(--transition-base);
+}
+.detail-batch-card .icon-btn:hover {
+  transform: scale(1.15);
+}
+
+/* Nhật ký mùa vụ (tab Timeline, .log-list > .log-item) — danh sách dọc có
+   thể dài, nên CHỈ so le 4 mục đầu (khác lưới thẻ) rồi hiện đồng loạt cho
+   phần còn lại, cùng lý do vat-tu.css không so le toàn bảng: so le quá
+   nhiều mục sẽ làm chậm/rối trải nghiệm đọc. */
+@keyframes detail-log-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.detail-log-item {
+  animation: detail-log-item-in 450ms var(--ease-emphasized) backwards;
+  transition: box-shadow 250ms var(--ease-emphasized), transform 250ms var(--ease-emphasized);
+}
+.detail-log-item:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-md);
+}
+.detail-log-item:nth-child(1) { animation-delay: 0ms; }
+.detail-log-item:nth-child(2) { animation-delay: 60ms; }
+.detail-log-item:nth-child(3) { animation-delay: 120ms; }
+.detail-log-item:nth-child(4) { animation-delay: 180ms; }
+.detail-log-item .icon-btn {
+  transition: transform 200ms var(--ease-emphasized), background-color var(--transition-base),
+    color var(--transition-base);
+}
+.detail-log-item .icon-btn:hover {
+  transform: scale(1.15);
+}
+
+/* Checklist "Quy trình mùa vụ" (ProcessStepViewCard, .workflow-checklist__item)
+   — timeline dọc chấm + đường nối, chỉ hiện dần đồng bộ khi vào tab (KHÔNG
+   so le từng bước, khác các danh sách trên): các bước đã hoàn thành/chưa
+   tới lượt cần đọc liền mạch theo đúng thứ tự, so le sẽ phá vỡ cảm giác
+   "1 tuyến thời gian duy nhất". Chỉ thêm hover nhấn nhẹ cho thẻ bước đang
+   "tới lượt" (nút hành động), không áp cho toàn bộ thẻ tránh gây cảm giác
+   mọi bước đều bấm được. */
+.workflow-checklist__card {
+  transition: box-shadow 250ms var(--ease-emphasized), border-color 250ms var(--ease-emphasized);
+}
+.detail-workflow-current .workflow-checklist__card {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+.workflow-checklist__dot--done {
+  transition: background-color 250ms var(--ease-emphasized), transform 250ms var(--ease-emphasized);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail-card,
+  .detail-batch-card,
+  .detail-log-item {
+    animation: none;
+  }
+  .detail-card:hover,
+  .detail-card:hover .data-card__row .icon,
+  .detail-card .icon-btn:hover,
+  .detail-batch-card:hover,
+  .detail-batch-card .icon-btn:hover,
+  .detail-log-item:hover,
+  .detail-log-item .icon-btn:hover {
+    transform: none;
+  }
 }
 
 /* Nút "đã xác thực blockchain" trên thẻ lô hàng — KHÔNG dùng trong bản React

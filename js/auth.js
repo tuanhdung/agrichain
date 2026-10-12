@@ -47,6 +47,12 @@
     var alert = document.querySelector('[data-auth-alert]');
     if (!alert) return;
     alert.querySelector('[data-auth-alert-message]').textContent = message;
+    // Xoá rồi ép reflow trước khi thêm lại ".is-visible" — nếu không, báo
+    // lỗi 2 lần liên tiếp (VD gõ sai mật khẩu 2 lần) sẽ không rung lại lần
+    // thứ 2 (class không đổi giá trị nên trình duyệt không chạy lại
+    // @keyframes, cùng lỗi đã gặp với dấu tích thành công ở form Liên Hệ).
+    alert.classList.remove('is-visible');
+    void alert.offsetWidth;
     alert.classList.add('is-visible');
   }
 
@@ -132,15 +138,30 @@
     // 'nong-trai.html' đã XOÁ (migrate sang SPA, xem CLAUDE.md mục "Kết nối
     // backend"), trỏ sang URL TUYỆT ĐỐI của SPA (origin khác hẳn site tĩnh
     // này — AgriChain.APP_SPA_URL, js/app-config.js, tự nhận diện dev/prod).
-    // SPA sẽ không thấy phiên vừa đăng nhập ở đây (2 origin không chia sẻ
-    // được localStorage, xem app/CLAUDE.md mục "Giả định host") nên sẽ tự đá
-    // sang /login của chính nó — người dùng cần đăng nhập lại 1 lần nữa, nợ
-    // kỹ thuật đã biết, chưa giải quyết được trong lần sửa này.
+    // SPA tự nhận ra phiên vừa đăng nhập ở đây qua cookie httpOnly dùng chung
+    // (AuthContext bootstrap lúc mount, xem app/CLAUDE.md mục "Giả định
+    // host") — KHÔNG cần đăng nhập lại lần 2 nữa kể từ 2026-09-29.
     return (global.AgriChain.APP_SPA_URL || '') + '/nong-trai';
   }
 
   function redirectTarget(accountType) {
     var params = new URLSearchParams(global.location.search);
+
+    // `next` — đích TUYỆT ĐỐI sang SPA (app.agrichain.*), thêm 2026-09-29 cho
+    // luồng "đăng nhập 1 lần": SPA không còn trang đăng nhập riêng,
+    // ProtectedRoute đá người dùng về ĐÂY kèm next=<url SPA họ đang đứng>
+    // (xem app/CLAUDE.md mục "Giả định host"). Validate qua
+    // window.AgriChain.resolveNextTarget() (js/next-target.js — origin phải
+    // khớp CHÍNH XÁC AgriChain.APP_SPA_URL, chặn open redirect kiểu
+    // //evil.com, javascript:, sai origin). 'customer' KHÔNG có gì trong SPA
+    // (cùng lý do ADMIN_SHELL_PAGES chặn ?redirect= bên dưới) nên bỏ qua
+    // next, rơi thẳng xuống defaultTargetFor() -> agriverse-3d.html.
+    var nextParam = params.get('next');
+    if (nextParam && accountType !== 'customer') {
+      var nextTarget = global.AgriChain.resolveNextTarget(nextParam, global.AgriChain.APP_SPA_URL);
+      if (nextTarget) return nextTarget;
+    }
+
     var target = params.get('redirect');
     // Chỉ chấp nhận đường dẫn nội bộ dạng "ten-trang.html", bắt đầu bằng chữ
     // cái. Không cho URL tuyệt đối ("http://"/"https://") hay "//..." — tránh
@@ -173,11 +194,40 @@
     var form = document.getElementById('login-form');
     if (!form) return;
 
-    // Đã đăng nhập rồi (còn access token) thì vào thẳng, khỏi bắt đăng nhập lại.
-    if (api.isLoggedIn()) {
-      global.location.replace(redirectTarget(api.getAccountType()));
-      return;
+    // Quyết định hành vi lúc tải trang (đăng xuất từ SPA qua `?loggedOut=1`,
+    // buộc đăng nhập lại vì SPA đã xác nhận phiên không hợp lệ qua
+    // `?reason=unauth`, hay tự động vào thẳng SPA nếu phiên còn dùng được)
+    // giờ nằm hết trong js/login-redirect.js (hàm THUẦN, test được trực tiếp
+    // — xem app/src/test/loginRedirect.test.ts) để tránh lặp lại đúng bug đã
+    // gặp 2 lần liên tiếp (loop lúc đăng xuất, rồi loop lúc phiên bất đồng
+    // giữa 2 origin) mỗi khi có thêm 1 ca đặc biệt mới. `setupLogin()` chỉ
+    // còn việc gom tham số URL + phụ thuộc thật (gọi API, điều hướng) rồi
+    // giao cho hàm đó quyết định — xem chi tiết từng nhánh trong file đó.
+    //
+    // `?loggedOut=1` clear khỏi URL NGAY (đồng bộ, TRƯỚC khi gọi
+    // runLoginPageEntry) — tải lại trang (F5) trong lúc logout() còn đang
+    // chạy dở không được lặp lại bước đăng xuất này lần nữa.
+    var params = new URLSearchParams(global.location.search);
+    var loggedOutParam = params.get('loggedOut');
+    var reasonParam = params.get('reason');
+    if (loggedOutParam === '1') {
+      global.history.replaceState(null, '', global.location.pathname);
     }
+
+    global.AgriChain.runLoginPageEntry(
+      { reason: reasonParam, loggedOut: loggedOutParam, isLoggedIn: api.isLoggedIn() },
+      {
+        logout: function () { return api.auth.logout(); },
+        clearSession: function () { api.clearSession(); },
+        verifySession: function () { return api.auth.me(); },
+        navigate: function (accountType) {
+          global.location.replace(redirectTarget(accountType));
+        }
+      }
+    );
+    // KHÔNG chờ Promise trên rồi mới gắn sự kiện submit — mọi nhánh có thể
+    // điều hướng đi (`redirected`) đều chạy bất đồng bộ, trong lúc chờ vẫn
+    // cần form đăng nhập dùng được ngay (ca `show-form`/`logged-out`).
 
     var submitButton = form.querySelector('button[type="submit"]');
     var submitLabel = submitButton.textContent;

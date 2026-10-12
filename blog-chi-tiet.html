@@ -22,7 +22,13 @@
        nên .share-btn (nút tròn viền, gần giống .icon-btn của khung quản trị)
        và .empty-card (trạng thái "không tìm thấy") phải tự định nghĩa lại ở
        đây — đúng cách truy-xuat.html đã làm, .empty-state thật nằm ở
-       app-shell.css (chỉ khung quản trị mới nạp). */
+       app-shell.css (chỉ khung quản trị mới nạp).
+       [data-reveal] (hiện dần khi cuộn tới) dùng chung ở css/components.css
+       — gắn thẳng lên các khối tĩnh của bài viết (js/blog-chi-tiet.js chỉ
+       toggle "hidden", không tạo lại DOM, nên KHÔNG cần tự gọi lại
+       AgriChain.initScrollReveal() như js/blog.js: IntersectionObserver vẫn
+       tiếp tục theo dõi các phần tử này xuyên suốt, kể cả lúc chúng còn
+       display:none, và tự bắn callback ngay khi showPost() bỏ "hidden"). */
     .post-detail-page {
       padding-block: var(--space-10) var(--space-16);
       min-height: calc(100vh - var(--header-height));
@@ -128,11 +134,16 @@
       border: 1px solid var(--color-border);
       border-radius: var(--radius-full);
       color: var(--color-text-muted);
-      transition: border-color var(--transition-base), color var(--transition-base);
+      transition: border-color var(--transition-base), color var(--transition-base),
+        transform var(--transition-base);
     }
     .share-btn:hover {
       border-color: var(--color-primary);
       color: var(--color-primary);
+      transform: translateY(-2px);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .share-btn:hover { transform: none; }
     }
 
     .post-detail__cover {
@@ -251,7 +262,7 @@
       <div class="container">
 
         <!-- Không tìm thấy bài viết theo slug trên URL -->
-        <div class="empty-card" data-not-found hidden>
+        <div class="empty-card" data-not-found hidden data-reveal>
           <svg class="icon icon--lg"><use href="icons/sprite.svg#icon-file-text"></use></svg>
           <p class="empty-card__title">Không tìm thấy bài viết</p>
           <p class="empty-card__desc">Bài viết này có thể đã bị gỡ, hoặc đường dẫn không đúng.</p>
@@ -260,7 +271,7 @@
 
         <!-- Nội dung bài viết -->
         <article class="post-detail" data-post-detail hidden>
-          <div class="post-detail__breadcrumb">
+          <div class="post-detail__breadcrumb" data-reveal>
             <a class="post-detail__back" href="blog.html">
               <svg class="icon icon--sm"><use href="icons/sprite.svg#icon-corner-up-left"></use></svg>
               Quay lại Blog
@@ -269,9 +280,9 @@
             <span class="post-detail__breadcrumb-category" data-post-category></span>
           </div>
 
-          <h1 class="post-detail__title" data-post-title></h1>
+          <h1 class="post-detail__title" data-post-title data-reveal style="--reveal-delay: 80ms"></h1>
 
-          <div class="post-detail__meta">
+          <div class="post-detail__meta" data-reveal style="--reveal-delay: 160ms">
             <div class="post-detail__author">
               <span class="avatar" data-post-author-initials></span>
               <div>
@@ -294,15 +305,15 @@
             </div>
           </div>
 
-          <div class="post-detail__cover">
+          <div class="post-detail__cover" data-reveal style="--reveal-delay: 240ms">
             <img data-post-cover alt="" />
           </div>
 
-          <div class="post-detail__body" data-post-body></div>
+          <div class="post-detail__body" data-post-body data-reveal style="--reveal-delay: 320ms"></div>
 
-          <div class="post-detail__tags" data-post-tags></div>
+          <div class="post-detail__tags" data-post-tags data-reveal style="--reveal-delay: 380ms"></div>
 
-          <div class="post-detail__footer-actions">
+          <div class="post-detail__footer-actions" data-reveal style="--reveal-delay: 440ms">
             <a class="btn btn--outline" href="blog.html">Tất cả bài viết</a>
           </div>
         </article>
@@ -359,6 +370,7 @@
   </footer>
 
   <script src="js/header.js?v=6" defer></script>
+  <script src="js/scroll-reveal.js?v=2" defer></script>
   <script src="js/blog-chi-tiet.js?v=2" defer></script>
 </body>
 </html>

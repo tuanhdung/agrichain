@@ -13,6 +13,15 @@ import type { Page } from './types';
 
 // Khuôn BatchOut thật — CHỈ khai báo field trang /lo-hang thật sự dùng tới
 // (đúng quy ước đã áp dụng cho Farm/Supply/WorkflowTemplate/OrgUser).
+//
+// 8 field cuối (verification_status -> data_hash) — Giai đoạn C (2026-09-28):
+// backend đã có route POST /batches/{id}/verify-blockchain thật (Polygon Amoy
+// testnet, xem PUBLIC-BATCH-SCHEMA.md + agrichain-api/CLAUDE.md mục "Xác thực
+// blockchain lô hàng"). Field này LUÔN có mặt trên BatchOut (không phải tuỳ
+// chọn thêm sau) — verification_status mặc định 'pending', 6 field còn lại
+// null cho tới khi neo thành công (hoặc tới khi contract thật được deploy —
+// hiện CHƯA, xem CLAUDE.md phía backend, nên trong thực tế verify sẽ luôn trả
+// lỗi 503 cho tới lúc đó, KHÔNG phải bug ở đây).
 export interface Batch {
   id: string;
   code: string;
@@ -30,6 +39,14 @@ export interface Batch {
   expected_yield: number | null;
   unit: string | null;
   note: string | null;
+  verification_status: 'pending' | 'anchored' | 'mismatch';
+  tx_hash: string | null;
+  anchored_at: string | null;
+  contract_address: string | null;
+  signer_address: string | null;
+  network: string | null;
+  block_number: number | null;
+  data_hash: string | null;
 }
 
 export interface BatchListParams {
@@ -65,5 +82,12 @@ export const batches = {
   getByCode: (code: string, options?: { auth?: boolean }) => request<Batch>('GET', `/batches/by-code/${encodeURIComponent(code)}`, options),
   create: (data: BatchPayload & { season_id: string }) => request<Batch>('POST', '/batches', { body: data }),
   update: (id: string, data: BatchPayload) => request<Batch>('PATCH', `/batches/${id}`, { body: data }),
-  remove: (id: string) => request<null>('DELETE', `/batches/${id}`)
+  remove: (id: string) => request<null>('DELETE', `/batches/${id}`),
+  // Neo hash dữ liệu lô hàng lên blockchain (Polygon Amoy testnet) — dùng
+  // lại quyền batches.edit (không có quyền riêng). Gọi chain ĐỒNG BỘ, có thể
+  // mất 5-30 giây (xem PUBLIC-BATCH-SCHEMA.md) — nơi gọi PHẢI tự khoá nút
+  // trong lúc chờ, request() không tự có timeout ngắn nào cho ca này.
+  // Lỗi: 409 (sai trạng thái hoặc đã anchored), 503 (giao dịch thất bại/thiếu
+  // cấu hình, KHÔNG đổi gì trong DB, gọi lại được ngay) — xem BatchCard.tsx.
+  verifyBlockchain: (id: string) => request<Batch>('POST', `/batches/${id}/verify-blockchain`)
 };
