@@ -6,7 +6,8 @@ HTML/CSS/JS thuần — **không dùng framework, không dùng build tool** (kh�
 ## Bố cục workspace trên máy dev (cập nhật 2026-10-12)
 
 ```
-D:\Exabyte\Dự án\n  agrichain\        # repo FRONTEND này (site tĩnh ở gốc + SPA React trong app/)
+D:\Exabyte\Dự án\
+  agrichain\        # repo FRONTEND này (site tĩnh ở gốc + SPA React trong app/)
   agrichain-api\    # repo BACKEND (FastAPI) — repo riêng, tên trùng repo GitHub
   tai-lieu\         # ảnh/pdf/video/mẫu tham khảo rời, KHÔNG thuộc repo nào
   start-agrichain.ps1  # bật Docker + Postgres + backend + SPA + mở VS Code
