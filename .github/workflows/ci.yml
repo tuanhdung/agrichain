@@ -1,0 +1,60 @@
+# CI cho frontend: kiểm tra kiểu + test + build SPA (app/) và cú pháp JS của site tĩnh.
+# Chỉ chạy kiểm tra, KHÔNG deploy gì cả.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  spa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: app
+    env:
+      # Giá trị giả chỉ để build qua được (src/api/config.ts cố tình throw nếu thiếu).
+      # Build thật cho production dùng app/.env.production trên máy deploy.
+      VITE_API_BASE_URL: https://api.example.test
+      VITE_MAIN_SITE_URL: https://example.test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - name: Kiểm tra kiểu (tsc)
+        run: npm run lint
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  static-site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Kiểm tra cú pháp mọi file js/*.js
+        run: |
+          fail=0
+          for f in js/*.js; do
+            # Vài file là ES module (có `export`, nạp bằng type="module" và test bằng
+            # vitest) — kiểm bằng --input-type=module, còn lại là script thường.
+            if grep -q '^export ' "$f"; then
+              node --input-type=module --check < "$f" || { echo "FAIL $f"; fail=1; }
+            else
+              node --check "$f" || { echo "FAIL $f"; fail=1; }
+            fi
+          done
+          exit $fail

@@ -1695,6 +1695,15 @@ AgriVerse, khác hệ thiết kế site-wide/app-shell/auth, cố tình để ng
 3. Cập nhật `styleguide.html` để mọi token/component mới đều xuất hiện trong trang demo —
    đây là nguồn tham chiếu trực quan duy nhất của design system, phải luôn đầy đủ.
 
+## CI (2026-10-12, nhánh `chore/ci`)
+
+`.github/workflows/ci.yml` chạy trên mỗi PR và push lên `main`: (1) SPA — `npm ci`, `npm run lint` (tsc), `npm test`,
+`npm run build` trong `app/` (build dùng `VITE_API_BASE_URL`/`VITE_MAIN_SITE_URL` GIẢ, chỉ để qua kiểm tra
+`src/api/config.ts`; build production thật vẫn dùng `app/.env.production` trên máy deploy); (2) site tĩnh — `node --check`
+mọi `js/*.js` (file có `export` như `login-redirect.js`/`next-target.js` kiểm bằng `--input-type=module`). Chỉ kiểm tra,
+KHÔNG deploy. Chưa từng chạy trên GitHub thật khi viết — lần chạy đầu lỗi thì sửa theo log thật. Không có test giao diện
+trình duyệt nào trong CI (cố ý, xem mục "Kiểm thử giao diện").
+
 ## Kiểm thử giao diện
 
 - **Không tự ý cài công cụ trình duyệt tự động** (Playwright, Puppeteer, chromium-cli...)
