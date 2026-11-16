@@ -34,9 +34,9 @@
   global.AgriChain = global.AgriChain || {};
 
   if (hostname === 'agrichain.local') {
-    global.AgriChain.API_BASE_URL = 'http://api.agrichain.local:8000';
+    global.AgriChain.API_BASE_URL = 'http://api.agrichain.local:8010';
   } else if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    global.AgriChain.API_BASE_URL = 'http://127.0.0.1:8000';
+    global.AgriChain.API_BASE_URL = 'http://127.0.0.1:8010';
   } else if (hostname === 'agrichain.org.vn' || hostname === 'www.agrichain.org.vn') {
     global.AgriChain.API_BASE_URL = 'https://api.agrichain.org.vn';
   } else {

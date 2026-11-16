@@ -6,7 +6,8 @@ import { Icon } from '../../icons';
 import { useDialog } from '../../hooks/useDialog';
 import { useDebouncedCallback } from '../../hooks/useDebouncedCallback';
 import { useToast } from '../../components/ToastProvider';
-import { api, ApiError, type AdminOrder, type OrderStats, type OrderStatus, type PaymentStatus } from '../../api';
+import { api, ApiError, type AdminOrder, type OrderFulfillment, type OrderStats, type OrderStatus, type PaymentStatus } from '../../api';
+import { FULFILLMENT_STATUS } from '../don-can-giao/status';
 import { EmptyBlock, formatDate, money, ORDER_STATUS, PAYMENT_STATUS, PlatformAdminOnly, StatCard, TmdtHeader } from './shared';
 
 const PAGE_SIZE = 20;
@@ -32,6 +33,7 @@ function DonHangPageContent() {
   const [loadError, setLoadError] = useState('');
 
   const [selected, setSelected] = useState<AdminOrder | null>(null);
+  const [fulfillments, setFulfillments] = useState<OrderFulfillment[]>([]);
   const [status, setStatus] = useState<OrderStatus>('received');
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('unpaid');
   const [saving, setSaving] = useState(false);
@@ -74,6 +76,9 @@ function DonHangPageContent() {
     setSelected(order);
     setStatus(order.status);
     setPaymentStatus(order.payment_status);
+    setFulfillments([]);
+    // Sản phẩm truy xuất: đơn được chia cho Đơn vị tự giao. Lỗi tải chỉ làm mất mục này, không chặn xử lý đơn.
+    api.system.orderFulfillments.list(order.id).then(setFulfillments).catch(() => setFulfillments([]));
     modal.open();
   }
 
@@ -249,6 +254,25 @@ function DonHangPageContent() {
                     <div className="tmdt-lines__row"><strong>Tổng cộng</strong><strong>{money(selected.total)}</strong></div>
                   </div>
                 </section>
+                {fulfillments.length > 0 && (
+                  <section className="form-section">
+                    <h3 className="form-section__title">Đơn vị giao hàng</h3>
+                    <p className="field__hint">Sàn chỉ là cầu nối — các Đơn vị dưới đây tự giao phần của mình cho khách.</p>
+                    <div className="tmdt-lines">
+                      {fulfillments.map((f) => (
+                        <div className="tmdt-lines__row" key={f.id}>
+                          <span>
+                            <strong>{f.organization_name}</strong> • {f.product_name} × {f.quantity} {f.unit}
+                            <span className="table__muted"> (lô {f.batch_code})</span>
+                          </span>
+                          <span className={`badge ${FULFILLMENT_STATUS[f.fulfillment_status].cls}`}>
+                            {FULFILLMENT_STATUS[f.fulfillment_status].label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
                 {selected.events.length > 0 && (
                   <section className="form-section">
                     <h3 className="form-section__title">Lịch sử trạng thái</h3>

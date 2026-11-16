@@ -65,6 +65,7 @@
           wholesale: i.wholesale ? Number(i.wholesale) : null,
           moq: Number(i.moq) || 1,
           stock: i.stock == null ? null : Number(i.stock),
+          preorder: !!i.preorder,
           img: i.img || '',
           qty: Math.min(MAX_QTY, Math.max(1, Math.floor(Number(i.qty) || 1))),
           selected: i.selected !== false
@@ -119,6 +120,7 @@
       wholesale: row.wholesale_price ? Number(row.wholesale_price) : null,
       moq: Number(row.moq) || 1,
       stock: Number(row.stock),
+      preorder: !!row.allow_preorder,
       img: row.thumbnail_url || '',
       qty: Number(row.quantity),
       selected: row.selected !== false
@@ -148,7 +150,7 @@
       (res.items || []).forEach(function (row) { byId[String(row.product_id)] = fromServer(row); });
       items = items.filter(function (i) { return byId[i.id]; }).map(function (i) {
         var fresh = byId[i.id];
-        return Object.assign({}, i, { name: fresh.name, price: fresh.price, wholesale: fresh.wholesale, moq: fresh.moq, stock: fresh.stock, img: fresh.img });
+        return Object.assign({}, i, { name: fresh.name, price: fresh.price, wholesale: fresh.wholesale, moq: fresh.moq, stock: fresh.stock, preorder: fresh.preorder, img: fresh.img });
       });
       saveLocal();
       emit();
@@ -194,7 +196,8 @@
   // --- Thao tác giỏ ----------------------------------------------------------------------
 
   function clampQty(item, qty) {
-    var max = item.stock != null && item.stock > 0 ? Math.min(MAX_QTY, item.stock) : MAX_QTY;
+    // Sản phẩm cho đặt trước: không chặn theo tồn kho (phần thiếu là đặt trước).
+    var max = !item.preorder && item.stock != null && item.stock > 0 ? Math.min(MAX_QTY, item.stock) : MAX_QTY;
     return Math.min(max, Math.max(1, Math.floor(qty)));
   }
 
@@ -212,7 +215,7 @@
       name: product.name, price: Number(product.price) || 0,
       wholesale: product.wholesale ? Number(product.wholesale) : null,
       moq: Number(product.moq) || 1, stock: product.stock == null ? null : Number(product.stock),
-      img: product.img || ''
+      preorder: !!product.preorder, img: product.img || ''
     };
     var target;
     if (existing) {
@@ -224,7 +227,7 @@
       target.qty = clampQty(target, qty);
       items.push(target);
     }
-    var limited = target.stock != null && target.stock > 0 && target.qty >= target.stock;
+    var limited = !target.preorder && target.stock != null && target.stock > 0 && target.qty >= target.stock;
     changed();
     return { ok: true, limited: limited };
   }

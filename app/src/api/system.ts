@@ -11,6 +11,7 @@
 import { request } from './http';
 import { systemCategories } from './categories';
 import { systemProducts } from './products';
+import { systemGrowRequests, systemOrderFulfillments, systemProductBatches } from './listings';
 import { systemOrders, systemUsers } from './orders';
 import { systemArticles } from './articles';
 import { systemReviews } from './reviews';
@@ -43,7 +44,10 @@ export const system = {
   // sàn TMĐT là dữ liệu toàn hệ thống do platform_admin quản lý.
   categories: systemCategories,
   products: systemProducts,
+  productBatches: systemProductBatches,
   orders: systemOrders,
+  orderFulfillments: systemOrderFulfillments,
+  growRequests: systemGrowRequests,
   users: systemUsers,
   articles: systemArticles,
   reviews: systemReviews,

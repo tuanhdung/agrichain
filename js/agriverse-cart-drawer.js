@@ -89,7 +89,7 @@
     } else {
       box.innerHTML = items.map(function (item) {
         var wholesaleOn = item.wholesale && item.qty >= item.moq;
-        var atStock = item.stock != null && item.stock > 0 && item.qty >= item.stock;
+        var atStock = !item.preorder && item.stock != null && item.stock > 0 && item.qty >= item.stock;
         var id = esc(item.id);
         return '<div class="flex items-start gap-3 py-4">' +
           '<input type="checkbox" ' + (item.selected ? 'checked' : '') + ' data-cd-toggle="' + id + '" class="mt-8 w-5 h-5 accent-brand-600 flex-shrink-0">' +

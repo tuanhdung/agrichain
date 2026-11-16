@@ -1,15 +1,18 @@
 // "Quản lý sản phẩm & định giá kép" — giá bán lẻ (B2C) và giá bán sỉ (B2B/MOQ), thêm/sửa/xoá sản phẩm.
 // Dữ liệu THẬT qua API (`/system/products` + `/system/categories`, backend agrichain-api) — trang bán hàng
 // đọc cùng nguồn này qua `GET /products`, nên thêm/sửa ở đây là thấy ngay ở sàn.
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Icon } from '../../icons';
 import { useDialog } from '../../hooks/useDialog';
 import { useToast } from '../../components/ToastProvider';
 import { useConfirm } from '../../components/ConfirmDialogProvider';
-import { api, ApiError, type Category, type ProductListItem, type ProductPayload, type ProductStatus } from '../../api';
+import { api, ApiError, type Category, type ProductListItem, type ProductPayload, type ProductSourceType, type ProductStatus } from '../../api';
 import { sampleProducts, slugify } from './store';
 import { uploadImage } from './imageUtil';
 import { EmptyBlock, money, PlatformAdminOnly, TmdtHeader } from './shared';
+import { ProductBatchesPanel } from './ProductBatchesPanel';
+import { GrowRequestsPanel } from './GrowRequestsPanel';
+import { formatDate as formatDay } from '../lo-hang/format';
 
 interface FormValues {
   name: string;
@@ -32,15 +35,20 @@ interface FormValues {
   banner: string;
   featured: boolean;
   status: ProductStatus;
+  sourceType: ProductSourceType;
+  allowPreorder: boolean;
 }
 
 const EMPTY: FormValues = {
   name: '', slug: '', slugEdited: false, sku: '', barcode: '', categoryId: '', origin: 'Việt Nam', stock: '0', unit: 'Gói',
   retailPrice: '', wholesalePrice: '', moq: '10', standards: '', summary: '', description: '', thumbnail: '', banner: '',
-  featured: false, status: 'selling'
+  featured: false, status: 'selling', sourceType: 'free', allowPreorder: false
 };
 
 const TABS = ['Thông tin cơ bản', 'Định giá kép & tồn kho', 'Mô tả & hình ảnh'] as const;
+// Tab thứ 4 chỉ hiện với sản phẩm loại "Truy xuất" — nơi gắn lô hàng thật (ProductBatchesPanel).
+const SOURCE_TAB = 'Nguồn gốc & lô hàng';
+const SOURCE_TAB_INDEX = 3;
 const UNITS = ['kg', 'g', 'Gói', 'Hộp', 'Chai', 'Túi', 'Bó', 'Trái', 'Quả', 'Bao', 'Thùng'];
 const STANDARDS = ['VietGAP', 'GlobalGAP', 'OCOP', 'Hữu cơ (Organic)', 'USDA Organic', 'HACCP'];
 const SUMMARY_MAX = 100;
@@ -51,12 +59,12 @@ const IMAGE_MAX_DIMENSION = { thumbnail: 1000, banner: 1920 } as const;
 
 /** Tab chứa từng trường có thể báo lỗi — để nhảy tới tab đầu tiên có lỗi khi lưu. */
 const FIELD_TAB: Partial<Record<keyof FormValues, number>> = {
-  name: 0, slug: 0, sku: 0, categoryId: 0, retailPrice: 1, wholesalePrice: 1, moq: 1, thumbnail: 2, banner: 2
+  name: 0, slug: 0, sku: 0, categoryId: 0, sourceType: 0, retailPrice: 1, wholesalePrice: 1, moq: 1, thumbnail: 2, banner: 2
 };
 
 // Trường lỗi backend (details.field) → ô trong form.
 const FIELD_MAP: Record<string, keyof FormValues> = {
-  name: 'name', slug: 'slug', sku: 'sku', category_id: 'categoryId', retail_price: 'retailPrice',
+  name: 'name', slug: 'slug', sku: 'sku', category_id: 'categoryId', source_type: 'sourceType', retail_price: 'retailPrice',
   wholesale_price: 'wholesalePrice', moq: 'moq', thumbnail_url: 'thumbnail', banner_url: 'banner'
 };
 
@@ -83,11 +91,14 @@ function SanPhamPageContent() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [featuredOnly, setFeaturedOnly] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState('');
   const [editing, setEditing] = useState<ProductListItem | null>(null);
   const [editingBanner, setEditingBanner] = useState('');
   const [values, setValues] = useState<FormValues>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<keyof FormValues, string>>>({});
   const [tab, setTab] = useState(0);
+  // Tab cần mở sau lần đặt lại form kế tiếp (VD vừa tạo sản phẩm truy xuất → nhảy thẳng tới tab gắn lô).
+  const pendingTab = useRef<number | null>(null);
 
   const load = useCallback(() => {
     setView('loading');
@@ -121,7 +132,8 @@ function SanPhamPageContent() {
 
   useEffect(() => {
     setErrors({});
-    setTab(0);
+    setTab(pendingTab.current ?? 0);
+    pendingTab.current = null;
     setValues(
       editing
         ? {
@@ -130,7 +142,8 @@ function SanPhamPageContent() {
             retailPrice: String(editing.retail_price), wholesalePrice: editing.wholesale_price ? String(editing.wholesale_price) : '',
             moq: String(editing.moq), standards: editing.standards ?? '', summary: editing.summary ?? '',
             description: editing.description ?? '', thumbnail: editing.thumbnail_url ?? '', banner: editingBanner,
-            featured: editing.is_featured, status: editing.status
+            featured: editing.is_featured, status: editing.status, sourceType: editing.source_type,
+            allowPreorder: editing.allow_preorder
           }
         : { ...EMPTY, sku: 'SP-' + String(total + 1).padStart(3, '0') }
     );
@@ -143,9 +156,17 @@ function SanPhamPageContent() {
       (!q || (p.name + p.sku + (p.origin ?? '')).toLowerCase().includes(q)) &&
       (!categoryFilter || p.category_id === categoryFilter) &&
       (!statusFilter || p.status === statusFilter) &&
-      (!featuredOnly || p.is_featured)
+      (!featuredOnly || p.is_featured) &&
+      (!sourceFilter || p.source_type === sourceFilter)
     );
   });
+
+  const tabs: readonly string[] = values.sourceType === 'traced' ? [...TABS, SOURCE_TAB] : TABS;
+
+  // Đổi sang "sản phẩm tự do" khi đang đứng ở tab lô hàng (tab đó biến mất) → quay về tab đầu.
+  useEffect(() => {
+    if (values.sourceType !== 'traced' && tab === SOURCE_TAB_INDEX) setTab(0);
+  }, [values.sourceType, tab]);
 
   function setField<K extends keyof FormValues>(key: K, value: FormValues[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -216,13 +237,25 @@ function SanPhamPageContent() {
       stock: Math.max(0, Math.floor(Number(values.stock) || 0)), retail_price: Math.round(retail),
       wholesale_price: wholesale > 0 ? Math.round(wholesale) : null, moq: Math.max(1, Math.floor(Number(values.moq) || 1)),
       summary: values.summary.trim() || null, description: values.description.trim() || null,
-      thumbnail_url: values.thumbnail.trim() || null, banner_url: values.banner.trim() || null
+      thumbnail_url: values.thumbnail.trim() || null, banner_url: values.banner.trim() || null, source_type: values.sourceType,
+      allow_preorder: values.sourceType === 'traced' && values.allowPreorder
     };
 
     setBusy(true);
     try {
       if (editing) await api.system.products.update(editing.id, payload);
-      else await api.system.products.create(payload);
+      else {
+        const created = await api.system.products.create(payload);
+        if (created.source_type === 'traced') {
+          // Sản phẩm truy xuất chưa có lô thì chưa có "nguồn gốc" — giữ form mở, nhảy thẳng tới tab gắn lô.
+          pendingTab.current = SOURCE_TAB_INDEX;
+          setEditingBanner(created.banner_url ?? '');
+          setEditing(created);
+          showToast('Đã thêm sản phẩm. Hãy gắn lô hàng để sản phẩm hiện là "sắp có hàng".');
+          load();
+          return;
+        }
+      }
       modal.close();
       showToast(editing ? 'Đã lưu thay đổi.' : 'Đã thêm sản phẩm.');
       load();
@@ -319,6 +352,11 @@ function SanPhamPageContent() {
           <option value="selling">Đang mở bán</option>
           <option value="hidden">Đang ẩn</option>
         </select>
+        <select className="select" value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} aria-label="Lọc loại sản phẩm">
+          <option value="">Mọi loại sản phẩm</option>
+          <option value="traced">Truy xuất AgriChain</option>
+          <option value="free">Sản phẩm tự do</option>
+        </select>
         <label className="tmdt-checkline">
           <input type="checkbox" checked={featuredOnly} onChange={(e) => setFeaturedOnly(e.target.checked)} /> Sản phẩm nổi bật
         </label>
@@ -364,13 +402,24 @@ function SanPhamPageContent() {
                           <span className="tmdt-prod-thumb tmdt-prod-thumb--empty" aria-hidden="true">🌱</span>
                         )}
                         <div>
-                          <div className="table__name">{p.name}</div>
+                          <div className="table__name">
+                            {p.name}
+                            {p.source_type === 'traced' && <span className="badge badge--info tmdt-count">Truy xuất</span>}
+                          </div>
                           <div className="table__muted">SKU: {p.sku} • {p.origin || '—'}</div>
                         </div>
                       </div>
                     </td>
                     <td>{p.category_name ? <span className="badge badge--success">{p.category_name}</span> : '—'}</td>
-                    <td className="table__nowrap">{p.stock.toLocaleString('vi-VN')} <span className="table__muted">{p.unit}</span></td>
+                    <td className="table__nowrap">
+                      {p.stock.toLocaleString('vi-VN')} <span className="table__muted">{p.unit}</span>
+                      {p.upcoming_quantity > 0 && (
+                        <span className="tmdt-avail">
+                          Sắp có {p.upcoming_quantity.toLocaleString('vi-VN')} {p.unit}
+                          {p.expected_available_date ? ` • ${formatDay(p.expected_available_date)}` : ''}
+                        </span>
+                      )}
+                    </td>
                     <td>{p.standards || '—'}</td>
                     <td className="table__nowrap">{money(p.retail_price)}<div className="table__muted">/ {p.unit}</div></td>
                     <td className="table__nowrap">
@@ -412,7 +461,7 @@ function SanPhamPageContent() {
           </div>
 
           <div className="tmdt-steps" role="tablist" aria-label="Các bước khai báo sản phẩm">
-            {TABS.map((label, index) => {
+            {tabs.map((label, index) => {
               const hasError = (Object.keys(errors) as (keyof FormValues)[]).some((k) => errors[k] && (FIELD_TAB[k] ?? 0) === index);
               return (
                 <button
@@ -485,12 +534,34 @@ function SanPhamPageContent() {
                   </select>
                 </div>
                 <div className="field">
+                  <label className="label" htmlFor="prod-source">Loại sản phẩm</label>
+                  <select
+                    className="select" id="prod-source" value={values.sourceType} aria-invalid={errors.sourceType ? 'true' : undefined}
+                    onChange={(e) => setField('sourceType', e.target.value as ProductSourceType)}
+                  >
+                    <option value="free">Sản phẩm tự do</option>
+                    <option value="traced">Sản phẩm truy xuất AgriChain</option>
+                  </select>
+                  {errors.sourceType ? (
+                    <p className="field__error">{errors.sourceType}</p>
+                  ) : (
+                    <p className="field__hint">Truy xuất: gắn lô hàng thật của Đơn vị, hiện ngày thu hoạch dự kiến khi chưa có hàng.</p>
+                  )}
+                </div>
+                <div className="field">
                   <label className="label" htmlFor="prod-status">Trạng thái vận hành</label>
                   <select className="select" id="prod-status" value={values.status} onChange={(e) => setField('status', e.target.value as ProductStatus)}>
                     <option value="selling">Mở bán</option>
                     <option value="hidden">Đang ẩn</option>
                   </select>
                 </div>
+                {values.sourceType === 'traced' && (
+                  <label className="tmdt-switch">
+                    <input type="checkbox" role="switch" checked={values.allowPreorder} onChange={(e) => setField('allowPreorder', e.target.checked)} />
+                    <span className="tmdt-switch__track" aria-hidden="true" />
+                    <span className="tmdt-switch__text"><strong>Cho đặt trước khi hết hàng</strong><small>Khách đặt trước, hàng chờ lô Đơn vị trồng/thu hoạch</small></span>
+                  </label>
+                )}
                 <label className="tmdt-switch">
                   <input type="checkbox" role="switch" checked={values.featured} onChange={(e) => setField('featured', e.target.checked)} />
                   <span className="tmdt-switch__track" aria-hidden="true" />
@@ -580,10 +651,24 @@ function SanPhamPageContent() {
                 ))}
               </div>
             </section>
+
+            {/* Tab 4 — Nguồn gốc & lô hàng (chỉ sản phẩm truy xuất) */}
+            {values.sourceType === 'traced' && (
+              <section className="form-section" role="tabpanel" id="prod-panel-3" aria-labelledby="prod-tab-3" hidden={tab !== SOURCE_TAB_INDEX}>
+                {editing ? (
+                  <>
+                    <ProductBatchesPanel productId={editing.id} productUnit={values.unit} onChanged={load} />
+                    <GrowRequestsPanel productId={editing.id} productUnit={values.unit} allowPreorder={editing.allow_preorder} />
+                  </>
+                ) : (
+                  <p className="field__hint">Hãy bấm &ldquo;Tạo nông sản mới&rdquo; để lưu sản phẩm trước, sau đó gắn lô hàng ở bước này.</p>
+                )}
+              </section>
+            )}
           </div>
           <div className="modal__footer">
             <button type="button" className="btn btn--secondary" onClick={modal.close}>Hủy</button>
-            {tab < TABS.length - 1 && (
+            {tab < tabs.length - 1 && (
               <button type="button" className="btn btn--outline" onClick={() => setTab(tab + 1)}>Tiếp theo</button>
             )}
             <button type="submit" className="btn btn--primary" disabled={busy}>{editing ? 'Lưu thay đổi' : 'Tạo nông sản mới'}</button>

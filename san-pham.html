@@ -29,12 +29,12 @@
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #22c55e; border-radius: 8px; }
     </style>
-    <script src="js/api-config.js?v=2"></script>
+    <script src="js/api-config.js?v=3"></script>
     <script src="js/app-config.js?v=2"></script>
     <script src="js/api.js?v=24"></script>
-    <script src="js/agriverse-cart.js?v=3"></script>
-    <script src="js/agriverse-wholesale.js?v=1"></script>
-    <script src="js/agriverse-cart-drawer.js?v=1"></script>
+    <script src="js/agriverse-cart.js?v=4"></script>
+    <script src="js/agriverse-wholesale.js?v=2"></script>
+    <script src="js/agriverse-cart-drawer.js?v=2"></script>
     <script src="js/agriverse-account.js?v=1" defer></script>
 </head>
 <body class="text-slate-800 min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
@@ -155,6 +155,12 @@
                 <input id="b2b-toggle" type="checkbox" class="mt-1 w-5 h-5 accent-amber-500 flex-shrink-0">
             </label>
 
+            <div class="space-y-2">
+                <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Nguồn gốc &amp; tình trạng</h3>
+                <label class="flex items-center gap-2 text-sm cursor-pointer"><input id="filter-traced" type="checkbox" class="w-4 h-4 accent-brand-600">🌱 Truy xuất AgriChain</label>
+                <label class="flex items-center gap-2 text-sm cursor-pointer"><input id="filter-upcoming" type="checkbox" class="w-4 h-4 accent-brand-600">Sắp có hàng (xem ngày thu hoạch)</label>
+            </div>
+
             <div>
                 <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest mb-2">Danh mục sản phẩm</h3>
                 <ul id="category-list" class="space-y-1"></ul>
@@ -236,11 +242,12 @@
         const PAGE_SIZE = 6;
         const B2B_DISCOUNT = 0.08;
 
-        const state = { category: 'all', price: 'all', standards: new Set(), q: '', sort: 'newest', page: 1, b2b: false };
+        const state = { category: 'all', price: 'all', standards: new Set(), q: '', sort: 'newest', page: 1, b2b: false, traced: false, upcoming: false };
 
         // p.catPath = slug danh mục của sản phẩm + các danh mục cha của nó → chọn danh mục cha thì thấy cả sản phẩm của danh mục con
         const inCategory = (p, key) => key === 'all' || p.catPath.includes(key);
         const fmt = n => n.toLocaleString('vi-VN') + ' đ';
+        const fmtDay = iso => String(iso).split('-').reverse().join('/');
         const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
         function getFiltered() {
@@ -250,6 +257,8 @@
                 inCategory(p, state.category) &&
                 p.price >= range.min && p.price < range.max &&
                 Array.from(state.standards).every(k => STANDARDS.find(s => s.key === k).test(p)) &&
+                (!state.traced || p.source === 'traced') &&
+                (!state.upcoming || p.availability === 'upcoming') &&
                 (!q || (p.name + ' ' + p.origin + ' ' + p.brix).toLowerCase().includes(q))
             );
             const sorters = {
@@ -322,6 +331,8 @@
                 grid.innerHTML = slice.map(p => {
                     const cat = CATEGORIES.find(c => c.key === p.category);
                     const inStock = p.stock > 0;
+                    const preorder = !inStock && p.source === 'traced' && p.allowPreorder;
+                    const upcoming = !inStock && !preorder && p.availability === 'upcoming';
                     const b2bPct = p.wholesale ? Math.round((1 - p.wholesale / p.price) * 100) : 0;
                     return `<article class="bg-white rounded-3xl border border-slate-200 overflow-hidden flex flex-col hover:border-brand-500 hover:shadow-xl transition group">
                         <a href="san-pham-chi-tiet.html?slug=${encodeURIComponent(p.slug)}" class="relative h-52 bg-gradient-to-br from-amber-50 to-emerald-50 flex items-center justify-center overflow-hidden" aria-label="Xem chi tiết ${esc(p.name)}">
@@ -329,7 +340,8 @@
                                 ? `<img src="${esc(p.img)}" alt="${esc(p.name)}" loading="lazy" class="h-full w-full object-cover group-hover:scale-105 transition duration-300">`
                                 : `<span class="text-6xl" aria-hidden="true">🌱</span>`}
                             ${state.b2b && p.wholesale ? `<span class="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-amber-500 text-white text-[11px] font-black">B2B SỈ -${b2bPct}%</span>` : ''}
-                            <span class="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-white/90 ${inStock ? 'text-brand-700' : 'text-red-600'} text-[11px] font-bold">${inStock ? 'Còn hàng' : 'Hết hàng'}</span>
+                            <span class="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-white/90 ${inStock ? 'text-brand-700' : (upcoming || preorder) ? 'text-amber-700' : 'text-red-600'} text-[11px] font-bold">${inStock ? 'Còn hàng' : preorder ? 'Nhận đặt trước' : upcoming ? 'Sắp có hàng' : 'Hết hàng'}</span>
+                            ${p.source === 'traced' ? `<span class="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-brand-700/90 text-white text-[11px] font-bold">🌱 Truy xuất AgriChain</span>` : ''}
                         </a>
                         <div class="p-5 flex-1 flex flex-col gap-3">
                             <div>
@@ -339,6 +351,7 @@
                                 ${p.desc ? `<p class="text-xs text-slate-500 mt-1 line-clamp-2">${esc(p.desc)}</p>` : ''}
                                 ${p.brix ? `<p class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-certificate text-amber-500 mr-1"></i>${esc(p.brix)}</p>` : ''}
                             </div>
+                            ${(upcoming || preorder) && p.availDate ? `<div class="text-xs font-semibold text-amber-800 bg-amber-50 rounded-xl px-3 py-2"><i class="fa-regular fa-calendar mr-1"></i>Dự kiến có hàng: ${esc(fmtDay(p.availDate))}${p.upcomingQty ? ` • khoảng ${p.upcomingQty.toLocaleString('vi-VN')} ${esc(p.unit)}` : ''}</div>` : ''}
                             <div class="mt-auto pt-3 border-t border-slate-100 flex items-end justify-between gap-2">
                                 <div>
                                     <div class="text-xs text-slate-400">Giá bán lẻ:</div>
@@ -347,9 +360,11 @@
                                 </div>
                                 ${state.b2b && p.wholesale ? `<span class="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-lg text-right">Giá sỉ: ${fmt(p.wholesale)}<br><span class="font-medium">từ ${p.moq} ${esc(p.unit)}</span></span>` : ''}
                             </div>
-                            <div class="grid ${p.wholesale && inStock ? 'grid-cols-2' : 'grid-cols-1'} gap-2">
-                                <button data-add="${esc(p.id)}" ${inStock ? '' : 'disabled'} class="py-2.5 rounded-2xl bg-brand-700 hover:bg-brand-800 text-white font-bold text-sm transition ${inStock ? '' : 'opacity-40 cursor-not-allowed'}"><i class="fa-solid fa-basket-shopping mr-1"></i>${inStock ? 'Thêm Giỏ' : 'Tạm hết hàng'}</button>
-                                ${p.wholesale && inStock ? `<button data-wholesale="${esc(p.id)}" class="py-2.5 rounded-2xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-sm transition"><i class="fa-solid fa-bolt mr-1"></i>Tính Sỉ</button>` : ''}
+                            <div class="grid ${p.wholesale && (inStock || preorder) ? 'grid-cols-2' : 'grid-cols-1'} gap-2">
+                                ${upcoming
+                                    ? `<a href="san-pham-chi-tiet.html?slug=${encodeURIComponent(p.slug)}" class="py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm text-center transition"><i class="fa-regular fa-bell mr-1"></i>Báo khi có hàng</a>`
+                                    : `<button data-add="${esc(p.id)}" ${(inStock || preorder) ? '' : 'disabled'} class="py-2.5 rounded-2xl bg-brand-700 hover:bg-brand-800 text-white font-bold text-sm transition ${(inStock || preorder) ? '' : 'opacity-40 cursor-not-allowed'}"><i class="fa-solid fa-basket-shopping mr-1"></i>${inStock ? 'Thêm Giỏ' : preorder ? 'Đặt trước' : 'Tạm hết hàng'}</button>`}
+                                ${p.wholesale && (inStock || preorder) ? `<button data-wholesale="${esc(p.id)}" class="py-2.5 rounded-2xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-sm transition"><i class="fa-solid fa-bolt mr-1"></i>Tính Sỉ</button>` : ''}
                             </div>
                         </div>
                     </article>`;
@@ -405,7 +420,7 @@
             if (add) {
                 const prod = PRODUCTS_DATA.find(x => x.id === add.dataset.add);
                 if (prod) {
-                    const result = addToCart(prod.name, prod.price, prod.img, prod.id, prod.wholesale, prod.moq, prod.stock);
+                    const result = addToCart(prod.name, prod.price, prod.img, prod.id, prod.wholesale, prod.moq, prod.stock, prod.source === 'traced' && prod.allowPreorder);
                     showToast(result.limited ? `Đã đạt số lượng tối đa trong kho cho "${prod.name}"` : `Đã thêm "${prod.name}" vào giỏ`);
                 }
             }
@@ -418,6 +433,8 @@
             }
         });
         document.getElementById('b2b-toggle').addEventListener('change', e => { state.b2b = e.target.checked; renderGrid(); });
+        document.getElementById('filter-traced').addEventListener('change', e => { state.traced = e.target.checked; state.page = 1; renderGrid(); });
+        document.getElementById('filter-upcoming').addEventListener('change', e => { state.upcoming = e.target.checked; state.page = 1; renderGrid(); });
         document.getElementById('sort-select').addEventListener('change', e => { state.sort = e.target.value; state.page = 1; renderGrid(); });
         document.getElementById('search-input').addEventListener('input', e => { state.q = e.target.value; state.page = 1; renderGrid(); });
 
@@ -436,8 +453,8 @@
             document.getElementById('cart-count').textContent = cart.totals().lines;
         }
         // `id` = id sản phẩm trên máy chủ — BẮT BUỘC để đặt hàng thật (backend lấy giá theo id, không tin giá client).
-        function addToCart(name, price, img, id, wholesale, moq, stock) {
-            return cart.add({ id, name, price, img, wholesale, moq, stock });
+        function addToCart(name, price, img, id, wholesale, moq, stock, preorder) {
+            return cart.add({ id, name, price, img, wholesale, moq, stock, preorder: !!preorder });
         }
         cart.onChange(updateCartBadge);
         window.addEventListener('load', () => { updateCartBadge(); cart.init(); });
@@ -488,7 +505,8 @@
                     id: p.id, order: prods.length - i, name: p.name, category: p.category_slug || '', catPath: pathOf(p.category_slug),
                     price: p.retail_price, wholesale: p.wholesale_price, moq: p.moq, unit: p.unit, stock: p.stock,
                     origin: p.origin || '', brix: p.standards || '', img: p.thumbnail_url || '', desc: p.summary || p.description || '',
-                    slug: p.slug, ratingAvg: p.rating_avg, ratingCount: p.rating_count || 0
+                    slug: p.slug, ratingAvg: p.rating_avg, ratingCount: p.rating_count || 0,
+                    source: p.source_type, allowPreorder: !!p.allow_preorder, preorder: p.source_type === 'traced' && !!p.allow_preorder, availability: p.availability, upcomingQty: p.upcoming_quantity || 0, availDate: p.expected_available_date || ''
                 }));
                 storeStatus = 'ready';
                 // Đọc ?danh-muc= (từ thẻ danh mục ở agriverse-3d.html); khoá lạ thì rơi về "Tất cả"

@@ -2550,3 +2550,43 @@ dữ liệu TMĐT nào chỉ nằm trong localStorage ngoại trừ **giỏ hàn
 - **SPA**: thêm trang `/tmdt/danh-gia` (Quản lý đánh giá, `app/src/pages/tmdt/DanhGiaPage.tsx`, `api/reviews.ts`) — xem và gỡ đánh giá vi phạm.
 - **Dọn code cũ (CHƯA xoá file)**: `ecommerce.html` đã không còn; còn 7 `thuong-mai-*.html` + 7 `js/thuong-mai-*.js` + `js/ecommerce.js`,
   không trang nào ngoài chính chúng trỏ tới (xác nhận bằng grep) — chờ người dùng tự xoá hoặc cho phép.
+
+## Sản phẩm truy xuất, "sắp có hàng", đề nghị bán hàng (2026-11-16)
+
+Chi tiết nghiệp vụ/ràng buộc ở `agrichain-api/CLAUDE.md` mục cùng tên. Phía frontend:
+
+- **SPA quản trị (platform_admin)** — `/tmdt/san-pham`: ô "Loại sản phẩm" (Tự do / Truy xuất), bộ lọc loại, badge "Truy xuất" + dòng "Sắp có N • dd/mm/yyyy"
+  ở cột tồn kho; sản phẩm truy xuất có **tab thứ 4 "Nguồn gốc & lô hàng"** (`pages/tmdt/ProductBatchesPanel.tsx`): gắn lô của Đơn vị nào cũng được
+  (`api.system.productBatches.*`, chọn từ `api.system.batches` tải hết trang), nhập số lượng theo đơn vị sản phẩm + giá thu về tuỳ chọn, xem trạng thái đề nghị
+  (Chờ Đơn vị xác nhận / Đã đồng ý / Đơn vị từ chối). Tạo sản phẩm truy xuất xong form KHÔNG đóng mà nhảy thẳng sang tab này (`pendingTab` ref).
+- **SPA Đơn vị (business)** — trang mới `/de-nghi-ban-hang` (`pages/de-nghi-ban-hang/`), mục sidebar "Đề nghị bán hàng" (nhóm Hoạt động sản xuất) chỉ hiện với
+  người có quyền `listings.view`; nút phản hồi cần `listings.edit`. Đồng ý (được giảm số lượng) / từ chối / đổi quyết định. Ma trận phân quyền
+  (`pages/tai-khoan/permissionMatrix.ts`) thêm nhóm `listings` ("Bán hàng trên sàn", chỉ 2 ô Xem/Sửa — ô còn lại tự disabled). **`js/tai-khoan.js` (bản tĩnh cũ) CHƯA thêm** —
+  nhóm mới vẫn hiện nhờ nhánh "tiền tố lạ" của nó, chỉ thiếu nhãn/icon đẹp.
+- **Sàn công khai** (`agriverse-3d.html`, `san-pham.html`, `san-pham-chi-tiet.html`): sản phẩm hết tồn mà `availability==='upcoming'` hiện nhãn "Sắp có hàng" + "Dự kiến có hàng:
+  dd/mm/yyyy" và nút "Báo khi có hàng" thay nút thêm giỏ; chip "🌱 Truy xuất AgriChain"; `san-pham.html` có 2 ô lọc mới (Truy xuất / Sắp có hàng, lọc ở client).
+  Trang chi tiết thêm dòng ngày dự kiến, khối "Nguồn gốc & lô hàng" (link `truy-xuat.html?ma=` chỉ khi lô đã thu hoạch) và nút "Báo tôi khi có hàng"
+  (`api.products.notifyStatus/subscribeNotify/unsubscribeNotify` mới ở `js/api.js`; chưa đăng nhập → đá sang `dang-nhap.html?redirect=...`). `js/api.js` đã tăng `?v=25`
+  **chỉ ở `san-pham-chi-tiet.html`** (trang duy nhất gọi hàm mới) — các trang khác còn `?v=24` vẫn chạy bình thường.
+- **Chưa làm**: đặt trước thật, tách đơn theo lô, trang "đơn cần giao" cho Đơn vị (giai đoạn 2); gửi thông báo "báo khi có hàng" (mới lưu đăng ký); badge số đề nghị chờ ở sidebar.
+
+### Đơn cần giao + hai bản sửa lỗi (2026-11-16)
+
+- **Đơn cần giao** — SPA route `/don-can-giao` (`pages/don-can-giao/DonCanGiaoPage.tsx`, mục sidebar cạnh "Đề nghị bán hàng", cùng điều kiện `listings.view`, KHÔNG hiện cho
+  platform_admin): đơn sản phẩm truy xuất được backend chia theo lô, Đơn vị tự giao cho khách rồi bấm "Bắt đầu giao"/"Đã giao xong" (cần `listings.edit`). Chỉ có giá thoả thuận,
+  không có giá bán lẻ/tổng tiền (backend không trả). Chi tiết đơn ở `/tmdt/don-hang` (platform_admin) có thêm mục "Đơn vị giao hàng" (`api.system.orderFulfillments`).
+  API: `api/listings.ts` (`fulfillments`, `systemOrderFulfillments`). Backend xem `agrichain-api/CLAUDE.md` mục "Đơn cần giao".
+- **Lỗi form lồng nhau**: `ProductBatchesPanel` nằm trong form của modal sản phẩm — không được đặt `<form>` bên trong (trình duyệt bỏ form con, nút "Gắn" lưu nhầm cả sản phẩm).
+  Dùng `<div>` + `type="button"` + bắt Enter thủ công.
+- **Gợi ý đăng nhập lệch cookie**: `AuthContext` luôn đối chiếu `agrichain.user` (localStorage) với `GET /auth/me` ngầm (kể cả khi đã có gợi ý) và khi quay lại tab, vì site tĩnh
+  đổi tài khoản không xoá gợi ý của SPA — trước đây giao diện hiện tài khoản cũ còn API chạy bằng cookie tài khoản mới (lỗi "chỉ đọc qua /system/*"). 401 → xoá gợi ý; lỗi mạng → giữ nguyên.
+
+### Đặt trước & yêu cầu trồng (2026-11-16)
+
+- SPA quản trị: ô "Cho đặt trước khi hết hàng" ở tab 1 form sản phẩm truy xuất (`allow_preorder`); tab 4 có thêm `pages/tmdt/GrowRequestsPanel.tsx`
+  (nhu cầu đặt trước đang chờ, danh sách + gửi + huỷ yêu cầu trồng). Phía Đơn vị: `pages/de-nghi-ban-hang/GrowRequestsSection.tsx` (cuối trang
+  "Đề nghị bán hàng", ẩn khi chưa có yêu cầu) — nhận/từ chối, "Gắn lô đã trồng". "Đơn cần giao" hiện nhãn "Đặt trước" + ngày thu hoạch dự kiến.
+  API: `api/listings.ts` (`systemGrowRequests`, `growRequests`).
+- Sàn công khai: sản phẩm `allow_preorder` hết tồn hiện "Nhận đặt trước" + nút "Đặt trước" (thay "Báo khi có hàng"); `js/agriverse-cart.js` thêm cờ
+  `preorder` trên dòng giỏ → không chặn số lượng theo tồn kho (cart.js ?v=4, cart-drawer ?v=2, wholesale ?v=2 ở mọi trang nạp chúng).
+- **Chưa hiện** "Đặt trước" trong lịch sử "Đơn Mua Của Tôi" của khách (backend đã trả `items[].preorder_quantity`).

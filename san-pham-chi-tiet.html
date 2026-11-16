@@ -33,12 +33,12 @@
         .star-pick button.is-on { color: #f59e0b; }
     </style>
 
-    <script src="js/api-config.js?v=2"></script>
+    <script src="js/api-config.js?v=3"></script>
     <script src="js/app-config.js?v=2"></script>
-    <script src="js/api.js?v=24"></script>
-    <script src="js/agriverse-cart.js?v=3"></script>
-    <script src="js/agriverse-cart-drawer.js?v=1"></script>
-    <script src="js/agriverse-wholesale.js?v=1"></script>
+    <script src="js/api.js?v=25"></script>
+    <script src="js/agriverse-cart.js?v=4"></script>
+    <script src="js/agriverse-cart-drawer.js?v=2"></script>
+    <script src="js/agriverse-wholesale.js?v=2"></script>
     <script src="js/agriverse-account.js?v=1" defer></script>
 </head>
 <body class="text-slate-800 min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
@@ -104,6 +104,7 @@
                 <div class="space-y-4">
                     <div>
                         <span id="p-category" class="text-xs font-bold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-md" hidden></span>
+                        <span id="p-traced" class="text-xs font-bold text-white bg-brand-700 px-2.5 py-1 rounded-md" hidden>🌱 Truy xuất AgriChain</span>
                         <h1 id="p-name" class="text-2xl sm:text-3xl font-black text-slate-900 mt-2"></h1>
                         <a href="#reviews" class="flex items-center gap-2 mt-2 text-sm text-slate-500 hover:text-brand-700">
                             <span id="p-stars"></span><span id="p-rating-text"></span>
@@ -118,11 +119,18 @@
 
                     <ul class="text-sm text-slate-600 space-y-1.5">
                         <li><i class="fa-solid fa-box w-5 text-brand-600"></i>Tình trạng: <strong id="p-stock"></strong></li>
+                        <li id="p-upcoming-row" hidden><i class="fa-regular fa-calendar w-5 text-amber-600"></i><span id="p-upcoming-label"></span> <strong id="p-upcoming" class="text-amber-700"></strong></li>
                         <li id="p-origin-row" hidden><i class="fa-solid fa-location-dot w-5 text-brand-600"></i>Xuất xứ: <strong id="p-origin"></strong></li>
                         <li id="p-standards-row" hidden><i class="fa-solid fa-certificate w-5 text-brand-600"></i>Tiêu chuẩn: <strong id="p-standards"></strong></li>
                     </ul>
 
-                    <div class="flex flex-wrap items-center gap-3 pt-2">
+                    <div id="notify-box" class="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-3" hidden>
+                        <p class="text-sm text-amber-900"><i class="fa-regular fa-clock mr-1.5"></i>Sản phẩm này đang trong mùa nuôi trồng, chưa thể đặt mua. Đăng ký để chúng tôi ghi nhận bạn quan tâm khi có hàng.</p>
+                        <button id="notify-btn" type="button" class="py-3 px-5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold transition disabled:opacity-50"><i class="fa-regular fa-bell mr-1.5"></i>Báo tôi khi có hàng</button>
+                        <p id="notify-msg" class="text-sm text-amber-900" role="status" hidden></p>
+                    </div>
+
+                    <div id="buy-row" class="flex flex-wrap items-center gap-3 pt-2">
                         <div class="inline-flex items-center rounded-full border border-slate-300 bg-white">
                             <button id="qty-minus" type="button" class="w-10 h-10 font-bold text-slate-600 hover:text-brand-700" aria-label="Giảm">−</button>
                             <input id="qty" type="number" min="1" value="1" class="w-14 text-center font-mono font-bold text-sm bg-transparent focus:outline-none" aria-label="Số lượng">
@@ -142,6 +150,12 @@
             <section id="p-description-box" class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8" hidden>
                 <h2 class="text-xl font-black text-slate-900 mb-3">Mô tả sản phẩm</h2>
                 <div id="p-description" class="text-slate-600 text-sm leading-relaxed space-y-3"></div>
+            </section>
+
+            <section id="p-sources-box" class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8" hidden>
+                <h2 class="text-xl font-black text-slate-900 mb-1">Nguồn gốc &amp; lô hàng</h2>
+                <p class="text-sm text-slate-500 mb-4">Sản phẩm do AgriChain truy xuất, lấy từ các lô hàng thật của nông trại dưới đây.</p>
+                <ul id="p-sources" class="grid gap-3 sm:grid-cols-2"></ul>
             </section>
 
             <section id="reviews" class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-6 scroll-mt-24">
@@ -192,6 +206,8 @@
                 var d = new Date(iso);
                 return isNaN(d) ? '' : d.toLocaleDateString('vi-VN');
             }
+            // Ngày thuần (YYYY-MM-DD) đổi chuỗi thẳng, không qua Date — tránh lệch múi giờ.
+            function dayText(iso) { return String(iso).split('-').reverse().join('/'); }
 
             cart.onChange(function () { $('cart-count').textContent = cart.totals().lines; });
             $('cart-count').textContent = cart.totals().lines;
@@ -233,18 +249,78 @@
                     $('p-wholesale').innerHTML = '<i class="fa-solid fa-tags mr-1.5"></i>Mua từ <strong>' + p.moq + ' ' + esc(p.unit) + '</strong> chỉ <strong>' + money(p.wholesale_price) + '</strong> / ' + esc(p.unit) + ' (giá sỉ)';
                 }
                 var inStock = p.stock > 0;
-                $('p-stock').textContent = inStock ? 'Còn ' + p.stock.toLocaleString('vi-VN') + ' ' + p.unit : 'Hết hàng';
-                $('p-stock').className = inStock ? 'text-brand-700' : 'text-red-600';
+                var preorderOn = p.source_type === 'traced' && !!p.allow_preorder;
+                $('p-stock').textContent = inStock ? 'Còn ' + p.stock.toLocaleString('vi-VN') + ' ' + p.unit : (preorderOn ? 'Nhận đặt trước' : 'Hết hàng');
+                $('p-stock').className = inStock ? 'text-brand-700' : (preorderOn ? 'text-amber-700' : 'text-red-600');
                 if (p.origin) { $('p-origin').textContent = p.origin; $('p-origin-row').hidden = false; }
                 if (p.standards) { $('p-standards').textContent = p.standards; $('p-standards-row').hidden = false; }
                 if (p.description) {
                     $('p-description-box').hidden = false;
                     $('p-description').innerHTML = p.description.split(/\n\s*\n/).map(function (para) { return '<p>' + esc(para.trim()).replace(/\n/g, '<br>') + '</p>'; }).join('');
                 }
-                $('add-btn').disabled = !inStock;
-                if (!inStock) $('add-btn').textContent = 'Hết hàng';
-                $('wholesale-btn').hidden = !(inStock && p.wholesale_price);
+                $('add-btn').disabled = !inStock && !preorderOn;
+                if (!inStock) $('add-btn').textContent = preorderOn ? 'Đặt trước' : 'Hết hàng';
+                $('wholesale-btn').hidden = !((inStock || preorderOn) && p.wholesale_price);
+                renderTraceability(p, inStock);
                 renderRatingLine(p.rating_avg, p.rating_count);
+            }
+
+            // Sản phẩm truy xuất: chip, ngày dự kiến có hàng, nguồn gốc lô; hết tồn mà sắp thu hoạch → "Báo tôi khi có hàng".
+            function renderTraceability(p, inStock) {
+                $('p-traced').hidden = p.source_type !== 'traced';
+                if (p.upcoming_quantity > 0 && p.expected_available_date) {
+                    $('p-upcoming-label').textContent = inStock ? 'Đợt hàng tiếp theo:' : 'Dự kiến có hàng:';
+                    $('p-upcoming').textContent = dayText(p.expected_available_date) + ' (khoảng ' + p.upcoming_quantity.toLocaleString('vi-VN') + ' ' + p.unit + ')';
+                    $('p-upcoming-row').hidden = false;
+                }
+                var upcoming = !inStock && p.availability === 'upcoming' && !p.allow_preorder;
+                if (upcoming) {
+                    $('p-stock').textContent = 'Sắp có hàng';
+                    $('p-stock').className = 'text-amber-700';
+                    $('buy-row').hidden = true;
+                    $('notify-box').hidden = false;
+                    setupNotify(p);
+                }
+                var sources = p.sources || [];
+                if (sources.length) {
+                    $('p-sources').innerHTML = sources.map(function (s) {
+                        var when = s.traceable ? 'Đã thu hoạch' : 'Thu hoạch dự kiến ' + dayText(s.harvest_date);
+                        return '<li class="rounded-2xl border border-slate-200 p-4 space-y-1 text-sm">' +
+                            '<div class="font-bold text-slate-900"><i class="fa-solid fa-seedling text-brand-600 mr-1.5"></i>' + esc(s.farm_name) + '</div>' +
+                            '<div class="text-slate-500">' + esc(s.organization_name) + ' • ' + esc(s.season_name) + '</div>' +
+                            '<div class="text-slate-600">' + esc(when) + ' • ' + Number(s.quantity).toLocaleString('vi-VN') + ' ' + esc(s.unit) + '</div>' +
+                            (s.traceable ? '<a class="inline-block text-brand-700 font-semibold hover:underline" href="truy-xuat.html?ma=' + encodeURIComponent(s.batch_code) + '"><i class="fa-solid fa-qrcode mr-1"></i>Xem truy xuất lô ' + esc(s.batch_code) + '</a>' : '') +
+                            '</li>';
+                    }).join('');
+                    $('p-sources-box').hidden = false;
+                }
+            }
+
+            // "Báo tôi khi có hàng": cần đăng nhập; hiện mới LƯU đăng ký, chưa gửi thông báo thật.
+            function setupNotify(p) {
+                var btn = $('notify-btn'), msg = $('notify-msg'), subscribed = false;
+                function paint() {
+                    btn.innerHTML = subscribed
+                        ? '<i class="fa-solid fa-bell-slash mr-1.5"></i>Huỷ đăng ký'
+                        : '<i class="fa-regular fa-bell mr-1.5"></i>Báo tôi khi có hàng';
+                    msg.textContent = subscribed ? 'Đã ghi nhận đăng ký của bạn cho sản phẩm này.' : '';
+                    msg.hidden = !subscribed;
+                }
+                paint();
+                if (api.isLoggedIn()) {
+                    api.products.notifyStatus(p.id).then(function (r) { subscribed = !!r.subscribed; paint(); }, function () {});
+                }
+                btn.addEventListener('click', function () {
+                    if (!api.isLoggedIn()) {
+                        location.href = 'dang-nhap.html?redirect=' + encodeURIComponent('san-pham-chi-tiet.html?slug=' + slug);
+                        return;
+                    }
+                    btn.disabled = true;
+                    var call = subscribed ? api.products.unsubscribeNotify(p.id) : api.products.subscribeNotify(p.id);
+                    call.then(function (r) { subscribed = !!r.subscribed; paint(); })
+                        .catch(function (err) { toast((err && err.message) || 'Không thực hiện được, vui lòng thử lại.'); })
+                        .then(function () { btn.disabled = false; });
+                });
             }
 
             function renderRatingLine(avg, count) {
@@ -258,7 +334,7 @@
             }
             function clampQtyInput() {
                 var v = qtyValue();
-                if (product && product.stock > 0) v = Math.min(v, product.stock);
+                if (product && product.stock > 0 && !product.allow_preorder) v = Math.min(v, product.stock);
                 $('qty').value = v;
             }
             $('qty').addEventListener('change', clampQtyInput);
@@ -274,14 +350,14 @@
                 if (!product) return;
                 AgriChain.wholesale.open({
                     id: product.id, name: product.name, price: product.retail_price, wholesale: product.wholesale_price, moq: product.moq,
-                    unit: product.unit, stock: product.stock, img: product.thumbnail_url, origin: product.origin
+                    unit: product.unit, stock: product.stock, preorder: !!product.allow_preorder, img: product.thumbnail_url, origin: product.origin
                 }, showAdded);
             });
             $('add-btn').addEventListener('click', function () {
                 if (!product) return;
                 var result = cart.add({
                     id: product.id, name: product.name, price: product.retail_price, img: product.thumbnail_url,
-                    wholesale: product.wholesale_price, moq: product.moq, stock: product.stock
+                    wholesale: product.wholesale_price, moq: product.moq, stock: product.stock, preorder: !!product.allow_preorder
                 }, qtyValue());
                 showAdded(result);
             });

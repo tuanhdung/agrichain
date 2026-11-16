@@ -720,6 +720,17 @@
     },
     deleteMyReview: function (productId) {
       return request('DELETE', '/products/' + productId + '/reviews/me');
+    },
+    /* "Báo tôi khi có hàng" (sản phẩm hết tồn nhưng sắp thu hoạch) — cần đăng nhập. Hiện mới LƯU đăng ký,
+       chưa gửi thông báo thật. Còn hàng thì POST trả 409. */
+    notifyStatus: function (productId) {
+      return request('GET', '/products/' + productId + '/notify-me');
+    },
+    subscribeNotify: function (productId) {
+      return request('POST', '/products/' + productId + '/notify-me');
+    },
+    unsubscribeNotify: function (productId) {
+      return request('DELETE', '/products/' + productId + '/notify-me');
     }
   };
 

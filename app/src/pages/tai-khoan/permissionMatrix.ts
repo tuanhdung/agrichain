@@ -11,7 +11,7 @@
 // trước dấu "." đầu tiên) để luôn ra đúng 1 mã quyền/ô.
 import type { Permission, PermissionGroup } from '../../api';
 
-export const PREFIX_ORDER = ['batches', 'farms', 'certifications', 'seasons', 'supplies', 'logs', 'workflow_templates', 'roles', 'users'];
+export const PREFIX_ORDER = ['batches', 'farms', 'certifications', 'seasons', 'supplies', 'logs', 'workflow_templates', 'listings', 'roles', 'users'];
 
 export const PREFIX_LABELS: Record<string, string> = {
   batches: 'Lô hàng',
@@ -21,6 +21,7 @@ export const PREFIX_LABELS: Record<string, string> = {
   supplies: 'Vật tư',
   logs: 'Nhật ký',
   workflow_templates: 'Mẫu quy trình',
+  listings: 'Bán hàng trên sàn',
   roles: 'Vai trò',
   users: 'Người dùng'
 };
@@ -35,6 +36,7 @@ export const PREFIX_ICONS: Record<string, string> = {
   supplies: 'box',
   logs: 'file-text',
   workflow_templates: 'workflow',
+  listings: 'shopping-cart',
   roles: 'shield-check',
   users: 'user'
 };

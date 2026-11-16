@@ -15,6 +15,8 @@ export interface OrderItem {
   unit: string;
   unit_price: number;
   quantity: number;
+  /** Phần đặt trước (không lấy từ tồn kho), chờ nguồn hàng từ lô Đơn vị. */
+  preorder_quantity?: number;
 }
 
 export interface OrderEvent {

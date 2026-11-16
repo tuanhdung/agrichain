@@ -41,7 +41,7 @@ afterEach(() => {
 });
 
 describe('AuthProvider — đã có phiên sẵn trong storage', () => {
-  it('không gọi /auth/me, isLoggedIn=true ngay lập tức', () => {
+  it('hiện ngay theo gợi ý, rồi đối chiếu ngầm với máy chủ (GET /auth/me)', async () => {
     saveUser({
       id: 'user-1',
       email: 'san-co@agrichain.vn',
@@ -51,7 +51,13 @@ describe('AuthProvider — đã có phiên sẵn trong storage', () => {
       permissions: ['farms.view'],
       organization_is_distributor: true
     });
-    const fetchMock = vi.fn();
+    const fetchMock = vi.fn().mockResolvedValue(
+      fakeResponse(200, {
+        user: { id: 'user-1', email: 'san-co@agrichain.vn', full_name: 'Sẵn Có', account_type: 'business', organization_id: 'org-1' },
+        permissions: ['farms.view'],
+        organization_is_distributor: true
+      })
+    );
     vi.stubGlobal('fetch', fetchMock);
 
     render(
@@ -60,10 +66,68 @@ describe('AuthProvider — đã có phiên sẵn trong storage', () => {
       </AuthProvider>
     );
 
+    // Không chờ máy chủ: giao diện hiện ngay theo gợi ý.
     expect(screen.getByTestId('bootstrapping').textContent).toBe('false');
     expect(screen.getByTestId('logged-in').textContent).toBe('true');
     expect(screen.getByTestId('email').textContent).toBe('san-co@agrichain.vn');
-    expect(fetchMock).not.toHaveBeenCalled();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+  });
+
+  // Bug thật (2026-11-16): đăng xuất rồi đăng nhập tài khoản KHÁC ở site tĩnh chỉ đổi cookie; gợi ý trong localStorage của SPA
+  // vẫn là tài khoản cũ nên giao diện hiện tài khoản cũ còn API chạy bằng tài khoản mới.
+  it('gợi ý LỆCH cookie thật (đổi tài khoản ở site tĩnh) -> đổi sang tài khoản thật của máy chủ', async () => {
+    saveUser({
+      id: 'user-old',
+      email: 'cu@agrichain.vn',
+      full_name: 'Cũ',
+      account_type: 'business',
+      organization_id: 'org-1',
+      permissions: [],
+      organization_is_distributor: false
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        fakeResponse(200, {
+          user: { id: 'user-new', email: 'moi@agrichain.vn', full_name: 'Mới', account_type: 'platform_admin', organization_id: null },
+          permissions: [],
+          organization_is_distributor: null
+        })
+      )
+    );
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    );
+
+    expect(screen.getByTestId('email').textContent).toBe('cu@agrichain.vn');
+    await waitFor(() => expect(screen.getByTestId('email').textContent).toBe('moi@agrichain.vn'));
+  });
+
+  it('gợi ý còn nhưng cookie hết hạn thật (401) -> bỏ gợi ý, coi như chưa đăng nhập', async () => {
+    saveUser({
+      id: 'user-old',
+      email: 'cu@agrichain.vn',
+      full_name: 'Cũ',
+      account_type: 'business',
+      organization_id: 'org-1',
+      permissions: [],
+      organization_is_distributor: false
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(fakeResponse(401, { error: { code: 'UNAUTHORIZED', message: 'Chưa đăng nhập.' } }))
+    );
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(screen.getByTestId('logged-in').textContent).toBe('false'));
   });
 });
 

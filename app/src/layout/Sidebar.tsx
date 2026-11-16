@@ -25,7 +25,7 @@ interface NavSectionDef {
 }
 
 function useNavSections(): NavSectionDef[] {
-  const { isPlatformAdmin } = useAuth();
+  const { isPlatformAdmin, hasPermission } = useAuth();
 
   return [
     {
@@ -37,7 +37,14 @@ function useNavSections(): NavSectionDef[] {
         { to: '/bao-hiem', icon: 'shield-check', label: 'Bảo hiểm' },
         { to: '/vat-tu', icon: 'box', label: 'Vật tư' },
         { to: '/mau-quy-trinh', icon: 'workflow', label: 'Mẫu quy trình' },
-        { to: '/lo-hang', icon: 'warehouse', label: 'Quản lý lô hàng' }
+        { to: '/lo-hang', icon: 'warehouse', label: 'Quản lý lô hàng' },
+        // Đề nghị bán hàng gửi tới lô của Đơn vị (sản phẩm "truy xuất" trên sàn) — chỉ ai có quyền xem.
+        ...(!isPlatformAdmin && hasPermission('listings.view')
+          ? [
+              { to: '/de-nghi-ban-hang', icon: 'shopping-cart', label: 'Đề nghị bán hàng' } as NavItem,
+              { to: '/don-can-giao', icon: 'truck', label: 'Đơn cần giao' } as NavItem
+            ]
+          : [])
       ]
     },
     {
