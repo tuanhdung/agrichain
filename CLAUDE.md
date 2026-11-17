@@ -2605,3 +2605,12 @@ Backend chưa có SMTP nên kênh báo duy nhất là **thông báo trong web** 
 - **Đơn vị** (SPA `Sidebar.tsx`): badge vàng ở "Đơn cần giao" = `GET /fulfillments/open-count` (chờ giao + đang giao); badge ở "Đề nghị bán hàng" = đề nghị chờ + yêu cầu trồng chờ phản hồi (`api.listings.pendingCount()` + `api.growRequests.pendingCount()` mới, `GET /grow-requests/pending-count`). Tải lại mỗi lần đổi route, mỗi số tải độc lập, lỗi bỏ qua. Đơn vị KHÔNG nhận "thông báo dạng dòng" (SPA chưa có chỗ hiện) — chỉ bộ đếm.
 - **Khách** (`js/agriverse-account.js` hiện sẵn, không đổi): nhận thông báo khi Đơn vị bấm "Bắt đầu giao"/"Đã giao xong" và khi đơn đặt trước vừa có nguồn hàng.
 - **Tiến trình từng dòng hàng** ở "Đơn Mua Của Tôi" (`itemProgressHtml()`, `tai-khoan-khach-hang.html`): chờ nguồn → đã có nguồn (n/tổng) → đang giao → đã giao, kèm "dự kiến thu hoạch dd/mm/yyyy"; đọc `items[].sourced_quantity/shipping_quantity/delivered_quantity/expected_harvest_date` (backend mới). Sản phẩm tự do và đơn đã huỷ không hiện dòng này.
+
+## Nâng cấp thư viện SPA vá lỗ hổng (2026-10-12, nhánh `security/upgrade-deps`)
+
+`npm audit` báo 3 lỗ hổng: `react-router`/`react-router-dom` 6.x (open redirect qua dấu `\` trong `<Link>`/`useNavigate`;
+lỗi `deserializeErrors` chỉ ảnh hưởng SSR nên SPA này không dính) và `source-map-js` (DoS, chỉ ở công cụ build). Đã nâng
+`react-router-dom` 6 → **7.18.4** (bản vá duy nhất, nhảy major) và chạy `npm audit fix` cho `source-map-js`; sau đó
+`npm audit` báo 0 lỗ hổng, `tsc` sạch, 70 test qua, `npm run build` qua. **CHƯA kiểm tra bằng tay trên trình duyệt** —
+cần bấm thử sidebar (NavLink), chuyển trang, đăng nhập/đăng xuất và trang chi tiết nông trại trước khi merge, vì đổi major
+của router có thể lệch hành vi mà test tự động không bắt được.
