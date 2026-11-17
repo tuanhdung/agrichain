@@ -9,6 +9,8 @@ import { NongTraiPage } from './pages/nong-trai/NongTraiPage';
 import { NongTraiChiTietPage } from './pages/nong-trai-chi-tiet/NongTraiChiTietPage';
 import { TaiKhoanPage } from './pages/tai-khoan/TaiKhoanPage';
 import { LoHangPage } from './pages/lo-hang/LoHangPage';
+import { DeNghiBanHangPage } from './pages/de-nghi-ban-hang/DeNghiBanHangPage';
+import { DonCanGiaoPage } from './pages/don-can-giao/DonCanGiaoPage';
 import { HoSoPage } from './pages/ho-so/HoSoPage';
 import { GoiPhanMemPage } from './pages/goi-phan-mem/GoiPhanMemPage';
 import { LichSuMuaGoiPage } from './pages/lich-su-mua-goi/LichSuMuaGoiPage';
@@ -107,6 +109,26 @@ export default function App() {
           <ProtectedRoute>
             <AppShell>
               <LoHangPage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/de-nghi-ban-hang"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <DeNghiBanHangPage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/don-can-giao"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <DonCanGiaoPage />
             </AppShell>
           </ProtectedRoute>
         }

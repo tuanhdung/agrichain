@@ -43,6 +43,47 @@
     "tagline": null,
     "logo_url": null
   },
+  "export_dossier": {
+    "consignment": {
+      "lot_no": "NY-CF-2026-0142",
+      "product": "Cà phê Arabica Cầu Đất",
+      "containers": [
+        { "no": "TEMU6234510", "weight_kg": 19200 },
+        { "no": "MSCU8841207", "weight_kg": 19200 }
+      ],
+      "bags": 320,
+      "bag_weight_kg": 60
+    },
+    "origin": {
+      "planting_area_code": "VN-LD-PUC-0142",
+      "packing_facility_code": "VN-LD-PK-0142",
+      "tax_code": "0319521487"
+    },
+    "documents": [
+      { "title": "Vận đơn (B/L)", "no": "SGNCB260142", "date": "2026-09-28" },
+      { "title": "Hóa đơn thương mại (Invoice)", "no": "INV-NY-2026-0142", "date": "2026-09-25" },
+      { "title": "Phiếu đóng gói (Packing List)", "no": "PL-NY-2026-0142", "date": "2026-09-25" }
+    ],
+    "authorities": [
+      { "title": "Hải quan", "rows": [
+        ["Số tờ khai xuất khẩu", "305482617340"],
+        ["Ngày thông quan", "2026-10-02"]
+      ] },
+      { "title": "Bộ Nông nghiệp và Môi trường", "rows": [
+        ["Số giấy kiểm dịch thực vật", "0123456/KDTT-BNNMT"],
+        ["Mã vùng trồng", "VN-LD-PUC-0142"],
+        ["Mã cơ sở đóng gói", "VN-LD-PK-0142"]
+      ] },
+      { "title": "Bộ Công Thương", "rows": [
+        ["Số C/O", "VN-EU-2026-01428"]
+      ] }
+    ],
+    "seal": {
+      "sha256": "00c6ed7ee6832d41b5d42969e91c62b8c1b8988ae834ea437f7b6abb357dd70b",
+      "sealed_at": "2026-10-05T04:52:21Z",
+      "status": "Đủ hồ sơ, đã khóa lô – không chỉnh sửa được"
+    }
+  },
   "certifications": [
     { "name": "VietGAP", "issuer": "Trung tâm Chất lượng Nông lâm thuỷ sản Vùng 3" },
     { "name": "GlobalGAP", "issuer": "TÜV Rheinland Việt Nam" }

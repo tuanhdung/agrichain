@@ -1,0 +1,22 @@
+# Môi trường DEV cho SPA (app/, Vite, cổng 5173). Cùng với agrichain-api/docker-compose.yml:
+# mở Docker Desktop là SPA tự lên. Lần đầu chạy 1 lần: `docker compose up -d` trong thư mục này.
+# Site tĩnh (gốc repo) vẫn chạy bằng Go Live (cổng 5500).
+services:
+  spa:
+    image: node:22-slim
+    container_name: agrichain-spa
+    restart: unless-stopped
+    # Mount CẢ repo vì Vite đọc ../css, ../icons (staticSiteRoot trong vite.config.ts)
+    working_dir: /workspace/app
+    volumes:
+      - .:/workspace
+      # node_modules riêng của Linux — không dùng bản Windows (binary esbuild/rollup khác hệ)
+      - spa_node_modules:/workspace/app/node_modules
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+    command: ["sh", "-c", "npm install && npm run dev"]
+    ports:
+      - "5173:5173"
+
+volumes:
+  spa_node_modules:

@@ -60,7 +60,12 @@ describe('ProtectedRoute — có phiên', () => {
       permissions: [],
       organization_is_distributor: false
     });
-    vi.stubGlobal('fetch', vi.fn());
+    // Gợi ý còn trong storage vẫn được đối chiếu NGẦM với máy chủ (GET /auth/me) — khớp thì không đổi gì.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(fakeResponse(200, {
+  user: { id: 'user-1', email: 'a@b.com', full_name: 'A', account_type: 'business', organization_id: 'org-1' },
+  permissions: [],
+  organization_is_distributor: false
+})));
 
     renderProtected();
 
@@ -170,7 +175,17 @@ describe('ProtectedRoute — đăng xuất từ bên trong (race condition đã 
       permissions: [],
       organization_is_distributor: false
     });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(fakeResponse(200, { message: 'Đã đăng xuất.' })));
+    // /auth/me (đối chiếu ngầm lúc mount) trả đúng user; mọi lời gọi khác (logout) trả 200 trơn.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) =>
+        Promise.resolve(url.includes('/auth/me') ? fakeResponse(200, {
+  user: { id: 'user-1', email: 'a@b.com', full_name: 'A', account_type: 'business', organization_id: 'org-1' },
+  permissions: [],
+  organization_is_distributor: false
+}) : fakeResponse(200, { message: 'Đã đăng xuất.' }))
+      )
+    );
 
     render(
       <AuthProvider>

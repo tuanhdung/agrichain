@@ -15,6 +15,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { api } from '../api';
 import { mainSiteUrl } from '../api/config';
 import type { User } from '../api';
+import { clearSession } from '../api/session';
 
 interface AuthContextValue {
   user: User | null;
@@ -76,17 +77,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // bootstrapAttempt — nếu origin này VỐN ĐÃ có user, bỏ qua hẳn lượt đầu
   // tiên, không gọi API thừa (nhưng retryBootstrap() vẫn chạy lại được nếu
   // người dùng chủ động bấm "Thử lại" sau 1 lỗi mạng).
+  //
+  // ⚠️ Origin này ĐÃ có "gợi ý" user (localStorage) vẫn PHẢI đối chiếu lại với máy chủ, chỉ là chạy NGẦM (không chặn giao
+  // diện): gợi ý không phải xác thực, và có thể LỆCH cookie thật — bug thật đã gặp: đăng xuất rồi đăng nhập tài khoản khác ở
+  // site tĩnh (origin khác) chỉ đổi cookie dùng chung, localStorage của SPA vẫn giữ tài khoản CŨ → sidebar hiện tài khoản
+  // cũ trong khi mọi lời gọi API (theo cookie) là tài khoản mới (403 "tài khoản Quản trị hệ thống chỉ đọc qua /system/*").
   useEffect(() => {
-    if (bootstrapAttempt === 0 && api.getUser()) return;
+    const hadHint = bootstrapAttempt === 0 && !!api.getUser();
     let cancelled = false;
     api.auth
       .bootstrapFromCookie()
       .then((bootstrapped) => {
         if (cancelled) return;
+        if (!bootstrapped && hadHint) clearSession(); // gợi ý cũ nhưng cookie không còn hợp lệ → bỏ gợi ý
         setUser(bootstrapped);
       })
       .catch((err: unknown) => {
-        if (cancelled) return;
+        if (cancelled || hadHint) return; // mất mạng khi chỉ đối chiếu ngầm: giữ nguyên giao diện, không chặn
         setBootstrapError(err instanceof Error ? err : new Error('Không dò được phiên đăng nhập.'));
       })
       .finally(() => {
@@ -113,11 +120,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     function onPageShow(event: PageTransitionEvent) {
       if (event.persisted) refreshFromStorage();
     }
+    // Đổi tài khoản ở tab/origin KHÁC (site tĩnh) chỉ đổi cookie, không bắn 'storage' của SPA — quay lại tab này thì
+    // đối chiếu lại với máy chủ (giãn 5s để chuyển tab liên tục không gọi API dồn dập).
+    let lastCheck = Date.now();
+    function onVisible() {
+      if (document.visibilityState !== 'visible' || Date.now() - lastCheck < 5000) return;
+      lastCheck = Date.now();
+      api.auth
+        .bootstrapFromCookie()
+        .then((fresh) => {
+          if (!fresh) clearSession();
+          setUser(fresh);
+        })
+        .catch(() => undefined);
+    }
     window.addEventListener('storage', onStorage);
     window.addEventListener('pageshow', onPageShow);
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       window.removeEventListener('storage', onStorage);
       window.removeEventListener('pageshow', onPageShow);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [refreshFromStorage]);
 

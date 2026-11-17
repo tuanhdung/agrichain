@@ -144,3 +144,10 @@
 .tmdt-stars { display: inline-flex; gap: 2px; }
 .tmdt-star { color: var(--color-border); }
 .tmdt-star--on { color: var(--color-warning); fill: currentColor; }
+
+/* Tab "Nguồn gốc & lô hàng" của form sản phẩm (ProductBatchesPanel.tsx) + nhãn nguồn/tình trạng ở danh sách. */
+.tmdt-links { display: grid; gap: var(--space-5); }
+.tmdt-links__add { display: grid; gap: var(--space-3); border-top: 1px solid var(--color-border); padding-top: var(--space-5); }
+.tmdt-links__title { font-size: var(--text-lg); font-weight: 700; }
+.tmdt-links .table__actions .input { min-width: 0; }
+.tmdt-avail { display: block; margin-top: var(--space-1); font-size: var(--text-sm); color: var(--color-text-muted); }

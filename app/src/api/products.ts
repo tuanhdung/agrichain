@@ -5,6 +5,10 @@ import { request } from './http';
 import type { Page } from './types';
 
 export type ProductStatus = 'selling' | 'hidden';
+/** `free` = sản phẩm tự do; `traced` = sản phẩm do AgriChain truy xuất (gắn lô hàng thật). */
+export type ProductSourceType = 'free' | 'traced';
+/** Suy ra từ tồn kho + lô sắp thu hoạch: còn hàng / sắp có hàng (chưa đặt được) / hết hàng. */
+export type ProductAvailability = 'in_stock' | 'upcoming' | 'out_of_stock';
 
 /** Một dòng trong danh sách — KHÔNG có `banner_url` (chỉ endpoint chi tiết mới có). */
 export interface ProductListItem {
@@ -28,13 +32,39 @@ export interface ProductListItem {
   summary: string | null;
   description: string | null;
   thumbnail_url: string | null;
+  source_type: ProductSourceType;
+  /** Cho khách đặt trước khi hết tồn kho (sản phẩm truy xuất). */
+  allow_preorder: boolean;
+  availability: ProductAvailability;
+  /** Tổng số lượng (theo `unit`) các lô đang trồng mà Đơn vị đã đồng ý bán. */
+  upcoming_quantity: number;
+  /** Ngày thu hoạch dự kiến sớm nhất của các lô sắp có hàng (YYYY-MM-DD). */
+  expected_available_date: string | null;
+  rating_avg?: number | null;
+  rating_count?: number;
   // Chỉ có ở /system/products:
   created_at?: string;
   updated_at?: string;
 }
 
+/** Một lô đã được Đơn vị đồng ý — nguồn gốc CÔNG KHAI của sản phẩm truy xuất (không có giá thu về). */
+export interface ProductSource {
+  quantity: number;
+  unit: string;
+  batch_code: string;
+  batch_status: string;
+  harvest_date: string;
+  farm_name: string;
+  season_name: string;
+  organization_name: string;
+  /** Lô đã thu hoạch — mở được truy-xuat.html?ma=<batch_code>. */
+  traceable: boolean;
+}
+
 export interface Product extends ProductListItem {
   banner_url: string | null;
+  /** Chỉ có ở `GET /products/by-slug/{slug}`. */
+  sources?: ProductSource[];
 }
 
 export interface ProductPayload {
@@ -57,6 +87,8 @@ export interface ProductPayload {
   description?: string | null;
   thumbnail_url?: string | null;
   banner_url?: string | null;
+  source_type?: ProductSourceType;
+  allow_preorder?: boolean;
 }
 
 export type ProductUpdatePayload = Partial<ProductPayload>;
@@ -68,6 +100,9 @@ export interface ProductListParams {
   category_id?: string;
   status?: ProductStatus;
   featured?: boolean;
+  source_type?: ProductSourceType;
+  /** Chỉ route công khai: `in_stock` còn hàng; `upcoming` hết tồn nhưng sắp thu hoạch. */
+  availability?: 'in_stock' | 'upcoming';
   page?: number;
   page_size?: number;
   [key: string]: unknown;

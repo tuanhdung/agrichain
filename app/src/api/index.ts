@@ -14,6 +14,7 @@ import { logs } from './logs';
 import { system } from './system';
 import { categories } from './categories';
 import { products } from './products';
+import { fulfillments, growRequests, listings } from './listings';
 import { users } from './users';
 import { roles } from './roles';
 import { permissions } from './permissions';
@@ -41,6 +42,9 @@ export const api = {
   system,
   categories,
   products,
+  listings,
+  fulfillments,
+  growRequests,
   users,
   roles,
   permissions,
@@ -77,7 +81,35 @@ export type { OrgUser, UserCreatePayload, UserUpdatePayload, UserListParams, Tra
 export type { Role, RoleCreatePayload, RoleUpdatePayload } from './roles';
 export type { Permission, PermissionGroup } from './permissions';
 export type { Category, CategoryType, CategoryPayload, CategoryUpdatePayload, CategoryListParams } from './categories';
-export type { Product, ProductListItem, ProductStatus, ProductPayload, ProductUpdatePayload, ProductListParams } from './products';
+export type {
+  Product,
+  ProductListItem,
+  ProductStatus,
+  ProductSourceType,
+  ProductAvailability,
+  ProductSource,
+  ProductPayload,
+  ProductUpdatePayload,
+  ProductListParams
+} from './products';
+export type {
+  Listing,
+  ListingStatus,
+  ListingListParams,
+  ListingRespondPayload,
+  Fulfillment,
+  FulfillmentStatus,
+  FulfillmentListParams,
+  GrowRequest,
+  GrowRequestStatus,
+  GrowRequestCreatePayload,
+  PreorderDemand,
+  OrganizationOption,
+  OrderFulfillment,
+  ProductBatchLink,
+  ProductBatchCreatePayload,
+  ProductBatchUpdatePayload
+} from './listings';
 export type {
   AdminOrder,
   OrderItem,

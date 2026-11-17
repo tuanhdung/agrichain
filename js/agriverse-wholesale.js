@@ -23,7 +23,7 @@
   function $(id) { return document.getElementById(id); }
 
   function maxQty() {
-    return current.stock != null && current.stock > 0 ? Math.min(10000, current.stock) : 10000;
+    return !current.preorder && current.stock != null && current.stock > 0 ? Math.min(10000, current.stock) : 10000;
   }
 
   function build() {
@@ -141,7 +141,7 @@
     var cart = AgriChain.cart;
     if (!cart || !current) return;
     var p = current;
-    var result = cart.add({ id: p.id, name: p.name, price: p.price, img: p.img, wholesale: p.wholesale, moq: p.moq, stock: p.stock }, qty);
+    var result = cart.add({ id: p.id, name: p.name, price: p.price, img: p.img, wholesale: p.wholesale, moq: p.moq, stock: p.stock, preorder: p.preorder }, qty);
     close();
     if (typeof onAdded === 'function') onAdded(result, p, qty);
   }
@@ -153,7 +153,7 @@
       id: product.id, name: product.name, price: Number(product.price) || 0,
       wholesale: product.wholesale ? Number(product.wholesale) : null,
       moq: Math.max(1, Number(product.moq) || 1), unit: product.unit || '',
-      stock: product.stock == null ? null : Number(product.stock), img: product.img || '', origin: product.origin || ''
+      stock: product.stock == null ? null : Number(product.stock), preorder: !!product.preorder, img: product.img || '', origin: product.origin || ''
     };
     onAdded = callback || null;
     $('ws-name').textContent = current.name;

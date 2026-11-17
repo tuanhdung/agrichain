@@ -367,7 +367,19 @@
         card.appendChild(el('p', 'qr-timeline__desc', log.description));
       }
 
+      if (log.supplies && log.supplies.length) {
+        card.appendChild(el('p', 'qr-timeline__sub', 'Sử dụng vật tư'));
+        var supplyWrap = el('div', 'qr-timeline__supplies');
+        log.supplies.forEach(function (s) {
+          var text = s.name + ' - ' + formatVi(s.quantity) + ' ' + (s.unit || '') +
+            (s.method ? ' (' + s.method + ')' : '');
+          supplyWrap.appendChild(el('span', 'badge badge--neutral', text));
+        });
+        card.appendChild(supplyWrap);
+      }
+
       if (log.images && log.images.length) {
+        card.appendChild(el('p', 'qr-timeline__sub', 'Hình ảnh hiện trường (' + log.images.length + ')'));
         var imagesWrap = el('div', 'qr-timeline__images');
         log.images.forEach(function (image) {
           // Bọc trong <button> (thay vì <img> trần) — bấm mở lightbox phóng
@@ -515,6 +527,116 @@
     });
   }
 
+  /* --- Hồ sơ lô hàng xuất khẩu ----------------------------------------------
+     Trường TUỲ CHỌN `export_dossier` trong response (xem
+     data/public-batch-mock.json để biết khuôn). Không có (lô hàng nội địa,
+     hoặc backend chưa trả) thì ẩn cả khối. Mọi giá trị gán qua textContent. */
+  function formatVi(n) {
+    return Number(n).toLocaleString('vi-VN');
+  }
+
+  function exportRow(label, value, extraClass) {
+    var row = el('div', 'qr-export__row');
+    row.appendChild(el('span', 'qr-export__label', label));
+    row.appendChild(el('span', 'qr-export__value' + (extraClass ? ' ' + extraClass : ''), value));
+    return row;
+  }
+
+  function exportCard(number, title) {
+    var card = el('div', 'card qr-export__card');
+    var head = el('p', 'qr-export__card-title');
+    head.appendChild(el('span', 'qr-export__num', String(number)));
+    head.appendChild(el('span', null, title));
+    card.appendChild(head);
+    return card;
+  }
+
+  function renderExportDossier(dossier) {
+    var section = document.querySelector('[data-export-dossier]');
+    var cards = document.querySelector('[data-export-cards]');
+    if (!section || !cards) return;
+    if (!dossier) {
+      section.hidden = true;
+      return;
+    }
+    cards.textContent = '';
+    var c = dossier.consignment || {};
+    var o = dossier.origin || {};
+    var seal = dossier.seal;
+    var n = 0;
+
+    fillField('[data-export-lot]', c.lot_no ? 'Lô ' + c.lot_no : '');
+
+    // 1. Thông tin lô hàng
+    var card1 = exportCard(++n, 'Thông tin lô hàng');
+    var containers = c.containers || [];
+    card1.appendChild(exportRow('Số lô', c.lot_no || '—'));
+    card1.appendChild(exportRow('Mặt hàng', c.product || '—'));
+    card1.appendChild(exportRow('Danh sách số container',
+      containers.map(function (x) { return x.no; }).join(', ') || '—'));
+    card1.appendChild(exportRow('Khối lượng từng container',
+      containers.map(function (x) { return x.no + ': ' + formatVi(x.weight_kg) + ' kg'; }).join('; ') || '—'));
+    var total = containers.reduce(function (sum, x) { return sum + (Number(x.weight_kg) || 0); }, 0);
+    var totalText = total ? formatVi(total) + ' kg' : '—';
+    if (c.bags && c.bag_weight_kg) totalText += ' (' + formatVi(c.bags) + ' bao × ' + formatVi(c.bag_weight_kg) + ' kg)';
+    card1.appendChild(exportRow('Tổng khối lượng', totalText));
+    card1.appendChild(el('p', 'qr-export__note',
+      '🔒 Phần này được khóa bằng blockchain: thêm hay bớt 1 container là dấu vân tay không còn khớp.'));
+    cards.appendChild(card1);
+
+    // 2. Mã nguồn gốc
+    var card2 = exportCard(++n, 'Mã nguồn gốc');
+    card2.appendChild(exportRow('Mã số vùng trồng', o.planting_area_code || '—'));
+    card2.appendChild(exportRow('Mã số cơ sở đóng gói', o.packing_facility_code || '—'));
+    card2.appendChild(exportRow('Mã số thuế doanh nghiệp', o.tax_code || '—'));
+    cards.appendChild(card2);
+
+    // 3. Chứng từ xuất nhập khẩu
+    var docs = dossier.documents || [];
+    if (docs.length) {
+      var card3 = exportCard(++n, 'Chứng từ xuất nhập khẩu');
+      docs.forEach(function (d) {
+        card3.appendChild(el('p', 'qr-export__group', d.title));
+        card3.appendChild(exportRow('Số hiệu', d.no || '—'));
+        card3.appendChild(exportRow('Ngày', formatDate(d.date)));
+      });
+      cards.appendChild(card3);
+    }
+
+    // 4. Chứng từ do cơ quan nhà nước cấp
+    var auths = dossier.authorities || [];
+    if (auths.length) {
+      var card4 = exportCard(++n, 'Chứng từ do cơ quan nhà nước cấp');
+      auths.forEach(function (a) {
+        card4.appendChild(el('p', 'qr-export__group', a.title));
+        (a.rows || []).forEach(function (r) {
+          // Giá trị dạng ngày ISO thì định dạng lại dd/mm/yyyy, còn lại giữ nguyên.
+          var isDate = /^\d{4}-\d{2}-\d{2}/.test(r[1]);
+          card4.appendChild(exportRow(r[0], isDate ? formatDate(r[1]) : r[1]));
+        });
+      });
+      cards.appendChild(card4);
+    }
+
+    // 5. Dấu xác thực blockchain của hồ sơ
+    if (seal) {
+      var card5 = exportCard(++n, 'Dấu xác thực blockchain');
+      card5.appendChild(exportRow('Mã băm (SHA-256)', seal.sha256 || '—', 'qr-export__hash'));
+      if (seal.sealed_at) {
+        var d = new Date(seal.sealed_at);
+        var stamp = isNaN(d) ? seal.sealed_at : d.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) + ' (UTC+7)';
+        card5.appendChild(exportRow('Thời điểm ghi', stamp));
+      }
+      var statusRow = el('div', 'qr-export__row');
+      statusRow.appendChild(el('span', 'qr-export__label', 'Trạng thái'));
+      statusRow.appendChild(el('span', 'badge badge--success', seal.status || 'Đã khóa lô'));
+      card5.appendChild(statusRow);
+      cards.appendChild(card5);
+    }
+
+    section.hidden = false;
+  }
+
   function showBatch(data) {
     loadingNode.hidden = true;
     notFoundNode.hidden = true;
@@ -527,6 +649,7 @@
     renderBatchId(data.batch);
     renderVerification(data.batch);
     renderTimeline(data.logs);
+    renderExportDossier(data.export_dossier);
     setupCopyButtons(data);
     setupShareButtons(data);
   }

@@ -80,15 +80,15 @@
          chạy — xem <script> cuối trang. Trang này vẫn KHÔNG gọi requireAuth()/
          requireBusiness() — đúng ý, đây là trang công khai, khách 'customer'
          phải vào được. -->
-    <script src="js/api-config.js?v=2"></script>
+    <script src="js/api-config.js?v=3"></script>
     <!-- Cần AgriChain.APP_SPA_URL cho mục "Khu Quản Lý" (data-app-link bên
          dưới) — trỏ sang SPA thay vì nong-trai.html (đã xoá, xem CLAUDE.md
          gốc mục "Kết nối backend"). -->
     <script src="js/app-config.js?v=2"></script>
-    <script src="js/api.js?v=24"></script>
-    <script src="js/agriverse-cart.js?v=3"></script>
-    <script src="js/agriverse-wholesale.js?v=1"></script>
-    <script src="js/agriverse-account.js?v=1" defer></script>
+    <script src="js/api.js?v=26"></script>
+    <script src="js/agriverse-cart.js?v=4"></script>
+    <script src="js/agriverse-wholesale.js?v=2"></script>
+    <script src="js/agriverse-account.js?v=2" defer></script>
 </head>
 <body class="text-slate-800 bg-[#fbfbfa] min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
 
@@ -188,11 +188,11 @@
 
                     <!-- Updated Title theo ảnh mẫu -->
                     <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black leading-tight tracking-tight">
-                        Trải Nghiệm <span class="bg-gradient-to-r from-amber-400 via-emerald-300 to-teal-200 bg-clip-text text-transparent">Sàn Nông Sản 3D</span>
+                        Trải Nghiệm <span class="bg-gradient-to-r from-amber-400 via-emerald-300 to-teal-200 bg-clip-text text-transparent">Nông Sản Xanh Sạch</span>
                     </h1>
 
                     <p class="text-slate-300 text-base sm:text-lg max-w-xl mx-auto lg:mx-0 leading-relaxed font-light">
-                        Khám phá không gian gian hàng ảo 3D sinh động, tương tác trực tiếp với nông sản và quét mã QR kiểm tra nhật ký canh tác bất biến trên Blockchain.
+                        Khám phá nông sản tươi sạch từ nhà vườn uy tín, quét mã QR để xem toàn bộ nhật ký canh tác minh bạch, bất biến trên Blockchain.
                     </p>
 
                     <!-- Feature Highlights: Blockchain / IoT Sensors / AI Agent -->
@@ -232,7 +232,7 @@
                 <div class="lg:col-span-5">
                     <div class="w-full max-w-md mx-auto lg:max-w-none lg:mx-0">
                         <div id="agriverse-video-frame" class="relative w-full aspect-[16/10] rounded-3xl overflow-hidden bg-slate-950 border-2 border-emerald-500/40 shadow-2xl cursor-pointer group" onclick="loadAgriverseVideo()">
-                            <img src="https://img.youtube.com/vi/5dK7Ek3KkU8/maxresdefault.jpg" alt="Video giới thiệu AgriVerse - Sàn nông sản 3D" class="w-full h-full object-cover opacity-70 group-hover:opacity-90 transition" />
+                            <img src="https://img.youtube.com/vi/5dK7Ek3KkU8/maxresdefault.jpg" alt="Video giới thiệu AgriVerse - Sàn nông sản xanh" class="w-full h-full object-cover opacity-70 group-hover:opacity-90 transition" />
                             <div class="absolute inset-0 flex items-center justify-center">
                                 <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-emerald-500/90 group-hover:bg-emerald-400 flex items-center justify-center shadow-xl transition transform group-hover:scale-110" role="button" aria-label="Phát video giới thiệu AgriVerse">
                                     <i class="fa-solid fa-play text-white text-xl sm:text-2xl ml-1"></i>
@@ -490,6 +490,8 @@
 
             filtered.forEach(p => {
                 const inStock = p.stock > 0;
+                const preorder = !inStock && !!p.preorder;
+                const upcoming = !inStock && !preorder && p.availability === 'upcoming';
                 const card = document.createElement('div');
                 card.className = "bg-white rounded-3xl border border-slate-200 p-5 space-y-4 hover:border-brand-500 hover:shadow-xl transition flex flex-col justify-between group";
 
@@ -499,7 +501,8 @@
                             ${p.img
                                 ? `<img src="${escHtml(p.img)}" alt="${escHtml(p.name)}" loading="lazy" class="h-44 object-contain group-hover:scale-105 transition duration-300">`
                                 : `<span class="text-6xl" aria-hidden="true">🌱</span>`}
-                            <span class="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-white/90 ${inStock ? 'text-brand-700' : 'text-red-600'} text-[11px] font-bold">${inStock ? 'Còn hàng' : 'Hết hàng'}</span>
+                            <span class="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-white/90 ${inStock ? 'text-brand-700' : (upcoming || preorder) ? 'text-amber-700' : 'text-red-600'} text-[11px] font-bold">${inStock ? 'Còn hàng' : preorder ? 'Nhận đặt trước' : upcoming ? 'Sắp có hàng' : 'Hết hàng'}</span>
+                            ${p.source === 'traced' ? `<span class="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-brand-700/90 text-white text-[11px] font-bold">🌱 Truy xuất AgriChain</span>` : ''}
                         </a>
 
                         <div>
@@ -508,6 +511,7 @@
                             ${ratingLine(p.ratingAvg, p.ratingCount)}
                             <p class="text-xs text-slate-500 mt-0.5">${p.origin ? escHtml(p.origin) : ''}${p.origin && p.standards ? ' • ' : ''}${p.standards ? escHtml(p.standards) : ''}</p>
                             ${p.summary ? `<p class="text-xs text-slate-500 mt-1 line-clamp-2">${escHtml(p.summary)}</p>` : ''}
+                            ${(upcoming || preorder) && p.availDate ? `<p class="text-xs font-semibold text-amber-800 bg-amber-50 rounded-xl px-3 py-2 mt-2"><i class="fa-regular fa-calendar mr-1"></i>Dự kiến có hàng: ${escHtml(p.availDate.split('-').reverse().join('/'))}</p>` : ''}
                         </div>
                     </div>
 
@@ -517,10 +521,12 @@
                             <span class="text-xs text-slate-400">/ ${escHtml(p.unit)}</span>
                         </div>
                         <div class="flex items-center gap-2">
-                        ${p.wholesale && inStock ? `<button data-wholesale-id="${escHtml(p.id)}" class="h-10 px-3 rounded-2xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold transition" title="Tính giá sỉ"><i class="fa-solid fa-bolt mr-1"></i>Tính Sỉ</button>` : ''}
-                        <button data-add-id="${escHtml(p.id)}" ${inStock ? '' : 'disabled'} class="w-10 h-10 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white flex items-center justify-center shadow-md shadow-brand-600/30 transition ${inStock ? '' : 'opacity-40 cursor-not-allowed'}" title="${inStock ? 'Thêm vào giỏ' : 'Tạm hết hàng'}">
+                        ${p.wholesale && (inStock || preorder) ? `<button data-wholesale-id="${escHtml(p.id)}" class="h-10 px-3 rounded-2xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold transition" title="Tính giá sỉ"><i class="fa-solid fa-bolt mr-1"></i>Tính Sỉ</button>` : ''}
+                        ${upcoming
+                            ? `<a href="san-pham-chi-tiet.html?slug=${encodeURIComponent(p.slug)}" class="h-10 px-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold flex items-center transition" title="Xem chi tiết và đăng ký báo khi có hàng"><i class="fa-regular fa-bell mr-1"></i>Báo khi có hàng</a>`
+                            : `<button data-add-id="${escHtml(p.id)}" ${(inStock || preorder) ? '' : 'disabled'} class="w-10 h-10 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white flex items-center justify-center shadow-md shadow-brand-600/30 transition ${(inStock || preorder) ? '' : 'opacity-40 cursor-not-allowed'}" title="${inStock ? 'Thêm vào giỏ' : preorder ? 'Đặt trước' : 'Tạm hết hàng'}">
                             <i class="fa-solid fa-plus text-base"></i>
-                        </button>
+                        </button>`}
                         </div>
                     </div>
                 `;
@@ -539,7 +545,7 @@
             const btn = e.target.closest('[data-add-id]');
             if (!btn || btn.disabled) return;
             const p = PRODUCTS_DATA.find(x => x.id === btn.dataset.addId);
-            if (p) addToCart(p.name, p.price, p.img, p.id, p.wholesale, p.moq, p.stock);
+            if (p) addToCart(p.name, p.price, p.img, p.id, p.wholesale, p.moq, p.stock, p.preorder);
         });
 
         // Màu nền thẻ danh mục: bảng màu xoay vòng theo thứ tự (màu là việc HIỂN THỊ, backend không lưu).
@@ -620,7 +626,8 @@
                 PRODUCTS_DATA = prods.map(p => ({
                     id: p.id, name: p.name, price: p.retail_price, wholesale: p.wholesale_price, moq: p.moq, unit: p.unit, stock: p.stock, origin: p.origin || '',
                     standards: p.standards || '', summary: p.summary || '', img: p.thumbnail_url || '', slug: p.slug, ratingAvg: p.rating_avg, ratingCount: p.rating_count || 0,
-                    categoryName: p.category_name || '', catPath: pathOf(p.category_slug)
+                    categoryName: p.category_name || '', catPath: pathOf(p.category_slug),
+                    source: p.source_type, preorder: p.source_type === 'traced' && !!p.allow_preorder, availability: p.availability, availDate: p.expected_available_date || ''
                 }));
                 storeStatus = 'ready';
             } catch (err) {
@@ -702,8 +709,8 @@
         const FREESHIP_THRESHOLD = cart.FREESHIP_THRESHOLD;
 
         // `id` = id sản phẩm trên máy chủ (BẮT BUỘC để đặt hàng thật — backend lấy giá theo id, không tin giá client).
-        function addToCart(name, price, img, id, wholesale, moq, stock) {
-            const result = cart.add({ id, name, price, img, wholesale, moq, stock });
+        function addToCart(name, price, img, id, wholesale, moq, stock, preorder) {
+            const result = cart.add({ id, name, price, img, wholesale, moq, stock, preorder: !!preorder });
             if (!result.ok) return;
             openCartModal();
             if (result.limited) showCartNotice(`Chỉ còn ${stock} sản phẩm trong kho, đã đặt tối đa.`);

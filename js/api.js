@@ -720,6 +720,17 @@
     },
     deleteMyReview: function (productId) {
       return request('DELETE', '/products/' + productId + '/reviews/me');
+    },
+    /* "Báo tôi khi có hàng" (sản phẩm hết tồn nhưng sắp thu hoạch) — cần đăng nhập. Khi tồn kho từ 0 lên > 0,
+       backend ghi thông báo trong web (api.notifications) rồi xoá đăng ký. Còn hàng thì POST trả 409. */
+    notifyStatus: function (productId) {
+      return request('GET', '/products/' + productId + '/notify-me');
+    },
+    subscribeNotify: function (productId) {
+      return request('POST', '/products/' + productId + '/notify-me');
+    },
+    unsubscribeNotify: function (productId) {
+      return request('DELETE', '/products/' + productId + '/notify-me');
     }
   };
 
@@ -759,6 +770,23 @@
     },
     replace: function (items, opts) {
       return request('PUT', '/me/cart', { body: { items: items }, keepalive: !!(opts && opts.keepalive) });
+    }
+  };
+
+  /* Thông báo trong web của CHÍNH người đăng nhập (hiện: "sản phẩm đã có hàng trở lại"). Backend tự tạo
+     (trigger DB), client chỉ đọc + đánh dấu đã đọc. Dùng bởi js/agriverse-account.js. */
+  var notifications = {
+    list: function (params) {
+      return request('GET', '/me/notifications', { query: params });
+    },
+    unreadCount: function () {
+      return request('GET', '/me/notifications/unread-count');
+    },
+    markRead: function (id) {
+      return request('POST', '/me/notifications/' + id + '/read');
+    },
+    markAllRead: function () {
+      return request('POST', '/me/notifications/read-all');
     }
   };
 
@@ -999,6 +1027,7 @@
     articles: storeArticles,
     addresses: addresses,
     cart: cart,
+    notifications: notifications,
     orders: orders,
     system: system
   };
