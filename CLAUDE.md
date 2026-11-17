@@ -2568,7 +2568,7 @@ Chi tiết nghiệp vụ/ràng buộc ở `agrichain-api/CLAUDE.md` mục cùng 
   Trang chi tiết thêm dòng ngày dự kiến, khối "Nguồn gốc & lô hàng" (link `truy-xuat.html?ma=` chỉ khi lô đã thu hoạch) và nút "Báo tôi khi có hàng"
   (`api.products.notifyStatus/subscribeNotify/unsubscribeNotify` mới ở `js/api.js`; chưa đăng nhập → đá sang `dang-nhap.html?redirect=...`). `js/api.js` đã tăng `?v=25`
   **chỉ ở `san-pham-chi-tiet.html`** (trang duy nhất gọi hàm mới) — các trang khác còn `?v=24` vẫn chạy bình thường.
-- **Chưa làm**: đặt trước thật, tách đơn theo lô, trang "đơn cần giao" cho Đơn vị (giai đoạn 2); gửi thông báo "báo khi có hàng" (mới lưu đăng ký); badge số đề nghị chờ ở sidebar.
+- Đặt trước thật, tách đơn theo lô, trang "đơn cần giao" đã làm ở các mục sau; thông báo "báo khi có hàng" + badge sidebar xem mục "Thông báo trong web" cuối file.
 
 ### Đơn cần giao + hai bản sửa lỗi (2026-11-16)
 
@@ -2589,4 +2589,19 @@ Chi tiết nghiệp vụ/ràng buộc ở `agrichain-api/CLAUDE.md` mục cùng 
   API: `api/listings.ts` (`systemGrowRequests`, `growRequests`).
 - Sàn công khai: sản phẩm `allow_preorder` hết tồn hiện "Nhận đặt trước" + nút "Đặt trước" (thay "Báo khi có hàng"); `js/agriverse-cart.js` thêm cờ
   `preorder` trên dòng giỏ → không chặn số lượng theo tồn kho (cart.js ?v=4, cart-drawer ?v=2, wholesale ?v=2 ở mọi trang nạp chúng).
-- **Chưa hiện** "Đặt trước" trong lịch sử "Đơn Mua Của Tôi" của khách (backend đã trả `items[].preorder_quantity`).
+- "Đơn Mua Của Tôi" (`tai-khoan-khach-hang.html`) hiện badge vàng "Đặt trước" cạnh món có `items[].preorder_quantity > 0` (kèm "n/tổng" nếu chỉ một phần là đặt trước).
+
+### Thông báo trong web: "Báo tôi khi có hàng" + badge sidebar (2026-11-17)
+
+Backend chưa có SMTP nên kênh báo duy nhất là **thông báo trong web** (chi tiết + trigger: `agrichain-api/CLAUDE.md` mục "Thông báo trong web").
+- `js/api.js` thêm `api.notifications.list/unreadCount/markRead/markAllRead` (`/me/notifications`). `js/agriverse-account.js` (dùng chung 5 trang AgriVerse) vẽ **badge số chưa đọc trên avatar** + mục "Thông báo" (5 mới nhất, "Đánh dấu đã đọc") ngay trong dropdown tài khoản — không thêm chuông riêng vì không biết layout header từng trang Tailwind. Tải lại khi vẽ menu và mỗi lần mở dropdown; lỗi chỉ bỏ qua lặng lẽ. Tiêu đề/nội dung gán qua `textContent`; `link` chỉ nhận dạng `trang.html?...` (cùng regex chống open-redirect của `?redirect=`). `api.js` giờ `?v=26`, `agriverse-account.js` `?v=2`.
+- Đăng ký "Báo khi có hàng" là **báo 1 lần**: backend xoá đăng ký sau khi báo, hết hàng lại thì khách bấm đăng ký lại.
+- SPA: `Sidebar.tsx` hiện badge vàng số đề nghị chờ cạnh "Đề nghị bán hàng" (`api.listings.pendingCount()`, tải lại mỗi lần đổi route, lỗi bỏ qua). `js/tai-khoan.js` (bản tĩnh) đã có nhãn/icon cho nhóm quyền `listings`.
+- **Chưa làm**: trang liệt kê đầy đủ thông báo (dropdown chỉ 5 mục mới nhất), email.
+
+### Báo tiến trình đơn cho Đơn vị và khách (2026-11-17)
+
+Ý tưởng gốc của chủ dự án: (1) đặt đơn xong thì đơn "bắn về" Đơn vị để chuẩn bị và giao cho khách; (2) khách đặt trước, Đơn vị nhận trồng ("hợp đồng tương lai"). Luồng đã có từ trước; lượt này bổ sung phần BÁO, **chưa đụng tới phần tiền** (đặt cọc, khoá giá, điều khoản hợp đồng — chủ dự án để lại sau).
+- **Đơn vị** (SPA `Sidebar.tsx`): badge vàng ở "Đơn cần giao" = `GET /fulfillments/open-count` (chờ giao + đang giao); badge ở "Đề nghị bán hàng" = đề nghị chờ + yêu cầu trồng chờ phản hồi (`api.listings.pendingCount()` + `api.growRequests.pendingCount()` mới, `GET /grow-requests/pending-count`). Tải lại mỗi lần đổi route, mỗi số tải độc lập, lỗi bỏ qua. Đơn vị KHÔNG nhận "thông báo dạng dòng" (SPA chưa có chỗ hiện) — chỉ bộ đếm.
+- **Khách** (`js/agriverse-account.js` hiện sẵn, không đổi): nhận thông báo khi Đơn vị bấm "Bắt đầu giao"/"Đã giao xong" và khi đơn đặt trước vừa có nguồn hàng.
+- **Tiến trình từng dòng hàng** ở "Đơn Mua Của Tôi" (`itemProgressHtml()`, `tai-khoan-khach-hang.html`): chờ nguồn → đã có nguồn (n/tổng) → đang giao → đã giao, kèm "dự kiến thu hoạch dd/mm/yyyy"; đọc `items[].sourced_quantity/shipping_quantity/delivered_quantity/expected_harvest_date` (backend mới). Sản phẩm tự do và đơn đã huỷ không hiện dòng này.

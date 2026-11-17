@@ -35,11 +35,11 @@
 
     <script src="js/api-config.js?v=3"></script>
     <script src="js/app-config.js?v=2"></script>
-    <script src="js/api.js?v=25"></script>
+    <script src="js/api.js?v=26"></script>
     <script src="js/agriverse-cart.js?v=4"></script>
     <script src="js/agriverse-cart-drawer.js?v=2"></script>
     <script src="js/agriverse-wholesale.js?v=2"></script>
-    <script src="js/agriverse-account.js?v=1" defer></script>
+    <script src="js/agriverse-account.js?v=2" defer></script>
 </head>
 <body class="text-slate-800 min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
 
@@ -369,9 +369,9 @@
                 var max = Math.max.apply(null, [1].concat(Object.keys(s.distribution).map(function (k) { return s.distribution[k]; })));
                 var bars = [5, 4, 3, 2, 1].map(function (star) {
                     var n = s.distribution[String(star)] || 0;
-                    return '<div class="flex items-center gap-2 text-xs text-slate-500"><span class="w-6">' + star + ' <i class="fa-solid fa-star text-amber-500"></i></span>' +
+                    return '<div class="flex items-center gap-2 text-xs text-slate-500"><span class="w-9 shrink-0 whitespace-nowrap">' + star + ' <i class="fa-solid fa-star text-amber-500"></i></span>' +
                         '<div class="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden"><div class="h-full bg-amber-500 rounded-full" style="width:' + Math.round(n / max * 100) + '%"></div></div>' +
-                        '<span class="w-6 text-right">' + n + '</span></div>';
+                        '<span class="w-6 shrink-0 text-right">' + n + '</span></div>';
                 }).join('');
                 $('rv-summary').innerHTML =
                     '<div class="text-center"><div class="text-5xl font-black text-slate-900">' + (s.average != null ? s.average.toFixed(1) : '—') + '</div>' +

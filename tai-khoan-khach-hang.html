@@ -35,11 +35,11 @@
 
     <script src="js/api-config.js?v=3"></script>
     <script src="js/app-config.js?v=2"></script>
-    <script src="js/api.js?v=24"></script>
+    <script src="js/api.js?v=26"></script>
     <script src="js/agriverse-cart.js?v=4"></script>
     <script src="js/agriverse-cart-drawer.js?v=2"></script>
     <script src="js/password-field.js?v=1"></script>
-    <script src="js/agriverse-account.js?v=1" defer></script>
+    <script src="js/agriverse-account.js?v=2" defer></script>
     <!-- Trang này CẦN đăng nhập (khác agriverse-3d.html/san-pham.html công khai) — khách chưa đăng
          nhập bị đưa sang dang-nhap.html?redirect=tai-khoan-khach-hang.html. KHÔNG gọi
          requireBusiness(): đây là trang dành cho MỌI loại tài khoản kể cả customer. -->
@@ -699,6 +699,28 @@
                 };
                 return '<ol class="flex items-start">' + steps.map(cell).join('') + '</ol>';
             }
+            // Tiến trình nguồn hàng/giao hàng của MỘT dòng hàng (sản phẩm truy xuất, do Đơn vị giao):
+            // chờ nguồn → đã có nguồn (kèm ngày thu hoạch dự kiến) → đang giao → đã giao. Số liệu từ máy chủ
+            // (sourced/shipping/delivered_quantity, expected_harvest_date), không có tiền. Sản phẩm tự do
+            // (không có phần chia cho Đơn vị) và đơn đã huỷ thì không hiện gì.
+            function itemProgressHtml(i, o) {
+                if (o.status === 'cancelled') return '';
+                var sourced = i.sourced_quantity || 0, shipping = i.shipping_quantity || 0, delivered = i.delivered_quantity || 0;
+                var waiting = i.quantity - sourced;
+                if (!(i.preorder_quantity > 0) && sourced === 0) return '';
+                var parts = [];
+                if (delivered >= i.quantity) {
+                    parts.push('<span class="text-emerald-700 font-bold">Đã giao đủ ' + i.quantity + ' ' + esc(i.unit) + '</span>');
+                } else {
+                    if (sourced === 0) parts.push('<span class="text-amber-700 font-bold">Đang chờ nguồn hàng — Đơn vị sẽ nhận trồng/chuẩn bị cho bạn</span>');
+                    else if (waiting > 0) parts.push('<span class="text-amber-700 font-bold">Đã có nguồn ' + sourced + '/' + i.quantity + ', còn ' + waiting + ' ' + esc(i.unit) + ' chờ nguồn</span>');
+                    else parts.push('<span class="text-brand-700 font-bold">Đã có nguồn đủ ' + i.quantity + ' ' + esc(i.unit) + '</span>');
+                    if (shipping > 0) parts.push('đang giao ' + shipping);
+                    if (delivered > 0) parts.push('đã giao ' + delivered);
+                    if (i.expected_harvest_date && delivered < sourced) parts.push('dự kiến thu hoạch ' + fmtDate(i.expected_harvest_date));
+                }
+                return '<p class="text-xs text-slate-500 mt-1 pl-0.5"><i class="fa-solid fa-seedling text-brand-600 mr-1"></i>' + parts.join(' • ') + '</p>';
+            }
             function renderOrders() {
                 $('order-empty').hidden = myOrders.length > 0;
                 var oc = $('order-count');
@@ -715,9 +737,12 @@
                             '<span class="px-3 py-1 rounded-full text-xs font-bold ' + st.cls + '">' + st.label + '</span></div>' +
                         '<div class="px-5 py-4 space-y-2">' +
                             (o.items || []).map(function (i) {
-                                return '<div class="flex items-center justify-between gap-3 text-sm"><span class="min-w-0"><strong class="text-slate-900">' + esc(i.product_name) +
-                                    '</strong><span class="text-slate-500"> × ' + i.quantity + ' ' + esc(i.unit) + '</span></span>' +
-                                    '<strong class="font-mono">' + fmtMoney(i.unit_price * i.quantity) + '</strong></div>';
+                                return '<div><div class="flex items-center justify-between gap-3 text-sm"><span class="min-w-0"><strong class="text-slate-900">' + esc(i.product_name) +
+                                    '</strong><span class="text-slate-500"> × ' + i.quantity + ' ' + esc(i.unit) + '</span>' +
+                                    (i.preorder_quantity > 0 ? ' <span class="ml-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">Đặt trước' +
+                                        (i.preorder_quantity < i.quantity ? ' ' + i.preorder_quantity + '/' + i.quantity : '') + '</span>' : '') + '</span>' +
+                                    '<strong class="font-mono">' + fmtMoney(i.unit_price * i.quantity) + '</strong></div>' +
+                                    itemProgressHtml(i, o) + '</div>';
                             }).join('') +
                         '</div>' +
                         '<div class="px-5 pb-4">' + timelineHtml(o) + '</div>' +

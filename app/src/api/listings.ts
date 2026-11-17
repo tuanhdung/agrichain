@@ -226,6 +226,8 @@ export const systemGrowRequests = {
 };
 
 export const growRequests = {
+  /** Số yêu cầu trồng đang chờ Đơn vị phản hồi (status 'proposed'). */
+  pendingCount: () => request<{ pending: number }>('GET', '/grow-requests/pending-count'),
   list: (params?: { status?: GrowRequestStatus; page?: number; page_size?: number; [key: string]: unknown }) =>
     request<Page<GrowRequest>>('GET', '/grow-requests', { query: params }),
   respond: (id: string, action: 'accept' | 'reject', note?: string | null) =>

@@ -50,7 +50,7 @@
   // chuyển sang API (nong-trai-chi-tiet.html/lo-hang.js), trước đó nhóm này
   // đã có ở backend từ migration 005 nhưng chưa có hàng ở ma trận này vì
   // chưa trang nào thật sự cần gán quyền qua giao diện, xem CLAUDE.md.
-  var PREFIX_ORDER = ['batches', 'farms', 'certifications', 'seasons', 'supplies', 'logs', 'workflow_templates', 'roles', 'users'];
+  var PREFIX_ORDER = ['batches', 'farms', 'certifications', 'seasons', 'supplies', 'logs', 'workflow_templates', 'listings', 'roles', 'users'];
   var PREFIX_LABELS = {
     batches: 'Lô hàng',
     farms: 'Nông trại',
@@ -59,6 +59,7 @@
     supplies: 'Vật tư',
     logs: 'Nhật ký',
     workflow_templates: 'Mẫu quy trình',
+    listings: 'Bán hàng trên sàn',
     roles: 'Vai trò',
     users: 'Người dùng'
   };
@@ -70,6 +71,7 @@
     supplies: 'icon-box',
     logs: 'icon-file-text',
     workflow_templates: 'icon-workflow',
+    listings: 'icon-shopping-cart',
     roles: 'icon-shield-check',
     users: 'icon-user'
   };
